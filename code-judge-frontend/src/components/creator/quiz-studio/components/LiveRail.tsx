@@ -1,11 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, AlertTriangle, X, Settings2, ChevronDown, ChevronRight, Eye } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Settings2, ChevronDown, ChevronRight, Eye } from "lucide-react";
+import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
-import { StudioSelect } from "../primitives";
-import { getQuestionStatus } from "@/components/quiz/creator/types";
 import { useQuizReferenceStore } from "@/store/quizReferenceStore";
 
 /**
@@ -14,7 +12,7 @@ import { useQuizReferenceStore } from "@/store/quizReferenceStore";
  * is disabled until the question has enough data to show a meaningful preview
  * (e.g., choice questions need options + correct answer, matching needs items).
  */
-export function LiveRail({ onDownloadPdf, onStudentPreview, collapsed, onToggle }: { onDownloadPdf?: () => void; onStudentPreview?: () => void; collapsed?: boolean; onToggle?: () => void }) {
+export function LiveRail({ onStudentPreview, collapsed, onToggle }: { onDownloadPdf?: () => void; onStudentPreview?: () => void; collapsed?: boolean; onToggle?: () => void }) {
   const { state, updateQuestion } = useStudio();
   const q = state.questions.find((x) => x.id === state.activeQuestionId);
   const [propsCollapsed, setPropsCollapsed] = useState(false);
@@ -22,7 +20,7 @@ export function LiveRail({ onDownloadPdf, onStudentPreview, collapsed, onToggle 
 
   useEffect(() => {
     fetchAll();
-  }, []);
+  }, [fetchAll]);
 
   if (collapsed) {
     return (
@@ -59,7 +57,9 @@ export function LiveRail({ onDownloadPdf, onStudentPreview, collapsed, onToggle 
   const hasMatchItems = (q.matchItems ?? []).length >= 2;
   const hasMatchMatches = (q.matchMatches ?? []).length >= 2;
 
-  const hasMarks = (q.marks || 0) > 0;
+  const difficultyChoices = difficultyOptions.length > 0
+    ? difficultyOptions.map((option) => option.heading)
+    : ["Easy", "Medium", "Hard"];
 
   // Preview is available when the question has a title AND the type-specific content is filled
   const canPreview = hasTitle && (
@@ -92,48 +92,69 @@ export function LiveRail({ onDownloadPdf, onStudentPreview, collapsed, onToggle 
             </button>
           </div>
           {!propsCollapsed && (
-            <div className="mt-3 space-y-3">
-            <div>
-              <label className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Marks</label>
-              <input
-                value={q.marks}
-                onChange={(e) => updateQuestion(q.id, { marks: Number(e.target.value) || 0 })}
-                className="mt-1 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-xs font-bold text-[var(--qs-ink)] outline-none transition-colors focus:border-[var(--qs-brand)]"
-              />
+            <div className="mt-3 space-y-4 text-left">
+              <div>
+                <label className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Difficulty</label>
+                <div className="mt-2 flex flex-wrap justify-center gap-1.5">
+                  {difficultyChoices.map((difficulty) => {
+                    const active = q.difficulty === difficulty;
+                    return (
+                      <button
+                        key={difficulty}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => updateQuestion(q.id, { difficulty: difficulty as "Easy" | "Medium" | "Hard" | "Expert" })}
+                        className={cn(
+                          "rounded-full border-2 px-3 py-1.5 text-[11px] font-extrabold transition-colors",
+                          active
+                            ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
+                            : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
+                        )}
+                      >
+                        {difficulty}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Time (min)</label>
+                <div className="mt-1 flex items-center overflow-hidden rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
+                  <button
+                    type="button"
+                    aria-label="Decrease time"
+                    onClick={() => updateQuestion(q.id, { expectedTime: Math.max(1, (q.expectedTime || 0) - 1) })}
+                    disabled={q.expectedTime <= 1}
+                    className="grid h-9 w-11 place-items-center text-base font-extrabold text-[var(--qs-ink)] transition-colors hover:text-[var(--qs-brand)] disabled:opacity-35"
+                  >
+                    −
+                  </button>
+                  <span className="flex-1 text-center text-sm font-extrabold tabular-nums text-[var(--qs-ink)]">{q.expectedTime}</span>
+                  <button
+                    type="button"
+                    aria-label="Increase time"
+                    onClick={() => updateQuestion(q.id, { expectedTime: Math.min(30, (q.expectedTime || 0) + 1) })}
+                    disabled={q.expectedTime >= 30}
+                    className="grid h-9 w-11 place-items-center text-base font-extrabold text-[var(--qs-ink)] transition-colors hover:text-[var(--qs-brand)] disabled:opacity-35"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Difficulty</label>
-              <StudioSelect
-                className="mt-1"
-                value={q.difficulty}
-                options={difficultyOptions.map((opt) => ({ value: opt.heading, label: opt.heading }))}
-                onChange={(v) => updateQuestion(q.id, { difficulty: v as "Easy" | "Medium" | "Hard" | "Expert" })}
-                loading={difficultyOptions.length === 0}
-              />
-            </div>
-            <div>
-              <label className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Negative Marking</label>
-              <input
-                value={q.negativeMarks ?? 0}
-                onChange={(e) => updateQuestion(q.id, { negativeMarks: Number(e.target.value) || 0 })}
-                className="mt-1 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-xs font-bold text-[var(--qs-ink)] outline-none transition-colors focus:border-[var(--qs-brand)]"
-              />
-            </div>
-          </div>
           )}
         </div>
 
         <div className="text-center">
           <h3 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)] text-center">Question Status</h3>
-          <div className="mt-3 grid grid-cols-4 items-start gap-1 text-xs">
+          <ul className="mt-3 space-y-2 text-left">
             <StatusRow done={hasTitle} label="Question text" />
             <StatusRow
               done={isChoice ? q.options.every((o) => o.content.trim() !== "") : isMatching ? hasMatchItems && hasMatchMatches : String(q.correctAnswer ?? "").trim().length > 0}
               label={isChoice ? `${q.options.length} options` : isMatching ? `${q.matchItems?.length ?? 0} × ${q.matchMatches?.length ?? 0} pairs` : "Correct answer"}
             />
             <StatusRow done={hasCorrect || isMatching} label={isMatching ? "Line-wise matching" : "Correct answer"} />
-            <StatusRow done={hasMarks} label="Marks assigned" />
-          </div>
+          </ul>
         </div>
 
         <div className="text-center">
@@ -165,11 +186,11 @@ export function LiveRail({ onDownloadPdf, onStudentPreview, collapsed, onToggle 
           </div>
         )}
 
-        <div className="rounded-[16px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] p-3 text-center">
-          <p className="flex items-center justify-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#1a1240]">
-            <Eye className="h-3.5 w-3.5" /> Preview as student
+        <div className="rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 text-left shadow-[4px_4px_0_var(--qs-sun)]">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-brand)]">
+            Preview as student
           </p>
-          <p className="mt-1.5 text-xs font-medium leading-relaxed text-[#1a1240]/85">
+          <p className="mt-1.5 text-xs font-medium leading-relaxed text-[var(--qs-muted)]">
             {canPreview
               ? "This is how the question will appear to students."
               : "Fill in the question details before previewing."}
@@ -178,9 +199,9 @@ export function LiveRail({ onDownloadPdf, onStudentPreview, collapsed, onToggle 
             type="button"
             onClick={(e)=>{e.preventDefault(); e.stopPropagation(); onStudentPreview?.();}}
             disabled={!canPreview}
-            className="mt-2 inline-flex items-center gap-1 rounded-[10px] border-2 border-[#1a1240] bg-[#1a1240] px-2.5 py-1 text-[11px] font-extrabold text-[var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3 py-2 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <Eye className="h-3 w-3" /> Preview
+            <Eye className="h-3.5 w-3.5" /> Preview
           </button>
         </div>
       </div>
@@ -190,9 +211,11 @@ export function LiveRail({ onDownloadPdf, onStudentPreview, collapsed, onToggle 
 
 function StatusRow({ done, label }: { done: boolean; label: string }) {
   return (
-    <div className={`flex min-w-0 flex-col items-center gap-1 ${done ? "text-[var(--qs-ok)]" : "text-[var(--qs-muted)]"}`}>
-      {done ? <CheckCircle2 className="h-3.5 w-3.5 text-[var(--qs-ok)]" /> : <span className="h-3.5 w-3.5 rounded-full border-2 border-[var(--qs-line)]" />}
-      <span className="text-[10px] font-semibold leading-tight">{label}</span>
-    </div>
+    <li className={cn("flex items-center gap-2 text-[12px] font-bold", done ? "text-[var(--qs-ok)]" : "text-[var(--qs-warn)]")}>
+      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 border-current text-[10px] font-extrabold">
+        {done ? "✓" : "!"}
+      </span>
+      <span className="text-[var(--qs-ink)]">{label}</span>
+    </li>
   );
 }

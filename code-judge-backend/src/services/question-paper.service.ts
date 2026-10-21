@@ -236,7 +236,11 @@ Every question MUST include the integer "chapterId" and "topicId" from the scope
 export const generateSubjectiveQuestions = async (
   request: GenerateSubjectiveQuestionsRequest
 ): Promise<GenerateSubjectiveQuestionsResult> => {
-  const total = clampInt(Number(request.numberOfQuestions) || 0, 1, 50);
+  const requestedQuestions = Number(request.numberOfQuestions) || 0;
+  if (requestedQuestions > 10) {
+    throw new Error("You can generate at most 10 questions at a time.");
+  }
+  const total = clampInt(requestedQuestions, 1, 10);
 
   let easy = request.easyCount ?? -1;
   let medium = request.mediumCount ?? -1;

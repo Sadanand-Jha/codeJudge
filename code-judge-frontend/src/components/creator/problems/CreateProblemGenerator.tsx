@@ -35,7 +35,7 @@ type GeneratorStatus = "idle" | "generating" | "done" | "error";
 
 type QuestionItem = SubjectiveQuestion & { selected: boolean };
 
-const MAX_QUESTIONS = 30;
+const MAX_QUESTIONS = 10;
 const MAX_SYLLABUS = 4000;
 
 const splitDifficulty = (total: number) => {
@@ -390,6 +390,10 @@ export function CreateProblemGenerator() {
   const clearTopics = () => setTopicIds([]);
 
   const handleGenerate = useCallback(async () => {
+    if (totalQuestions > MAX_QUESTIONS) {
+      setError(`You can generate at most ${MAX_QUESTIONS} questions at a time.`);
+      return;
+    }
     if (!subjectId || difficultySum !== totalQuestions || categorySum !== totalQuestions) return;
     setError(null);
     setItems([]);

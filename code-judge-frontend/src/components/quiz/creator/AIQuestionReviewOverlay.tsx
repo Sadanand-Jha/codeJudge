@@ -234,7 +234,7 @@ export default function AIQuestionReviewOverlay({
                 {isEditing ? (
                   `Editing question ${index + 1} of ${total} · Esc to cancel`
                 ) : (
-                  <>Review each question before adding it to your quiz · ↑/↓ to navigate</>
+                  <>Single-correct MCQs only · Review each question before adding · ↑/↓ to navigate</>
                 )}
               </p>
             </div>

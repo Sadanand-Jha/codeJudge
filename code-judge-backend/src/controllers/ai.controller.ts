@@ -222,7 +222,14 @@ export const generateQuestionsFromUpload = async (req: Request, res: Response) =
       return res.status(400).json({ success: false, message: "At least one file is required" });
     }
 
-    const numberOfQuestions = Math.min(50, Math.max(1, Number(req.body.numberOfQuestions) || 5));
+    const requestedQuestions = Number(req.body.numberOfQuestions) || 5;
+    if (requestedQuestions > 25) {
+      return res.status(400).json({
+        success: false,
+        message: "You can generate at most 25 questions at a time.",
+      });
+    }
+    const numberOfQuestions = Math.min(25, Math.max(1, requestedQuestions));
     const boolOf = (v: unknown) => v === "true" || v === true || v === "1";
     const optionalId = (value: unknown): number | null => {
       const parsed = Number(value);
@@ -271,6 +278,17 @@ export const generateQuestionsFromUpload = async (req: Request, res: Response) =
   }
 };
 
+const parsePositiveIds = (value: unknown): number[] => {
+  if (!Array.isArray(value)) return [];
+  return [
+    ...new Set(
+      value
+        .map(Number)
+        .filter((id) => Number.isInteger(id) && id > 0)
+    ),
+  ];
+};
+
 /**
  * POST /api/v1/user/ai/generate-from-bank
  *
@@ -279,15 +297,36 @@ export const generateQuestionsFromUpload = async (req: Request, res: Response) =
  */
 export const generateFromQuestionBankHandler = async (req: Request, res: Response) => {
   try {
-    const numberOfQuestions = Math.min(50, Math.max(1, Number(req.body.numberOfQuestions) || 10));
+    const requestedQuestions = Number(req.body.numberOfQuestions) || 10;
+    if (requestedQuestions > 25) {
+      return res.status(400).json({
+        success: false,
+        message: "You can generate at most 25 questions at a time.",
+      });
+    }
+    const numberOfQuestions = Math.min(25, Math.max(1, requestedQuestions));
     const easyCount = req.body.easyCount != null ? Number(req.body.easyCount) : undefined;
     const mediumCount = req.body.mediumCount != null ? Number(req.body.mediumCount) : undefined;
     const hardCount = req.body.hardCount != null ? Number(req.body.hardCount) : undefined;
     const hardnessHint = req.body.hardnessHint ? String(req.body.hardnessHint) : undefined;
     const syllabus = req.body.syllabus ? String(req.body.syllabus).trim().slice(0, 4000) : undefined;
     const subjectId = Number(req.body.subjectId);
-    const chapterId = req.body.chapterId != null && req.body.chapterId !== "" ? Number(req.body.chapterId) : null;
-    const topicId = req.body.topicId != null && req.body.topicId !== "" ? Number(req.body.topicId) : null;
+    const chapterIds = parsePositiveIds(req.body.chapterIds);
+    const topicIds = parsePositiveIds(req.body.topicIds);
+    const legacyChapterId =
+      req.body.chapterId != null && req.body.chapterId !== "" ? Number(req.body.chapterId) : null;
+    const legacyTopicId =
+      req.body.topicId != null && req.body.topicId !== "" ? Number(req.body.topicId) : null;
+    if (legacyChapterId != null && Number.isInteger(legacyChapterId) && legacyChapterId > 0) {
+      chapterIds.unshift(legacyChapterId);
+    }
+    if (legacyTopicId != null && Number.isInteger(legacyTopicId) && legacyTopicId > 0) {
+      topicIds.unshift(legacyTopicId);
+    }
+    const uniqueChapterIds = [...new Set(chapterIds)];
+    const uniqueTopicIds = [...new Set(topicIds)];
+    const chapterId = uniqueChapterIds[0] ?? null;
+    const topicId = uniqueTopicIds[0] ?? null;
     const kind = typeof req.body.kind === "string" ? req.body.kind : "any";
     const quizId = req.body.quizId != null && req.body.quizId !== "" ? Number(req.body.quizId) : null;
     const createdBy = req.user?.userId ? Number(req.user.userId) : null;
@@ -313,6 +352,8 @@ export const generateFromQuestionBankHandler = async (req: Request, res: Respons
       subjectId,
       chapterId,
       topicId,
+      chapterIds: uniqueChapterIds,
+      topicIds: uniqueTopicIds,
       kind,
       quizId,
       createdBy,

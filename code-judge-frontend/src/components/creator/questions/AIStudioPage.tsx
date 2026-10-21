@@ -367,7 +367,7 @@ export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
                     <span className="w-10 text-center text-sm font-bold text-text-primary tabular-nums">{count}</span>
                     <button
                       type="button"
-                      onClick={() => setCount((c) => Math.min(50, c + 1))}
+                      onClick={() => setCount((c) => Math.min(10, c + 1))}
                       aria-label="More questions"
                       className="flex h-7 w-7 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-white/[0.05] hover:text-text-primary"
                     >

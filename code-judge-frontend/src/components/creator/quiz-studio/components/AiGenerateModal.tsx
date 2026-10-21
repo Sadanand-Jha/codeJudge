@@ -18,9 +18,10 @@ import {
   Target,
   Plus,
   Minus,
-  Circle,
   Loader2,
   Lock,
+  Clock,
+  Lightbulb,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { generateQuestionsFromFiles, generateFromQuestionBank, mapRawQuestionsToPreview } from "@/services/ai";
@@ -45,6 +46,19 @@ const ACCEPT = [
 ].join(",");
 
 const MAX_SIZE_MB = 20;
+const MAX_BANK_QUESTIONS = 25;
+const MAX_QUIZ_QUESTIONS = 25;
+const FILE_GENERATION_COUNT = 20;
+
+function getQuizLimitError(existingCount: number, requestedCount: number): string | null {
+  const total = existingCount + requestedCount;
+  if (total <= MAX_QUIZ_QUESTIONS) return null;
+  if (existingCount >= MAX_QUIZ_QUESTIONS) {
+    return `This quiz already has ${existingCount} questions — the ${MAX_QUIZ_QUESTIONS}-question limit. Remove questions before generating more.`;
+  }
+  const remaining = MAX_QUIZ_QUESTIONS - existingCount;
+  return `This quiz already has ${existingCount} questions. Generating ${requestedCount} more would reach ${total}, over the ${MAX_QUIZ_QUESTIONS}-question limit. You can generate up to ${remaining} more.`;
+}
 
 const GENERATION_STEPS = [
   "Reading your subject scope and instructions…",
@@ -52,6 +66,13 @@ const GENERATION_STEPS = [
   "Drafting clear, exam-ready question stems…",
   "Balancing difficulty and writing explanations…",
   "Checking answers and final quality…",
+] as const;
+
+const GENERATION_TIPS = [
+  "AI is matching questions to your selected chapters and difficulty mix.",
+  "Every question comes with an answer and explanation you can edit.",
+  "You can regenerate the set if the difficulty doesn't feel right.",
+  "Nothing is added to the quiz until you review and accept the set.",
 ] as const;
 
 const FILE_EXTENSIONS: Record<string, string[]> = {
@@ -89,6 +110,7 @@ export function AiGenerateModal({
   defaultSubjectId = null,
   defaultSubjectName,
   quizId = null,
+  currentQuestionCount = 0,
 }: {
   open: boolean;
   onClose: () => void;
@@ -96,6 +118,7 @@ export function AiGenerateModal({
   defaultSubjectId?: number | null;
   defaultSubjectName?: string;
   quizId?: string | null;
+  currentQuestionCount?: number;
 }) {
   const [mode, setMode] = useState<"own" | "bank">("own");
   const [files, setFiles] = useState<File[]>([]);
@@ -105,6 +128,8 @@ export function AiGenerateModal({
   const [generationFailed, setGenerationFailed] = useState(false);
   const [lastAction, setLastAction] = useState<"own" | "bank">("own");
   const [progress, setProgress] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [tipIndex, setTipIndex] = useState(0);
   const [done, setDone] = useState(false);
   const [addedCount, setAddedCount] = useState(0);
   // Review-before-add: generated questions wait in the overlay until accepted.
@@ -129,8 +154,8 @@ export function AiGenerateModal({
     : bankSubjectChoice === undefined
       ? null
       : bankSubjectChoice;
-  const [bankChapterId, setBankChapterId] = useState<number | null>(null);
-  const [bankTopicId, setBankTopicId] = useState<number | null>(null);
+  const [bankChapterIds, setBankChapterIds] = useState<number[]>([]);
+  const [bankTopicIds, setBankTopicIds] = useState<number[]>([]);
   const [bankKind, setBankKind] = useState<"any" | "theory" | "numerical">("any");
   const [catalog, setCatalog] = useState<QuestionGeneratorCatalog | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(true);
@@ -162,18 +187,18 @@ export function AiGenerateModal({
     };
   }, [open]);
 
-  // The request usually takes under a minute. Advance a paced, believable
-  // timeline so the wait feels active; real responses jump ahead at 70/100.
   useEffect(() => {
     if (!generating) return;
     const startedAt = Date.now();
     const timer = window.setInterval(() => {
       const elapsed = Date.now() - startedAt;
-      setProgress((current) => Math.min(90, Math.max(current, Math.floor((elapsed / 60_000) * 90))));
+      setElapsedSeconds(Math.floor(elapsed / 1000));
+      setProgress((current) => Math.min(90, Math.max(current, Math.floor((elapsed / 32_000) * 88))));
       setGenerationStep((current) => {
-        const next = Math.min(GENERATION_STEPS.length - 1, Math.floor(elapsed / 9_000));
+        const next = Math.min(GENERATION_STEPS.length - 1, Math.floor(elapsed / 5_500));
         return Math.max(current, next);
       });
+      setTipIndex(Math.floor(elapsed / 6_500) % GENERATION_TIPS.length);
     }, 500);
     return () => window.clearInterval(timer);
   }, [generating]);
@@ -193,8 +218,8 @@ export function AiGenerateModal({
     [catalog, bankSubjectId]
   );
   const topicOptions = useMemo(
-    () => catalog?.topics.filter((topic) => topic.chapterId === bankChapterId) ?? [],
-    [catalog, bankChapterId]
+    () => catalog?.topics.filter((topic) => bankChapterIds.includes(topic.chapterId)) ?? [],
+    [catalog, bankChapterIds]
   );
 
   const lockedSubjectName =
@@ -207,6 +232,15 @@ export function AiGenerateModal({
       title: "Subject is locked to this quiz",
       description: "To generate for another subject, change the quiz subject in the quiz details first.",
     });
+  };
+
+  const handleBankChaptersChange = (next: number[]) => {
+    setBankChapterIds(next);
+    setBankTopicIds((prev) =>
+      prev.filter((topicId) =>
+        catalog?.topics.some((topic) => topic.id === topicId && next.includes(topic.chapterId))
+      )
+    );
   };
 
   const syncBankDistribution = (total: number) => {
@@ -225,10 +259,14 @@ export function AiGenerateModal({
     setGenerationStep(0);
     setGenerationFailed(false);
     setProgress(0);
+    setElapsedSeconds(0);
+    setTipIndex(0);
     setDone(false);
     setAddedCount(0);
     setBankSyllabus("");
     setBankSubjectChoice(undefined);
+    setBankChapterIds([]);
+    setBankTopicIds([]);
     setReviewQuestions([]);
     setReviewOpen(false);
     setAccepting(false);
@@ -275,19 +313,30 @@ export function AiGenerateModal({
     [addFiles]
   );
 
+  const requestedQuestionCount = mode === "bank" ? bankNumber : FILE_GENERATION_COUNT;
+  const remainingQuestionSlots = Math.max(0, MAX_QUIZ_QUESTIONS - currentQuestionCount);
+  const quizLimitError = getQuizLimitError(currentQuestionCount, requestedQuestionCount);
+
   const handleGenerate = async () => {
     if (files.length === 0) return;
+    const limitError = getQuizLimitError(currentQuestionCount, FILE_GENERATION_COUNT);
+    if (limitError) {
+      setLastAction("own");
+      setError(limitError);
+      return;
+    }
     setLastAction("own");
     setGenerating(true);
     setGenerationFailed(false);
     setGenerationStep(0);
-    setProgress(8);
+    setProgress(6);
+    setElapsedSeconds(0);
+    setTipIndex(0);
     setError("");
 
     try {
-      setProgress(25);
       const rawQuestions = await generateQuestionsFromFiles(files, {
-        numberOfQuestions: 20,
+        numberOfQuestions: FILE_GENERATION_COUNT,
         questionTypes: ["mcq"],
         difficulty: ["easy", "medium", "hard"],
         bloomsLevel: "understand",
@@ -299,7 +348,6 @@ export function AiGenerateModal({
         quizId,
       });
 
-      setProgress(70);
       const previews = mapRawQuestionsToPreview(rawQuestions);
       if (previews.length === 0) {
         setError("The AI returned no questions. Try a smaller file or add more detail.");
@@ -320,6 +368,16 @@ export function AiGenerateModal({
   };
 
   const handleGenerateFromBank = async () => {
+    if (bankNumber > MAX_BANK_QUESTIONS) {
+      setError(`You can generate at most ${MAX_BANK_QUESTIONS} questions at a time.`);
+      return;
+    }
+    const limitError = getQuizLimitError(currentQuestionCount, bankNumber);
+    if (limitError) {
+      setLastAction("bank");
+      setError(limitError);
+      return;
+    }
     const sum = bankEasy + bankMedium + bankHard;
     if (sum !== bankNumber) {
       setError(`Distribution must sum to ${bankNumber}: Easy ${bankEasy} + Medium ${bankMedium} + Hard ${bankHard} = ${sum}`);
@@ -333,10 +391,11 @@ export function AiGenerateModal({
     setGenerating(true);
     setGenerationFailed(false);
     setGenerationStep(0);
-    setProgress(8);
+    setProgress(6);
+    setElapsedSeconds(0);
+    setTipIndex(0);
     setError("");
     try {
-      setProgress(20);
       const rawQuestions = await generateFromQuestionBank({
         numberOfQuestions: bankNumber,
         easyCount: bankEasy,
@@ -344,12 +403,11 @@ export function AiGenerateModal({
         hardCount: bankHard,
         syllabus: bankSyllabus.trim() || undefined,
         subjectId: bankSubjectId,
-        chapterId: bankChapterId,
-        topicId: bankTopicId,
+        chapterIds: bankChapterIds,
+        topicIds: bankTopicIds,
         kind: bankKind,
         quizId,
       });
-      setProgress(70);
       const previews = mapRawQuestionsToPreview(rawQuestions);
       if (previews.length === 0) {
         setError("The AI returned no questions. Try again or widen the chapter/topic scope.");
@@ -397,6 +455,11 @@ export function AiGenerateModal({
       return;
     }
     if (accepting) return;
+    const limitError = getQuizLimitError(currentQuestionCount, reviewQuestions.length);
+    if (limitError) {
+      toast.error({ title: "Question limit reached", description: limitError });
+      return;
+    }
     const questions = mapToCreatorQuestions(reviewQuestions);
     setAcceptCount(questions.length);
     setAccepting(true);
@@ -415,6 +478,11 @@ export function AiGenerateModal({
   };
 
   const handleAcceptOne = async (question: AIQuestionPreview) => {
+    const limitError = getQuizLimitError(currentQuestionCount, 1);
+    if (limitError) {
+      toast.error({ title: "Question limit reached", description: limitError });
+      return;
+    }
     try {
       const questions = mapToCreatorQuestions([question]);
       await onQuestionsAdded(questions);
@@ -431,7 +499,7 @@ export function AiGenerateModal({
 
   const canGenerateFromBank = bankEasy + bankMedium + bankHard === bankNumber && !!bankSubjectId;
   const canGenerateFromFiles = files.length > 0 && !error;
-  const primaryDisabled = mode === "bank" ? !canGenerateFromBank : !canGenerateFromFiles;
+  const primaryDisabled = (mode === "bank" ? !canGenerateFromBank : !canGenerateFromFiles) || !!quizLimitError;
 
   return (
     <>
@@ -469,7 +537,7 @@ export function AiGenerateModal({
                     <AiStreamText text="Generate with AI" />
                   </h3>
                   <p className="mt-0.5 text-[11px] font-medium text-[var(--qs-muted)]">
-                    Upload material or pick a topic — review everything before adding.
+                    Currently generates <span className="font-extrabold text-[var(--qs-ink)]">single-correct MCQs only</span> — review everything before adding.
                   </p>
                 </div>
               </div>
@@ -558,68 +626,125 @@ export function AiGenerateModal({
                   </button>
                 </div>
               ) : generating ? (
-                <div className="space-y-4 py-3">
-                  <div className="overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)]">
-                    <div className="flex items-center gap-3 bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 p-4 text-white">
-                      <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-[13px] border-2 border-white/40 bg-white/15">
-                        <Sparkles className="h-5 w-5" />
-                        <span className="absolute -right-1 -top-1 h-2.5 w-2.5 animate-ping rounded-full bg-[var(--qs-sun)] motion-reduce:animate-none" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-extrabold">Creating your questions…</p>
-                        <p aria-live="polite" className="mt-0.5 text-[11px] font-medium text-white/85">
-                          {GENERATION_STEPS[generationStep]}
-                        </p>
+                <div className="space-y-3 py-2">
+                  <div className="relative overflow-hidden rounded-[20px] border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)] shadow-[4px_4px_0_var(--qs-poly-3)]">
+                    <span className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-[var(--qs-brand)]/15 blur-2xl" />
+                    <span className="pointer-events-none absolute -bottom-14 -left-10 h-32 w-32 rounded-full bg-[var(--qs-sun)]/30 blur-2xl" />
+                    <div className="relative p-4 sm:p-5">
+                      <div className="flex items-start gap-3.5">
+                        <div className="relative shrink-0">
+                          <span className="absolute inset-0 rounded-[16px] bg-[var(--qs-brand)]/25 motion-safe:animate-ping motion-reduce:hidden" />
+                          <span className="relative grid h-12 w-12 place-items-center rounded-[16px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-sun)] shadow-[3px_3px_0_var(--qs-sun)]">
+                            <Sparkles className="h-5 w-5 motion-safe:animate-pulse motion-reduce:animate-none" />
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <p className="text-sm font-extrabold text-[var(--qs-ink)]">Creating your questions</p>
+                            <span className="inline-flex items-center gap-1 rounded-full border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 py-0.5 text-[10px] font-bold tabular-nums text-[var(--qs-muted)]">
+                              <Clock className="h-3 w-3" />
+                              {elapsedSeconds}s
+                            </span>
+                          </div>
+                          <p aria-live="polite" className="mt-1 text-[11px] font-medium leading-5 text-[var(--qs-muted)]">
+                            {GENERATION_STEPS[generationStep]}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="p-4">
-                      <div className="h-2 overflow-hidden rounded-full bg-[var(--qs-line)]">
-                        <motion.div
-                          className="h-full rounded-full bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${progress}%` }}
-                          transition={{ duration: 0.4 }}
-                        />
-                      </div>
-                      <div className="mt-1.5 flex items-center justify-between text-[10px] font-semibold text-[var(--qs-muted)]">
-                        <span>Usually under a minute</span>
-                        <span className="tabular-nums">{progress}%</span>
+
+                      <div className="mt-4">
+                        <div
+                          role="progressbar"
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-valuenow={progress}
+                          aria-label="Question generation progress"
+                          className="h-2.5 overflow-hidden rounded-full border border-[var(--qs-line)] bg-[var(--qs-surface)]"
+                        >
+                          <motion.div
+                            className="relative h-full rounded-full bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${progress}%` }}
+                            transition={{ duration: 0.4 }}
+                          >
+                            <span className="absolute inset-y-0 right-0 w-8 bg-white/25 blur-sm" />
+                          </motion.div>
+                        </div>
+                        <div className="mt-1.5 flex items-center justify-between text-[10px] font-semibold text-[var(--qs-muted)]">
+                          <span>Usually takes about 30 seconds</span>
+                          <span className="tabular-nums">{progress}%</span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <ul className="space-y-1.5 px-1">
-                    {GENERATION_STEPS.map((step, index) => {
-                      const isDone = index < generationStep;
-                      const isCurrent = index === generationStep;
-                      return (
-                        <li
-                          key={step}
-                          className={cn(
-                            "flex items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-[11px] font-semibold transition-colors",
-                            isCurrent
-                              ? "bg-[var(--qs-poly-1)] text-[var(--qs-ink)]"
-                              : isDone
-                                ? "text-[var(--qs-muted)]"
-                                : "text-[var(--qs-muted)]/60"
-                          )}
-                        >
-                          {isDone ? (
-                            <Check className="h-3.5 w-3.5 shrink-0 text-[var(--qs-ok)]" />
-                          ) : isCurrent ? (
-                            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[var(--qs-brand)] motion-reduce:animate-none" />
-                          ) : (
-                            <Circle className="h-3.5 w-3.5 shrink-0 opacity-40" />
-                          )}
-                          <span>{step}</span>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                  <div className="grid gap-2 sm:grid-cols-[1.15fr_0.85fr]">
+                    <ul className="space-y-1 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2">
+                      {GENERATION_STEPS.map((step, index) => {
+                        const isDone = index < generationStep;
+                        const isCurrent = index === generationStep;
+                        return (
+                          <li
+                            key={step}
+                            className={cn(
+                              "flex items-center gap-2.5 rounded-[11px] px-2 py-1.5 text-[11px] font-semibold transition-colors",
+                              isCurrent
+                                ? "bg-[var(--qs-poly-1)] text-[var(--qs-ink)]"
+                                : isDone
+                                  ? "text-[var(--qs-muted)]"
+                                  : "text-[var(--qs-muted)]/55"
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 text-[9px] font-extrabold",
+                                isDone
+                                  ? "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]"
+                                  : isCurrent
+                                    ? "border-[var(--qs-brand)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
+                                    : "border-[var(--qs-line)] text-[var(--qs-muted)]"
+                              )}
+                            >
+                              {isDone ? (
+                                <Check className="h-3 w-3" />
+                              ) : isCurrent ? (
+                                <Loader2 className="h-3 w-3 animate-spin motion-reduce:animate-none" />
+                              ) : (
+                                index + 1
+                              )}
+                            </span>
+                            <span className="flex-1 leading-4">{step}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
 
-                  <p className="px-1 text-center text-[10px] font-medium text-[var(--qs-muted)]">
-                    Keep this window open — the review opens as soon as the set is ready.
-                  </p>
+                    <div className="flex flex-col justify-between gap-2 rounded-[16px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)]/20 p-3.5">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <Lightbulb className="h-3.5 w-3.5 text-[var(--qs-warn)]" />
+                          <p className="text-[9px] font-extrabold uppercase tracking-[0.12em] text-[var(--qs-warn)]">
+                            While you wait
+                          </p>
+                        </div>
+                        <AnimatePresence mode="wait" initial={false}>
+                          <motion.p
+                            key={tipIndex}
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.18 }}
+                            className="mt-1.5 text-[11px] font-semibold leading-5 text-[var(--qs-ink)]"
+                          >
+                            {GENERATION_TIPS[tipIndex]}
+                          </motion.p>
+                        </AnimatePresence>
+                      </div>
+                      <p className="text-[10px] font-medium leading-4 text-[var(--qs-muted)]">
+                        Review opens automatically — nothing is added until you accept.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               ) : generationFailed ? (
                 <div className="py-3" role="alert">
@@ -700,8 +825,8 @@ export function AiGenerateModal({
                             value={bankSubjectId}
                             onChange={(next) => {
                               setBankSubjectChoice(next);
-                              setBankChapterId(null);
-                              setBankTopicId(null);
+                              setBankChapterIds([]);
+                              setBankTopicIds([]);
                             }}
                             options={subjectOptions.map((subject) => ({ value: subject.id, label: subject.name }))}
                             placeholder={catalogLoading ? "Loading…" : "Select subject"}
@@ -726,18 +851,17 @@ export function AiGenerateModal({
                         </div>
                         <QsSelect
                           id="ai-bank-chapter"
-                          value={bankChapterId ?? 0}
-                          onChange={(next) => {
-                            setBankChapterId(next === 0 ? null : next);
-                            setBankTopicId(null);
-                          }}
-                          options={[
-                            { value: 0, label: "All chapters" },
-                            ...chapterOptions.map((chapter) => ({ value: chapter.id, label: chapter.name })),
-                          ]}
+                          multiple
+                          values={bankChapterIds}
+                          onValuesChange={handleBankChaptersChange}
+                          options={chapterOptions.map((chapter) => ({
+                            value: chapter.id,
+                            label: chapter.name,
+                          }))}
                           placeholder="All chapters"
                           disabled={!bankSubjectId}
-                          ariaLabel="Chapter"
+                          ariaLabel="Chapters"
+                          searchable
                           triggerClassName="mt-1.5 h-11 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-3 text-[12px] font-bold text-[var(--qs-ink)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] disabled:opacity-50"
                         />
                       </div>
@@ -755,15 +879,17 @@ export function AiGenerateModal({
                         </div>
                         <QsSelect
                           id="ai-bank-topic"
-                          value={bankTopicId ?? 0}
-                          onChange={(next) => setBankTopicId(next === 0 ? null : next)}
-                          options={[
-                            { value: 0, label: "All topics" },
-                            ...topicOptions.map((topic) => ({ value: topic.id, label: topic.name })),
-                          ]}
+                          multiple
+                          values={bankTopicIds}
+                          onValuesChange={setBankTopicIds}
+                          options={topicOptions.map((topic) => ({
+                            value: topic.id,
+                            label: topic.name,
+                          }))}
                           placeholder="All topics"
-                          disabled={!bankChapterId}
-                          ariaLabel="Topic"
+                          disabled={bankChapterIds.length === 0}
+                          ariaLabel="Topics"
+                          searchable
                           triggerClassName="mt-1.5 h-11 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-3 text-[12px] font-bold text-[var(--qs-ink)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] disabled:opacity-50"
                         />
                       </div>
@@ -851,7 +977,7 @@ export function AiGenerateModal({
                         <button
                           type="button"
                           aria-label="More questions"
-                          onClick={() => { const v = Math.min(50, bankNumber + 1); setBankNumber(v); syncBankDistribution(v); }}
+                          onClick={() => { const v = Math.min(MAX_BANK_QUESTIONS, bankNumber + 1); setBankNumber(v); syncBankDistribution(v); }}
                           className="grid h-8 w-8 place-items-center rounded-[9px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
                         >
                           <Plus className="h-3.5 w-3.5" />
@@ -861,7 +987,7 @@ export function AiGenerateModal({
                     <input
                       type="range"
                       min={5}
-                      max={50}
+                      max={MAX_BANK_QUESTIONS}
                       value={bankNumber}
                       onChange={(e) => { const v = parseInt(e.target.value); setBankNumber(v); syncBankDistribution(v); }}
                       className="mt-2 w-full accent-[var(--qs-brand)]"
@@ -1011,21 +1137,33 @@ export function AiGenerateModal({
 
             {/* Footer CTA */}
             {!done && !generating && !generationFailed && (
-              <div className="flex shrink-0 items-center gap-2 border-t-2 border-[var(--qs-line)] px-4 py-3 sm:px-5">
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  className="h-11 rounded-[12px] border-2 border-[var(--qs-line)] px-4 text-sm font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
-                >
-                  Cancel
-                </button>
-                <AiGenerateButton
-                  size="md"
-                  label={mode === "bank" ? `Generate ${bankNumber} questions` : "Generate questions"}
-                  onClick={() => (mode === "bank" ? void handleGenerateFromBank() : void handleGenerate())}
-                  disabled={primaryDisabled}
-                  className="h-11 flex-1 px-4 text-sm"
-                />
+              <div className="shrink-0 border-t-2 border-[var(--qs-line)] px-4 py-3 sm:px-5">
+                {quizLimitError ? (
+                  <div className="mb-2 flex items-start gap-2 rounded-[12px] border-2 border-[var(--qs-warn)] bg-[var(--qs-bg)] px-3 py-2">
+                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--qs-warn)]" />
+                    <p className="text-[11px] font-semibold leading-relaxed text-[var(--qs-ink)]">{quizLimitError}</p>
+                  </div>
+                ) : currentQuestionCount > 0 ? (
+                  <p className="mb-2 text-center text-[10px] font-semibold text-[var(--qs-muted)]">
+                    This quiz has {currentQuestionCount} of {MAX_QUIZ_QUESTIONS} questions · {remainingQuestionSlots} slot{remainingQuestionSlots === 1 ? "" : "s"} left
+                  </p>
+                ) : null}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="h-11 rounded-[12px] border-2 border-[var(--qs-line)] px-4 text-sm font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+                  >
+                    Cancel
+                  </button>
+                  <AiGenerateButton
+                    size="md"
+                    label={mode === "bank" ? `Generate ${bankNumber} questions` : "Generate questions"}
+                    onClick={() => (mode === "bank" ? void handleGenerateFromBank() : void handleGenerate())}
+                    disabled={primaryDisabled}
+                    className="h-11 flex-1 px-4 text-sm"
+                  />
+                </div>
               </div>
             )}
 

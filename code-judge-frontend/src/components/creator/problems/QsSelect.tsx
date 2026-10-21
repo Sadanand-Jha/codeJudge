@@ -35,6 +35,9 @@ export function QsSelect<T extends string | number>({
   value,
   options,
   onChange,
+  multiple = false,
+  values,
+  onValuesChange,
   placeholder = "Select",
   disabled = false,
   ariaLabel,
@@ -45,9 +48,13 @@ export function QsSelect<T extends string | number>({
   searchPlaceholder = "Search…",
 }: {
   id?: string;
-  value: T | null;
+  value?: T | null;
   options: QsSelectOption<T>[];
-  onChange: (value: T) => void;
+  onChange?: (value: T) => void;
+  /** Enables checkbox-style multi-selection via `values`/`onValuesChange`. */
+  multiple?: boolean;
+  values?: T[];
+  onValuesChange?: (values: T[]) => void;
   placeholder?: string;
   disabled?: boolean;
   ariaLabel?: string;
@@ -66,6 +73,7 @@ export function QsSelect<T extends string | number>({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
   const canSearch = searchable ?? options.length > 6;
+  const selectedValues = values ?? [];
   const filteredOptions = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return options;
@@ -132,11 +140,24 @@ export function QsSelect<T extends string | number>({
   }, [open, canSearch]);
 
   const selected = options.find((option) => option.value === value) ?? null;
+  const selectedOptions = multiple
+    ? options.filter((option) => selectedValues.includes(option.value))
+    : selected
+      ? [selected]
+      : [];
+  const triggerLabel =
+    selectedOptions.length === 0
+      ? placeholder
+      : selectedOptions.length === 1
+        ? selectedOptions[0].label
+        : `${selectedOptions[0].label} +${selectedOptions.length - 1}`;
 
   const openMenu = () => {
     if (disabled) return;
     if (!open) {
-      const index = options.findIndex((option) => option.value === value);
+      const index = multiple
+        ? options.findIndex((option) => selectedValues.includes(option.value))
+        : options.findIndex((option) => option.value === value);
       setQuery("");
       setActiveIndex(index >= 0 ? index : 0);
       measure();
@@ -146,7 +167,14 @@ export function QsSelect<T extends string | number>({
 
   const choose = (option: QsSelectOption<T>) => {
     if (!option || option.disabled) return;
-    onChange(option.value);
+    if (multiple) {
+      const next = selectedValues.includes(option.value)
+        ? selectedValues.filter((item) => item !== option.value)
+        : [...selectedValues, option.value];
+      onValuesChange?.(next);
+      return;
+    }
+    onChange?.(option.value);
     setOpen(false);
     setQuery("");
   };
@@ -200,8 +228,8 @@ export function QsSelect<T extends string | number>({
           triggerClassName
         )}
       >
-        <span className={cn("truncate", !selected && "text-[var(--qs-muted)]")}>
-          {selected ? selected.label : placeholder}
+        <span className={cn("truncate", selectedOptions.length === 0 && "text-[var(--qs-muted)]")}>
+          {triggerLabel}
         </span>
         <ChevronDown
           className={cn("h-4 w-4 shrink-0 opacity-70 transition-transform", open && "rotate-180")}
@@ -230,32 +258,53 @@ export function QsSelect<T extends string | number>({
                 menuClassName
               )}
             >
-              {canSearch && (
+              {(canSearch || (multiple && selectedValues.length > 0)) && (
                 <div className="sticky top-0 z-10 bg-[var(--qs-surface)] p-1.5 pb-0">
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--qs-muted)]" />
-                    <input
-                      ref={searchRef}
-                      value={query}
-                      onChange={(event) => {
-                        setQuery(event.target.value);
-                        setActiveIndex(0);
-                      }}
-                      placeholder={searchPlaceholder}
-                      aria-label={ariaLabel ? `Search ${ariaLabel}` : "Search options"}
-                      className="h-9 w-full rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] pl-8 pr-2.5 text-sm font-medium text-[var(--qs-ink)] outline-none placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
-                    />
-                  </div>
+                  {canSearch && (
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--qs-muted)]" />
+                      <input
+                        ref={searchRef}
+                        value={query}
+                        onChange={(event) => {
+                          setQuery(event.target.value);
+                          setActiveIndex(0);
+                        }}
+                        placeholder={searchPlaceholder}
+                        aria-label={ariaLabel ? `Search ${ariaLabel}` : "Search options"}
+                        className="h-9 w-full rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] pl-8 pr-2.5 text-sm font-medium text-[var(--qs-ink)] outline-none placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
+                      />
+                    </div>
+                  )}
+                  {multiple && selectedValues.length > 0 && (
+                    <div className="flex items-center justify-between px-1 pt-1.5 text-[11px] font-bold text-[var(--qs-muted)]">
+                      <span>{selectedValues.length} selected</span>
+                      <button
+                        type="button"
+                        onClick={() => onValuesChange?.([])}
+                        className="rounded-[6px] px-1.5 py-0.5 text-[var(--qs-brand)] transition-colors hover:bg-[var(--qs-poly-1)]"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
-              <ul role="listbox" aria-label={ariaLabel} className="p-1.5">
+              <ul
+                role="listbox"
+                aria-label={ariaLabel}
+                aria-multiselectable={multiple || undefined}
+                className="p-1.5"
+              >
                 {filteredOptions.length === 0 ? (
                   <li className="px-3 py-4 text-center text-[13px] text-[var(--qs-muted)]">
                     {options.length === 0 ? "No options" : "No matches"}
                   </li>
                 ) : (
                   filteredOptions.map((option, index) => {
-                    const isSelected = option.value === value;
+                    const isSelected = multiple
+                      ? selectedValues.includes(option.value)
+                      : option.value === value;
                     return (
                       <li key={String(option.value)}>
                         <button
@@ -273,8 +322,23 @@ export function QsSelect<T extends string | number>({
                               : "font-medium text-[var(--qs-ink)]"
                           )}
                         >
-                          <span className="truncate">{option.label}</span>
-                          {isSelected && <Check className="h-4 w-4 shrink-0" />}
+                          <span className="flex min-w-0 items-center gap-2">
+                            {multiple ? (
+                              <span
+                                aria-hidden="true"
+                                className={cn(
+                                  "grid h-4 w-4 shrink-0 place-items-center rounded-[4px] border-2 transition-colors",
+                                  isSelected
+                                    ? "border-[var(--qs-brand)] bg-[var(--qs-brand)] text-white"
+                                    : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
+                                )}
+                              >
+                                {isSelected && <Check className="h-3 w-3" strokeWidth={3} />}
+                              </span>
+                            ) : null}
+                            <span className="truncate">{option.label}</span>
+                          </span>
+                          {!multiple && isSelected && <Check className="h-4 w-4 shrink-0" />}
                         </button>
                       </li>
                     );

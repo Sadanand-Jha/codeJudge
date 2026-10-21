@@ -372,7 +372,7 @@ export function QuestionsStep() {
           )}
         </main>
 
-        <div className={`${rightCollapsed ? "w-10" : "w-[340px]"} hidden shrink-0 xl:flex`}>
+        <div className={`${rightCollapsed ? "w-10" : "w-[340px]"} hidden h-[calc(100dvh-13rem)] max-h-full min-h-0 shrink-0 xl:flex`}>
           <LiveRail onDownloadPdf={openPdfModal} onStudentPreview={() => setStudentPreviewOpen(true)} collapsed={rightCollapsed} onToggle={() => setRightCollapsed(!rightCollapsed)} />
         </div>
 
@@ -401,6 +401,7 @@ export function QuestionsStep() {
         defaultSubjectId={state.info.subjectId ? Number(state.info.subjectId) || null : null}
         defaultSubjectName={state.info.subject || undefined}
         quizId={state.serverQuizId ?? null}
+        currentQuestionCount={state.questions.length}
       />
 
       <StudentPreviewModal
