@@ -4,16 +4,19 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, ChevronLeft, ChevronRight, Download, Mail, Square, Search, X, RefreshCw,
-  MoreVertical, Pause, RotateCcw, Timer, TrendingUp, TrendingDown,
+  MoreVertical, Pause, RotateCcw, Timer, TrendingUp, TrendingDown, Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import Link from "next/link";
 import { useToast } from "@/hooks/useToast";
+import { QuestionHtml, renderQuestionHtml } from "@/components/creator/questions/QuestionHtml";
 import {
   getQuizResponses,
   getStudentResponseDetail,
   getQuizAnalytics,
   getQuizByCode,
+  deleteQuizResponseAttempt,
+  sendQuizResponsesEmail,
   type QuizResponseStudent,
   type StudentResponseDetail,
 } from "@/services/quiz";
@@ -31,8 +34,7 @@ interface Student {
   name: string;
   rollNo: string;
   status: StudentStatus;
-  marks: number | null;
-  total: number;
+  correct: number | null;
   percentage: number | null;
   timeTakenSec: number | null;
   timeTaken: string | null;
@@ -62,7 +64,7 @@ const STATUS_COLORS: Record<StudentStatus, string> = {
 
 const FILTERS = ["ALL", "SUBMITTED", "IN_PROGRESS", "NOT_STARTED", "TIMED_OUT"] as const;
 
-const SORT_LABELS = ["Marks (high to low)", "Fastest first", "Latest first"] as const;
+const SORT_LABELS = ["Correct (high to low)", "Fastest first", "Latest first"] as const;
 
 const PAGE_SIZE = 8;
 
@@ -130,6 +132,20 @@ function formatDateTime(iso: string | null): string | null {
   });
 }
 
+function InlineQuestionHtml({ html, className }: { html: string; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline [&_p]:m-0 [&_p]:inline [&_ul]:m-0 [&_ul]:inline [&_ol]:m-0 [&_ol]:inline [&_li]:inline",
+        "[&_code]:rounded [&_code]:bg-[var(--qs-bg)] [&_code]:px-1 [&_code]:font-mono [&_code]:text-[10px]",
+        "[&_strong]:font-extrabold [&_em]:italic",
+        className
+      )}
+      dangerouslySetInnerHTML={{ __html: renderQuestionHtml(html) }}
+    />
+  );
+}
+
 function apiErrorMessage(err: unknown, fallback: string): string {
   if (typeof err === "object" && err !== null && "response" in err) {
     const response = (err as { response?: unknown }).response;
@@ -150,17 +166,16 @@ function isLiveAttempt(student: Student, now: number): boolean {
   return Number.isFinite(lastActivity) && now - lastActivity >= 0 && now - lastActivity <= LIVE_ACTIVITY_WINDOW_MS;
 }
 
-function mapStudent(row: QuizResponseStudent, totalMarks: number): Student {
+function mapStudent(row: QuizResponseStudent): Student {
   const name = displayName(row);
   const status: StudentStatus =
     row.attempt_status === "completed" ? "SUBMITTED"
     : row.attempt_status === "timed_out" ? "TIMED_OUT"
     : row.attempt_id != null || row.attempt_status ? "IN_PROGRESS"
     : "NOT_STARTED";
-  const marks = toNumber(row.score);
   const percentage = toNumber(row.percentage);
   const timeTakenSec = toNumber(row.time_taken);
-  const correct = toNumber(row.correct_answers) ?? 0;
+  const correct = toNumber(row.correct_answers);
   const wrong = toNumber(row.wrong_answers) ?? 0;
   const hasAttempt = row.attempt_id != null;
   return {
@@ -171,8 +186,7 @@ function mapStudent(row: QuizResponseStudent, totalMarks: number): Student {
     name,
     rollNo: row.rollno || "—",
     status,
-    marks,
-    total: totalMarks,
+    correct,
     percentage,
     timeTakenSec,
     timeTaken: formatTaken(timeTakenSec),
@@ -182,7 +196,7 @@ function mapStudent(row: QuizResponseStudent, totalMarks: number): Student {
     avatar: initials(name),
     avatarUrl: row.avatar_url,
     rank: row.rank,
-    questionsAnswered: hasAttempt ? correct + wrong : status === "NOT_STARTED" ? 0 : null,
+    questionsAnswered: hasAttempt ? (correct ?? 0) + wrong : status === "NOT_STARTED" ? 0 : null,
     totalQuestions: toNumber(row.total_questions),
   };
 }
@@ -235,7 +249,8 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
   const toast = useToast();
   const [students, setStudents] = useState<Student[]>([]);
   const [quizName, setQuizName] = useState("Responses");
-  const [totalMarks, setTotalMarks] = useState(0);
+  const [resolvedQuizId, setResolvedQuizId] = useState(quizId);
+  const [totalQuestions, setTotalQuestions] = useState(0);
   const [summary, setSummary] = useState({ total: 0, submitted: 0, notSubmitted: 0, avg: 0, highest: 0, lowest: null as number | null });
   const [timeStats, setTimeStats] = useState<{ avg: number | null; fastest: number | null; slowest: number | null }>({ avg: null, fastest: null, slowest: null });
   const [loading, setLoading] = useState(true);
@@ -254,6 +269,9 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
   const [endOpen, setEndOpen] = useState(false);
   const [liveMenuOpen, setLiveMenuOpen] = useState(false);
   const [actionMenu, setActionMenu] = useState<{ student: Student; top: number; right: number } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
   const [presenceNow, setPresenceNow] = useState(() => Date.now());
   const firstResponsesLoadRef = useRef(true);
 
@@ -271,15 +289,16 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
         getQuizAnalytics(numericId).catch(() => null),
       ]);
 
-      const marks = resp.quiz?.total_marks ?? 0;
       setQuizName(resp.quiz?.name || "Responses");
-      setTotalMarks(marks);
-      const attempts = (resp.students || []).map((row) => mapStudent(row, marks));
-      if (attempts.some((s) => s.rank === null && s.marks !== null)) {
+      setResolvedQuizId(numericId);
+      const attempts = (resp.students || []).map(mapStudent);
+      const questions = attempts.find((s) => s.totalQuestions != null)?.totalQuestions ?? 0;
+      setTotalQuestions(questions);
+      if (attempts.some((s) => s.rank === null && s.correct !== null)) {
         const ranked = attempts
-          .filter((s) => s.marks !== null)
+          .filter((s) => s.correct !== null)
           .sort((a, b) =>
-            (b.marks ?? 0) - (a.marks ?? 0) ||
+            (b.correct ?? 0) - (a.correct ?? 0) ||
             (a.timeTakenSec ?? Infinity) - (b.timeTakenSec ?? Infinity)
           );
         ranked.forEach((s, i) => {
@@ -287,14 +306,14 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
         });
       }
       setStudents(attempts);
-      const scored = attempts.filter((student) => student.marks !== null);
+      const scored = attempts.filter((student) => student.correct !== null);
       setSummary({
         total: new Set(attempts.map((student) => student.userId)).size,
         submitted: attempts.filter((student) => student.status === "SUBMITTED").length,
         notSubmitted: attempts.filter((student) => student.status !== "SUBMITTED").length,
-        avg: scored.length ? scored.reduce((a, b) => a + (b.marks ?? 0), 0) / scored.length : 0,
-        highest: scored.length ? Math.max(...scored.map((s) => s.marks ?? 0)) : 0,
-        lowest: scored.length ? Math.min(...scored.map((s) => s.marks ?? 0)) : null,
+        avg: scored.length ? scored.reduce((a, b) => a + (b.correct ?? 0), 0) / scored.length : 0,
+        highest: scored.length ? Math.max(...scored.map((s) => s.correct ?? 0)) : 0,
+        lowest: scored.length ? Math.min(...scored.map((s) => s.correct ?? 0)) : null,
       });
 
       const st = analytics?.stats;
@@ -406,7 +425,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
     const sorted = [...list];
     const time = (s: Student) => (s.completedAt ? Date.parse(s.completedAt) : s.lastActivityAt ? Date.parse(s.lastActivityAt) : 0) || 0;
     if (sortMode === 0) {
-      sorted.sort((a, b) => (b.marks ?? -Infinity) - (a.marks ?? -Infinity) || (a.timeTakenSec ?? Infinity) - (b.timeTakenSec ?? Infinity));
+      sorted.sort((a, b) => (b.correct ?? -Infinity) - (a.correct ?? -Infinity) || (a.timeTakenSec ?? Infinity) - (b.timeTakenSec ?? Infinity));
     } else if (sortMode === 1) {
       sorted.sort((a, b) => (a.timeTakenSec ?? Infinity) - (b.timeTakenSec ?? Infinity));
     } else {
@@ -449,12 +468,12 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
 
   const scoreData = useMemo(() => {
     const BUCKETS = 5;
-    const max = totalMarks > 0 ? totalMarks : 100;
+    const max = totalQuestions > 0 ? totalQuestions : 100;
     const size = max / BUCKETS;
     const counts = new Array(BUCKETS).fill(0);
     students.forEach((s) => {
-      if (s.marks === null) return;
-      const idx = Math.min(BUCKETS - 1, Math.floor(s.marks / size));
+      if (s.correct === null) return;
+      const idx = Math.min(BUCKETS - 1, Math.floor(s.correct / size));
       counts[idx] += 1;
     });
     return counts.map((count, i) => {
@@ -462,7 +481,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
       const hi = Math.round((i + 1) * size);
       return { range: i === BUCKETS - 1 ? `${lo}-${max}` : `${lo}-${hi}`, count };
     });
-  }, [students, totalMarks]);
+  }, [students, totalQuestions]);
 
   const maxBucket = useMemo(() => Math.max(...scoreData.map((s) => s.count), 1), [scoreData]);
 
@@ -473,10 +492,10 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
   ]), [timeStats]);
 
   const exportCsv = useCallback(() => {
-    const header = ["Rank", "Student", "Attempt", "Roll no.", "Status", "Marks", "Total", "%", "Time taken", "Submitted at"];
+    const header = ["Rank", "Student", "Attempt", "Roll no.", "Status", "Correct", "Total questions", "%", "Time taken", "Submitted at"];
     const rows = filtered.map((s) => [
       s.rank ?? "", s.name, s.attemptNumber ?? "", s.rollNo, STATUS_CONFIG[s.status].label,
-      s.marks ?? "", s.total, s.percentage !== null ? Math.round(s.percentage) : "", s.timeTaken ?? "", s.submittedAt ?? "",
+      s.correct ?? "", s.totalQuestions ?? "", s.totalQuestions ? Math.round(((s.correct ?? 0) / s.totalQuestions) * 100) : "", s.timeTaken ?? "", s.submittedAt ?? "",
     ]);
     const csv = [header, ...rows]
       .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
@@ -492,15 +511,50 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
     toast.success({ title: "Exported", description: `${filtered.length} rows downloaded as CSV.` });
   }, [filtered, quizName, toast]);
 
+  const handleDeleteAttempt = useCallback(async () => {
+    if (!deleteTarget?.attemptId || deleting) return;
+    setDeleting(true);
+    try {
+      await deleteQuizResponseAttempt(resolvedQuizId, deleteTarget.attemptId);
+      if (detailPanel?.attemptId === deleteTarget.attemptId) setDetailPanel(null);
+      setDeleteTarget(null);
+      toast.success({ title: "Attempt deleted", description: `The attempt for ${deleteTarget.name} has been removed from this report.` });
+      await load();
+    } catch {
+      toast.error({ title: "Could not delete attempt", description: "Please try again in a moment." });
+    } finally {
+      setDeleting(false);
+    }
+  }, [deleteTarget, deleting, resolvedQuizId, detailPanel, toast, load]);
+
+  const handleSendEmail = useCallback(async () => {
+    if (sendingEmail) return;
+    setSendingEmail(true);
+    try {
+      const result = await sendQuizResponsesEmail(resolvedQuizId);
+      toast.success({
+        title: "Report sent",
+        description: result?.to ? `The Excel report was emailed to ${result.to}.` : "The Excel report has been emailed to you.",
+      });
+    } catch (error) {
+      toast.error({
+        title: "Could not send email",
+        description: apiErrorMessage(error, "Please check your email settings and try again."),
+      });
+    } finally {
+      setSendingEmail(false);
+    }
+  }, [sendingEmail, resolvedQuizId, toast]);
+
   const kpis = [
     { label: "Total students", value: summary.total, sub: "registered", color: "var(--qs-brand)" },
     { label: "Submitted", value: summary.submitted, sub: "completed", color: "var(--qs-ok)" },
     { label: "In progress", value: inProgressCount, sub: "currently taking", color: "#2457d6" },
     { label: "Not started", value: notStartedCount, sub: "waiting", color: "#a85d00" },
     { label: "Auto submitted", value: timedOutCount, sub: "time expired", color: "var(--qs-bad)" },
-    { label: "Avg score", value: summary.avg.toFixed(1), sub: `/ ${totalMarks}`, color: "#1A1240", hi: true },
-    { label: "Highest", value: summary.highest, sub: "score", color: "var(--qs-ok)" },
-    { label: "Lowest", value: summary.lowest ?? "—", sub: "score", color: "var(--qs-bad)" },
+    { label: "Avg correct", value: summary.avg.toFixed(1), sub: `/ ${totalQuestions}`, color: "#1A1240", hi: true },
+    { label: "Highest", value: summary.highest, sub: "correct", color: "var(--qs-ok)" },
+    { label: "Lowest", value: summary.lowest ?? "—", sub: "correct", color: "var(--qs-bad)" },
   ];
 
   const topBtn = "inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-[9px] text-sm font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]";
@@ -541,9 +595,14 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               <Download className="h-4 w-4" />
               Download Results
             </button>
-            <button type="button" onClick={() => toast.info({ title: "Coming soon", description: "Emailing results is not available yet." })} className={topBtn}>
-              <Mail className="h-4 w-4" />
-              Send on Email
+            <button
+              type="button"
+              onClick={() => void handleSendEmail()}
+              disabled={sendingEmail}
+              className={cn(topBtn, "disabled:cursor-not-allowed disabled:opacity-60")}
+            >
+              <Mail className={cn("h-4 w-4", sendingEmail && "animate-pulse")} />
+              {sendingEmail ? "Sending…" : "Send on Email"}
             </button>
             <button
               type="button"
@@ -863,8 +922,8 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                         <div className="mt-2 flex flex-wrap items-center gap-2">
                           <StatusBadge status={s.status} />
                           <span className="text-xs font-bold text-[var(--qs-ink)]">
-                            {s.marks !== null ? s.marks : "—"}
-                            <span className="font-medium text-[var(--qs-muted)]"> / {s.total}</span>
+                            {s.correct !== null ? s.correct : "—"}
+                            <span className="font-medium text-[var(--qs-muted)]"> / {s.totalQuestions ?? "—"} correct</span>
                           </span>
                           <span className="flex items-center gap-1.5 text-xs font-extrabold text-[var(--qs-ink)]">
                             {s.percentage !== null ? `${Math.round(s.percentage)}%` : "—"}
@@ -898,7 +957,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               <table className="w-full min-w-[900px] border-collapse text-left">
                 <thead>
                   <tr>
-                    {["Rank", "Student", "Attempt", "Roll no.", "Status", "Marks", "%", "Time taken", "Submitted at", "Actions"].map((h) => (
+                    {["Rank", "Student", "Attempt", "Roll no.", "Status", "Correct", "%", "Time taken", "Submitted at", "Actions"].map((h) => (
                       <th key={h} className="whitespace-nowrap px-3 py-3.5 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">{h}</th>
                     ))}
                   </tr>
@@ -936,8 +995,8 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                         <td className="px-3 py-3 text-[var(--qs-muted)]">{s.rollNo}</td>
                         <td className="px-3 py-3"><StatusBadge status={s.status} /></td>
                         <td className="px-3 py-3 font-bold text-[var(--qs-ink)]">
-                          {s.marks !== null ? s.marks : "—"}
-                          <span className="font-medium text-[var(--qs-muted)]"> / {s.total}</span>
+                          {s.correct !== null ? s.correct : "—"}
+                          <span className="font-medium text-[var(--qs-muted)]"> / {s.totalQuestions ?? "—"}</span>
                         </td>
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-2.5 font-extrabold text-[var(--qs-ink)]">
@@ -1035,20 +1094,22 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
           >
             View attempt
           </button>
-          <button
+          {/* <button
             type="button"
             onClick={() => { setActionMenu(null); toast.info({ title: "Coming soon", description: "Re-opening attempts is not available yet." }); }}
             className="block w-full rounded-[8px] px-2.5 py-2 text-left text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-bg)]"
           >
             Re-open attempt
-          </button>
-          <button
-            type="button"
-            onClick={() => { setActionMenu(null); toast.info({ title: "Coming soon", description: "Deleting attempts is not available yet." }); }}
-            className="block w-full rounded-[8px] px-2.5 py-2 text-left text-[13px] font-bold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-bg)]"
-          >
-            Delete attempt
-          </button>
+          </button> */}
+          {actionMenu.student.attemptId !== null && (
+            <button
+              type="button"
+              onClick={() => { setDeleteTarget(actionMenu.student); setActionMenu(null); }}
+              className="block w-full rounded-[8px] px-2.5 py-2 text-left text-[13px] font-bold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-bg)]"
+            >
+              Delete attempt
+            </button>
+          )}
         </div>
       )}
 
@@ -1093,12 +1154,12 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
 
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { label: "Score", value: detailPanel.marks !== null ? `${detailPanel.marks} / ${detailPanel.total}` : "—" },
+                    { label: "Correct", value: detailPanel.correct !== null ? `${detailPanel.correct} / ${detailPanel.totalQuestions ?? "—"}` : "—" },
                     { label: "Percentage", value: detailPanel.percentage !== null ? `${Math.round(detailPanel.percentage)}%` : "—" },
                     { label: "Rank", value: detailReview?.attempt.rank ?? detailPanel.rank ?? "—" },
                     { label: "Time Taken", value: detailPanel.timeTaken ?? "—" },
                     { label: "Submitted At", value: detailPanel.submittedAt ?? "—" },
-                    { label: "Questions", value: detailReview?.attempt
+                    { label: "Answered", value: detailReview?.attempt
                       ? `${(detailReview.attempt.correct_answers ?? 0) + (detailReview.attempt.wrong_answers ?? 0)} / ${detailReview.attempt.total_questions ?? "—"}`
                       : detailPanel.questionsAnswered !== null && detailPanel.totalQuestions !== null
                         ? `${detailPanel.questionsAnswered} / ${detailPanel.totalQuestions}`
@@ -1154,14 +1215,23 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                               {q.status === "unanswered" ? "Skipped" : q.status}
                             </span>
                           </div>
-                          <p className="mt-1.5 line-clamp-2 text-[11px] text-[var(--qs-muted)]">{q.problem_statement}</p>
+                          <QuestionHtml
+                            html={q.problem_statement}
+                            className="mt-1.5 line-clamp-2 text-[11px] font-medium leading-snug text-[var(--qs-muted)] [&_p]:mb-1 [&_p:last-child]:mb-0 [&_code]:text-[10px]"
+                          />
                           {(q.selected_statement || q.correct_answer) && (
                             <div className="mt-1.5 space-y-1 text-[11px]">
                               {q.selected_statement && (
-                                <p className="text-[var(--qs-muted)]">Your answer: <span className="font-bold text-[var(--qs-ink)]">{q.selected_statement}</span></p>
+                                <p className="text-[var(--qs-muted)]">
+                                  Your answer:{" "}
+                                  <InlineQuestionHtml html={q.selected_statement} className="font-bold text-[var(--qs-ink)]" />
+                                </p>
                               )}
                               {q.status !== "correct" && q.correct_answer && (
-                                <p className="text-[var(--qs-muted)]">Correct: <span className="font-bold text-[var(--qs-ok)]">{q.correct_answer}</span></p>
+                                <p className="text-[var(--qs-muted)]">
+                                  Correct:{" "}
+                                  <InlineQuestionHtml html={q.correct_answer} className="font-bold text-[var(--qs-ok)]" />
+                                </p>
                               )}
                             </div>
                           )}
@@ -1169,6 +1239,59 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                       ))}
                     </div>
                   )}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Delete Attempt Modal ──────────────────────────────────────── */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] bg-[#1A1240]/55 backdrop-blur-sm"
+              onClick={() => { if (!deleting) setDeleteTarget(null); }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 10 }}
+              transition={{ type: "spring", stiffness: 380, damping: 28 }}
+              className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+            >
+              <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm overflow-hidden rounded-[24px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[6px_6px_0_var(--qs-sun)]">
+                <div className="px-6 pb-6 pt-7 text-center">
+                  <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-bad)] text-white">
+                    <Trash2 className="h-7 w-7" />
+                  </div>
+                  <h3 className="text-lg font-extrabold text-[var(--qs-ink)]">Delete this attempt?</h3>
+                  <p className="mt-2 text-[13px] leading-relaxed text-[var(--qs-muted)]">
+                    This hides {deleteTarget.name}&apos;s attempt from responses, leaderboard and analytics. The data is kept for audit and can be restored later.
+                  </p>
+                </div>
+                <div className="flex items-center justify-end gap-2.5 border-t-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-6 py-4">
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTarget(null)}
+                    disabled={deleting}
+                    className="h-10 rounded-[12px] border-2 border-[var(--qs-line)] px-4 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleDeleteAttempt()}
+                    disabled={deleting}
+                    className="inline-flex h-10 items-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-bad)] px-5 text-xs font-extrabold text-white shadow-[3px_3px_0_var(--qs-sun)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {deleting ? "Deleting…" : "Delete attempt"}
+                  </button>
                 </div>
               </div>
             </motion.div>

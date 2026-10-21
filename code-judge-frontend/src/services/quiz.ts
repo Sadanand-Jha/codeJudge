@@ -1380,6 +1380,28 @@ export async function getStudentResponseDetail(quizId: string, userId: string | 
   return response.data;
 }
 
+/**
+ * Soft-delete a student attempt (owner/collaborator only).
+ * DELETE /api/v1/user/quiz/:quizId/responses/attempts/:attemptId
+ */
+export async function deleteQuizResponseAttempt(quizId: string, attemptId: number): Promise<void> {
+  await apiClient.delete(`/v1/user/quiz/${quizId}/responses/attempts/${attemptId}`);
+}
+
+export interface SendQuizResponsesEmailResult {
+  sent: boolean;
+  to: string;
+}
+
+/**
+ * Email the responses report as an Excel workbook to the signed-in teacher.
+ * POST /api/v1/user/quiz/:quizId/responses/email
+ */
+export async function sendQuizResponsesEmail(quizId: string): Promise<SendQuizResponsesEmailResult> {
+  const response = await apiClient.post<SendQuizResponsesEmailResult>(`/v1/user/quiz/${quizId}/responses/email`);
+  return response.data;
+}
+
 // ─────────────────────────────────────────
 // Quiz Game Config API (PostgreSQL → Prisma → Backend → API → Frontend → TopDown)
 // ─────────────────────────────────────────

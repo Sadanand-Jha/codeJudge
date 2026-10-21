@@ -994,7 +994,7 @@ export class QuizRepository {
   async getQuizAttempt(userId: number, quizId: number): Promise<any | null> {
     const query = `
       SELECT * FROM quiz_attempt
-      WHERE user_id = $1 AND quiz_id = $2
+      WHERE user_id = $1 AND quiz_id = $2 AND deleted_at IS NULL
       ORDER BY created_at DESC
       LIMIT 1
     `;
@@ -1017,6 +1017,7 @@ export class QuizRepository {
        JOIN quiz q ON q.id = qa.quiz_id
        WHERE qa.quiz_id = $1
          AND qa.status = 'in_progress'
+         AND qa.deleted_at IS NULL
          AND ($2::int IS NULL OR qa.user_id = $2)
          AND (
            (q.duration IS NOT NULL
@@ -1045,7 +1046,7 @@ export class QuizRepository {
         [data.userId, data.quizId]
       );
       const countResult = await client.query(
-        "SELECT COUNT(*)::int AS count FROM quiz_attempt WHERE user_id = $1 AND quiz_id = $2",
+      "SELECT COUNT(*)::int AS count FROM quiz_attempt WHERE user_id = $1 AND quiz_id = $2 AND deleted_at IS NULL",
         [data.userId, data.quizId]
       );
       const attemptCount = countResult.rows[0]?.count ?? 0;
@@ -1226,7 +1227,7 @@ export class QuizRepository {
       JOIN users u ON u.id = qa.user_id
       LEFT JOIN avatar a ON a.id = u.avatar_id
       LEFT JOIN college c ON c.id = u.college_id
-      WHERE qa.quiz_id = $1 AND qa.status = 'completed'
+      WHERE qa.quiz_id = $1 AND qa.status = 'completed' AND qa.deleted_at IS NULL
       ORDER BY COALESCE(qa.marks_obtained, qa.score) DESC, qa.time_taken ASC, qa.completed_at ASC
     `;
     const result = await pool.query(query, [quizId]);
@@ -1246,7 +1247,7 @@ export class QuizRepository {
        FROM quiz_attempt qa
        JOIN users u ON u.id = qa.user_id
        LEFT JOIN avatar a ON a.id = u.avatar_id
-       WHERE qa.quiz_id = $1 AND LOWER(qa.status) IN ('completed', 'in_progress')
+       WHERE qa.quiz_id = $1 AND LOWER(qa.status) IN ('completed', 'in_progress') AND qa.deleted_at IS NULL
        ORDER BY qa.user_id, qa.completed_at DESC NULLS LAST, qa.id DESC`,
       [quizId]
     );
@@ -1283,7 +1284,7 @@ export class QuizRepository {
         COUNT(DISTINCT CASE WHEN qa.score >= $2 THEN qa.id END) AS passed_count
       FROM quiz_attempt qa
       LEFT JOIN quiz_registration qr ON qr.quiz_id = $1
-      WHERE qa.quiz_id = $1
+      WHERE qa.quiz_id = $1 AND qa.deleted_at IS NULL
     `;
     const statsResult = await pool.query(statsQuery, [quizId, passingMarks]);
     const s = statsResult.rows[0] || {};
@@ -1292,7 +1293,7 @@ export class QuizRepository {
     const scoreDistQuery = `
       SELECT bucket, COUNT(*)::int as count FROM (
         SELECT WIDTH_BUCKET(LEAST(GREATEST(qa.percentage,0),100), 0, 100, 10) as bucket
-        FROM quiz_attempt qa WHERE qa.quiz_id=$1 AND qa.status='completed' AND qa.percentage IS NOT NULL
+        FROM quiz_attempt qa WHERE qa.quiz_id=$1 AND qa.status='completed' AND qa.percentage IS NOT NULL AND qa.deleted_at IS NULL
       ) t GROUP BY bucket ORDER BY bucket
     `;
     let scoreDistribution: any[] = [];
@@ -1301,7 +1302,7 @@ export class QuizRepository {
     // --- Score vs time scatter (sample 300) ---
     let scoreVsTime: any[] = [];
     try {
-      const r = await pool.query(`SELECT qa.score, qa.percentage, qa.time_taken, qa.user_id, u.username FROM quiz_attempt qa LEFT JOIN users u ON u.id=qa.user_id WHERE qa.quiz_id=$1 AND qa.status='completed' AND qa.time_taken IS NOT NULL AND qa.score IS NOT NULL ORDER BY qa.completed_at DESC LIMIT 300`, [quizId]);
+      const r = await pool.query(`SELECT qa.score, qa.percentage, qa.time_taken, qa.user_id, u.username FROM quiz_attempt qa LEFT JOIN users u ON u.id=qa.user_id WHERE qa.quiz_id=$1 AND qa.status='completed' AND qa.deleted_at IS NULL AND qa.time_taken IS NOT NULL AND qa.score IS NOT NULL ORDER BY qa.completed_at DESC LIMIT 300`, [quizId]);
       scoreVsTime = r.rows.map((row:any)=>({ x: row.time_taken, y: row.score, percentage: row.percentage, username: row.username, user_id: row.user_id }));
     } catch {}
 
@@ -1325,13 +1326,14 @@ export class QuizRepository {
       LEFT JOIN quiz_problem_type qpt ON qpt.id = qp.quiz_problem_type
       LEFT JOIN quiz_difficulty qd ON qd.id = qp.difficulty
       LEFT JOIN quiz_student_response qsr ON qsr.problem_id = qp.id
+        AND qsr.attempt_id IN (SELECT id FROM quiz_attempt WHERE quiz_id = $1 AND deleted_at IS NULL)
       LEFT JOIN quiz_problem_options qpo ON qpo.id::text = qsr.answer::text AND qpo.iscorrect = true
       WHERE qp.quiz_id = $1 AND qp.deleted_at IS NULL
       GROUP BY qp.id, qpt.name, qd.heading
       ORDER BY qp.question_number ASC
     `;
     let questionStats: any[] = [];
-    try { const r = await pool.query(questionStatsQuery, [quizId]); questionStats = r.rows; } catch { const r2 = await pool.query(`SELECT qp.id, qp.question_number, qp.problem_statement, qpt.name AS problem_type, qp.difficulty, qd.heading AS difficulty_name, COUNT(DISTINCT qsr.id) AS total_responses, 0 as correct_responses FROM quiz_problems qp LEFT JOIN quiz_problem_type qpt ON qpt.id=qp.quiz_problem_type LEFT JOIN quiz_difficulty qd ON qd.id=qp.difficulty LEFT JOIN quiz_student_response qsr ON qsr.problem_id=qp.id WHERE qp.quiz_id=$1 AND qp.deleted_at IS NULL GROUP BY qp.id,qpt.name,qd.heading ORDER BY qp.question_number`, [quizId]); questionStats = r2.rows; }
+    try { const r = await pool.query(questionStatsQuery, [quizId]); questionStats = r.rows; } catch { const r2 = await pool.query(`SELECT qp.id, qp.question_number, qp.problem_statement, qpt.name AS problem_type, qp.difficulty, qd.heading AS difficulty_name, COUNT(DISTINCT qsr.id) AS total_responses, 0 as correct_responses FROM quiz_problems qp LEFT JOIN quiz_problem_type qpt ON qpt.id=qp.quiz_problem_type LEFT JOIN quiz_difficulty qd ON qd.id=qp.difficulty LEFT JOIN quiz_student_response qsr ON qsr.problem_id=qp.id AND qsr.attempt_id IN (SELECT id FROM quiz_attempt WHERE quiz_id=$1 AND deleted_at IS NULL) WHERE qp.quiz_id=$1 AND qp.deleted_at IS NULL GROUP BY qp.id,qpt.name,qd.heading ORDER BY qp.question_number`, [quizId]); questionStats = r2.rows; }
 
     // Enrich question stats with skipped (total_attempts - responses) and derived fields
     const totalAttemptsNum = parseInt(s.total_attempts) || 0;
@@ -1370,6 +1372,7 @@ export class QuizRepository {
         FROM quiz_problems qp
         LEFT JOIN quiz_difficulty qd ON qd.id=qp.difficulty
         LEFT JOIN quiz_student_response qsr ON qsr.problem_id=qp.id
+          AND qsr.attempt_id IN (SELECT id FROM quiz_attempt WHERE quiz_id=$1 AND deleted_at IS NULL)
         LEFT JOIN quiz_problem_options qpo ON qpo.id::text = qsr.answer::text
         WHERE qp.quiz_id=$1 AND qp.deleted_at IS NULL GROUP BY qd.heading, qd.id ORDER BY qd.id
       `, [quizId]);
@@ -1408,7 +1411,7 @@ export class QuizRepository {
     // --- Student leaderboard (top 50) for analytics table ---
     let students: any[] = [];
     try {
-      const r = await pool.query(`SELECT qa.id as attempt_id, qa.user_id, u.username, qa.score, qa.percentage, qa.correct_answers, qa.wrong_answers, qa.skipped_questions, qa.time_taken, qa.rank, qa.status, qa.completed_at FROM quiz_attempt qa LEFT JOIN users u ON u.id=qa.user_id WHERE qa.quiz_id=$1 ORDER BY qa.score DESC NULLS LAST, qa.time_taken ASC LIMIT 50`, [quizId]);
+      const r = await pool.query(`SELECT qa.id as attempt_id, qa.user_id, u.username, qa.score, qa.percentage, qa.correct_answers, qa.wrong_answers, qa.skipped_questions, qa.time_taken, qa.rank, qa.status, qa.completed_at FROM quiz_attempt qa LEFT JOIN users u ON u.id=qa.user_id WHERE qa.quiz_id=$1 AND qa.deleted_at IS NULL ORDER BY qa.score DESC NULLS LAST, qa.time_taken ASC LIMIT 50`, [quizId]);
       students = r.rows;
     } catch {}
 
@@ -1600,7 +1603,7 @@ export class QuizRepository {
     } = filters;
 
     const offset = (page - 1) * limit;
-    const conditions: string[] = ["qa.user_id = $1", "q.deleted_at IS NULL"];
+    const conditions: string[] = ["qa.user_id = $1", "q.deleted_at IS NULL", "qa.deleted_at IS NULL"];
     const queryParams: any[] = [userId];
     let paramCount = 1;
 
@@ -1674,6 +1677,7 @@ export class QuizRepository {
            WHERE qa.quiz_id = q.id
              AND qa.user_id = $2
              AND LOWER(qa.status) = 'completed'
+             AND qa.deleted_at IS NULL
          ) AS has_completed_attempt,
          my_rating.rating AS user_rating,
          rating_stats.average_rating,
@@ -1734,6 +1738,7 @@ export class QuizRepository {
        WHERE qa.quiz_id = $1
          AND qa.user_id = $2
          AND LOWER(qa.status) = 'completed'
+         AND qa.deleted_at IS NULL
        ORDER BY qa.completed_at DESC NULLS LAST, qa.id DESC
        LIMIT 1
        ON CONFLICT (user_id, quiz_id) DO NOTHING
@@ -1772,10 +1777,12 @@ export class QuizRepository {
               (SELECT COUNT(DISTINCT qa.user_id)::int FROM quiz_attempt qa
                  JOIN quiz q ON q.id = qa.quiz_id
                 WHERE q.createdby = u.id AND q.deleted_at IS NULL
+                  AND qa.deleted_at IS NULL
                   AND qa.user_id IS DISTINCT FROM u.id) AS unique_students,
               (SELECT COUNT(*)::int FROM quiz_attempt qa
                  JOIN quiz q ON q.id = qa.quiz_id
-                WHERE q.createdby = u.id AND q.deleted_at IS NULL) AS total_attempts,
+                WHERE q.createdby = u.id AND q.deleted_at IS NULL
+                  AND qa.deleted_at IS NULL) AS total_attempts,
               (SELECT ROUND(AVG(qr.teacher_rating)::numeric, 1) FROM quiz_rating qr
                  JOIN quiz q ON q.id = qr.quiz_id
                 WHERE q.createdby = u.id AND q.deleted_at IS NULL) AS average_teacher_rating,
@@ -1808,7 +1815,7 @@ export class QuizRepository {
       FROM quiz_attempt qa
       JOIN quiz q ON q.id = qa.quiz_id
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
-      WHERE qa.id = $1 AND qa.user_id = $2
+      WHERE qa.id = $1 AND qa.user_id = $2 AND qa.deleted_at IS NULL
     `;
     const result = await pool.query(query, [attemptId, userId]);
     if (!result.rows.length) return null;
@@ -1875,7 +1882,7 @@ export class QuizRepository {
       LEFT JOIN quiz_problem_options qpo ON qpo.problem_id = qp.id AND qpo.iscorrect = true
       LEFT JOIN quiz_problem_type qpt ON qpt.id = qp.quiz_problem_type
       LEFT JOIN quiz_difficulty qd ON qd.id = qp.difficulty
-      WHERE qa.id = $1 AND qa.user_id = $2
+      WHERE qa.id = $1 AND qa.user_id = $2 AND qa.deleted_at IS NULL
       ORDER BY qp.question_number ASC
     `;
     const result = await pool.query(query, [attemptId, userId]);
@@ -2162,6 +2169,20 @@ export class QuizRepository {
    * Complete student response summary for a quiz — the Responses dashboard table.
    * Includes registered students (with/without an attempt) and their scores.
    */
+  /**
+   * Soft-delete a single attempt. The row and all of its responses remain in
+   * the database for auditing, but every dashboard/analytics query ignores it.
+   */
+  async softDeleteQuizAttempt(quizId: number, attemptId: number): Promise<boolean> {
+    const result = await pool.query(
+      `UPDATE quiz_attempt
+          SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1 AND quiz_id = $2 AND deleted_at IS NULL`,
+      [attemptId, quizId]
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
   async getQuizResponses(quizId: number): Promise<{
     quiz: any;
     students: any[];
@@ -2216,7 +2237,7 @@ export class QuizRepository {
         qa.skipped_questions
       FROM quiz_registration qr
       FULL OUTER JOIN quiz_attempt qa
-        ON qa.quiz_id = qr.quiz_id AND qa.user_id = qr.user_id
+        ON qa.quiz_id = qr.quiz_id AND qa.user_id = qr.user_id AND qa.deleted_at IS NULL
       JOIN users u ON u.id = COALESCE(qr.user_id, qa.user_id)
       LEFT JOIN avatar a ON a.id = u.avatar_id
       WHERE COALESCE(qr.quiz_id, qa.quiz_id) = $1
@@ -2234,7 +2255,7 @@ export class QuizRepository {
          UNION
          SELECT qa.user_id
          FROM quiz_attempt qa
-         WHERE qa.quiz_id = $1
+         WHERE qa.quiz_id = $1 AND qa.deleted_at IS NULL
        )
        SELECT
          COUNT(*) AS total,
@@ -2244,12 +2265,13 @@ export class QuizRepository {
            WHERE completed.quiz_id = $1
              AND completed.user_id = response_users.user_id
              AND completed.status = 'completed'
+             AND completed.deleted_at IS NULL
          )) AS not_submitted,
          AVG(qa.score) AS average_score,
          MAX(qa.score) AS highest_score,
          MIN(qa.score) AS lowest_score
        FROM response_users
-       LEFT JOIN quiz_attempt qa ON qa.quiz_id = $1 AND qa.user_id = response_users.user_id`,
+       LEFT JOIN quiz_attempt qa ON qa.quiz_id = $1 AND qa.user_id = response_users.user_id AND qa.deleted_at IS NULL`,
       [quizId]
     );
 
@@ -2293,7 +2315,7 @@ export class QuizRepository {
         u.last_name
       FROM quiz_attempt qa
       JOIN users u ON u.id = qa.user_id
-      WHERE qa.quiz_id = $1 AND qa.user_id = $2
+      WHERE qa.quiz_id = $1 AND qa.user_id = $2 AND qa.deleted_at IS NULL
         AND ($3::int IS NULL OR qa.id = $3)
       ORDER BY qa.created_at DESC
       LIMIT 1
@@ -2332,7 +2354,7 @@ export class QuizRepository {
       LEFT JOIN quiz_student_response qsr ON qsr.problem_id = qp.id AND qsr.attempt_id = $1
       LEFT JOIN quiz_problem_options correct ON correct.problem_id = qp.id AND correct.iscorrect = true
       LEFT JOIN quiz_problem_options selected ON selected.id = (qsr.answer->>'selectedOptionId')::int
-      WHERE qp.quiz_id = (SELECT quiz_id FROM quiz_attempt WHERE id = $1)
+      WHERE qp.quiz_id = (SELECT quiz_id FROM quiz_attempt WHERE id = $1 AND deleted_at IS NULL)
         AND qp.deleted_at IS NULL
       ORDER BY qp.question_number ASC
     `;

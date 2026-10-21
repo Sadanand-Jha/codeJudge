@@ -6,6 +6,8 @@ import { pool } from "../config/database.ts";
 import { QuizService } from "../services/database/quiz.service.ts";
 import { ResultGenerationService } from "../services/resultGeneration.service.ts";
 import { sendCollaboratorInviteEmail } from "../services/email.ts";
+import { sendResponsesReportEmail } from "../services/email.service.ts";
+import { generateResponsesReport } from "../services/responsesReport.service.ts";
 import { finalizeExpiredQuizAttempts, processQuizSubmission } from "../services/quizSubmission.service.ts";
 import { QuizCreationLimitError } from "../services/quizCreationLimits.ts";
 import { QuizQuestionLimitError } from "../services/quizQuestionLimits.ts";
@@ -2896,6 +2898,106 @@ export const getQuizResponses = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Internal server error while fetching quiz responses",
+    });
+  }
+};
+
+/**
+ * DELETE /api/v1/user/quiz/:quizId/responses/attempts/:attemptId
+ * Soft-delete a student attempt — owner or accepted collaborator only.
+ */
+export const deleteQuizResponseAttempt = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { quizId, attemptId } = req.params;
+
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    const numericQuizId = Number(quizId);
+    const numericAttemptId = Number(attemptId);
+    if (!Number.isInteger(numericQuizId) || numericQuizId <= 0 || !Number.isInteger(numericAttemptId) || numericAttemptId <= 0) {
+      res.status(400).json({ success: false, message: "Invalid quiz or attempt id" });
+      return;
+    }
+
+    const quiz = await quizService.getQuizById(String(numericQuizId));
+    if (!quiz) {
+      res.status(404).json({ success: false, message: "Quiz not found" });
+      return;
+    }
+
+    const isOwner = quiz.createdby === Number(userId);
+    const isCollaborator = await quizService.isAcceptedCollaborator(Number(userId), numericQuizId);
+    if (!isOwner && !isCollaborator) {
+      res.status(403).json({ success: false, message: "You are not authorized to delete attempts" });
+      return;
+    }
+
+    const deleted = await quizService.softDeleteQuizAttempt(numericQuizId, numericAttemptId);
+    if (!deleted) {
+      res.status(404).json({ success: false, message: "Attempt not found or already deleted" });
+      return;
+    }
+
+    res.status(200).json({ success: true, message: "Attempt deleted" });
+  } catch (error) {
+    console.error("Error deleting quiz attempt:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while deleting the attempt",
+    });
+  }
+};
+
+export const sendQuizResponsesEmail = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const email = req.user?.email;
+    const { quizId } = req.params;
+
+    if (!userId || !email) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    const numericQuizId = Number(quizId);
+    if (!Number.isInteger(numericQuizId) || numericQuizId <= 0) {
+      res.status(400).json({ success: false, message: "Invalid quiz id" });
+      return;
+    }
+
+    const quiz = await quizService.getQuizById(String(numericQuizId));
+    if (!quiz) {
+      res.status(404).json({ success: false, message: "Quiz not found" });
+      return;
+    }
+
+    const isOwner = quiz.createdby === Number(userId);
+    const isCollaborator = await quizService.isAcceptedCollaborator(Number(userId), numericQuizId);
+    if (!isOwner && !isCollaborator) {
+      res.status(403).json({ success: false, message: "You are not authorized to email responses" });
+      return;
+    }
+
+    const { buffer, stats, registrationFields } = await generateResponsesReport(numericQuizId);
+    await sendResponsesReportEmail({
+      to: email,
+      quizName: quiz.name,
+      quizCode: quiz.code,
+      responsesBuffer: buffer,
+      registrationFields,
+      stats,
+    });
+
+    res.status(200).json({ success: true, data: { sent: true, to: email } });
+  } catch (error) {
+    console.error("Error emailing quiz responses:", error);
+    res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : "Internal server error while emailing responses",
     });
   }
 };

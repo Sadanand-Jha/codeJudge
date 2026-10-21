@@ -32,8 +32,8 @@ function createPool(): pg.Pool {
     ssl: connectionString?.includes('localhost') || connectionString?.includes('127.0.0.1')
       ? false
       : { rejectUnauthorized: false }, // Required for Neon/Supabase/RDS on Vercel
-    // 2. Limit Pool Size: max 1 per container — Vercel spawns many containers, each holding 1 conn
-    max: 1,
+    // 2. Limit Pool Size: max 50 connections per container
+    max: 50,
     // 3. Timeout Configs: close idle quickly, fail fast on connect
     idleTimeoutMillis: 10000, // 10s — close idle client quickly (was 30000)
     connectionTimeoutMillis: 5000, // 5s — fail fast if DB unreachable (was 10000)
@@ -79,10 +79,11 @@ if (
 function getPool(): pg.Pool {
   if (!global.__pgPool) {
     global.__pgPool = createPool();
-    // Do NOT eagerly query SELECT 1 here — that would open a connection on every cold start
-    // even for health checks. Let first real query lazily open it.
+    // Eagerly open a connection so the pool is ready immediately (no lazy loading).
+    // Safe to fail — first real query will still open the connection if DB is down.
+    void global.__pgPool.query('SELECT 1').catch(() => {});
     if (process.env.NODE_ENV !== 'production') {
-      console.log('✅ PostgreSQL pool initialized (serverless global cache, max=1)');
+      console.log('✅ PostgreSQL pool initialized (serverless global cache, max=50)');
     }
   }
   return global.__pgPool;

@@ -321,6 +321,10 @@ export class QuizService {
     return this.repository.getQuizResponses(quizId);
   }
 
+  async softDeleteQuizAttempt(quizId: number, attemptId: number): Promise<boolean> {
+    return this.repository.softDeleteQuizAttempt(quizId, attemptId);
+  }
+
   async touchQuizAttempt(attemptId: number): Promise<any | null> {
     return this.repository.touchQuizAttempt(attemptId);
   }

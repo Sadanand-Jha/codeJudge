@@ -1,10 +1,26 @@
-// Marksheet email service. Sends a formatted email to the quiz creator with the
-// generated marksheet Excel file as an attachment and quiz statistics.
+// Quiz report emails. Sends the generated marksheet or the responses report
+// (Excel workbook with registration form columns) to the quiz creator.
 // Sends via Nodemailer/SMTP first, Resend API fallback (see ./smtp.ts and
 // ./resend.ts for env configuration).
 import logger from "../utils/logger.ts";
 import { getTransporter, getFromAddress } from "./smtp.ts";
 import { isResendConfigured, sendViaResend } from "./resend.ts";
+
+export interface ResponsesReportEmailPayload {
+  to: string;
+  quizName: string;
+  quizCode: string;
+  responsesBuffer: Buffer;
+  registrationFields: string[];
+  stats: {
+    totalParticipants: number;
+    submitted: number;
+    averageCorrect: number;
+    averagePercentage: number;
+    highestCorrect: number;
+    totalQuestions: number;
+  };
+}
 
 export interface MarksheetEmailPayload {
   to: string;
@@ -166,6 +182,100 @@ export async function sendMarksheetEmail(payload: MarksheetEmailPayload): Promis
       logger.info(`Marksheet email sent via Resend to ${to} for quiz ${quizCode}`);
     } catch (resendError) {
       logger.error(`Resend marksheet fallback to ${to} also failed:`, resendError);
+      throw new Error(
+        `Failed to send email: ${resendError instanceof Error ? resendError.message : String(resendError)}`
+      );
+    }
+  }
+}
+
+export async function sendResponsesReportEmail(payload: ResponsesReportEmailPayload): Promise<void> {
+  const { to, quizName, quizCode, responsesBuffer, registrationFields, stats } = payload;
+
+  const subject = `Quiz Responses - ${quizName}`;
+  const fieldsLine = registrationFields.length
+    ? `<p style="font-size: 14px; margin-bottom: 20px;">The attached Excel sheet includes the registration form columns: <strong>${registrationFields.join(", ")}</strong>.</p>`
+    : "";
+
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 20px; color: #333;">
+      <h2 style="color: #EC4899; margin-bottom: 20px;">Quiz Responses Report</h2>
+
+      <p style="font-size: 16px; margin-bottom: 10px;">Hello,</p>
+
+      <p style="font-size: 14px; margin-bottom: 20px;">
+        Your response report for <strong>${quizName}</strong> (${quizCode}) is attached as an Excel sheet.
+      </p>
+
+      ${fieldsLine}
+
+      <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <h3 style="color: #111827; margin-top: 0; margin-bottom: 15px; font-size: 18px;">Summary</h3>
+
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+          <tr style="border-bottom: 1px solid #dee2e6;">
+            <td style="padding: 8px 0; font-weight: bold; width: 55%;">Total students</td>
+            <td style="padding: 8px 0;">${stats.totalParticipants}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #dee2e6;">
+            <td style="padding: 8px 0; font-weight: bold;">Submitted</td>
+            <td style="padding: 8px 0;">${stats.submitted}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #dee2e6;">
+            <td style="padding: 8px 0; font-weight: bold;">Average correct</td>
+            <td style="padding: 8px 0;">${stats.averageCorrect} / ${stats.totalQuestions}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #dee2e6;">
+            <td style="padding: 8px 0; font-weight: bold;">Average percentage</td>
+            <td style="padding: 8px 0;">${stats.averagePercentage}%</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Highest correct</td>
+            <td style="padding: 8px 0;">${stats.highestCorrect} / ${stats.totalQuestions}</td>
+          </tr>
+        </table>
+      </div>
+
+      <p style="font-size: 14px; margin-bottom: 10px;">The detailed responses are attached as an Excel file.</p>
+
+      <p style="font-size: 14px; margin-top: 30px; color: #666;">
+        Regards,<br>
+        <strong>Quiz System</strong>
+      </p>
+    </div>
+  `;
+
+  const filename = `responses_${quizCode}_${new Date().toISOString().split("T")[0]}.xlsx`;
+  const contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+  try {
+    const { transporter, from } = requireTransport();
+    const info = await transporter.sendMail({
+      from: `Quiz System <${from}>`,
+      to,
+      subject,
+      html: htmlBody,
+      attachments: [{ filename, content: responsesBuffer, contentType }],
+    });
+    logger.info(`Responses report email sent to ${to} for quiz ${quizCode}: ${info.messageId}`);
+    return;
+  } catch (smtpError) {
+    logger.error(`SMTP responses report to ${to} for quiz ${quizCode} failed, trying Resend fallback:`, smtpError);
+    if (!isResendConfigured()) {
+      throw new Error(
+        `Failed to send email: ${smtpError instanceof Error ? smtpError.message : String(smtpError)}`
+      );
+    }
+    try {
+      await sendViaResend({
+        to,
+        subject,
+        html: htmlBody,
+        attachments: [{ filename, content: responsesBuffer, contentType }],
+      });
+      logger.info(`Responses report email sent via Resend to ${to} for quiz ${quizCode}`);
+    } catch (resendError) {
+      logger.error(`Resend responses report fallback to ${to} also failed:`, resendError);
       throw new Error(
         `Failed to send email: ${resendError instanceof Error ? resendError.message : String(resendError)}`
       );

@@ -56,7 +56,7 @@ export async function generateMarksheet(quizId: number): Promise<MarksheetResult
     JOIN users u ON u.id = qa.user_id
     LEFT JOIN college c ON c.id = u.college_id
     LEFT JOIN quiz_registration qr ON qr.user_id = qa.user_id AND qr.quiz_id = qa.quiz_id
-    WHERE qa.quiz_id = $1 AND qa.status = 'completed'
+    WHERE qa.quiz_id = $1 AND qa.status = 'completed' AND qa.deleted_at IS NULL
     ORDER BY qr.rollno ASC NULLS LAST, u.username ASC
   `;
   const attemptsResult = await pool.query(attemptsQuery, [quizId]);

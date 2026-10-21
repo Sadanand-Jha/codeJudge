@@ -51,7 +51,7 @@ export function StudioRouter() {
 function StudioShellWithRouter({ onDashboard }: { onDashboard: () => void }) {
   const { state, loading, loadError, questionsLoading, editMode } = useStudio();
 
-  if (loading || (editMode && questionsLoading && !loadError)) {
+  if (loading) {
     return (
       <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center bg-[var(--qs-bg)] px-5">
         <div className="w-full max-w-sm rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-7 text-center shadow-[6px_6px_0_var(--qs-sun)]">

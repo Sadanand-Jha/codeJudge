@@ -1003,6 +1003,7 @@ export const getQuizResponses = async (req: Request, res: Response) => {
     }
 
     const data = await quizService.getQuizResponses(Number(quizId));
+    console.log(data)
     res.status(200).json({ success: true, data });
   } catch (error) {
     console.error("Error fetching quiz responses:", error);

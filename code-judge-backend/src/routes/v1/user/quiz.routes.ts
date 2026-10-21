@@ -53,6 +53,8 @@ import {
   removeQuizCollaborator,
   getQuizResponses,
   getStudentResponseDetail,
+  deleteQuizResponseAttempt,
+  sendQuizResponsesEmail,
   setQuizParticipants,
   getQuizParticipantsController,
   generateQuizCodeEndpoint,
@@ -251,6 +253,10 @@ router.get("/:quizId/responses", getQuizResponses);
 
 // GET /api/v1/user/quiz/:quizId/responses/:userId — single student detail (owner/collaborator)
 router.get("/:quizId/responses/:userId", getStudentResponseDetail);
+
+router.delete("/:quizId/responses/attempts/:attemptId", deleteQuizResponseAttempt);
+
+router.post("/:quizId/responses/email", sendQuizResponsesEmail);
 
 // GET /api/v1/user/quiz/:quizId/participants — audience allow-list (owner/collaborator)
 router.get("/:quizId/participants", getQuizParticipantsController);
