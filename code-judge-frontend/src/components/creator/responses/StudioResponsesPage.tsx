@@ -92,6 +92,10 @@ function displayName(s: QuizResponseStudent): string {
   return full || s.username || `User #${s.user_id}`;
 }
 
+function nameWithAttempt(name: string, attemptNumber: number | null): string {
+  return attemptNumber && attemptNumber > 1 ? `${name}#${attemptNumber}` : name;
+}
+
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
@@ -492,9 +496,9 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
   ]), [timeStats]);
 
   const exportCsv = useCallback(() => {
-    const header = ["Rank", "Student", "Attempt", "Roll no.", "Status", "Correct", "Total questions", "%", "Time taken", "Submitted at"];
+    const header = ["Rank", "Student", "Roll no.", "Status", "Correct", "Total questions", "%", "Time taken", "Submitted at"];
     const rows = filtered.map((s) => [
-      s.rank ?? "", s.name, s.attemptNumber ?? "", s.rollNo, STATUS_CONFIG[s.status].label,
+      s.rank ?? "", nameWithAttempt(s.name, s.attemptNumber), s.rollNo, STATUS_CONFIG[s.status].label,
       s.correct ?? "", s.totalQuestions ?? "", s.totalQuestions ? Math.round(((s.correct ?? 0) / s.totalQuestions) * 100) : "", s.timeTaken ?? "", s.submittedAt ?? "",
     ]);
     const csv = [header, ...rows]
@@ -723,7 +727,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                 >
                   <StudentAvatar student={s} />
                   <span className="min-w-0">
-                    <span className="block truncate text-xs font-extrabold text-[var(--qs-ink)]">{s.name}</span>
+                    <span className="block truncate text-xs font-extrabold text-[var(--qs-ink)]">{nameWithAttempt(s.name, s.attemptNumber)}</span>
                     <span className="block text-[10px] font-medium text-[var(--qs-muted)]">{s.timeTaken ? `Elapsed ${s.timeTaken}` : "Just started"}</span>
                   </span>
                 </button>
@@ -913,9 +917,9 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                         <div className="flex items-center gap-2">
                           <StudentAvatar student={s} />
                           <div className="min-w-0">
-                            <p className="truncate font-bold text-[var(--qs-ink)]">{s.name}</p>
+                            <p className="truncate font-bold text-[var(--qs-ink)]">{nameWithAttempt(s.name, s.attemptNumber)}</p>
                             <p className="truncate text-[11px] text-[var(--qs-muted)]">
-                              {s.rollNo} · Attempt {s.attemptNumber ? `#${s.attemptNumber}` : "—"}
+                              {s.rollNo || "—"}
                             </p>
                           </div>
                         </div>
@@ -957,7 +961,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               <table className="w-full min-w-[900px] border-collapse text-left">
                 <thead>
                   <tr>
-                    {["Rank", "Student", "Attempt", "Roll no.", "Status", "Correct", "%", "Time taken", "Submitted at", "Actions"].map((h) => (
+                    {["Rank", "Student", "Roll no.", "Status", "Correct", "%", "Time taken", "Submitted at", "Actions"].map((h) => (
                       <th key={h} className="whitespace-nowrap px-3 py-3.5 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">{h}</th>
                     ))}
                   </tr>
@@ -966,14 +970,14 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                   {loading ? (
                     Array.from({ length: 5 }).map((_, i) => (
                       <tr key={i}>
-                        <td colSpan={10} className="border-t-2 border-[var(--qs-line)]/60 px-3 py-3">
+                        <td colSpan={9} className="border-t-2 border-[var(--qs-line)]/60 px-3 py-3">
                           <div className="app-skeleton h-8 rounded" />
                         </td>
                       </tr>
                     ))
                   ) : filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="border-t-2 border-[var(--qs-line)]/60 px-4 py-10 text-center text-sm font-medium text-[var(--qs-muted)]">
+                      <td colSpan={9} className="border-t-2 border-[var(--qs-line)]/60 px-4 py-10 text-center text-sm font-medium text-[var(--qs-muted)]">
                         {students.length === 0 ? "No responses yet — students haven't been registered or attempted this quiz." : "No records match this filter."}
                       </td>
                     </tr>
@@ -988,10 +992,9 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-3">
                             <StudentAvatar student={s} />
-                            <span className="max-w-[180px] truncate font-bold text-[var(--qs-ink)]">{s.name}</span>
+                            <span className="max-w-[180px] truncate font-bold text-[var(--qs-ink)]">{nameWithAttempt(s.name, s.attemptNumber)}</span>
                           </div>
                         </td>
-                        <td className="px-3 py-3 font-bold text-[var(--qs-ink)]">{s.attemptNumber ? `#${s.attemptNumber}` : "—"}</td>
                         <td className="px-3 py-3 text-[var(--qs-muted)]">{s.rollNo}</td>
                         <td className="px-3 py-3"><StatusBadge status={s.status} /></td>
                         <td className="px-3 py-3 font-bold text-[var(--qs-ink)]">
@@ -1146,8 +1149,8 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                 <div className="flex items-center gap-4">
                   <StudentAvatar student={detailPanel} size="lg" />
                   <div className="min-w-0">
-                    <h4 className="truncate text-lg font-extrabold text-[var(--qs-ink)]">{detailPanel.name}</h4>
-                    <p className="text-xs font-medium text-[var(--qs-muted)]">{detailPanel.rollNo}{detailPanel.attemptNumber ? ` · Attempt #${detailPanel.attemptNumber}` : ""}</p>
+                    <h4 className="truncate text-lg font-extrabold text-[var(--qs-ink)]">{nameWithAttempt(detailPanel.name, detailPanel.attemptNumber)}</h4>
+                    <p className="text-xs font-medium text-[var(--qs-muted)]">{detailPanel.rollNo}</p>
                     <div className="mt-1.5"><StatusBadge status={detailPanel.status} /></div>
                   </div>
                 </div>
