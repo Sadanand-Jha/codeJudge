@@ -212,8 +212,8 @@ export const generateSections = async (req: Request, res: Response) => {
  * POST /api/v1/admin/tests/generate-paper
  *
  * JSON body: { sections: [...], title?, instructions?, syllabus?, durationMinutes? }
- * Sends the created sections + curated subjective bank (public/*.docx) to the
- * AI, which selects bank questions per section/group. Returns the full paper.
+ * Sends the created sections and scope to the AI, which writes every question
+ * itself. Returns the validated full paper.
  */
 export const generatePaper = async (req: Request, res: Response) => {
   try {

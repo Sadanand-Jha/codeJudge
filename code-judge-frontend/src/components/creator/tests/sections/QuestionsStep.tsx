@@ -15,8 +15,8 @@ import {
 import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
-import { generateQuestionPaper, downloadQuestionPaper } from "@/services/aiGenerate";
-import { sectionsToPaperPayload } from "./paperTypes";
+import { generateQuestionPaper } from "@/services/aiGenerate";
+import { buildPaperNumbering, sectionsToPaperPayload } from "./paperTypes";
 import type { Section } from "./types";
 import type { QuestionPaper } from "./paperTypes";
 import { PaperScopeFilters } from "./PaperScopeFilters";
@@ -32,6 +32,7 @@ interface QuestionsStepProps {
   onPaperTitleChange: (title: string) => void;
   paperHeader: PaperHeaderMeta;
   onPaperHeaderChange: (header: PaperHeaderMeta) => void;
+  durationMinutes?: number;
   onPaperReady?: (paper: QuestionPaper) => void;
 }
 
@@ -64,17 +65,17 @@ const OVERALL_OPTIONS = [
   {
     id: "easy",
     label: "Easy",
-    hint: "Creates an accessible paper with mostly foundational and moderate questions.",
+    hint: "Direct, basic paper with straightforward single-concept questions.",
   },
   {
     id: "balanced",
     label: "Balanced",
-    hint: "Balanced creates a natural mix of foundational, moderate and challenging questions.",
+    hint: "Balanced mix of foundational and moderate questions — approachable, not overly tough.",
   },
   {
     id: "challenging",
     label: "Challenging",
-    hint: "Creates a more demanding paper with greater emphasis on application and deeper reasoning.",
+    hint: "Demanding paper with multi-concept application and deeper reasoning.",
   },
 ] as const;
 
@@ -113,6 +114,7 @@ export function QuestionsStep({
   onPaperTitleChange,
   paperHeader,
   onPaperHeaderChange,
+  durationMinutes,
   onPaperReady,
 }: QuestionsStepProps) {
   const toast = useToast();
@@ -165,6 +167,7 @@ export function QuestionsStep({
           sections: sectionsToPaperPayload(sections),
           title: paperTitle.trim() || undefined,
           syllabus: syllabus.trim() || undefined,
+          durationMinutes,
           subjectId,
           chapterIds,
           topicIds,
@@ -187,7 +190,7 @@ export function QuestionsStep({
       setError(errorMessage(err, "Failed to generate the question paper. Please try again."));
       setStatus("error");
     }
-  }, [sections, paperTitle, syllabus, subjectId, chapterIds, topicIds, overall, totalNeeded, toast, onPaperReady]);
+  }, [sections, paperTitle, syllabus, subjectId, chapterIds, topicIds, overall, totalNeeded, durationMinutes, toast, onPaperReady]);
 
   const paperHeading = paperTitle.trim() || paperHeader.heading.trim() || "Question Paper";
 
@@ -211,27 +214,6 @@ export function QuestionsStep({
     }
   }, [paper, paperHeader, paperHeading, toast]);
 
-  const handleDownloadWord = useCallback(async () => {
-    if (!paper) return;
-    setDownloading(true);
-    setError(null);
-    try {
-      await downloadQuestionPaper({
-        ...paper,
-        title: paperHeading,
-        meta: { ...paperHeader, heading: paperHeading },
-      });
-      toast.success({
-        title: "Word downloaded",
-        description: "Open it to review, edit or share.",
-      });
-    } catch (err) {
-      setError(errorMessage(err, "Failed to download the paper. Please try again."));
-    } finally {
-      setDownloading(false);
-    }
-  }, [paper, paperHeader, paperHeading, toast]);
-
   const handleRegenerate = useCallback(() => {
     setPaper(null);
     setError(null);
@@ -239,7 +221,7 @@ export function QuestionsStep({
     void handleGenerate();
   }, [handleGenerate]);
 
-  let qNo = 0;
+  const numbering = paper ? buildPaperNumbering(paper.sections) : [];
 
   const scopeSummary = `${sections.length} section${sections.length === 1 ? "" : "s"} · ${totalNeeded} question${totalNeeded === 1 ? "" : "s"}`;
 
@@ -507,19 +489,6 @@ export function QuestionsStep({
                 </button>
                 <button
                   type="button"
-                  onClick={() => void handleDownloadWord()}
-                  disabled={downloading}
-                  className="b sm gap-1.5"
-                >
-                  {downloading ? (
-                    <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" />
-                  ) : (
-                    <FileText className="h-3.5 w-3.5" />
-                  )}
-                  Word
-                </button>
-                <button
-                  type="button"
                   onClick={() => void handleDownloadPdf()}
                   disabled={downloading}
                   className="b b-pri sm gap-1.5"
@@ -543,17 +512,29 @@ export function QuestionsStep({
 
           <div className="px-5 py-5">
             <div className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-4 text-center">
-              <p className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ink)]">
-                {paperHeader.instituteName.trim() || "[Institute name]"}
-              </p>
+              {paperHeader.instituteName.trim() && (
+                <p className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ink)]">
+                  {paperHeader.instituteName.trim()}
+                </p>
+              )}
               <p className="mt-1 text-[15px] font-extrabold text-[var(--qs-ink)]">{paperHeading}</p>
               <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-left text-[11px] font-semibold text-[var(--qs-muted)] sm:grid-cols-3">
-                <span><strong className="font-extrabold text-[var(--qs-ink)]">Subject:</strong> {paperHeader.subject.trim() || "[Subject]"}</span>
-                <span><strong className="font-extrabold text-[var(--qs-ink)]">Class:</strong> {paperHeader.className.trim() || "[Class / Semester]"}</span>
-                <span><strong className="font-extrabold text-[var(--qs-ink)]">Date:</strong> {paperHeader.date.trim() || "[Date]"}</span>
-                <span><strong className="font-extrabold text-[var(--qs-ink)]">Time:</strong> {paperHeader.timeAllowed.trim() || "[Time allowed]"}</span>
+                {paperHeader.subject.trim() && (
+                  <span><strong className="font-extrabold text-[var(--qs-ink)]">Subject:</strong> {paperHeader.subject.trim()}</span>
+                )}
+                {paperHeader.className.trim() && (
+                  <span><strong className="font-extrabold text-[var(--qs-ink)]">Class:</strong> {paperHeader.className.trim()}</span>
+                )}
+                {paperHeader.date.trim() && (
+                  <span><strong className="font-extrabold text-[var(--qs-ink)]">Date:</strong> {paperHeader.date.trim()}</span>
+                )}
+                {paperHeader.timeAllowed.trim() && (
+                  <span><strong className="font-extrabold text-[var(--qs-ink)]">Time:</strong> {paperHeader.timeAllowed.trim()}</span>
+                )}
                 <span><strong className="font-extrabold text-[var(--qs-ink)]">Max Marks:</strong> {paper.totalMarks}</span>
-                <span><strong className="font-extrabold text-[var(--qs-ink)]">Set:</strong> {paperHeader.setName.trim() || "A"}</span>
+                {paperHeader.setName.trim() && (
+                  <span><strong className="font-extrabold text-[var(--qs-ink)]">Set:</strong> {paperHeader.setName.trim()}</span>
+                )}
               </div>
               {paperHeader.showStudentBlock && (
                 <div className="mt-3 flex flex-wrap items-center justify-center gap-x-8 gap-y-1 text-[11px] font-bold text-[var(--qs-ink)]">
@@ -565,7 +546,7 @@ export function QuestionsStep({
           </div>
 
           <div className="space-y-5 px-5 pb-4">
-            {paper.sections.map((s) => (
+            {paper.sections.map((s, si) => (
               <div key={`${s.order}-${s.label}`}>
                 <div className="flex items-center justify-between rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2">
                   <p className="text-[13px] font-extrabold text-[var(--qs-ink)]">
@@ -583,23 +564,27 @@ export function QuestionsStep({
                     {s.instructions}
                   </p>
                 )}
-                {s.questionGroups.map((g, gi) => (
+                {s.questionGroups.map((g, gi) => {
+                  const groupNumbering = numbering[si]?.[gi];
+                  const attempt =
+                    g.attemptRule.type === "ANY_N" && g.attemptRule.count
+                      ? `Attempt any ${g.attemptRule.count} out of ${g.questions.length} questions.`
+                      : "Answer all questions.";
+                  return (
                   <div key={`${s.label}-${gi}`} className="mt-3 px-1">
-                    <p className="text-xs font-bold text-[var(--qs-ink)]">
-                      {g.name} ({g.questions.length} × {g.marksPerQuestion} marks)
-                    </p>
-                    <p className="text-[11px] italic text-[var(--qs-muted)]">
-                      {g.attemptRule.type === "ANY_N" && g.attemptRule.count
-                        ? `Attempt any ${g.attemptRule.count} out of ${g.questions.length} questions.`
-                        : "Answer all questions."}
-                    </p>
+                    {groupNumbering?.heading && (
+                      <p className="text-xs font-bold text-[var(--qs-ink)]">
+                        {groupNumbering.heading} ({g.questions.length} × {g.marksPerQuestion} marks)
+                      </p>
+                    )}
+                    <p className="text-[11px] italic text-[var(--qs-muted)]">{attempt}</p>
                     <div className="mt-1.5 space-y-2">
-                      {g.questions.map((q) => {
-                        qNo++;
+                      {g.questions.map((q, qi) => {
+                        const label = groupNumbering?.labels[qi] ?? `Q${q.num}`;
                         return (
-                          <div key={`${s.label}-${gi}-${q.num}`} className="flex gap-2 text-[13px]">
+                          <div key={`${s.label}-${gi}-${qi}`} className="flex gap-2 text-[13px]">
                             <span className="shrink-0 font-bold text-[var(--qs-ink)] tabular-nums">
-                              Q{qNo}.
+                              {label}.
                             </span>
                             <div className="min-w-0 flex-1">
                               {q.questionHtml?.trim() ? (
@@ -622,7 +607,8 @@ export function QuestionsStep({
                       })}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ))}
           </div>
@@ -634,6 +620,10 @@ export function QuestionsStep({
             <span className="text-xs font-bold text-[var(--qs-muted)]">
               Total Marks: {paper.totalMarks}
             </span>
+          </div>
+          <div className="flex items-center justify-center gap-1.5 border-t border-[var(--qs-line)] px-5 py-2.5 text-[10px] font-semibold text-[var(--qs-muted)]">
+            <span className="grid h-3.5 w-3.5 place-items-center rounded-[3px] bg-[var(--qs-ink)] text-[8px] font-black text-[var(--qs-bg)]">Q</span>
+            QuizSupport
           </div>
         </motion.div>
       )}

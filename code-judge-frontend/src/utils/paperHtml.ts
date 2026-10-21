@@ -379,14 +379,13 @@ function renderQuestion(question: PaperQuestion, index: number, twoColumns: bool
 }
 
 function renderMetaGrid(meta: PaperMeta, totalMarks: number): string {
-  const cells: Array<[string, string]> = [
-    ["Subject", meta.subject?.trim() || "[Subject]"],
-    ["Class / Semester", meta.course?.trim() || "—"],
-    ["Date", meta.date?.trim() || "[Date]"],
-    ["Time allowed", meta.duration?.trim() || "[Time allowed]"],
-    ["Maximum Marks", String(totalMarks)],
-    ["Set", meta.setName?.trim() || "—"],
-  ];
+  const cells: Array<[string, string]> = [];
+  if (meta.subject?.trim()) cells.push(["Subject", meta.subject.trim()]);
+  if (meta.course?.trim()) cells.push(["Class / Semester", meta.course.trim()]);
+  if (meta.date?.trim()) cells.push(["Date", meta.date.trim()]);
+  if (meta.duration?.trim()) cells.push(["Time allowed", meta.duration.trim()]);
+  cells.push(["Maximum Marks", String(totalMarks)]);
+  if (meta.setName?.trim()) cells.push(["Set", meta.setName.trim()]);
   return `<div class="meta">${cells
     .map(([label, value]) => `<div class="cell"><span class="lbl">${esc(label)}:</span><span class="val">${esc(value)}</span></div>`)
     .join("")}</div>`;
@@ -449,7 +448,7 @@ function renderPaperSection(meta: PaperMeta, questions: PaperQuestion[], options
     ? `${questions.length} × ${[...uniqueMarks][0]} = ${totalMarks} marks`
     : `${totalMarks} marks`;
   const header = `<header class="phead">
-  <div class="inst">${esc(meta.creatorName?.trim() || "[Institute name]")}</div>
+  ${meta.creatorName?.trim() ? `<div class="inst">${esc(meta.creatorName.trim())}</div>` : ""}
   <h1 class="ptitle">${esc(meta.title || "Question Paper")}</h1>
   ${renderMetaGrid(meta, totalMarks)}
   ${renderStudentBlock(meta, options, student)}
@@ -459,7 +458,7 @@ ${renderInstructions(meta, questions)}
 <div class="banner"><span><span class="bl">Section A</span> — ${esc(sectionTitle(questions))}</span><span class="bt">${sectionTotal}</span></div>
 <p class="secinstr">All questions are compulsory.</p>`;
   const body = questions.map((question, index) => renderQuestion(question, index, twoColumns)).join("");
-  return `<section class="paper">${header}<main class="qs${twoColumns ? " two" : ""}">${body}</main><div class="end">End of question paper</div></section>`;
+  return `<section class="paper">${header}<main class="qs${twoColumns ? " two" : ""}">${body}</main><div class="end">End of question paper</div><div class="brand"><span class="bm">Q</span><span>QuizSupport</span></div></section>`;
 }
 
 export function buildPaperBody(input: PaperBuildInput): string {
@@ -540,6 +539,8 @@ table.tbl th { font-weight: 700; background: #F2F2F2; }
 .qimg img { max-width: 100%; height: auto; }
 .qimg .cap { font-size: 10.5pt; font-style: italic; color: #555; margin-top: 1mm; }
 .end { text-align: center; font-size: 10.5pt; font-style: italic; margin: 8mm 0 0; break-before: avoid; }
+.brand { display: flex; align-items: center; justify-content: center; gap: 1.5mm; margin: 4mm 0 0; font-size: 8.5pt; color: #777; letter-spacing: 0.02em; break-before: avoid; }
+.brand .bm { display: inline-flex; align-items: center; justify-content: center; width: 4mm; height: 4mm; border-radius: 1mm; background: #EC4899; color: #fff; font-size: 7pt; font-weight: 700; }
 .pgbreak { break-before: page; }
 .keypage { break-before: page; }
 .keytitle { font-size: 14pt; font-weight: 700; text-align: center; margin: 0 0 1mm; }
@@ -601,8 +602,7 @@ export function preparePaperQuestions(questions: PaperQuestion[], options: Paper
 }
 
 export function paperFooterLeft(meta: PaperMeta): string {
-  const parts = [meta.subject?.trim(), meta.title?.trim()].filter(Boolean);
-  return parts.join(" - ");
+  return meta.title?.trim() || meta.subject?.trim() || "Question Paper";
 }
 
 export function formatPaperDate(value?: string | Date | null): string | undefined {

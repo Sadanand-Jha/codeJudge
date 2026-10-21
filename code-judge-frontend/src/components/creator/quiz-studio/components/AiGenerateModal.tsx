@@ -707,6 +707,7 @@ export function AiGenerateModal({
                             placeholder={catalogLoading ? "Loading…" : "Select subject"}
                             disabled={catalogLoading}
                             ariaLabel="Subject"
+                            searchable
                             triggerClassName="mt-1.5 h-11 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-3 text-[12px] font-bold text-[var(--qs-ink)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] disabled:opacity-50"
                           />
                         )}

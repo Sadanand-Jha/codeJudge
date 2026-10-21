@@ -20,6 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { SearchableDropdown } from "@/components/ui";
 import { useBillingData } from "@/components/creator/billing/hooks";
 import {
   BillButton,
@@ -332,7 +333,23 @@ export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
                   />
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <SelectField label="Subject" value={subject} options={SUBJECTS} onChange={setSubject} />
+                  <SearchableDropdown
+                    label="Subject"
+                    placeholder="Search subjects..."
+                    value={subject}
+                    selectedId={subject}
+                    onSelect={(option) => setSubject(String(option.label))}
+                    searchFn={async (query) => {
+                      const q = query.trim().toLowerCase();
+                      return (q ? SUBJECTS.filter((s) => s.toLowerCase().includes(q)) : SUBJECTS).map((s) => ({
+                        id: s,
+                        label: s,
+                      }));
+                    }}
+                    minChars={0}
+                    debounceMs={0}
+                    maxVisible={8}
+                  />
                   <SelectField label="Question Type" value={qType} options={QUESTION_TYPES} onChange={setQType} />
                   <SelectField label="Difficulty" value={difficulty} options={DIFFICULTIES} onChange={setDifficulty} />
                 </div>

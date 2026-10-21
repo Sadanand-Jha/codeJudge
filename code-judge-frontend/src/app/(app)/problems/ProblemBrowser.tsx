@@ -138,15 +138,29 @@ function FilterDropdown({
   panelWidth?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
   useMenuDismiss(open, () => setOpen(false), ref);
   const current = options.find((o) => o.value === value);
+  const filteredOptions = options.filter((option) =>
+    option.label.toLowerCase().includes(query.trim().toLowerCase())
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    const timer = setTimeout(() => searchRef.current?.focus({ preventScroll: true }), 0);
+    return () => clearTimeout(timer);
+  }, [open]);
 
   return (
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          setQuery("");
+          setOpen((o) => !o);
+        }}
         className={`${toolbarBtnBase} ${active ? toolbarBtnActive : ""}`}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -163,28 +177,45 @@ function FilterDropdown({
             transition={{ duration: 0.12 }}
             className={menuPanelClass(panelWidth)}
           >
+            <div className="sticky top-0 z-10 bg-[var(--panel)] p-2 pb-1">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+                <input
+                  ref={searchRef}
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={`Search ${label.toLowerCase()}...`}
+                  aria-label={`Search ${label}`}
+                  className="h-8 w-full rounded-md border border-white/10 bg-white/[0.04] pl-8 pr-2 text-xs text-text-primary outline-none placeholder:text-text-muted"
+                />
+              </div>
+            </div>
             <div className="max-h-72 overflow-y-auto py-1">
-              {options.map((o) => {
-                const isActive = value === o.value;
-                return (
-                  <button
-                    key={o.value}
-                    type="button"
-                    onClick={() => {
-                      onChange(o.value);
-                      setOpen(false);
-                    }}
-                    className={`flex w-full items-center justify-between px-3 py-1.5 text-xs transition-colors ${
-                      isActive
-                        ? "text-[#A78BFA]"
-                        : "text-text-secondary hover:bg-accent/5 hover:text-text-primary"
-                    }`}
-                  >
-                    {o.label}
-                    {isActive && <Check className="h-3.5 w-3.5" />}
-                  </button>
-                );
-              })}
+              {filteredOptions.length === 0 ? (
+                <p className="px-3 py-3 text-xs text-text-muted">No matches</p>
+              ) : (
+                filteredOptions.map((o) => {
+                  const isActive = value === o.value;
+                  return (
+                    <button
+                      key={o.value}
+                      type="button"
+                      onClick={() => {
+                        onChange(o.value);
+                        setOpen(false);
+                      }}
+                      className={`flex w-full items-center justify-between px-3 py-1.5 text-xs transition-colors ${
+                        isActive
+                          ? "text-[#A78BFA]"
+                          : "text-text-secondary hover:bg-accent/5 hover:text-text-primary"
+                      }`}
+                    >
+                      {o.label}
+                      {isActive && <Check className="h-3.5 w-3.5" />}
+                    </button>
+                  );
+                })
+              )}
             </div>
           </motion.div>
         )}

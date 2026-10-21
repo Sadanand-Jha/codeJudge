@@ -12,8 +12,6 @@ export function PaperExportDialog({
   onChange,
   onDownload,
   downloading = false,
-  format,
-  onFormatChange,
   questionCount,
 }: {
   open: boolean;
@@ -22,8 +20,6 @@ export function PaperExportDialog({
   onChange: (next: PaperHeaderMeta) => void;
   onDownload: () => void;
   downloading?: boolean;
-  format: "pdf" | "word";
-  onFormatChange: (format: "pdf" | "word") => void;
   questionCount: number;
 }) {
   return (
@@ -58,7 +54,7 @@ export function PaperExportDialog({
                     Paper details
                   </h2>
                   <p className="mt-0.5 text-xs font-medium text-[var(--qs-muted)]">
-                    Set the heading, institute and date. These appear on the {format === "pdf" ? "PDF" : "Word"} paper.
+                    Set the heading, institute and date. These appear on the PDF paper.
                   </p>
                 </div>
               </div>
@@ -72,24 +68,6 @@ export function PaperExportDialog({
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 border-t-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-5 py-4">
-              <div className="flex items-center gap-1 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-0.5">
-                {(["pdf", "word"] as const).map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    aria-pressed={format === option}
-                    onClick={() => onFormatChange(option)}
-                    disabled={downloading}
-                    className={
-                      format === option
-                        ? "rounded-[7px] bg-[var(--qs-sun)] px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.05em] text-[#1a1240]"
-                        : "rounded-[7px] px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.05em] text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"
-                    }
-                  >
-                    {option === "pdf" ? "PDF" : "Word"}
-                  </button>
-                ))}
-              </div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="mr-1 text-[11px] font-bold text-[var(--qs-muted)]">
                   {questionCount} question{questionCount === 1 ? "" : "s"}
@@ -104,7 +82,7 @@ export function PaperExportDialog({
                   className="b b-pri sm gap-1.5"
                 >
                   {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                  {downloading ? "Preparing…" : `Download ${format === "pdf" ? "PDF" : "Word"}`}
+                  {downloading ? "Preparing…" : "Download PDF"}
                 </button>
               </div>
             </div>

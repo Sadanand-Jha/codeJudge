@@ -138,6 +138,7 @@ export function ManualProblemCreator() {
                   placeholder={subjectsLoading ? "Loading subjects…" : "Select subject"}
                   disabled={subjectsLoading}
                   ariaLabel="Subject"
+                  searchable
                   triggerClassName={cn(FIELD_CLASS, "flex items-center justify-between gap-2")}
                   menuClassName="w-full min-w-[240px]"
                 />

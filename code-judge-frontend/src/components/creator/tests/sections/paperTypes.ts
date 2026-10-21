@@ -140,3 +140,59 @@ export interface GenerateQuestionsPayload {
 export interface GenerateQuestionsResponse {
   questions: SubjectiveQuestion[];
 }
+
+export interface PaperGroupNumbering {
+  heading: string | null;
+  labels: string[];
+}
+
+type ParsedPaperGroupNumber =
+  | { kind: "single"; start: number }
+  | { kind: "range"; start: number; end: number };
+
+const parsePaperGroupNumber = (name?: string): ParsedPaperGroupNumber | null => {
+  const value = (name ?? "").trim().toUpperCase().replace(/\s+/g, "");
+  if (!value) return null;
+  const range = value.match(/^Q?(\d+)(?:[-–—]|TO)Q?(\d+)$/);
+  if (range) {
+    const start = Number(range[1]);
+    const end = Number(range[2]);
+    if (start > 0 && end >= start) return { kind: "range", start, end };
+    return null;
+  }
+  const single = value.match(/^Q?(\d+)$/);
+  if (!single) return null;
+  const start = Number(single[1]);
+  return start > 0 ? { kind: "single", start } : null;
+};
+
+export function buildPaperNumbering(sections: PaperSection[]): PaperGroupNumbering[][] {
+  let next = 1;
+  return sections.map((section) =>
+    section.questionGroups.map((group) => {
+      const count = group.questions.length;
+      const parsed = parsePaperGroupNumber(group.name);
+      if (parsed?.kind === "range" && parsed.end - parsed.start + 1 === count) {
+        next = Math.max(next, parsed.end + 1);
+        return {
+          heading: null,
+          labels: Array.from({ length: count }, (_, index) => `Q${parsed.start + index}`),
+        };
+      }
+      if (parsed?.kind === "single" && count > 1) {
+        next = Math.max(next, parsed.start + 1);
+        return {
+          heading: `Q${parsed.start}`,
+          labels: Array.from({ length: count }, (_, index) => `(${String.fromCharCode(97 + index)})`),
+        };
+      }
+      if (parsed?.kind === "single") {
+        next = Math.max(next, parsed.start + 1);
+        return { heading: null, labels: [`Q${parsed.start}`] };
+      }
+      const labels = Array.from({ length: count }, (_, index) => `Q${next + index}`);
+      next += count;
+      return { heading: group.name?.trim() || null, labels };
+    })
+  );
+}

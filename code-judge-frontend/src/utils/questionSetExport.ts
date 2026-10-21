@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import type { QuestionPaper } from "@/components/creator/tests/sections/paperTypes";
+import { buildPaperNumbering, type QuestionPaper } from "@/components/creator/tests/sections/paperTypes";
 import { downloadQuestionPaper } from "@/services/aiGenerate";
 import {
   DEFAULT_PAPER_HEADER,
@@ -14,6 +14,7 @@ export interface ExportableQuestion {
   difficulty: string;
   kind: string;
   marks?: number;
+  numberLabel?: string;
 }
 
 const PAGE_WIDTH = 210;
@@ -52,6 +53,7 @@ interface PdfState {
 
 interface PdfSectionGroup {
   name?: string;
+  heading?: string | null;
   attempt?: string | null;
   questions: ExportableQuestion[];
 }
@@ -289,8 +291,8 @@ const ensureSpace = (state: PdfState, needed: number) => {
   state.y = 24;
   const { doc } = state;
   setFont(doc, FONT, "italic", 8, MUTED);
-  doc.text(resolvedHeading(state.header), MARGIN, 12);
-  doc.text(displayOr(state.header.subject, "[Subject]"), PAGE_WIDTH - MARGIN, 12, { align: "right" });
+  const pageTitle = fitText(doc, resolvedHeading(state.header), CONTENT_WIDTH, 8, "italic");
+  doc.text(pageTitle, MARGIN, 12);
   doc.setDrawColor(...RULE);
   doc.setLineWidth(0.2);
   doc.line(MARGIN, 15, PAGE_WIDTH - MARGIN, 15);
@@ -463,10 +465,13 @@ const drawField = (state: PdfState, label: string, value: string, x: number, wid
 
 const drawHeader = (state: PdfState, maxMarks: number) => {
   const { doc, header } = state;
-  const institute = displayOr(header.instituteName, "[Institute name]").toUpperCase();
-  setFont(doc, FONT, "bold", 16, INK);
-  doc.text(institute, PAGE_WIDTH / 2, state.y + 6, { align: "center" });
-  state.y += 13.5;
+  if (header.instituteName.trim()) {
+    setFont(doc, FONT, "bold", 16, INK);
+    doc.text(header.instituteName.trim().toUpperCase(), PAGE_WIDTH / 2, state.y + 6, { align: "center" });
+    state.y += 13.5;
+  } else {
+    state.y += 2;
+  }
 
   setFont(doc, FONT, "bold", 14, INK);
   const titleLines = doc.splitTextToSize(resolvedHeading(header), CONTENT_WIDTH) as string[];
@@ -478,15 +483,20 @@ const drawHeader = (state: PdfState, maxMarks: number) => {
 
   const left = MARGIN;
   const right = 108;
-  drawField(state, "Subject: ", displayOr(header.subject, "[Subject]"), left, 82);
-  drawField(state, "Date: ", displayOr(header.date, "[Date]"), right, 78);
-  state.y += 6;
-  drawField(state, "Class / Semester: ", displayOr(header.className, "[Class / Semester]"), left, 82);
-  drawField(state, "Time allowed: ", displayOr(header.timeAllowed, "[Time allowed]"), right, 78);
-  state.y += 6;
-  drawField(state, "Maximum Marks: ", String(maxMarks), left, 82);
-  drawField(state, "Set: ", displayOr(header.setName, "A"), right, 78);
-  state.y += 8;
+  const fields: Array<[string, string]> = [];
+  if (header.subject.trim()) fields.push(["Subject: ", header.subject.trim()]);
+  if (header.date.trim()) fields.push(["Date: ", header.date.trim()]);
+  if (header.className.trim()) fields.push(["Class / Semester: ", header.className.trim()]);
+  if (header.timeAllowed.trim()) fields.push(["Time allowed: ", header.timeAllowed.trim()]);
+  fields.push(["Maximum Marks: ", String(maxMarks)]);
+  if (header.setName.trim()) fields.push(["Set: ", header.setName.trim()]);
+
+  for (let i = 0; i < fields.length; i += 2) {
+    drawField(state, fields[i][0], fields[i][1], left, 82);
+    if (fields[i + 1]) drawField(state, fields[i + 1][0], fields[i + 1][1], right, 78);
+    state.y += 6;
+  }
+  state.y += 2;
 
   if (header.showStudentBlock) {
     setFont(doc, FONT, "bold", 11, INK);
@@ -591,26 +601,30 @@ const drawSection = (
   state.y = top + bannerHeight + 5;
   if (instruction?.trim()) {
     setFont(doc, FONT, "italic", 10.5, MUTED);
-    doc.text(instruction.trim(), MARGIN, state.y);
-    state.y += 6;
+    const lines = doc.splitTextToSize(instruction.trim(), CONTENT_WIDTH) as string[];
+    lines.forEach((line) => {
+      doc.text(line, MARGIN, state.y);
+      state.y += 5;
+    });
+    state.y += 1;
   }
   setFont(doc, FONT, "normal", 12, INK);
 };
 
 const drawGroupHeading = (state: PdfState, group: PdfSectionGroup, count: number) => {
-  if (!group.name?.trim()) return;
   const { doc } = state;
-  ensureSpace(state, 14);
-  setFont(doc, FONT, "bold", 11, INK);
-  doc.text(group.name.trim(), MARGIN, state.y + 4);
-  state.y += 6;
-  if (group.attempt?.trim()) {
+  const heading = group.heading !== undefined ? group.heading : group.name;
+  const attempt = group.attempt?.trim() || (count > 0 ? "Answer all questions." : "");
+  if (!heading?.trim() && !attempt) return;
+  ensureSpace(state, 17);
+  if (heading?.trim()) {
+    setFont(doc, FONT, "bold", 11, INK);
+    doc.text(fitText(doc, heading.trim(), CONTENT_WIDTH, 11, "bold"), MARGIN, state.y + 4);
+    state.y += 9;
+  }
+  if (attempt) {
     setFont(doc, FONT, "italic", 10.5, MUTED);
-    doc.text(group.attempt.trim(), MARGIN, state.y);
-    state.y += 5;
-  } else if (count > 0) {
-    setFont(doc, FONT, "normal", 10.5, MUTED);
-    doc.text("Answer all questions.", MARGIN, state.y);
+    doc.text(fitText(doc, attempt, CONTENT_WIDTH, 10.5, "italic"), MARGIN, state.y);
     state.y += 5;
   }
   setFont(doc, FONT, "normal", 12, INK);
@@ -623,7 +637,7 @@ const drawQuestion = (state: PdfState, question: ExportableQuestion, number: num
   const top = state.y;
   const baseline = top + 3.8;
   setFont(doc, FONT, "bold", 12, INK);
-  doc.text(`Q${number}`, MARGIN, baseline);
+  doc.text(question.numberLabel?.trim() || `Q${number}`, MARGIN, baseline);
   setFont(doc, FONT, "bold", 11, INK);
   doc.text(`[${marks}]`, PAGE_WIDTH - MARGIN, baseline, { align: "right" });
   state.y = top;
@@ -649,8 +663,7 @@ const drawFooters = (state: PdfState) => {
     doc.setLineWidth(0.2);
     doc.line(MARGIN, 280, PAGE_WIDTH - MARGIN, 280);
     setFont(doc, FONT, "normal", 8.5, MUTED);
-    const footerSubject = displayOr(state.header.subject, "Question Paper");
-    const left = fitText(doc, `${footerSubject} \u00b7 ${resolvedHeading(state.header)}`, 100, 8.5, "normal");
+    const left = fitText(doc, resolvedHeading(state.header), 72, 8.5, "normal");
     doc.text(left, MARGIN, 286);
     setFont(doc, FONT, "normal", 9, MUTED);
     doc.text(`Page ${page} of ${total}`, PAGE_WIDTH / 2, 286, { align: "center" });
@@ -830,17 +843,21 @@ export async function downloadPaperPdf({
     subject: header?.subject?.trim() || "",
   });
 
-  const sections: PdfSectionInput[] = paper.sections.map((section) => {
-    const groups: PdfSectionGroup[] = section.questionGroups.map((group) => {
+  const numbering = buildPaperNumbering(paper.sections);
+  const sections: PdfSectionInput[] = paper.sections.map((section, sectionIndex) => {
+    const groups: PdfSectionGroup[] = section.questionGroups.map((group, groupIndex) => {
       const attempt =
         group.attemptRule.type === "ANY_N" && group.attemptRule.count
           ? `Attempt any ${group.attemptRule.count} of the following ${group.questions.length} questions.`
           : null;
+      const groupNumbering = numbering[sectionIndex]?.[groupIndex];
       return {
         name: group.name,
+        heading: groupNumbering?.heading ?? null,
         attempt,
-        questions: group.questions.map((question) => ({
+        questions: group.questions.map((question, questionIndex) => ({
           ...question,
+          numberLabel: groupNumbering?.labels[questionIndex],
           marks:
             question.marks ??
             (group.marksPerQuestion > 0

@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { CalendarDays, ClipboardList, Download, FileText, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
-import { getSavedTests, removeSavedTest, subscribeSavedTests, type SavedTestRecord } from "@/utils/savedTests";
+import { getSavedTests, getSavedTestsServerSnapshot, removeSavedTest, subscribeSavedTests, type SavedTestRecord } from "@/utils/savedTests";
 import { downloadPaperPdf } from "@/utils/questionSetExport";
 
 const formatCreatedAt = (value: string) => {
@@ -15,17 +15,12 @@ const formatCreatedAt = (value: string) => {
 
 export function TestsPage() {
   const toast = useToast();
-  const [tests, setTests] = useState<SavedTestRecord[]>([]);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setTests(getSavedTests());
-    return subscribeSavedTests(() => setTests(getSavedTests()));
-  }, []);
+  const tests = useSyncExternalStore(subscribeSavedTests, getSavedTests, getSavedTestsServerSnapshot);
 
   const handleDelete = useCallback(
     (id: string) => {
-      setTests(removeSavedTest(id));
+      removeSavedTest(id);
       toast.success({ title: "Test removed" });
     },
     [toast]
@@ -65,7 +60,7 @@ export function TestsPage() {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-3xl">Tests</h1>
           <p className="mt-1 text-sm text-[var(--qs-muted)]">
-            Every published test is saved here with its paper header and question paper.
+            Every generated test is saved here with its paper header and question paper.
           </p>
         </div>
         <Link href="/creator/tests/create" className="b b-pri gap-1.5">
@@ -81,7 +76,7 @@ export function TestsPage() {
           </span>
           <h2 className="mt-4 text-lg font-extrabold text-[var(--qs-ink)]">No tests yet</h2>
           <p className="mx-auto mt-1 max-w-md text-sm text-[var(--qs-muted)]">
-            Create a test, generate its paper and publish it. It will appear here with every detail you set.
+            Create a test and generate its paper. It will appear here automatically, ready to download as a PDF.
           </p>
           <Link href="/creator/tests/create" className="b b-pri mx-auto mt-5 gap-1.5">
             <Plus className="h-4 w-4" />
@@ -103,8 +98,12 @@ export function TestsPage() {
                       <CalendarDays className="h-3 w-3" />
                       {formatCreatedAt(test.createdAt)}
                     </span>
-                    <span>·</span>
-                    <span>{test.meta.instituteName.trim() || "[Institute name]"}</span>
+                    {test.meta.instituteName.trim() && (
+                      <>
+                        <span>·</span>
+                        <span>{test.meta.instituteName.trim()}</span>
+                      </>
+                    )}
                   </p>
                 </div>
                 <span className="shrink-0 rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em] text-[#1a1240]">

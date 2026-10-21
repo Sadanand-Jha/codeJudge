@@ -116,6 +116,10 @@ export interface DirectDocumentJsonRequest {
   prompt: string;
   schemaName: string;
   schema: Record<string, unknown>;
+  /** Provider system prompt. Defaults to the question-import contract. */
+  systemPrompt?: string;
+  /** Observability label for this document AI call. */
+  operation?: string;
 }
 
 /**
@@ -348,7 +352,7 @@ const generateJsonFromDocumentRemote = async (
       outputTokens: responseUsage.output_tokens,
       totalTokens: responseUsage.total_tokens,
     } : undefined;
-    await recordAiObservation({ provider: docProvider, model, operation: "subjective_bank_import", startedAt, success: true, statusCode: 200, usage });
+    await recordAiObservation({ provider: docProvider, model, operation: request.operation ?? "subjective_bank_import", startedAt, success: true, statusCode: 200, usage });
     console.log("[ai-document] success", { usage, outputChars: outputText.length });
     return { content: outputText, usage };
   } catch (error) {
@@ -365,13 +369,22 @@ const generateJsonFromDocumentRemote = async (
       cause: err?.cause instanceof Error ? { name: err.cause.name, message: err.cause.message } : err?.cause,
       stack: err?.stack,
     });
-    await recordAiObservation({ provider: docProvider, model, operation: "subjective_bank_import", startedAt, success: false, errorMessage: (error as Error).message });
+    await recordAiObservation({ provider: docProvider, model, operation: request.operation ?? "subjective_bank_import", startedAt, success: false, errorMessage: (error as Error).message });
     throw new Error(`The configured AI provider could not read this document directly: ${(error as Error).message}`);
   }
 };
 
-/** Max document characters sent to a local model (keeps small-context models safe). */
-const LOCAL_DOC_CHAR_LIMIT = 30_000;
+/** Max document characters sent to the model. Local servers default lower. */
+const resolveDocCharLimit = (baseURL: string): number => {
+  const configured = Number(process.env.DOCUMENT_AI_CHAR_LIMIT);
+  if (Number.isFinite(configured) && configured >= 1_000) return Math.floor(configured);
+  return isLocalBaseURL(baseURL) ? 30_000 : 120_000;
+};
+
+const DEFAULT_DOCUMENT_SYSTEM_PROMPT =
+  "You extract structured data from documents. Your entire response must be ONE single valid JSON object and nothing else: first character {, last character }. No markdown fences, no commentary, no text before or after the JSON. If extraction is impossible, return {\"questions\": []}.";
+
+type DocumentResponseMode = "schema" | "json" | "plain";
 
 /** Best-effort local text extraction (no provider needed): docx/txt/md/pdf. */
 const extractDocumentTextLocally = async (
@@ -452,7 +465,8 @@ const extractDocumentTextLocally = async (
 const generateJsonFromDocumentText = async (
   request: DirectDocumentJsonRequest,
   ctx: { model: string; docBaseURL: string; docProvider: string; startedAt: Date; onProgress?: (chars: number, tail: string, delta?: string) => void },
-  retried = false
+  retried = false,
+  responseMode: DocumentResponseMode = "schema"
 ): Promise<{ content: string; usage?: LiveUsage }> => {
   const { model, docBaseURL, docProvider, startedAt, onProgress } = ctx;
   try {
@@ -467,12 +481,16 @@ const generateJsonFromDocumentText = async (
           `Supported text extraction: PDF, DOCX, TXT, MD, CSV.`
       );
     }
-    const truncated = extracted.length > LOCAL_DOC_CHAR_LIMIT
-      ? extracted.slice(0, LOCAL_DOC_CHAR_LIMIT)
+    const charLimit = resolveDocCharLimit(docBaseURL);
+    const truncated = extracted.length > charLimit
+      ? extracted.slice(0, charLimit)
       : extracted;
     if (truncated.length < extracted.length) {
       console.log("[ai-document] document truncated for model context", {
-        from: extracted.length, to: truncated.length,
+        from: extracted.length,
+        to: truncated.length,
+        limit: charLimit,
+        hint: "Split the document or set DOCUMENT_AI_CHAR_LIMIT to process everything.",
       });
     }
 
@@ -481,22 +499,27 @@ const generateJsonFromDocumentText = async (
       apiKey: isLocalBaseURL(docBaseURL) ? "lm-studio" : resolveApiKey(),
       defaultHeaders: docBaseURL.includes("openrouter.ai") ? defaultHeaders : {},
     });
-    console.log(`[ai-document] opening ${docProvider} chat stream …`);
+    const responseFormat = responseMode === "schema"
+      ? {
+          type: "json_schema" as const,
+          json_schema: { name: request.schemaName, strict: true, schema: request.schema },
+        }
+      : responseMode === "json"
+        ? { type: "json_object" as const }
+        : undefined;
+    console.log(`[ai-document] opening ${docProvider} chat stream …`, { responseMode });
     const stream = await textClient.chat.completions.create({
       model,
       temperature: 0.2,
       stream: true,
       stream_options: { include_usage: true },
-      // Constrained decoding emits every required question field. Zod still
-      // validates the completed result before a preview batch is created.
-      response_format: {
-        type: "json_schema",
-        json_schema: { name: request.schemaName, strict: true, schema: request.schema },
-      } as unknown as { type: "json_schema"; json_schema: { name: string; strict: boolean; schema: Record<string, unknown> } },
+      // Constrained decoding emits the requested shape. Zod still validates
+      // the completed result before a preview batch is created.
+      ...(responseFormat ? { response_format: responseFormat } : {}),
       messages: [
         {
           role: "system",
-          content: "You extract structured data from documents. Your entire response must be ONE single valid JSON object and nothing else: first character {, last character }. No markdown fences, no commentary, no text before or after the JSON. If extraction is impossible, return {\"questions\": []}.",
+          content: request.systemPrompt ?? DEFAULT_DOCUMENT_SYSTEM_PROMPT,
         },
         {
           role: "user",
@@ -506,46 +529,72 @@ const generateJsonFromDocumentText = async (
     });
     let content = "";
     let usage: LiveUsage | undefined;
+    let finishReason: string | null = null;
     for await (const chunk of stream) {
+      const choice = chunk.choices?.[0];
+      if (choice?.finish_reason) finishReason = choice.finish_reason;
       const normalized = normalizeUsage(chunk.usage);
       if (normalized) usage = normalized;
-      const delta = chunk.choices?.[0]?.delta?.content;
+      const delta = choice?.delta?.content;
       if (!delta) continue;
       content += delta;
       onProgress?.(content.length, content.slice(-160), delta);
     }
     console.log(`[ai-document] ${docProvider} stream completed`, {
       contentLength: content.length,
+      finishReason,
       contentPreview: content.slice(0, 300),
     });
+    if (finishReason === "length") {
+      throw new Error(
+        "The model stopped because it reached its output token limit, so the hierarchy may be incomplete. " +
+          "Split the document into smaller parts or use a model with a larger output limit."
+      );
+    }
     if (!content.trim()) {
       throw new Error(`${docProvider} model returned an empty response for this document`);
     }
-    await recordAiObservation({ provider: docProvider, model, operation: "subjective_bank_import", startedAt, success: true, statusCode: 200, usage });
+    await recordAiObservation({ provider: docProvider, model, operation: request.operation ?? "subjective_bank_import", startedAt, success: true, statusCode: 200, usage });
     console.log(`[ai-document] ${docProvider} success`, { usage, outputChars: content.length });
     return { content, usage };
   } catch (error) {
     const err = error as Error & { status?: number; code?: string; cause?: unknown };
+    const message = err?.message ?? "";
     // LM Studio auto-unloads idle models; the first request after unload fails
     // fast with 400 "Model unloaded" while it loads in the background. Wait
     // once and retry instead of failing the preview.
-    if (!retried && /model unloaded/i.test(err?.message ?? "")) {
+    if (!retried && /model unloaded/i.test(message)) {
       console.log("[ai-document] model was unloaded — waiting 20s for LM Studio to load it, then retrying once …");
       await new Promise((resolve) => setTimeout(resolve, 20_000));
-      return generateJsonFromDocumentText(request, ctx, true);
+      return generateJsonFromDocumentText(request, ctx, true, responseMode);
+    }
+    const structuredFailure =
+      /failed to generate json|json_schema|response_format|structured output|invalid schema|does not support[^.]*json/i.test(message);
+    const providerRejectedRequest = err?.status === 400 && /provider returned error/i.test(message);
+    if ((structuredFailure || providerRejectedRequest) && responseMode === "schema") {
+      console.warn("[ai-document] strict JSON schema rejected — retrying with json_object mode", { model, message });
+      return generateJsonFromDocumentText(request, ctx, retried, "json");
+    }
+    if ((structuredFailure || providerRejectedRequest) && responseMode === "json") {
+      console.warn("[ai-document] json_object mode rejected — retrying with plain prompt mode", { model, message });
+      return generateJsonFromDocumentText(request, ctx, retried, "plain");
     }
     console.error("[ai-document] TEXT STREAM FAILED", {
       provider: docProvider,
       baseURL: docBaseURL,
       model,
+      responseMode,
       name: err?.name,
       message: err?.message,
       status: err?.status,
       code: err?.code,
       stack: err?.stack,
     });
-    await recordAiObservation({ provider: docProvider, model, operation: "subjective_bank_import", startedAt, success: false, errorMessage: (error as Error).message });
-    throw new Error(`The configured AI model could not process this document: ${(error as Error).message}`);
+    await recordAiObservation({ provider: docProvider, model, operation: request.operation ?? "subjective_bank_import", startedAt, success: false, errorMessage: (error as Error).message });
+    const hint = structuredFailure || providerRejectedRequest
+      ? " Try a model that supports reliable JSON output."
+      : "";
+    throw new Error(`The configured AI model (${model}) could not process this document: ${message}.${hint}`);
   }
 };
 
@@ -603,9 +652,15 @@ export const streamChatWithAI = async function* (
  * Non-streaming chat completion. Used as a fallback when the model does not
  * support streaming, and returns the complete reasoning + content together.
  */
+export interface ChatOptions {
+  maxTokens?: number;
+  temperature?: number;
+}
+
 export const chatWithAI = async (
   messages: ChatMessageInput[] | string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  options?: ChatOptions
 ): Promise<AIResponse> => {
   const model = resolveCoderModel();
   const startedAt = new Date();
@@ -616,7 +671,12 @@ export const chatWithAI = async (
   }
   try {
     const response = await client.chat.completions.create(
-      { model, messages: toModelMessages(messages), temperature: 0.7 },
+      {
+        model,
+        messages: toModelMessages(messages),
+        temperature: options?.temperature ?? 0.7,
+        ...(options?.maxTokens ? { max_tokens: options.maxTokens } : {}),
+      },
       { signal }
     );
     const msg = response.choices?.[0]?.message as Message | undefined;

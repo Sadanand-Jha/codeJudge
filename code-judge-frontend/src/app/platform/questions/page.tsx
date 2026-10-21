@@ -5,6 +5,7 @@ import { ChevronDown, Layers3, Pencil, RotateCcw, Search, Trash2 } from "lucide-
 import { platformApi } from "@/services/platform";
 import type { BankQuestion, BankQuestionsData } from "@/services/platform";
 import { EmptyState, ErrorState, SectionCard, SectionSkeleton, fmtInt } from "@/components/platform/ui";
+import { SearchableSelect } from "@/components/platform/SearchableSelect";
 import { useAsync } from "@/components/platform/usePlatformAsync";
 import { PageHeader } from "@/components/platform/subpage-blocks";
 import { getApiErrorMessage } from "@/lib/apiError";
@@ -494,25 +495,16 @@ function BankSelect({ label, value, onChange, options, placeholder, disabled = f
   disabled?: boolean;
 }) {
   return (
-    <label className="block">
-      <span className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-[.14em] text-[var(--text-muted)]">{label}</span>
-      <div className="relative">
-        <select
-          value={value ?? ""}
-          onChange={(event) => onChange(event.target.value ? Number(event.target.value) : null)}
-          disabled={disabled}
-          className="pf-focus h-10 w-full appearance-none rounded-[12px] border-2 border-[var(--border)] bg-[var(--platform-input)] px-3 pr-9 text-[12px] font-medium text-[var(--text-primary)] outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <option value="">{placeholder}</option>
-          {options.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.name}{option.count !== undefined ? ` (${option.count})` : ""}
-            </option>
-          ))}
-        </select>
-        <ChevronDown size={13} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-      </div>
-    </label>
+    <SearchableSelect
+      label={label}
+      value={value}
+      onChange={onChange}
+      options={options}
+      placeholder={placeholder}
+      disabled={disabled}
+      labelClassName="mb-1.5 block text-[10px] font-extrabold uppercase tracking-[.14em] text-[var(--text-muted)]"
+      triggerClassName="pf-focus h-10 rounded-[12px] border-2 border-[var(--border)] bg-[var(--platform-input)] px-3 pr-9 text-[12px] font-medium text-[var(--text-primary)]"
+    />
   );
 }
 

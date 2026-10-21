@@ -25,7 +25,7 @@ import {
 import type { SubjectiveQuestion } from "@/components/creator/tests/sections/paperTypes";
 import { QsSelect } from "@/components/creator/problems/QsSelect";
 import { QuestionHtml, htmlToEditableText } from "@/components/creator/questions/QuestionHtml";
-import { downloadQuestionsDocx, downloadQuestionsPdf } from "@/utils/questionSetExport";
+import { downloadQuestionsPdf } from "@/utils/questionSetExport";
 import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
 import { PaperExportDialog } from "@/components/creator/common/PaperExportDialog";
 import { DEFAULT_PAPER_HEADER, type PaperHeaderMeta } from "@/utils/paperHeader";
@@ -221,7 +221,6 @@ export function CreateProblemGenerator() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [thinkingIndex, setThinkingIndex] = useState(0);
   const [copied, setCopied] = useState(false);
-  const [downloadFormat, setDownloadFormat] = useState<"pdf" | "word">("pdf");
   const [downloading, setDownloading] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [paperHeader, setPaperHeader] = useState<PaperHeaderMeta>({ ...DEFAULT_PAPER_HEADER });
@@ -587,14 +586,10 @@ export function CreateProblemGenerator() {
         subject: paperHeader.subject.trim() || subjectName,
         header: paperHeader,
       };
-      if (downloadFormat === "pdf") {
-        await downloadQuestionsPdf(exportPayload);
-      } else {
-        await downloadQuestionsDocx(exportPayload);
-      }
+      await downloadQuestionsPdf(exportPayload);
       setExportOpen(false);
       toast.success({
-        title: `${downloadFormat === "pdf" ? "PDF" : "Word"} ready`,
+        title: "PDF ready",
         description: `${selected.length} question${selected.length > 1 ? "s" : ""} downloaded.`,
       });
     } catch (err) {
@@ -605,7 +600,7 @@ export function CreateProblemGenerator() {
     } finally {
       setDownloading(false);
     }
-  }, [items, downloading, downloadFormat, subjectName, paperHeader, toast]);
+  }, [items, downloading, subjectName, paperHeader, toast]);
 
   return (
     <div className="w-full">
@@ -671,6 +666,7 @@ export function CreateProblemGenerator() {
                   placeholder={catalogLoading ? "Loading curriculum…" : "Select subject"}
                   disabled={status === "generating" || catalogLoading}
                   ariaLabel="Subject"
+                  searchable
                   triggerClassName="rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-3 text-sm font-medium text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
                   menuClassName="w-full"
                 />
@@ -1125,24 +1121,6 @@ export function CreateProblemGenerator() {
                     onClick={() => void handleGenerate()}
                     disabled={!canGenerate}
                   />
-                  <div className="flex items-center rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-0.5">
-                    {(["pdf", "word"] as const).map((format) => (
-                      <button
-                        key={format}
-                        type="button"
-                        onClick={() => setDownloadFormat(format)}
-                        aria-pressed={downloadFormat === format}
-                        className={cn(
-                          "rounded-[7px] px-2.5 py-1 text-[12px] font-extrabold uppercase tracking-[0.04em] transition-colors",
-                          downloadFormat === format
-                            ? "bg-[var(--qs-sun)] text-[#1a1240]"
-                            : "text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"
-                        )}
-                      >
-                        {format === "pdf" ? "PDF" : "Word"}
-                      </button>
-                    ))}
-                  </div>
                   <button
                     type="button"
                     onClick={openExportDialog}
@@ -1150,7 +1128,7 @@ export function CreateProblemGenerator() {
                     className="b b-pri sm gap-1.5 disabled:cursor-not-allowed"
                   >
                     <Download className="h-4 w-4" />
-                    {downloading ? "Preparing…" : `Download ${downloadFormat === "pdf" ? "PDF" : "Word"}`}
+                    {downloading ? "Preparing…" : "Download PDF"}
                   </button>
                   <button
                     type="button"
@@ -1175,8 +1153,6 @@ export function CreateProblemGenerator() {
         onChange={setPaperHeader}
         onDownload={() => void downloadSelected()}
         downloading={downloading}
-        format={downloadFormat}
-        onFormatChange={setDownloadFormat}
         questionCount={selectedCount}
       />
     </div>

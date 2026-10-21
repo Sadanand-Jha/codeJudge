@@ -48,6 +48,24 @@ export function withPaperHeaderDefaults(meta?: Partial<PaperHeaderMeta>): PaperH
   };
 }
 
+/** Parse common "Time allowed" values ("180 minutes", "3 hours", "2.5 hrs"). */
+export function parseTimeAllowedMinutes(value?: string): number | undefined {
+  const text = (value ?? "").trim().toLowerCase();
+  if (!text) return undefined;
+
+  const hourMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)\b/);
+  const minuteMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:minutes?|mins?|m)\b/);
+  const bareNumber = text.match(/^\s*(\d+(?:\.\d+)?)\s*$/);
+
+  let minutes: number | undefined;
+  if (hourMatch) minutes = Number(hourMatch[1]) * 60;
+  else if (minuteMatch) minutes = Number(minuteMatch[1]);
+  else if (bareNumber) minutes = Number(bareNumber[1]);
+
+  if (minutes === undefined || !Number.isFinite(minutes) || minutes < 10) return undefined;
+  return Math.min(600, Math.round(minutes));
+}
+
 /** Marks for a question based on its difficulty label (Easy / Medium / Hard / Expert). */
 export function marksForDifficulty(header: PaperHeaderMeta, difficulty?: string | null): number {
   const value = (difficulty ?? "").toLowerCase();

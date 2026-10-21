@@ -38,7 +38,7 @@ import { QuestionsStep } from "./sections/QuestionsStep";
 import { SectionBlueprintLibrary } from "./sections/SectionBlueprintLibrary";
 import type { QuestionPaper } from "./sections/paperTypes";
 import { saveTestRecord } from "@/utils/savedTests";
-import { DEFAULT_PAPER_HEADER, type PaperHeaderMeta } from "@/utils/paperHeader";
+import { DEFAULT_PAPER_HEADER, parseTimeAllowedMinutes, type PaperHeaderMeta } from "@/utils/paperHeader";
 import {
   type Section,
   createDefaultSection,
@@ -133,6 +133,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   const [price, setPrice] = useState(0);
   const [originalPrice, setOriginalPrice] = useState(0);
   const [publishing, setPublishing] = useState(false);
+  const [draftId] = useState(() => `draft-${Date.now()}`);
   const [paperHeader, setPaperHeader] = useState<PaperHeaderMeta>({ ...DEFAULT_PAPER_HEADER });
   const [generatedPaper, setGeneratedPaper] = useState<QuestionPaper | null>(null);
   const [aiModalOpen, setAiModalOpen] = useState(false);
@@ -158,6 +159,16 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   const totalMarks = useMemo(
     () => sections.reduce((sum, s) => sum + getSectionMarks(s), 0),
     [sections]
+  );
+
+  const durationForAi = useMemo(
+    () => parseTimeAllowedMinutes(paperHeader.timeAllowed) ?? duration,
+    [paperHeader.timeAllowed, duration]
+  );
+
+  const savedSubjects = useMemo(
+    () => paperHeader.subject.trim() ? [paperHeader.subject.trim()] : subjects.length === 1 ? subjects : [],
+    [paperHeader.subject, subjects]
   );
 
   const selectedExam = EXAMS.find((e) => e.id === examId);
@@ -336,21 +347,41 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
     }
   }, [blueprintName, blueprintDescription, sections, toast]);
 
+  const handlePaperReady = useCallback((paper: QuestionPaper) => {
+    setGeneratedPaper(paper);
+    saveTestRecord({
+      id: draftId,
+      title: title.trim() || paperHeader.heading.trim() || "Untitled test",
+      creationType,
+      createdAt: new Date().toISOString(),
+      mode,
+      price,
+      originalPrice,
+      duration: paper.durationMinutes ?? durationForAi,
+      subjects: savedSubjects,
+      sectionsCount: paper.sections.length,
+      totalQuestions: paper.totalQuestions,
+      totalMarks: paper.totalMarks,
+      meta: { ...paperHeader, heading: title.trim() || paperHeader.heading.trim() || "Question Paper" },
+      paper,
+    });
+  }, [draftId, title, paperHeader, creationType, mode, price, originalPrice, durationForAi, savedSubjects]);
+
   const handlePublish = () => {
     setPublishing(true);
     setTimeout(() => {
       saveTestRecord({
-        id: generatedPaper ? `paper-${Date.now()}` : `draft-${Date.now()}`,
+        id: draftId,
         title: title.trim() || paperHeader.heading.trim() || "Untitled test",
         creationType,
         createdAt: new Date().toISOString(),
         mode,
         price,
         originalPrice,
-        duration,
-        subjects,
-        sectionsCount: sections.length,
-        totalQuestions,
+        duration: generatedPaper?.durationMinutes ?? durationForAi,
+        subjects: savedSubjects,
+        sectionsCount: generatedPaper?.sections.length ?? sections.length,
+        totalQuestions: generatedPaper?.totalQuestions ?? totalQuestions,
         totalMarks: generatedPaper?.totalMarks ?? totalMarks,
         meta: { ...paperHeader, heading: title.trim() || paperHeader.heading.trim() || "Question Paper" },
         paper: generatedPaper,
@@ -772,7 +803,8 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
               onPaperTitleChange={setTitle}
               paperHeader={paperHeader}
               onPaperHeaderChange={setPaperHeader}
-              onPaperReady={setGeneratedPaper}
+              durationMinutes={durationForAi}
+              onPaperReady={handlePaperReady}
             />
           )}
 

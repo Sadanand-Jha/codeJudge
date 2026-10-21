@@ -29,7 +29,9 @@ import {
   getSectionQuestionCount,
   getSectionMarks,
 } from "./types";
-import { DEFAULT_PAPER_HEADER, type PaperHeaderMeta } from "@/utils/paperHeader";
+import { DEFAULT_PAPER_HEADER, parseTimeAllowedMinutes, type PaperHeaderMeta } from "@/utils/paperHeader";
+import { saveTestRecord } from "@/utils/savedTests";
+import type { QuestionPaper } from "./paperTypes";
 
 const STEPS = [
   { id: "basic", label: "Basic Details", icon: FileText },
@@ -48,6 +50,7 @@ export function SectionsPage() {
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [paperTitle, setPaperTitle] = useState("Operating Systems — Question Paper");
   const [paperHeader, setPaperHeader] = useState<PaperHeaderMeta>({ ...DEFAULT_PAPER_HEADER });
+  const [draftId] = useState(() => `draft-${Date.now()}`);
 
   const totalQuestions = useMemo(
     () => sections.reduce((sum, s) => sum + getSectionQuestionCount(s), 0),
@@ -71,6 +74,30 @@ export function SectionsPage() {
     const subjectiveQs = totalQuestions - objectiveQs;
     return Math.max(10, Math.ceil((objectiveQs * 1.5 + subjectiveQs * 6) / 5) * 5);
   }, [sections, totalQuestions]);
+
+  const durationForAi = useMemo(
+    () => parseTimeAllowedMinutes(paperHeader.timeAllowed) ?? estimatedDuration,
+    [paperHeader.timeAllowed, estimatedDuration]
+  );
+
+  const handlePaperReady = useCallback((paper: QuestionPaper) => {
+    saveTestRecord({
+      id: draftId,
+      title: paper.title.trim() || paperTitle.trim() || "Untitled test",
+      creationType: "test",
+      createdAt: new Date().toISOString(),
+      mode: "free",
+      price: 0,
+      originalPrice: 0,
+      duration: paper.durationMinutes ?? durationForAi,
+      subjects: paperHeader.subject.trim() ? [paperHeader.subject.trim()] : [],
+      sectionsCount: paper.sections.length,
+      totalQuestions: paper.totalQuestions,
+      totalMarks: paper.totalMarks,
+      meta: { ...paperHeader, heading: paper.title.trim() || paperTitle.trim() || "Question Paper" },
+      paper,
+    });
+  }, [draftId, paperTitle, paperHeader, durationForAi]);
 
   const updateSection = useCallback((id: string, patch: Partial<Section>) => {
     setSections((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
@@ -283,6 +310,8 @@ export function SectionsPage() {
           onPaperTitleChange={setPaperTitle}
           paperHeader={paperHeader}
           onPaperHeaderChange={setPaperHeader}
+          durationMinutes={durationForAi}
+          onPaperReady={handlePaperReady}
         />
       ) : (
         <>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
@@ -8,6 +8,8 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  Check,
   Clock3,
   Filter,
   Search,
@@ -420,7 +422,7 @@ export default function PreviousQuizzesSection() {
 
             {/* Desktop: Inline filters */}
             <div className="hidden md:grid gap-2.5 md:grid-cols-2 xl:grid-cols-6">
-              <FieldSelect label="Subject" value={subject} options={allSubjects} onChange={setSubject} />
+              <FieldSelect label="Subject" value={subject} options={allSubjects} onChange={setSubject} searchable />
               <FieldSelect label="Date Range" value={dateRange} options={["All time", "Last 7 days", "Last 30 days", "Last 90 days"]} onChange={setDateRange} />
               <FieldSelect label="Status" value={status} options={[...STATUS_OPTIONS]} onChange={(v) => setStatus(v as (typeof STATUS_OPTIONS)[number])} />
               <FieldSelect label="Score" value={score} options={SCORE_OPTIONS} onChange={setScore} />
@@ -550,27 +552,117 @@ function FieldSelect({
   value,
   options,
   onChange,
+  searchable = false,
 }: {
   label: string;
   value: string;
   options: string[];
   onChange: (value: string) => void;
+  searchable?: boolean;
 }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const filteredOptions = options.filter((option) =>
+    option.toLowerCase().includes(query.trim().toLowerCase())
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (!wrapperRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const timer = setTimeout(() => searchRef.current?.focus({ preventScroll: true }), 0);
+    return () => clearTimeout(timer);
+  }, [open]);
+
+  if (!searchable) {
+    return (
+      <label className="space-y-1">
+        <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-text-muted">{label}</span>
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full rounded-xl border border-border bg-card px-2.5 py-2 text-xs text-text-primary outline-none transition-all focus:border-accent/30 focus:ring-1 focus:ring-accent/20"
+        >
+          {options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+
   return (
-    <label className="space-y-1">
+    <div ref={wrapperRef} className="space-y-1">
       <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-text-muted">{label}</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-border bg-card px-2.5 py-2 text-xs text-text-primary outline-none transition-all focus:border-accent/30 focus:ring-1 focus:ring-accent/20"
-      >
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => {
+            setQuery("");
+            setOpen((current) => !current);
+          }}
+          className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-2.5 py-2 text-left text-xs text-text-primary outline-none transition-all focus:border-accent/30 focus:ring-1 focus:ring-accent/20"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+        >
+          <span className="truncate">{value}</span>
+          <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-text-muted transition-transform ${open ? "rotate-180" : ""}`} />
+        </button>
+        {open && (
+          <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-xl border border-border bg-card shadow-xl">
+            <div className="border-b border-border p-1.5">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+                <input
+                  ref={searchRef}
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search subjects..."
+                  aria-label="Search subjects"
+                  className="h-8 w-full rounded-lg border border-border bg-card-hover pl-7 pr-2 text-xs text-text-primary outline-none placeholder:text-text-muted"
+                />
+              </div>
+            </div>
+            <div className="max-h-56 overflow-y-auto p-1">
+              {filteredOptions.length === 0 ? (
+                <p className="px-2 py-3 text-center text-xs text-text-muted">No matches</p>
+              ) : (
+                filteredOptions.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => {
+                      onChange(option);
+                      setOpen(false);
+                      setQuery("");
+                    }}
+                    className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors ${
+                      value === option
+                        ? "bg-accent/10 text-accent"
+                        : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+                    }`}
+                  >
+                    <span className="truncate">{option}</span>
+                    {value === option && <Check className="h-3.5 w-3.5 shrink-0" />}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

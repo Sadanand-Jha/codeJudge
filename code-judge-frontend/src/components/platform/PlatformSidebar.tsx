@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Radio, Activity, FlaskConical, ListOrdered, Users,
   Sparkles, Server, AlertTriangle, Cpu, ShieldCheck, ScrollText,
-  ArrowLeft, LogOut, Gauge, FileUp, ListChecks, MessageSquare,
+  ArrowLeft, LogOut, Gauge, FileUp, ListChecks, MessageSquare, BookOpen,
   BarChart3, Boxes, CreditCard, GitBranch, HeartPulse, Settings2, Wallet,
   ChevronDown, type LucideIcon,
 } from "lucide-react";
@@ -42,6 +42,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Infrastructure",
     items: [
       { label: "Question ingestion", href: "/platform/question-import", icon: FileUp },
+      { label: "Syllabus ingestion", href: "/platform/syllabus-import", icon: BookOpen },
       { label: "Question bank", href: "/platform/questions", icon: ListChecks },
       { label: "API observability", href: "/platform/observability", icon: Gauge },
       { label: "Model catalogue", href: "/platform/models", icon: Boxes },

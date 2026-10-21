@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, Check, ChevronDown, ChevronRight, ClipboardCheck, Database, FileText, FileUp, Layers3, RotateCcw, SlidersHorizontal, Sparkles, UploadCloud, Zap } from "lucide-react";
+import { AlertTriangle, Check, ChevronRight, ClipboardCheck, Database, FileText, FileUp, Layers3, RotateCcw, SlidersHorizontal, Sparkles, UploadCloud, Zap } from "lucide-react";
 import { platformApi } from "@/services/platform";
 import type { QuestionImportCatalog, SubjectiveImportPreview } from "@/services/platform";
 import { SectionSkeleton, EmptyState, ErrorState, fmtInt } from "@/components/platform/ui";
+import { SearchableSelect } from "@/components/platform/SearchableSelect";
 import { useAsync } from "@/components/platform/usePlatformAsync";
 import { PageHeader } from "@/components/platform/subpage-blocks";
 import { getApiErrorMessage } from "@/lib/apiError";
@@ -249,7 +250,19 @@ function QuestionImportPanel({ query }: {
 }
 
 function ImportSelect({ label, value, onChange, options, placeholder, disabled = false, required = false }: { label: string; value: string; onChange: (value: string) => void; options: { id: number; name: string }[]; placeholder: string; disabled?: boolean; required?: boolean }) {
-  return <label className="block"><span className="mb-1.5 flex items-center gap-1 text-[9px] font-bold uppercase tracking-[.12em] text-[var(--text-muted)]">{label}{required && <span className="text-[#EC4899]">*</span>}</span><div className="relative"><select value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled} className="h-11 w-full appearance-none rounded-[10px] border border-[var(--border)] bg-[var(--platform-input)] px-3 pr-9 text-[11px] font-medium text-[var(--text-primary)] outline-none transition-colors focus:border-[#EC4899]/60 disabled:cursor-not-allowed disabled:opacity-40"><option value="">{placeholder}</option>{options.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select><ChevronDown size={13} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" /></div></label>;
+  return (
+    <SearchableSelect
+      label={label}
+      value={value ? Number(value) : null}
+      onChange={(next) => onChange(next === null ? "" : String(next))}
+      options={options}
+      placeholder={placeholder}
+      disabled={disabled}
+      required={required}
+      labelClassName="mb-1.5 flex items-center gap-1 text-[9px] font-bold uppercase tracking-[.12em] text-[var(--text-muted)]"
+      triggerClassName="h-11 rounded-[10px] border border-[var(--border)] bg-[var(--platform-input)] px-3 pr-9 text-[11px] font-medium text-[var(--text-primary)] focus:border-[#EC4899]/60"
+    />
+  );
 }
 
 function ImportStep({ icon, number, label, active, complete }: { icon: React.ReactNode; number: string; label: string; active: boolean; complete: boolean }) {

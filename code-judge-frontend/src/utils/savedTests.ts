@@ -20,17 +20,36 @@ export interface SavedTestRecord {
 
 const STORAGE_KEY = "quizsupport.creator.tests.v1";
 const CHANGE_EVENT = "quizsupport-saved-tests";
+const EMPTY_TESTS: SavedTestRecord[] = [];
+
+let cachedRaw: string | null = null;
+let cachedTests: SavedTestRecord[] = EMPTY_TESTS;
 
 export function getSavedTests(): SavedTestRecord[] {
-  if (typeof window === "undefined") return [];
+  if (typeof window === "undefined") return EMPTY_TESTS;
+  let raw: string | null = null;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as SavedTestRecord[];
-    return Array.isArray(parsed) ? parsed : [];
+    raw = window.localStorage.getItem(STORAGE_KEY);
   } catch {
-    return [];
+    return EMPTY_TESTS;
   }
+  if (raw === cachedRaw) return cachedTests;
+  cachedRaw = raw;
+  if (!raw) {
+    cachedTests = EMPTY_TESTS;
+    return cachedTests;
+  }
+  try {
+    const parsed = JSON.parse(raw) as SavedTestRecord[];
+    cachedTests = Array.isArray(parsed) ? parsed : EMPTY_TESTS;
+  } catch {
+    cachedTests = EMPTY_TESTS;
+  }
+  return cachedTests;
+}
+
+export function getSavedTestsServerSnapshot(): SavedTestRecord[] {
+  return EMPTY_TESTS;
 }
 
 export function saveTestRecord(record: SavedTestRecord): SavedTestRecord[] {

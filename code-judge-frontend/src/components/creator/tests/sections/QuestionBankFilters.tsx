@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, ListTree, X } from "lucide-react";
+import { Check, ChevronDown, ListTree, Search, X } from "lucide-react";
 import { getQuestionGeneratorCatalog } from "@/services/aiGenerate";
 import type { QuestionGeneratorCatalog } from "@/services/aiGenerate";
 import { cn } from "@/lib/helpers";
@@ -42,7 +42,15 @@ function SinglePicker<T extends string | number>({ label, sub, placeholder, opti
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const timer = setTimeout(() => searchRef.current?.focus({ preventScroll: true }), 0);
+    return () => clearTimeout(timer);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -65,6 +73,16 @@ function SinglePicker<T extends string | number>({ label, sub, placeholder, opti
   }, [open ]);
 
   const selected = options.find((option) => option.id === value) ?? null;
+  const filteredOptions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((option) => option.name.toLowerCase().includes(q));
+  }, [options, query]);
+
+  const toggle = () => {
+    if (!open) setQuery("");
+    setOpen((isOpen) => !isOpen);
+  };
 
   const pick = (next: T | null) => {
     onChange(next);
@@ -77,7 +95,7 @@ function SinglePicker<T extends string | number>({ label, sub, placeholder, opti
       <div ref={wrapRef} className={`relative mt-1.5 ${disabled ? "pointer-events-none opacity-50" : ""}`}>
         <button
           type="button"
-          onClick={() => setOpen((isOpen) => !isOpen)}
+          onClick={toggle}
           className={cn(
             "flex h-10 w-full items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 text-xs font-semibold text-text-primary outline-none transition-all hover:border-border-hover",
             open && "border-pink-500/50"
@@ -89,7 +107,20 @@ function SinglePicker<T extends string | number>({ label, sub, placeholder, opti
           <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-text-muted transition-transform", open && "rotate-180")} />
         </button>
         {open && (
-          <div className="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-border bg-card p-1.5 shadow-xl">
+          <div className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-border bg-card p-1.5 shadow-xl">
+            <div className="sticky top-0 z-10 bg-card pb-1.5">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+                <input
+                  ref={searchRef}
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={`Search ${label.toLowerCase()}…`}
+                  aria-label={`Search ${label}`}
+                  className="h-9 w-full rounded-lg border border-border bg-card pl-8 pr-2.5 text-xs font-medium text-text-primary outline-none placeholder:text-text-muted focus:border-pink-500/50"
+                />
+              </div>
+            </div>
             <button
               type="button"
               onClick={() => pick(null)}
@@ -103,26 +134,30 @@ function SinglePicker<T extends string | number>({ label, sub, placeholder, opti
               <span className="truncate">{placeholder}</span>
               {selected === null && <Check className="h-3.5 w-3.5 shrink-0" />}
             </button>
-            {options.map((option) => {
-              const isSelected = selected?.id === option.id;
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => pick(option.id)}
-                  title={option.name}
-                  className={cn(
-                    "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition-colors",
-                    isSelected
-                      ? "bg-pink-500/10 text-pink-600 dark:text-pink-300"
-                      : "text-text-primary hover:bg-card-hover"
-                  )}
-                >
-                  <span className="truncate">{option.name}</span>
-                  {isSelected && <Check className="h-3.5 w-3.5 shrink-0" />}
-                </button>
-              );
-            })}
+            {filteredOptions.length === 0 ? (
+              <p className="px-3 py-4 text-center text-xs font-medium text-text-muted">No matches</p>
+            ) : (
+              filteredOptions.map((option) => {
+                const isSelected = selected?.id === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => pick(option.id)}
+                    title={option.name}
+                    className={cn(
+                      "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition-colors",
+                      isSelected
+                        ? "bg-pink-500/10 text-pink-600 dark:text-pink-300"
+                        : "text-text-primary hover:bg-card-hover"
+                    )}
+                  >
+                    <span className="truncate">{option.name}</span>
+                    {isSelected && <Check className="h-3.5 w-3.5 shrink-0" />}
+                  </button>
+                );
+              })
+            )}
           </div>
         )}
       </div>

@@ -3,12 +3,13 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Search } from "lucide-react";
 import { cn } from "@/lib/helpers";
 
 export type QsSelectOption<T extends string | number> = {
@@ -40,6 +41,8 @@ export function QsSelect<T extends string | number>({
   triggerClassName,
   menuClassName,
   align = "left",
+  searchable,
+  searchPlaceholder = "Search…",
 }: {
   id?: string;
   value: T | null;
@@ -51,13 +54,23 @@ export function QsSelect<T extends string | number>({
   triggerClassName?: string;
   menuClassName?: string;
   align?: "left" | "right";
+  searchable?: boolean;
+  searchPlaceholder?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [query, setQuery] = useState("");
   const [position, setPosition] = useState<MenuPosition | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const menuRef = useRef<HTMLUListElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
+  const canSearch = searchable ?? options.length > 6;
+  const filteredOptions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((option) => option.label.toLowerCase().includes(q));
+  }, [options, query]);
 
   /* The menu renders in a portal with fixed positioning so ancestors with
      overflow-hidden (rounded qs cards) can never clip it — the mobile bug. */
@@ -78,13 +91,13 @@ export function QsSelect<T extends string | number>({
     const spaceBelow = window.innerHeight - rect.bottom - VIEWPORT_GAP * 2;
     const spaceAbove = rect.top - VIEWPORT_GAP * 2;
     const openUp = spaceBelow < 220 && spaceAbove > spaceBelow;
-    const maxHeight = Math.min(256, Math.max(openUp ? spaceAbove : spaceBelow, 96));
+    const maxHeight = Math.min(256, Math.max(openUp ? spaceAbove : spaceBelow, canSearch ? 150 : 96));
     setPosition(
       openUp
         ? { bottom: window.innerHeight - rect.top + 6, left, width, maxHeight, openUp }
         : { top: rect.bottom + 6, left, width, maxHeight, openUp }
     );
-  }, [align]);
+  }, [align, canSearch]);
 
   useEffect(() => {
     if (!open) return;
@@ -112,27 +125,35 @@ export function QsSelect<T extends string | number>({
     };
   }, [open, measure]);
 
+  useEffect(() => {
+    if (!open || !canSearch) return;
+    const timer = setTimeout(() => searchRef.current?.focus({ preventScroll: true }), 0);
+    return () => clearTimeout(timer);
+  }, [open, canSearch]);
+
   const selected = options.find((option) => option.value === value) ?? null;
 
   const openMenu = () => {
     if (disabled) return;
     if (!open) {
       const index = options.findIndex((option) => option.value === value);
+      setQuery("");
       setActiveIndex(index >= 0 ? index : 0);
       measure();
     }
     setOpen((prev) => !prev);
   };
 
-  const choose = (index: number) => {
-    const option = options[index];
+  const choose = (option: QsSelectOption<T>) => {
     if (!option || option.disabled) return;
     onChange(option.value);
     setOpen(false);
+    setQuery("");
   };
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (disabled) return;
+    const typingInSearch = event.target === searchRef.current;
     if (!open) {
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         event.preventDefault();
@@ -142,19 +163,24 @@ export function QsSelect<T extends string | number>({
     }
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      setActiveIndex((index) => Math.min(index + 1, options.length - 1));
+      setActiveIndex((index) => Math.min(index + 1, filteredOptions.length - 1));
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
       setActiveIndex((index) => Math.max(index - 1, 0));
-    } else if (event.key === "Home") {
+    } else if (event.key === "Home" && !typingInSearch) {
       event.preventDefault();
       setActiveIndex(0);
-    } else if (event.key === "End") {
+    } else if (event.key === "End" && !typingInSearch) {
       event.preventDefault();
-      setActiveIndex(options.length - 1);
-    } else if (event.key === "Enter" || event.key === " ") {
+      setActiveIndex(filteredOptions.length - 1);
+    } else if (event.key === "Enter") {
       event.preventDefault();
-      choose(activeIndex);
+      choose(filteredOptions[activeIndex]);
+    } else if (event.key === " " && !typingInSearch) {
+      event.preventDefault();
+      choose(filteredOptions[activeIndex]);
+    } else if (event.key === "Tab") {
+      setOpen(false);
     }
   };
 
@@ -190,10 +216,9 @@ export function QsSelect<T extends string | number>({
              the menu renders transparent, with no border or yellow shadow.
              `display: contents` keeps the wrapper layout-neutral. */
           <div className="qs-ui contents">
-            <ul
+            <div
               ref={menuRef}
-              role="listbox"
-              aria-label={ariaLabel}
+              onKeyDown={handleKeyDown}
               style={{
                 ...(position.openUp ? { bottom: position.bottom } : { top: position.top }),
                 left: position.left,
@@ -201,40 +226,62 @@ export function QsSelect<T extends string | number>({
                 maxHeight: position.maxHeight,
               }}
               className={cn(
-                "fixed z-[80] overflow-y-auto rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-1.5 shadow-[4px_4px_0_var(--qs-sun)]",
+                "fixed z-[80] overflow-y-auto rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[4px_4px_0_var(--qs-sun)]",
                 menuClassName
               )}
             >
-              {options.length === 0 ? (
-                <li className="px-3 py-4 text-center text-[13px] text-[var(--qs-muted)]">No options</li>
-              ) : (
-                options.map((option, index) => {
-                  const isSelected = option.value === value;
-                  return (
-                    <li key={String(option.value)}>
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={isSelected}
-                        disabled={option.disabled}
-                        onMouseEnter={() => setActiveIndex(index)}
-                        onClick={() => choose(index)}
-                        className={cn(
-                          "flex w-full items-center justify-between gap-2 rounded-[10px] px-3 py-2 text-left text-sm transition-colors disabled:opacity-40",
-                          index === activeIndex && "bg-[var(--qs-bg)]",
-                          isSelected
-                            ? "font-extrabold text-[var(--qs-brand)]"
-                            : "font-medium text-[var(--qs-ink)]"
-                        )}
-                      >
-                        <span className="truncate">{option.label}</span>
-                        {isSelected && <Check className="h-4 w-4 shrink-0" />}
-                      </button>
-                    </li>
-                  );
-                })
+              {canSearch && (
+                <div className="sticky top-0 z-10 bg-[var(--qs-surface)] p-1.5 pb-0">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--qs-muted)]" />
+                    <input
+                      ref={searchRef}
+                      value={query}
+                      onChange={(event) => {
+                        setQuery(event.target.value);
+                        setActiveIndex(0);
+                      }}
+                      placeholder={searchPlaceholder}
+                      aria-label={ariaLabel ? `Search ${ariaLabel}` : "Search options"}
+                      className="h-9 w-full rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] pl-8 pr-2.5 text-sm font-medium text-[var(--qs-ink)] outline-none placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
+                    />
+                  </div>
+                </div>
               )}
-            </ul>
+              <ul role="listbox" aria-label={ariaLabel} className="p-1.5">
+                {filteredOptions.length === 0 ? (
+                  <li className="px-3 py-4 text-center text-[13px] text-[var(--qs-muted)]">
+                    {options.length === 0 ? "No options" : "No matches"}
+                  </li>
+                ) : (
+                  filteredOptions.map((option, index) => {
+                    const isSelected = option.value === value;
+                    return (
+                      <li key={String(option.value)}>
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={isSelected}
+                          disabled={option.disabled}
+                          onMouseEnter={() => setActiveIndex(index)}
+                          onClick={() => choose(option)}
+                          className={cn(
+                            "flex w-full items-center justify-between gap-2 rounded-[10px] px-3 py-2 text-left text-sm transition-colors disabled:opacity-40",
+                            index === activeIndex && "bg-[var(--qs-bg)]",
+                            isSelected
+                              ? "font-extrabold text-[var(--qs-brand)]"
+                              : "font-medium text-[var(--qs-ink)]"
+                          )}
+                        >
+                          <span className="truncate">{option.label}</span>
+                          {isSelected && <Check className="h-4 w-4 shrink-0" />}
+                        </button>
+                      </li>
+                    );
+                  })
+                )}
+              </ul>
+            </div>
           </div>,
           document.body
         )}

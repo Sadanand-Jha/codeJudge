@@ -17,6 +17,11 @@ import {
   previewQuestionImportStream,
 } from "../../controllers/platformQuestionImport.controller.ts";
 import {
+  commitSyllabusImportHandler,
+  previewSyllabusImport,
+  previewSyllabusImportStream,
+} from "../../controllers/platformSyllabusImport.controller.ts";
+import {
   getBankQuestions,
   removeBankQuestion,
   updateBankQuestionHandler,
@@ -50,6 +55,34 @@ const uploadQuestionDocument = (req: Request, res: Response, next: NextFunction)
     });
     const message = error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE"
       ? "Document must be 4 MB or smaller."
+      : "Unable to accept this document upload.";
+    return res.status(400).json({ success: false, message });
+  });
+};
+const syllabusDocumentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { files: 1, fileSize: 10 * 1024 * 1024 },
+});
+const uploadSyllabusDocument = (req: Request, res: Response, next: NextFunction) => {
+  console.log("[syllabus-import] upload middleware: incoming", {
+    contentType: req.headers["content-type"],
+    contentLength: req.headers["content-length"],
+  });
+  syllabusDocumentUpload.single("file")(req, res, (error) => {
+    if (!error) {
+      console.log("[syllabus-import] upload middleware: file received", {
+        originalname: req.file?.originalname,
+        mimetype: req.file?.mimetype,
+        size: req.file?.size,
+      });
+      return next();
+    }
+    console.error("[syllabus-import] upload middleware: multer rejected the upload", {
+      code: (error as { code?: string })?.code,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    const message = error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE"
+      ? "Document must be 10 MB or smaller."
       : "Unable to accept this document upload.";
     return res.status(400).json({ success: false, message });
   });
@@ -93,6 +126,11 @@ router.post("/question-import/preview", uploadQuestionDocument, previewQuestionI
 router.post("/question-import/preview/stream", uploadQuestionDocument, previewQuestionImportStream);
 router.post("/question-import/json-preview", previewQuestionImportJson);
 router.post("/question-import/commit", commitQuestionImport);
+
+// Owner-only syllabus ingestion: document → AI curriculum hierarchy → dedupe.
+router.post("/syllabus-import/preview", uploadSyllabusDocument, previewSyllabusImport);
+router.post("/syllabus-import/preview/stream", uploadSyllabusDocument, previewSyllabusImportStream);
+router.post("/syllabus-import/commit", commitSyllabusImportHandler);
 
 // Curated subjective question bank: read subject/chapter/topic-wise + delete/update.
 router.get("/questions", getBankQuestions);

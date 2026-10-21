@@ -200,6 +200,52 @@ export interface SubjectiveImportPreview {
   expiresInSeconds: number;
 }
 
+export interface SyllabusImportTopicPreview {
+  name: string;
+  existing: boolean;
+  existingId: number | null;
+}
+
+export interface SyllabusImportChapterPreview {
+  name: string;
+  existing: boolean;
+  existingId: number | null;
+  topics: SyllabusImportTopicPreview[];
+}
+
+export interface SyllabusImportSubjectPreview {
+  name: string;
+  existing: boolean;
+  existingId: number | null;
+  chapters: SyllabusImportChapterPreview[];
+}
+
+export interface SyllabusImportSummary {
+  subjects: { total: number; existing: number; new: number };
+  chapters: { total: number; existing: number; new: number };
+  topics: { total: number; existing: number; new: number };
+  totalNew: number;
+  totalExisting: number;
+}
+
+export interface SyllabusImportPreview {
+  batchId: string;
+  sourceFilename: string;
+  subjects: SyllabusImportSubjectPreview[];
+  summary: SyllabusImportSummary;
+  usage?: { inputTokens?: number; outputTokens?: number; totalTokens?: number };
+  expiresInSeconds: number;
+}
+
+export interface SyllabusImportCommitResult {
+  subjectsCreated: number;
+  subjectsReused: number;
+  chaptersCreated: number;
+  chaptersReused: number;
+  topicsCreated: number;
+  topicsReused: number;
+}
+
 export interface BankQuestion {
   id: number;
   subjectId: number;
@@ -346,6 +392,20 @@ export const platformApi = {
     const response = await platformClient.post<{ inserted: number; skippedDuplicates: number; selected: number }>(
       "/v1/platform/question-import/commit",
       { batchId, selectedIndexes }
+    );
+    return response.data;
+  }),
+  previewSyllabusImport: (form: FormData) => schedulePlatformRequest(async () => {
+    const response = await platformClient.post<SyllabusImportPreview>("/v1/platform/syllabus-import/preview", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+      timeout: 15 * 60_000,
+    });
+    return response.data;
+  }),
+  commitSyllabusImport: (batchId: string) => schedulePlatformRequest(async () => {
+    const response = await platformClient.post<SyllabusImportCommitResult>(
+      "/v1/platform/syllabus-import/commit",
+      { batchId }
     );
     return response.data;
   }),
