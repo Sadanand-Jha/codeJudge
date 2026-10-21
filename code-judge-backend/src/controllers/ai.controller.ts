@@ -224,6 +224,13 @@ export const generateQuestionsFromUpload = async (req: Request, res: Response) =
 
     const numberOfQuestions = Math.min(50, Math.max(1, Number(req.body.numberOfQuestions) || 5));
     const boolOf = (v: unknown) => v === "true" || v === true || v === "1";
+    const optionalId = (value: unknown): number | null => {
+      const parsed = Number(value);
+      return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+    };
+    const subjectId = optionalId(req.body.subjectId);
+    const chapterId = optionalId(req.body.chapterId);
+    const topicId = optionalId(req.body.topicId);
 
     const result = await generateQuestionsFromFiles({
       files: files.map((f) => ({ name: f.originalname, buffer: f.buffer })),
@@ -235,22 +242,20 @@ export const generateQuestionsFromUpload = async (req: Request, res: Response) =
       includeHints: boolOf(req.body.includeHints),
       includeReferenceNotes: boolOf(req.body.includeReferenceNotes),
       includeTags: boolOf(req.body.includeTags),
+      subjectId,
+      chapterId,
+      topicId,
     });
 
     // Material-derived questions belong to the creator for 30 days (longer
     // than topic-only AI generation) before joining the shared system bank.
-    const subjectId = Number(req.body.subjectId);
-    if (Number.isInteger(subjectId) && subjectId > 0) {
-      const optionalId = (value: unknown): number | null => {
-        const parsed = Number(value);
-        return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-      };
+    if (subjectId != null) {
       await persistGeneratedQuestions(result.questions, {
         quizId: optionalId(req.body.quizId),
         createdBy: req.user?.userId ? Number(req.user.userId) : null,
         subjectId,
-        chapterId: optionalId(req.body.chapterId),
-        topicId: optionalId(req.body.topicId),
+        chapterId,
+        topicId,
         source: "ai_material",
         ownershipDays: 30,
       });

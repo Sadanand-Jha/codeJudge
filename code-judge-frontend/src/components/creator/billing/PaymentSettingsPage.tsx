@@ -29,6 +29,7 @@ import { useBillingData } from "./hooks";
 import {
   BillButton,
   IconButton,
+  PageHeader,
   SegmentedControl,
   formatINR,
 } from "./ui";
@@ -166,7 +167,7 @@ function splitAmount(detail: string): { amount?: string; rest: string } {
    ============================================ */
 
 const FOCUS =
-  "outline-none focus-visible:ring-2 focus-visible:ring-pink-500/40";
+  "outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40";
 
 function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
@@ -182,12 +183,12 @@ function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: 
         aria-hidden="true"
         className={cn(
           "relative h-7 w-12 shrink-0 rounded-full transition-colors",
-          checked ? "bg-pink-600 dark:bg-pink-500" : "bg-slate-300 dark:bg-white/15"
+          checked ? "bg-[var(--qs-brand)] " : "bg-[var(--qs-line)] "
         )}
       >
         <span
           className={cn(
-            "absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all",
+            "absolute top-1 h-5 w-5 rounded-full bg-[var(--qs-surface)] shadow transition-all",
             checked ? "left-6" : "left-1"
           )}
         />
@@ -198,12 +199,12 @@ function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: 
 
 function CardError({ onRetry, what }: { onRetry: () => void; what: string }) {
   return (
-    <div className="flex flex-col items-start gap-3 rounded-2xl border border-red-500/25 bg-red-500/[0.06] p-5 sm:flex-row sm:items-center sm:justify-between" role="alert">
+    <div className="flex flex-col items-start gap-3 rounded-[22px] border-2 border-[var(--qs-bad)]/30 bg-[var(--qs-badbg)] p-5 sm:flex-row sm:items-center sm:justify-between" role="alert">
       <div>
-        <p className="text-sm font-bold text-red-700 dark:text-red-300">Could not load {what}</p>
-        <p className="mt-0.5 text-xs text-red-600/80 dark:text-red-300/80">Something went wrong on our side.</p>
+        <p className="text-sm font-bold text-[var(--qs-bad)] ">Could not load {what}</p>
+        <p className="mt-0.5 text-xs text-[var(--qs-bad)]/80 ">Something went wrong on our side.</p>
       </div>
-      <BillButton variant="ghost" onClick={onRetry} className="shrink-0 border-red-500/30 text-red-700 dark:text-red-300">
+      <BillButton variant="ghost" onClick={onRetry} className="shrink-0 border-[var(--qs-bad)]/30 text-[var(--qs-bad)] ">
         Retry
       </BillButton>
     </div>
@@ -215,17 +216,17 @@ function Field({ id, label, error, children }: {
 }) {
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-[13px] font-semibold text-slate-900 dark:text-white">
+      <label htmlFor={id} className="mb-1.5 block text-[13px] font-semibold text-[var(--qs-ink)] ">
         {label}
       </label>
       {children}
-      {error && <p className="mt-1 text-xs text-red-700 dark:text-red-300">{error}</p>}
+      {error && <p className="mt-1 text-xs text-[var(--qs-bad)] ">{error}</p>}
     </div>
   );
 }
 
 const INPUT =
-  "min-h-[46px] w-full rounded-[10px] border-[1.5px] border-slate-200 bg-white px-3.5 py-3 text-[15px] text-slate-900 placeholder:text-slate-400 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:placeholder:text-slate-500";
+  "min-h-[46px] w-full rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-3 text-[15px] text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)]    ";
 
 /* Focus-trapped modal shell — bottom sheet on mobile, centered on desktop */
 function ModalShell({ onClose, label, children, wide }: {
@@ -287,7 +288,7 @@ function ModalShell({ onClose, label, children, wide }: {
         aria-modal="true"
         aria-label={label}
         className={cn(
-          "flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white shadow-2xl sm:rounded-2xl dark:border-white/10 dark:bg-[#1e1419]",
+          "flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-[28px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[8px_8px_0_var(--qs-sun)] sm:rounded-[24px]",
           wide ? "sm:max-w-lg" : "sm:max-w-md"
         )}
       >
@@ -299,10 +300,10 @@ function ModalShell({ onClose, label, children, wide }: {
 
 function ModalHead({ title, sub, onClose }: { title: string; sub?: string; onClose: () => void }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4 dark:border-white/10">
+    <div className="flex items-center justify-between gap-3 border-b-2 border-[var(--qs-line)] px-5 py-4 ">
       <div className="min-w-0">
-        <h3 className="text-base font-bold text-slate-900 dark:text-white">{title}</h3>
-        {sub && <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{sub}</p>}
+        <h3 className="qs-display text-[20px] font-extrabold text-[var(--qs-ink)]">{title}</h3>
+        {sub && <p className="mt-0.5 text-xs text-[var(--qs-muted)] ">{sub}</p>}
       </div>
       <IconButton label="Close dialog" onClick={onClose}>
         <X className="h-4 w-4" />
@@ -324,15 +325,15 @@ function StepIndicator({ step, total, labels }: { step: number; total: number; l
               aria-current={current ? "step" : undefined}
               className={cn(
                 "grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-extrabold",
-                done || current ? "bg-pink-600 text-white dark:bg-pink-500" : "bg-slate-200 text-slate-500 dark:bg-white/10 dark:text-slate-400"
+                done || current ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)] " : "bg-[var(--qs-line)] text-[var(--qs-muted)]  "
               )}
             >
               {done ? <Check className="h-3 w-3" aria-hidden="true" /> : n}
             </span>
-            <span className={cn("hidden text-[11px] font-bold sm:block", current ? "text-slate-900 dark:text-white" : "text-slate-400")}>
+            <span className={cn("hidden text-[11px] font-bold sm:block", current ? "text-[var(--qs-ink)] " : "text-[var(--qs-muted)]")}>
               {l}
             </span>
-            {n !== total && <span className="h-px flex-1 bg-slate-200 dark:bg-white/10" aria-hidden="true" />}
+            {n !== total && <span className="h-px flex-1 bg-[var(--qs-line)] " aria-hidden="true" />}
           </li>
         );
       })}
@@ -390,7 +391,7 @@ function OtpStep({ onVerified, actionLabel }: { onVerified: () => void; actionLa
 
   return (
     <div>
-      <p className="text-[13px] text-slate-500 dark:text-slate-400">
+      <p className="text-[13px] text-[var(--qs-muted)] ">
         Enter the 6-digit code sent to your registered mobile number.
       </p>
       <div className="mt-4 flex justify-between gap-2" onPaste={onPaste}>
@@ -406,13 +407,13 @@ function OtpStep({ onVerified, actionLabel }: { onVerified: () => void; actionLa
             inputMode="numeric"
             maxLength={1}
             aria-label={`Digit ${i + 1} of 6`}
-            className="h-12 w-full min-w-0 rounded-xl border-[1.5px] border-slate-200 bg-white text-center text-lg font-extrabold tabular-nums text-slate-900 outline-none transition-colors focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 dark:border-white/10 dark:bg-white/[0.04] dark:text-white"
+            className="h-12 w-full min-w-0 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-center text-lg font-extrabold tabular-nums text-[var(--qs-ink)] outline-none transition-colors focus:border-[var(--qs-brand)] focus:ring-2 focus:ring-[var(--qs-brand)]/20 "
           />
         ))}
       </div>
-      {error && <p className="mt-2 text-xs text-red-700 dark:text-red-300">{error}</p>}
+      {error && <p className="mt-2 text-xs text-[var(--qs-bad)] ">{error}</p>}
       <div className="mt-3 flex items-center justify-between">
-        <p className="text-xs tabular-nums text-slate-500 dark:text-slate-400" aria-live="polite">
+        <p className="text-xs tabular-nums text-[var(--qs-muted)] " aria-live="polite">
           {seconds > 0 ? `Resend code in 0:${String(seconds).padStart(2, "0")}` : "You can request a new code."}
         </p>
         <button
@@ -424,7 +425,7 @@ function OtpStep({ onVerified, actionLabel }: { onVerified: () => void; actionLa
             setError("");
             refs.current[0]?.focus();
           }}
-          className="text-xs font-bold text-pink-600 outline-none hover:text-pink-700 focus-visible:ring-2 focus-visible:ring-pink-500/40 disabled:cursor-not-allowed disabled:opacity-40 dark:text-pink-400"
+          className="text-xs font-bold text-[var(--qs-brand)] outline-none hover:text-[var(--qs-brand)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40 disabled:cursor-not-allowed disabled:opacity-40 "
         >
           Resend OTP
         </button>
@@ -468,14 +469,14 @@ function Kebab({ label, items }: {
         aria-haspopup="menu"
         aria-expanded={open}
         className={cn(
-          "grid h-8 w-8 place-items-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white",
+          "grid h-8 w-8 place-items-center rounded-lg text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-bg)] hover:text-[var(--qs-ink)]   ",
           FOCUS
         )}
       >
         <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
       </button>
       {open && (
-        <div role="menu" aria-label={label} className="absolute right-0 z-30 mt-1 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl dark:border-white/10 dark:bg-[#1e1419]">
+        <div role="menu" aria-label={label} className="absolute right-0 z-30 mt-1 w-52 overflow-hidden rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-1 shadow-[4px_4px_0_var(--qs-sun)] ">
           {items.map((item) => {
             const Icon = item.icon;
             const btn = (
@@ -492,9 +493,9 @@ function Kebab({ label, items }: {
                 className={cn(
                   "flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-xs font-semibold outline-none transition-colors",
                   item.danger
-                    ? "text-red-600 hover:bg-red-500/[0.06] focus-visible:bg-red-500/[0.06] dark:text-red-300"
-                    : "text-slate-700 hover:bg-pink-500/[0.06] hover:text-pink-600 focus-visible:bg-pink-500/[0.06] dark:text-slate-200",
-                  item.disabled && "cursor-not-allowed opacity-40 hover:bg-transparent hover:text-slate-700 dark:hover:text-slate-200"
+                    ? "text-[var(--qs-bad)] hover:bg-[var(--qs-badbg)] focus-visible:bg-[var(--qs-badbg)] "
+                    : "text-[var(--qs-ink)] hover:bg-[var(--qs-brand)]/[0.06] hover:text-[var(--qs-brand)] focus-visible:bg-[var(--qs-brand)]/[0.06] ",
+                  item.disabled && "cursor-not-allowed opacity-40 hover:bg-transparent hover:text-[var(--qs-ink)] "
                 )}
               >
                 {Icon && <Icon className="h-3.5 w-3.5" aria-hidden="true" />}
@@ -671,27 +672,22 @@ export function PaymentSettingsPage({
   const visibleAudit = filteredAudit.slice(0, auditShown);
 
   const AUDIT_STYLE: Record<AuditKind, { icon: LucideIcon; tile: string }> = {
-    withdraw: { icon: Wallet, tile: "bg-pink-500 text-white" },
-    account: { icon: CreditCard, tile: "bg-blue-500 text-white" },
-    security: { icon: ShieldAlert, tile: "bg-amber-500 text-white" },
-    settings: { icon: Bell, tile: "bg-slate-400 text-white" },
+    withdraw: { icon: Wallet, tile: "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" },
+    account: { icon: CreditCard, tile: "bg-[#2457d6] text-[var(--qs-on-brand)]" },
+    security: { icon: ShieldAlert, tile: "bg-amber-500 text-[var(--qs-on-brand)]" },
+    settings: { icon: Bell, tile: "bg-[var(--qs-muted)] text-[var(--qs-on-brand)]" },
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="min-w-0">
-        <h1 className="text-[28px] font-extrabold leading-tight tracking-tight text-slate-900 dark:text-white">
-          Payment Settings
-        </h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Manage payout accounts, schedule and financial notifications.
-        </p>
-      </div>
+    <div className="space-y-5 pb-2">
+      <PageHeader
+        title="Payment settings"
+        subtitle="Manage payout accounts, automatic payouts and financial alerts."
+      />
 
       {state === "loading" && (
         <>
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#1e1419]">
+          <div className="rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5">
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
               {[0, 1, 2, 3].map((i) => (
                 <div key={i}>
@@ -703,10 +699,10 @@ export function PaymentSettingsPage({
           </div>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {[0, 1].map((i) => (
-              <div key={i} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#1e1419]" aria-label="Loading">
+              <div key={i} className="rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5" aria-label="Loading">
                 <div className="app-skeleton h-4 w-40" aria-hidden="true" />
-                <div className="app-skeleton mt-4 h-20 w-full rounded-xl" aria-hidden="true" />
-                <div className="app-skeleton mt-3 h-20 w-full rounded-xl" aria-hidden="true" />
+                <div className="app-skeleton mt-4 h-20 w-full rounded-[14px]" aria-hidden="true" />
+                <div className="app-skeleton mt-3 h-20 w-full rounded-[14px]" aria-hidden="true" />
               </div>
             ))}
           </div>
@@ -716,14 +712,14 @@ export function PaymentSettingsPage({
       {(state === "ready" || state === "error") && (
         <>
           {!kycComplete && (
-            <div className="flex flex-col gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/[0.08] px-4 py-3 sm:flex-row sm:items-center sm:justify-between" role="status">
-              <p className="flex items-start gap-2 text-[13px] font-semibold text-amber-800 dark:text-amber-200">
+            <div className="flex flex-col gap-2 rounded-[22px] border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between" role="status">
+              <p className="flex items-start gap-2 text-[13px] font-semibold text-[#8a5600] ">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 Complete KYC to enable withdrawals.
               </p>
               <BillButton
                 variant="primary"
-                className="h-9 shrink-0 bg-amber-500 hover:bg-amber-600 dark:bg-amber-500"
+                className="h-9 shrink-0 bg-amber-500 hover:bg-amber-600 "
                 onClick={() => toast.info({ title: "KYC verification", description: "A verification link was sent to your email." })}
               >
                 Complete KYC
@@ -732,43 +728,57 @@ export function PaymentSettingsPage({
           )}
 
           {/* Summary strip */}
-          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 shadow-sm lg:grid-cols-4 dark:border-white/10 dark:bg-white/10">
-            <div className="bg-white p-4 sm:p-5 dark:bg-[#1e1419]">
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Available balance</p>
-              <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
-                <p className="text-xl font-extrabold tabular-nums text-slate-900 sm:text-2xl dark:text-white">
+          <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+            <div className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3.5">
+              <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.11em] text-[var(--qs-muted)]">
+                <span className="h-2.5 w-2.5 rounded-full bg-[var(--qs-brand)]" />
+                Available balance
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <p className="qs-display text-[26px] font-extrabold leading-none tracking-tight tabular-nums text-[var(--qs-ink)]">
                   {formatINR(SUMMARY.available)}
                 </p>
                 <span title={withdrawHint} className="inline-flex">
-                  <BillButton variant="primary" className="h-9 px-4" disabled={!canWithdraw} onClick={doWithdraw}>
+                  <BillButton variant="primary" className="h-8 px-3 text-[11px]" disabled={!canWithdraw} onClick={doWithdraw}>
                     Withdraw
                   </BillButton>
                 </span>
               </div>
+              <p className="mt-1.5 text-[12px] text-[var(--qs-muted)]">Ready to withdraw</p>
             </div>
-            <div className="bg-white p-4 sm:p-5 dark:bg-[#1e1419]">
-              <p className="flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+            <div className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3.5">
+              <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.11em] text-[var(--qs-muted)]">
+                <span className="h-2.5 w-2.5 rounded-full bg-[var(--qs-sun)]" />
                 Pending clearance
                 <span title="Amounts become withdrawable 3 days after a sale." aria-label="Amounts become withdrawable 3 days after a sale.">
                   <Info className="h-3.5 w-3.5 cursor-help" aria-hidden="true" />
                 </span>
               </p>
-              <p className="mt-1.5 text-xl font-extrabold tabular-nums text-slate-900 sm:text-2xl dark:text-white">
+              <p className="qs-display mt-2 text-[26px] font-extrabold leading-none tracking-tight tabular-nums text-[var(--qs-ink)]">
                 {formatINR(SUMMARY.pending)}
               </p>
+              <p className="mt-1.5 text-[12px] text-[var(--qs-muted)]">Clears in up to 3 days</p>
             </div>
-            <div className="bg-white p-4 sm:p-5 dark:bg-[#1e1419]">
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Next payout</p>
-              <p className="mt-1.5 text-xl font-extrabold text-slate-900 sm:text-2xl dark:text-white">
+            <div className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3.5">
+              <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.11em] text-[var(--qs-muted)]">
+                <span className="h-2.5 w-2.5 rounded-full bg-[var(--qs-ok)]" />
+                Next payout
+              </p>
+              <p className="qs-display mt-2 text-[20px] font-extrabold leading-none tracking-tight text-[var(--qs-ink)]">
                 {nextPayout ? fmtPayoutShort(nextPayout) : "Manual"}
               </p>
+              <p className="mt-1.5 text-[12px] text-[var(--qs-muted)]">Automatic payout schedule</p>
             </div>
-            <div className="bg-white p-4 sm:p-5 dark:bg-[#1e1419]">
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Last activity</p>
-              <p className="mt-1.5 flex items-center gap-1.5 text-sm font-bold tabular-nums text-slate-900 dark:text-white">
-                <Lock className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
+            <div className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3.5">
+              <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.11em] text-[var(--qs-muted)]">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#2457d6]" />
+                Last activity
+              </p>
+              <p className="mt-2 flex items-center gap-1.5 text-[14px] font-bold tabular-nums text-[var(--qs-ink)]">
+                <Lock className="h-3.5 w-3.5 shrink-0 text-[var(--qs-muted)]" aria-hidden="true" />
                 {SUMMARY.lastActivity}
               </p>
+              <p className="mt-1.5 text-[12px] text-[var(--qs-muted)]">Secure account activity</p>
             </div>
           </div>
 
@@ -776,11 +786,11 @@ export function PaymentSettingsPage({
           <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
             {/* LEFT: payout accounts */}
             {state === "error" ? <CardError onRetry={() => retry()} what="payout accounts" /> : (
-            <section aria-labelledby="payout-accounts-h" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 dark:border-white/10 dark:bg-[#1e1419]">
+            <section aria-labelledby="payout-accounts-h" className="rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-6">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 id="payout-accounts-h" className="text-base font-bold text-slate-900 dark:text-white">Payout accounts</h2>
-                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Where your withdrawals are sent</p>
+                  <h2 id="payout-accounts-h" className="qs-display text-[20px] font-extrabold text-[var(--qs-ink)]">Payout accounts</h2>
+                  <p className="mt-0.5 text-xs text-[var(--qs-muted)] ">Where your withdrawals are sent</p>
                 </div>
                 <BillButton variant="ghost" icon={<Plus className="h-4 w-4" />} onClick={() => setAddBankOpen(true)} className="shrink-0">
                   Add account
@@ -788,12 +798,12 @@ export function PaymentSettingsPage({
               </div>
 
               {accounts.length === 0 && upi === null ? (
-                <div className="mt-4 flex flex-col items-center rounded-xl border border-dashed border-slate-200 px-6 py-10 text-center dark:border-white/10">
-                  <span className="grid h-14 w-14 place-items-center rounded-2xl bg-pink-500/10 text-pink-600 dark:text-pink-400" aria-hidden="true">
+                <div className="mt-4 flex flex-col items-center rounded-[14px] border border-dashed border-[var(--qs-line)] px-6 py-10 text-center ">
+                  <span className="grid h-14 w-14 place-items-center rounded-[22px] bg-[var(--qs-brand)]/10 text-[var(--qs-brand)] " aria-hidden="true">
                     <Landmark className="h-7 w-7" />
                   </span>
-                  <p className="mt-4 text-sm font-bold text-slate-900 dark:text-white">No payout account yet</p>
-                  <p className="mt-1 max-w-xs text-xs text-slate-500 dark:text-slate-400">
+                  <p className="mt-4 text-sm font-bold text-[var(--qs-ink)] ">No payout account yet</p>
+                  <p className="mt-1 max-w-xs text-xs text-[var(--qs-muted)] ">
                     Add a bank account or UPI ID to receive your earnings.
                   </p>
                   <BillButton variant="primary" className="mt-5" onClick={() => setAddBankOpen(true)}>
@@ -806,31 +816,31 @@ export function PaymentSettingsPage({
                     <li
                       key={acc.id}
                       className={cn(
-                        "flex items-center gap-3 rounded-xl border p-4",
+                        "flex items-center gap-3 rounded-[14px] border p-4",
                         acc.isPrimary
-                          ? "border-pink-300 bg-pink-50 dark:border-pink-400/40 dark:bg-pink-500/[0.08]"
-                          : "border-slate-200 bg-white dark:border-white/10 dark:bg-white/[0.02]"
+                          ? "border-[var(--qs-brand)]/40 bg-[var(--qs-sun)]/25  "
+                          : "border-[var(--qs-line)] bg-[var(--qs-surface)]  "
                       )}
                     >
-                      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-500/10 text-slate-500 dark:text-slate-300" aria-hidden="true">
+                      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-[var(--qs-line)]/40 text-[var(--qs-muted)] " aria-hidden="true">
                         <Landmark className="h-5 w-5" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-slate-900 dark:text-white">
+                        <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-[var(--qs-ink)] ">
                           {acc.nickname ?? acc.bankName}
                           {acc.isPrimary && (
-                            <span className="inline-flex items-center rounded-full bg-pink-600 px-2 py-0.5 text-[11px] font-bold text-white dark:bg-pink-500">
+                            <span className="inline-flex items-center rounded-full bg-[var(--qs-brand)] px-2 py-0.5 text-[11px] font-bold text-[var(--qs-on-brand)] ">
                               Primary
                             </span>
                           )}
                           {acc.verified && (
-                            <span className="inline-flex items-center gap-0.5 rounded-full border border-green-500/25 bg-green-500/10 px-2 py-0.5 text-[11px] font-bold text-green-700 dark:text-green-300">
+                            <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--qs-ok)]/30 bg-[var(--qs-okbg)] px-2 py-0.5 text-[11px] font-bold text-[var(--qs-ok)] ">
                               <Check className="h-3 w-3" aria-hidden="true" /> Verified
                             </span>
                           )}
                         </p>
-                        <p className="mt-0.5 truncate text-xs tabular-nums text-slate-900 dark:text-white">{acc.maskedNumber}</p>
-                        <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
+                        <p className="mt-0.5 truncate text-xs tabular-nums text-[var(--qs-ink)] ">{acc.maskedNumber}</p>
+                        <p className="mt-0.5 truncate text-xs text-[var(--qs-muted)] ">
                           {acc.holderName} · IFSC {acc.ifsc}
                         </p>
                       </div>
@@ -839,7 +849,7 @@ export function PaymentSettingsPage({
                           type="button"
                           onClick={() => doMakePrimary(acc)}
                           className={cn(
-                            "hidden shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-600 transition-colors hover:border-pink-400 hover:text-pink-600 sm:block dark:border-white/10 dark:bg-transparent dark:text-slate-300",
+                            "hidden shrink-0 rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-[11px] font-semibold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)] sm:block   ",
                             FOCUS
                           )}
                         >
@@ -867,20 +877,20 @@ export function PaymentSettingsPage({
               )}
 
               {upi !== null && (
-                <div className="mt-4 border-t border-slate-200 pt-4 dark:border-white/10">
-                  <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">UPI</p>
-                  <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.02]">
-                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-300" aria-hidden="true">
+                <div className="mt-4 border-t-2 border-[var(--qs-line)] pt-4 ">
+                  <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-[var(--qs-muted)] ">UPI</p>
+                  <div className="flex items-center gap-3 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 ">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-[var(--qs-okbg)] text-[var(--qs-ok)] " aria-hidden="true">
                       <Smartphone className="h-5 w-5" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-slate-900 dark:text-white">
+                      <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-[var(--qs-ink)] ">
                         <span className="truncate tabular-nums">{upi}</span>
-                        <span className="inline-flex items-center gap-0.5 rounded-full border border-green-500/25 bg-green-500/10 px-2 py-0.5 text-[11px] font-bold text-green-700 dark:text-green-300">
+                        <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--qs-ok)]/30 bg-[var(--qs-okbg)] px-2 py-0.5 text-[11px] font-bold text-[var(--qs-ok)] ">
                           <Check className="h-3 w-3" aria-hidden="true" /> Active
                         </span>
                       </p>
-                      <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Verified UPI ID for instant payouts</p>
+                      <p className="mt-0.5 text-xs text-[var(--qs-muted)] ">Verified UPI ID for instant payouts</p>
                     </div>
                     <Kebab
                       label="More actions for UPI ID"
@@ -898,7 +908,7 @@ export function PaymentSettingsPage({
                   type="button"
                   onClick={() => setAddBankOpen(true)}
                   className={cn(
-                    "flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 py-3 text-xs font-semibold text-slate-500 transition-colors hover:border-pink-400 hover:text-pink-600 dark:border-white/15 dark:text-slate-400",
+                    "flex w-full items-center justify-center gap-2 rounded-[14px] border border-dashed border-[var(--qs-line)] py-3 text-xs font-semibold text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)]  ",
                     FOCUS
                   )}
                 >
@@ -908,7 +918,7 @@ export function PaymentSettingsPage({
                   type="button"
                   onClick={() => setUpiOpen(true)}
                   className={cn(
-                    "flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 py-3 text-xs font-semibold text-slate-500 transition-colors hover:border-pink-400 hover:text-pink-600 dark:border-white/15 dark:text-slate-400",
+                    "flex w-full items-center justify-center gap-2 rounded-[14px] border border-dashed border-[var(--qs-line)] py-3 text-xs font-semibold text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)]  ",
                     FOCUS
                   )}
                 >
@@ -921,9 +931,9 @@ export function PaymentSettingsPage({
             {/* RIGHT: payout schedule */}
             {state === "error" ? <CardError onRetry={() => retry()} what="payout schedule" /> : (
             <div className="space-y-6">
-              <section aria-labelledby="payout-schedule-h" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 dark:border-white/10 dark:bg-[#1e1419]">
-                <h2 id="payout-schedule-h" className="text-base font-bold text-slate-900 dark:text-white">Payout schedule</h2>
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">How often you receive payouts</p>
+              <section aria-labelledby="payout-schedule-h" className="rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-6">
+                <h2 id="payout-schedule-h" className="qs-display text-[20px] font-extrabold text-[var(--qs-ink)]">Payout schedule</h2>
+                <p className="mt-0.5 text-xs text-[var(--qs-muted)] ">How often you receive payouts</p>
 
                 <SegmentedControl
                   value={sched.mode}
@@ -938,13 +948,13 @@ export function PaymentSettingsPage({
                 />
 
                 {sched.mode === "manual" && (
-                  <p className="mt-3 text-[13px] text-slate-500 dark:text-slate-400">
+                  <p className="mt-3 text-[13px] text-[var(--qs-muted)] ">
                     You request payouts manually.
                   </p>
                 )}
                 {sched.mode === "weekly" && (
                   <div className="mt-4">
-                    <p className="mb-2 text-xs font-semibold text-slate-900 dark:text-white">Payout day</p>
+                    <p className="mb-2 text-xs font-semibold text-[var(--qs-ink)] ">Payout day</p>
                     <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Day of week">
                       {MONDAY_FIRST.map((d) => (
                         <button
@@ -954,10 +964,10 @@ export function PaymentSettingsPage({
                           aria-pressed={sched.weeklyDay === d}
                           aria-label={`Pay out every ${WEEKDAY_FULL[d]}`}
                           className={cn(
-                            "h-10 min-w-11 flex-1 cursor-pointer rounded-xl border px-2 text-xs font-bold transition-colors",
+                            "h-10 min-w-11 flex-1 cursor-pointer rounded-[14px] border px-2 text-xs font-bold transition-colors",
                             sched.weeklyDay === d
-                              ? "border-pink-600 bg-pink-600 text-white dark:border-pink-500 dark:bg-pink-500"
-                              : "border-slate-200 bg-white text-slate-600 hover:border-pink-300 hover:text-pink-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300",
+                              ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]  "
+                              : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)]   ",
                             FOCUS
                           )}
                         >
@@ -969,7 +979,7 @@ export function PaymentSettingsPage({
                 )}
                 {sched.mode === "monthly" && (
                   <div className="relative mt-4">
-                    <label htmlFor="sched-dom" className="mb-1.5 block text-xs font-semibold text-slate-900 dark:text-white">
+                    <label htmlFor="sched-dom" className="mb-1.5 block text-xs font-semibold text-[var(--qs-ink)] ">
                       Day of month
                     </label>
                     <select
@@ -982,17 +992,17 @@ export function PaymentSettingsPage({
                         <option key={d} value={d}>{d === "last" ? "Last day" : `Day ${d}`}</option>
                       ))}
                     </select>
-                    <ChevronDown className="pointer-events-none absolute bottom-3.5 right-3.5 h-4 w-4 text-slate-400" aria-hidden="true" />
+                    <ChevronDown className="pointer-events-none absolute bottom-3.5 right-3.5 h-4 w-4 text-[var(--qs-muted)]" aria-hidden="true" />
                   </div>
                 )}
 
-                <p className="mt-4 flex items-start gap-2 rounded-xl bg-pink-500/[0.06] px-3.5 py-3 text-[13px] font-semibold text-slate-900 dark:text-white">
-                  <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-pink-600 dark:text-pink-400" aria-hidden="true" />
+                <p className="mt-4 flex items-start gap-2 rounded-[14px] bg-[var(--qs-brand)]/[0.06] px-3.5 py-3 text-[13px] font-semibold text-[var(--qs-ink)] ">
+                  <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-[var(--qs-brand)] " aria-hidden="true" />
                   {nextPayout
                     ? `Next payout: ${fmtPayout(nextPayout)} to ${primary ? `${primary.bankName} ${primary.maskedNumber}` : "your primary account"}`
                     : "You request payouts manually."}
                 </p>
-                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                <p className="mt-2 text-xs text-[var(--qs-muted)] ">
                   Balance below {formatINR(WITHDRAWAL_MIN)} rolls over to the next payout.
                 </p>
 
@@ -1001,26 +1011,26 @@ export function PaymentSettingsPage({
                 </BillButton>
 
                 {sched.mode === "manual" && (
-                  <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.02]">
-                    <Wallet className="h-4 w-4 shrink-0 text-pink-600 dark:text-pink-400" aria-hidden="true" />
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <div className="mt-3 flex items-center gap-2.5 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 ">
+                    <Wallet className="h-4 w-4 shrink-0 text-[var(--qs-brand)] " aria-hidden="true" />
+                    <p className="text-xs text-[var(--qs-muted)] ">
                       Minimum withdrawal {formatINR(WITHDRAWAL_MIN)}. Request anytime from your balance above.
                     </p>
                   </div>
                 )}
               </section>
 
-              <section aria-labelledby="payout-limits-h" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 dark:border-white/10 dark:bg-[#1e1419]">
-                <h2 id="payout-limits-h" className="text-base font-bold text-slate-900 dark:text-white">Payout limits</h2>
+              <section aria-labelledby="payout-limits-h" className="rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-6">
+                <h2 id="payout-limits-h" className="qs-display text-[20px] font-extrabold text-[var(--qs-ink)]">Payout limits</h2>
                 <dl className="mt-3 space-y-2.5">
                   {[
                     ["Minimum withdrawal", formatINR(WITHDRAWAL_MIN)],
                     ["Daily limit", formatINR(DAILY_LIMIT)],
                     ["Processing time", "1 to 2 working days"],
                   ].map(([k, v], i, arr) => (
-                    <div key={k} className={cn("flex items-center justify-between", i !== arr.length - 1 && "border-b border-slate-100 pb-2.5 dark:border-white/5")}>
-                      <dt className="text-xs text-slate-500 dark:text-slate-400">{k}</dt>
-                      <dd className="text-xs font-bold tabular-nums text-slate-900 dark:text-white">{v}</dd>
+                    <div key={k} className={cn("flex items-center justify-between", i !== arr.length - 1 && "border-b-2 border-[var(--qs-line)] pb-2.5 ")}>
+                      <dt className="text-xs text-[var(--qs-muted)] ">{k}</dt>
+                      <dd className="text-xs font-bold tabular-nums text-[var(--qs-ink)] ">{v}</dd>
                     </div>
                   ))}
                 </dl>
@@ -1031,27 +1041,27 @@ export function PaymentSettingsPage({
 
           {/* Notifications */}
           {state === "error" ? <CardError onRetry={() => retry()} what="notifications" /> : (
-          <section aria-labelledby="notif-h" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 dark:border-white/10 dark:bg-[#1e1419]">
+          <section aria-labelledby="notif-h" className="rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-6">
             <div className="flex flex-wrap items-center gap-2">
               <div className="min-w-0 flex-1">
-                <h2 id="notif-h" className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white">
+                <h2 id="notif-h" className="qs-display flex items-center gap-2 text-[20px] font-extrabold text-[var(--qs-ink)]">
                   Payment notifications
                   {saveNote && (
                     <span className={cn(
                       "inline-flex items-center gap-1 text-xs font-semibold",
-                      saveNote.ok ? "text-emerald-600 dark:text-emerald-300" : "text-red-600 dark:text-red-300"
+                      saveNote.ok ? "text-[var(--qs-ok)] " : "text-[var(--qs-bad)] "
                     )} role="status">
                       {saveNote.ok && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
                       {saveNote.text}
                     </span>
                   )}
                 </h2>
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Choose which financial events notify you</p>
+                <p className="mt-0.5 text-xs text-[var(--qs-muted)] ">Choose which financial events notify you</p>
               </div>
             </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-2" role="group" aria-label="Notification channels">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Channels:</span>
+              <span className="text-xs font-semibold text-[var(--qs-muted)] ">Channels:</span>
               {(["email", "sms", "whatsapp"] as const).map((c) => {
                 const on = channels[c];
                 return (
@@ -1063,8 +1073,8 @@ export function PaymentSettingsPage({
                     className={cn(
                       "inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold capitalize transition-colors",
                       on
-                        ? "border-pink-600 bg-pink-600 text-white dark:border-pink-500 dark:bg-pink-500"
-                        : "border-slate-200 bg-white text-slate-500 hover:border-pink-300 hover:text-pink-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400",
+                        ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]  "
+                        : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)]   ",
                       FOCUS
                     )}
                   >
@@ -1077,22 +1087,22 @@ export function PaymentSettingsPage({
 
             {NOTIF_GROUPS.map((g) => (
               <div key={g.title} className="mt-5">
-                <h3 className="text-[13px] font-bold text-slate-900 dark:text-white">{g.title}</h3>
-                <ul className="mt-1 divide-y divide-slate-100 dark:divide-white/5">
+                <h3 className="text-[13px] font-bold text-[var(--qs-ink)] ">{g.title}</h3>
+                <ul className="mt-1 divide-y-2 divide-[var(--qs-line)] ">
                   {g.ids.map((id) => {
                     const meta = NOTIF_META[id];
                     return (
                       <li key={id} className="flex min-h-[44px] items-center justify-between gap-4 py-1.5">
                         <div className="min-w-0">
-                          <p className="flex flex-wrap items-center gap-1.5 text-[13px] font-semibold text-slate-900 dark:text-white">
+                          <p className="flex flex-wrap items-center gap-1.5 text-[13px] font-semibold text-[var(--qs-ink)] ">
                             {meta.label}
                             {meta.critical && (
-                              <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-300">
+                              <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-bold text-[#a85d00] ">
                                 Recommended
                               </span>
                             )}
                           </p>
-                          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{meta.description}</p>
+                          <p className="mt-0.5 text-xs text-[var(--qs-muted)] ">{meta.description}</p>
                         </div>
                         <Switch checked={events[id]} onChange={(v) => toggleEvent(id, v)} label={`${meta.label} notifications`} />
                       </li>
@@ -1106,16 +1116,16 @@ export function PaymentSettingsPage({
 
           {/* Audit activity */}
           {state === "error" ? <CardError onRetry={() => retry()} what="audit activity" /> : (
-          <section aria-labelledby="audit-h" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 dark:border-white/10 dark:bg-[#1e1419]">
+          <section aria-labelledby="audit-h" className="rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h2 id="audit-h" className="text-base font-bold text-slate-900 dark:text-white">Audit activity</h2>
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Security-sensitive financial actions</p>
+                <h2 id="audit-h" className="qs-display text-[20px] font-extrabold text-[var(--qs-ink)]">Audit activity</h2>
+                <p className="mt-0.5 text-xs text-[var(--qs-muted)] ">Security-sensitive financial actions</p>
               </div>
               <button
                 type="button"
                 onClick={() => { setAuditFilter("all"); setAuditShown(5); }}
-                className={cn("inline-flex items-center gap-1 text-xs font-bold text-pink-600 hover:text-pink-700 dark:text-pink-400", FOCUS, "rounded-lg")}
+                className={cn("inline-flex items-center gap-1 text-xs font-bold text-[var(--qs-brand)] hover:text-[var(--qs-brand)] ", FOCUS, "rounded-lg")}
               >
                 View all <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
@@ -1131,8 +1141,8 @@ export function PaymentSettingsPage({
                   className={cn(
                     "shrink-0 cursor-pointer rounded-full border px-3 py-1.5 text-xs font-bold transition-colors",
                     auditFilter === f.id
-                      ? "border-pink-600 bg-pink-600 text-white dark:border-pink-500 dark:bg-pink-500"
-                      : "border-slate-200 bg-white text-slate-500 hover:border-pink-300 hover:text-pink-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400",
+                      ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]  "
+                      : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)]   ",
                     FOCUS
                   )}
                 >
@@ -1142,12 +1152,12 @@ export function PaymentSettingsPage({
             </div>
 
             {filteredAudit.length === 0 ? (
-              <p className="mt-4 rounded-xl bg-slate-500/[0.06] px-4 py-6 text-center text-xs text-slate-500 dark:text-slate-400">
+              <p className="mt-4 rounded-[14px] bg-[var(--qs-bg)] px-4 py-6 text-center text-xs text-[var(--qs-muted)] ">
                 No activity in this category yet.
               </p>
             ) : (
               <ol className="relative mt-4">
-                <span className="absolute bottom-2 left-[11px] top-2 w-px bg-slate-200 dark:bg-white/10" aria-hidden="true" />
+                <span className="absolute bottom-2 left-[11px] top-2 w-px bg-[var(--qs-line)] " aria-hidden="true" />
                 {visibleAudit.map((item) => {
                   const st = AUDIT_STYLE[item.kind];
                   const Icon = st.icon;
@@ -1158,25 +1168,25 @@ export function PaymentSettingsPage({
                         <Icon className="h-3 w-3" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="flex flex-wrap items-center gap-1.5 text-[13px] font-semibold text-slate-900 dark:text-white">
+                        <p className="flex flex-wrap items-center gap-1.5 text-[13px] font-semibold text-[var(--qs-ink)] ">
                           {item.label}
                           {item.failed && (
-                            <span className="inline-flex items-center rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-bold text-red-600 dark:text-red-300">
+                            <span className="inline-flex items-center rounded-full bg-[var(--qs-badbg)] px-2 py-0.5 text-[11px] font-bold text-[var(--qs-bad)] ">
                               Failed
                             </span>
                           )}
                         </p>
-                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                          {amount && <span className="font-bold tabular-nums text-slate-900 dark:text-white">{amount} </span>}
+                        <p className="mt-0.5 text-xs text-[var(--qs-muted)] ">
+                          {amount && <span className="font-bold tabular-nums text-[var(--qs-ink)] ">{amount} </span>}
                           {rest}
                         </p>
-                        <p className="mt-0.5 text-[11px] tabular-nums text-slate-400 dark:text-slate-500">{item.time}</p>
+                        <p className="mt-0.5 text-[11px] tabular-nums text-[var(--qs-muted)] ">{item.time}</p>
                         {item.device && (
-                          <p className="mt-0.5 text-[11px] text-slate-400 sm:hidden dark:text-slate-500">{item.device}</p>
+                          <p className="mt-0.5 text-[11px] text-[var(--qs-muted)] sm:hidden ">{item.device}</p>
                         )}
                       </div>
                       {item.device && (
-                        <p className="ml-2 hidden max-w-40 shrink-0 text-right text-[11px] leading-5 text-slate-400 sm:block dark:text-slate-500">
+                        <p className="ml-2 hidden max-w-40 shrink-0 text-right text-[11px] leading-5 text-[var(--qs-muted)] sm:block ">
                           {item.device}
                         </p>
                       )}
@@ -1190,7 +1200,7 @@ export function PaymentSettingsPage({
                 type="button"
                 onClick={() => setAuditShown((n) => n + 5)}
                 className={cn(
-                  "mt-4 w-full rounded-xl border border-slate-200 py-2.5 text-xs font-bold text-slate-600 transition-colors hover:border-pink-300 hover:text-pink-600 dark:border-white/10 dark:text-slate-300",
+                  "mt-4 w-full rounded-[14px] border-2 border-[var(--qs-line)] py-2.5 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)]  ",
                   FOCUS
                 )}
               >
@@ -1264,13 +1274,13 @@ export function PaymentSettingsPage({
               onClose={() => setRemoveFor(null)}
             />
             <div className="overflow-y-auto p-5">
-              <div className="flex items-start gap-2.5 rounded-xl bg-red-500/[0.06] px-3.5 py-3 text-[13px] text-slate-600 dark:text-slate-300">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" aria-hidden="true" />
+              <div className="flex items-start gap-2.5 rounded-[14px] bg-[var(--qs-badbg)] px-3.5 py-3 text-[13px] text-[var(--qs-ink)] ">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--qs-bad)]" aria-hidden="true" />
                 {removeFor.kind === "bank"
                   ? `${removeFor.acc.bankName} ${removeFor.acc.maskedNumber} will stop receiving payouts.`
                   : "Future payouts will go to your bank account."}
               </div>
-              <p className="mt-3 flex items-start gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+              <p className="mt-3 flex items-start gap-1.5 text-xs text-[var(--qs-muted)] ">
                 <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 For your safety, withdrawals to a new account are held for 24 hours.
               </p>
@@ -1317,7 +1327,7 @@ export function PaymentSettingsPage({
               onClose={() => setConfirmOff(null)}
             />
             <div className="overflow-y-auto p-5">
-              <div className="flex items-start gap-2.5 rounded-xl bg-amber-500/[0.08] px-3.5 py-3 text-[13px] text-slate-600 dark:text-slate-300">
+              <div className="flex items-start gap-2.5 rounded-[14px] bg-amber-500/[0.08] px-3.5 py-3 text-[13px] text-[var(--qs-ink)] ">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" aria-hidden="true" />
                 This alert is recommended. Turning it off means failed payouts or new logins won’t notify you.
               </div>
@@ -1402,14 +1412,14 @@ function AddBankModal({ onClose, onAdded }: {
               <input
                 id="ba-holder" value={holder} onChange={(e) => setHolder(e.target.value)}
                 placeholder="As per bank records" autoComplete="off"
-                className={cn(INPUT, errors.holder && "border-red-500", FOCUS)} data-autofocus
+                className={cn(INPUT, errors.holder && "border-[var(--qs-bad)]", FOCUS)} data-autofocus
               />
             </Field>
             <Field id="ba-num" label="Account number" error={errors.acc}>
               <input
                 id="ba-num" value={accNum} onChange={(e) => setAccNum(e.target.value.replace(/\D/g, "").slice(0, 18))}
                 placeholder="9–18 digits" inputMode="numeric" autoComplete="off"
-                className={cn(INPUT, errors.acc && "border-red-500", FOCUS, "tabular-nums")}
+                className={cn(INPUT, errors.acc && "border-[var(--qs-bad)]", FOCUS, "tabular-nums")}
               />
             </Field>
             <Field id="ba-confirm" label="Confirm account number" error={errors.confirm}>
@@ -1418,31 +1428,31 @@ function AddBankModal({ onClose, onAdded }: {
                 onChange={(e) => setConfirmNum(e.target.value.replace(/\D/g, "").slice(0, 18))}
                 onPaste={(e) => e.preventDefault()}
                 placeholder="Re-enter the account number" inputMode="numeric" autoComplete="off"
-                className={cn(INPUT, errors.confirm && "border-red-500", FOCUS, "tabular-nums")}
+                className={cn(INPUT, errors.confirm && "border-[var(--qs-bad)]", FOCUS, "tabular-nums")}
               />
             </Field>
             <Field id="ba-ifsc" label="IFSC" error={errors.ifsc}>
               <input
                 id="ba-ifsc" value={ifsc} onChange={(e) => setIfsc(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 11))}
                 placeholder="HDFC0001234" autoComplete="off" autoCapitalize="characters"
-                className={cn(INPUT, errors.ifsc && "border-red-500", FOCUS, "uppercase tabular-nums")}
+                className={cn(INPUT, errors.ifsc && "border-[var(--qs-bad)]", FOCUS, "uppercase tabular-nums")}
               />
             </Field>
             {ifscValid && (
-              <p className="flex items-start gap-1.5 rounded-[10px] bg-emerald-500/[0.08] px-3 py-2.5 text-xs text-emerald-700 dark:text-emerald-300" role="status">
+              <p className="flex items-start gap-1.5 rounded-[10px] bg-[var(--qs-okbg)] px-3 py-2.5 text-xs text-[var(--qs-ok)] " role="status">
                 <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 {bankInfo ? `${bankInfo.bank} · ${bankInfo.branch}` : "IFSC format is valid — bank will be confirmed during verification."}
               </p>
             )}
             <div className="relative">
-              <label htmlFor="ba-type" className="mb-1.5 block text-[13px] font-semibold text-slate-900 dark:text-white">
+              <label htmlFor="ba-type" className="mb-1.5 block text-[13px] font-semibold text-[var(--qs-ink)] ">
                 Account type
               </label>
               <select id="ba-type" value={accType} onChange={(e) => setAccType(e.target.value)} className={cn(INPUT, "appearance-none pr-10", FOCUS)}>
                 <option>Savings</option>
                 <option>Current</option>
               </select>
-              <ChevronDown className="pointer-events-none absolute bottom-3.5 right-3.5 h-4 w-4 text-slate-400" aria-hidden="true" />
+              <ChevronDown className="pointer-events-none absolute bottom-3.5 right-3.5 h-4 w-4 text-[var(--qs-muted)]" aria-hidden="true" />
             </div>
             <BillButton
               variant="primary" className="h-11 w-full justify-center" data-autofocus
@@ -1459,9 +1469,9 @@ function AddBankModal({ onClose, onAdded }: {
 
         {step === 2 && (
           <div>
-            <div className="rounded-xl border border-slate-200 p-4 text-sm dark:border-white/10">
-              <p className="font-semibold text-slate-900 dark:text-white">We’ll send ₹1 to verify your account (it will be refunded).</p>
-              <p className="mt-1 text-xs tabular-nums text-slate-500 dark:text-slate-400">
+            <div className="rounded-[14px] border-2 border-[var(--qs-line)] p-4 text-sm ">
+              <p className="font-semibold text-[var(--qs-ink)] ">We’ll send ₹1 to verify your account (it will be refunded).</p>
+              <p className="mt-1 text-xs tabular-nums text-[var(--qs-muted)] ">
                 {bankInfo?.bank ?? "Your bank"} · {maskAcc(accNum)} · IFSC {ifsc}
               </p>
             </div>
@@ -1476,7 +1486,7 @@ function AddBankModal({ onClose, onAdded }: {
             )}
             {verifyOk === true && (
               <div className="mt-4">
-                <p className="flex items-center gap-2 rounded-xl bg-emerald-500/[0.08] px-3.5 py-3 text-sm font-bold text-emerald-700 dark:text-emerald-300" role="status">
+                <p className="flex items-center gap-2 rounded-[14px] bg-[var(--qs-okbg)] px-3.5 py-3 text-sm font-bold text-[var(--qs-ok)] " role="status">
                   <ShieldCheck className="h-5 w-5 shrink-0" aria-hidden="true" /> Name matches
                 </p>
                 <div className="mt-4 flex gap-2">
@@ -1491,7 +1501,7 @@ function AddBankModal({ onClose, onAdded }: {
             )}
             {verifyOk === false && (
               <div className="mt-4">
-                <p className="flex items-start gap-2 rounded-xl bg-red-500/[0.08] px-3.5 py-3 text-sm font-bold text-red-700 dark:text-red-300" role="alert">
+                <p className="flex items-start gap-2 rounded-[14px] bg-[var(--qs-badbg)] px-3.5 py-3 text-sm font-bold text-[var(--qs-bad)] " role="alert">
                   <X className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                   Name does not match your KYC name. Check the holder name and try again.
                 </p>
@@ -1516,7 +1526,7 @@ function AddBankModal({ onClose, onAdded }: {
           />
         )}
 
-        <p className="mt-4 flex items-start gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+        <p className="mt-4 flex items-start gap-1.5 text-xs text-[var(--qs-muted)] ">
           <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           For your safety, withdrawals to a new account are held for 24 hours.
         </p>
@@ -1571,7 +1581,7 @@ function UpiModal({ current, onClose, onSaved }: {
                 id="upi-id" value={upiId}
                 onChange={(e) => { setUpiId(e.target.value); setError(""); setHolder(null); }}
                 placeholder="name@okhdfcbank" autoComplete="off" inputMode="email" autoCapitalize="off"
-                className={cn(INPUT, error && "border-red-500", FOCUS)} data-autofocus
+                className={cn(INPUT, error && "border-[var(--qs-bad)]", FOCUS)} data-autofocus
               />
             </Field>
             {holder === null ? (
@@ -1583,7 +1593,7 @@ function UpiModal({ current, onClose, onSaved }: {
               </BillButton>
             ) : (
               <div className="mt-4">
-                <p className="flex items-center gap-2 rounded-xl bg-emerald-500/[0.08] px-3.5 py-3 text-sm font-bold text-emerald-700 dark:text-emerald-300" role="status">
+                <p className="flex items-center gap-2 rounded-[14px] bg-[var(--qs-okbg)] px-3.5 py-3 text-sm font-bold text-[var(--qs-ok)] " role="status">
                   <ShieldCheck className="h-5 w-5 shrink-0" aria-hidden="true" />
                   {holder} · {maskedPreview(upiId.trim())}
                 </p>
@@ -1597,7 +1607,7 @@ function UpiModal({ current, onClose, onSaved }: {
         {step === 2 && (
           <OtpStep actionLabel="Confirm UPI ID" onVerified={() => onSaved(maskedPreview(upiId.trim()))} />
         )}
-        <p className="mt-4 flex items-start gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+        <p className="mt-4 flex items-start gap-1.5 text-xs text-[var(--qs-muted)] ">
           <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           For your safety, withdrawals to a new account are held for 24 hours.
         </p>
@@ -1624,7 +1634,7 @@ function NicknameModal({ acc, onClose, onSave }: {
           <input
             id="nick" value={name} onChange={(e) => { setName(e.target.value); setError(""); }}
             placeholder="e.g. Salary account" maxLength={40}
-            className={cn(INPUT, error && "border-red-500", FOCUS)} data-autofocus
+            className={cn(INPUT, error && "border-[var(--qs-bad)]", FOCUS)} data-autofocus
           />
         </Field>
         <div className="mt-5 flex gap-2">

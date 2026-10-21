@@ -315,15 +315,16 @@ export function CreateTestSeries() {
                       <p className="mt-1 text-xs text-text-secondary">Reach the widest audience. No price, no friction.</p>
                     </button>
                     <button
-                      onClick={() => setMode("paid")}
-                      className={cn(
-                        "rounded-2xl border p-5 text-left transition-all",
-                        mode === "paid"
-                          ? "border-pink-500/50 bg-pink-500/6 dark:border-ai-accent/50 dark:bg-ai-accent/6"
-                          : "border-border bg-card-hover/30 hover:border-border-hover"
-                      )}
+                      type="button"
+                      disabled
+                      aria-disabled="true"
+                      title="Paid test series are coming soon"
+                      className="relative cursor-not-allowed rounded-2xl border border-border bg-card-hover/30 p-5 text-left opacity-60"
                     >
-                      <span className={cn("text-sm font-extrabold", mode === "paid" ? "text-pink-500 dark:text-ai-accent" : "text-text-primary")}>Paid</span>
+                      <span className="absolute right-3 top-3 rounded-full bg-yellow-400/20 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-yellow-600 dark:text-yellow-400">
+                        Coming soon
+                      </span>
+                      <span className="text-sm font-extrabold text-text-primary">Paid</span>
                       <p className="mt-1 text-xs text-text-secondary">Set a price and earn from every enrollment.</p>
                     </button>
                   </div>

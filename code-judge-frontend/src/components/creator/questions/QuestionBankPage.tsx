@@ -129,7 +129,7 @@ function mapBankQuestion(question: UserBankQuestion): BankQuestion {
     type: mapQuestionType(question.question_type),
     difficulty: mapDifficulty(question.difficulty),
     tags,
-    usedIn: question.quiz_id ? 1 : 0,
+    usedIn: Math.max(question.usage_count ?? 0, question.quiz_id ? 1 : 0),
     updated: formatUpdated(question.created_at),
     options: (question.options ?? []).map((option) => ({
       text: option.text,
@@ -402,7 +402,7 @@ function QuestionPreviewDrawer({
             <span>Source: {question.source || "AI generated"}</span>
             <span className="inline-flex items-center gap-1">
               <ClipboardCheck className="h-3.5 w-3.5" />
-              Used in {question.usedIn} {question.usedIn === 1 ? "test" : "tests"}
+              Downloaded {question.usedIn} {question.usedIn === 1 ? "time" : "times"}
             </span>
           </div>
         </div>
@@ -673,10 +673,10 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                 <ClipboardCheck className="h-4 w-4" />
               </span>
               <p className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]">
-                Used in tests
+                Downloaded questions
               </p>
               <p className="mt-2.5 text-[27px] font-black leading-none text-[var(--qs-ink)]">{usedInTests}</p>
-              <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">of library currently used</p>
+              <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">of library used in PDFs</p>
             </div>
             <div className="relative rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 shadow-[4px_4px_0_var(--qs-sun)]">
               <span className="absolute right-4 top-3.5 grid h-[30px] w-[30px] place-items-center rounded-[9px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
@@ -827,13 +827,13 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                             className="h-4 w-4 cursor-pointer accent-[var(--qs-brand)]"
                           />
                         </th>
-                        {["Question", "Subject", "Type", "Difficulty", "Tags", "Used in", "Updated", ""].map(
+                        {["Question", "Subject", "Type", "Difficulty", "Tags", "Downloads", "Updated", ""].map(
                           (heading) => (
                             <th
                               key={heading || "actions"}
                               className={cn(
                                 "whitespace-nowrap border-b-2 border-[var(--qs-line)] px-2.5 py-3.5 text-[11px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]",
-                                heading === "Used in" && "text-right",
+                                heading === "Downloads" && "text-right",
                                 heading === "" && "w-[52px]"
                               )}
                             >
@@ -973,7 +973,7 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                         <div className="flex shrink-0 items-center gap-2">
                           <DifficultyPill difficulty={question.difficulty} />
                           <span className="text-[11px] font-bold text-[var(--qs-muted)]">
-                            Used in {question.usedIn}
+                            Downloads {question.usedIn}
                           </span>
                         </div>
                       </div>

@@ -5,7 +5,7 @@ import type { NextFunction, Request, Response } from "express";
 import multer from "multer";
 import { authenticate } from "../../../middleware/auth.ts";
 import { requireActiveAiUser } from "../../../middleware/requireActiveAiUser.ts";
-import { generateSections, generatePaper, downloadPaper, generateQuestions, questionGeneratorCatalog, getSectionBlueprints, saveSectionBlueprint, useSectionBlueprint, removeSectionBlueprint } from "../../../controllers/testSection.controller.ts";
+import { generateSections, generatePaper, downloadPaper, generateQuestions, questionGeneratorCatalog, recordQuestionUsage, getSectionBlueprints, saveSectionBlueprint, useSectionBlueprint, removeSectionBlueprint } from "../../../controllers/testSection.controller.ts";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -51,6 +51,9 @@ router.post("/generate-paper", generatePaper);
 
 // Printable HTML download of a generated paper (JSON body: { paper }).
 router.post("/paper-download", downloadPaper);
+
+// Per-question usage tracking for downloaded papers (JSON body: { questionIds }).
+router.post("/question-usage", recordQuestionUsage);
 
 // Teacher question picker: N subjective questions, hardness/category + curriculum filters.
 router.get("/question-generator/catalog", questionGeneratorCatalog);

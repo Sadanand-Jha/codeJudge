@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
@@ -10,14 +10,10 @@ import {
   Plus,
   Trash2,
   FileText,
-  GraduationCap,
   Layers,
   HelpCircle,
   ListChecks,
-  Wallet,
   Eye,
-  Rocket,
-  IndianRupee,
   Timer,
   Clock3,
   BookmarkPlus,
@@ -52,9 +48,7 @@ const STEPS = [
   // { id: "exam", label: "Exam & Subjects", icon: GraduationCap },
   { id: "sections", label: "Sections", icon: Layers },
   { id: "questions", label: "Questions", icon: HelpCircle },
-  { id: "pricing", label: "Pricing", icon: Wallet },
   { id: "preview", label: "Preview", icon: Eye },
-  { id: "publish", label: "Submit / Publish", icon: Rocket },
 ];
 
 // The current curated question bank is Operating Systems only. Keep the UI
@@ -74,32 +68,22 @@ const cloneBlueprintSections = (sections: Section[]): Section[] => sections.map(
 
 export type CreationType = "test" | "quiz" | "assessment";
 
-const CREATION_META: Record<CreationType, { title: string; subtitle: string; cta: string; toast: string; redirect: string }> = {
+const CREATION_META: Record<CreationType, { title: string; subtitle: string }> = {
   test: {
     title: "Create Test",
-    subtitle: "Publish a free or paid test and start earning from enrollments.",
-    cta: "Publish Test",
-    toast: "Test published",
-    redirect: "/creator/tests",
+    subtitle: "Generate a print-ready question paper and save it to your account.",
   },
   quiz: {
     title: "Create Quiz",
-    subtitle: "Build a quick, interactive quiz with instant scoring.",
-    cta: "Publish Quiz",
-    toast: "Quiz published",
-    redirect: "/creator/quizzes",
+    subtitle: "Generate quiz questions as a printable paper and save it to your account.",
   },
   assessment: {
     title: "Create Assessment",
-    subtitle: "Set up a classroom assessment for your students.",
-    cta: "Publish Assessment",
-    toast: "Assessment published",
-    redirect: "/creator/tests",
+    subtitle: "Generate an assessment paper and save it to your account.",
   },
 };
 
 export function CreateTestWizard({ creationType = "test" }: { creationType?: CreationType }) {
-  const router = useRouter();
   const toast = useToast();
   const meta = CREATION_META[creationType];
   const [step, setStep] = useState(0);
@@ -129,13 +113,11 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   const [language, setLanguage] = useState<string>("english");
   const [difficulty, setDifficulty] = useState("medium");
   const [sections, setSections] = useState<Section[]>([createDefaultSection(0)]);
-  const [mode, setMode] = useState<"free" | "paid">("free");
-  const [price, setPrice] = useState(0);
-  const [originalPrice, setOriginalPrice] = useState(0);
-  const [publishing, setPublishing] = useState(false);
   const [draftId] = useState(() => `draft-${Date.now()}`);
   const [paperHeader, setPaperHeader] = useState<PaperHeaderMeta>({ ...DEFAULT_PAPER_HEADER });
   const [generatedPaper, setGeneratedPaper] = useState<QuestionPaper | null>(null);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [blueprintLibraryOpen, setBlueprintLibraryOpen] = useState(false);
   const [sectionEditorOpen, setSectionEditorOpen] = useState(false);
@@ -177,8 +159,6 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
     if (step === 0) return title.trim().length > 3;
     // Exam & Subjects gate commented out with its step: `if (step === 1) return examId !== "" && subjects.length > 0;`
     if (step === 1) return sections.length > 0 && totalQuestions > 0;
-    if (step === 2) return true;
-    if (step === 3) return mode === "free" || price > 0;
     return true;
   };
 
@@ -347,53 +327,36 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
     }
   }, [blueprintName, blueprintDescription, sections, toast]);
 
-  const handlePaperReady = useCallback((paper: QuestionPaper) => {
-    setGeneratedPaper(paper);
-    saveTestRecord({
-      id: draftId,
-      title: title.trim() || paperHeader.heading.trim() || "Untitled test",
-      creationType,
-      createdAt: new Date().toISOString(),
-      mode,
-      price,
-      originalPrice,
-      duration: paper.durationMinutes ?? durationForAi,
-      subjects: savedSubjects,
-      sectionsCount: paper.sections.length,
-      totalQuestions: paper.totalQuestions,
-      totalMarks: paper.totalMarks,
-      meta: { ...paperHeader, heading: title.trim() || paperHeader.heading.trim() || "Question Paper" },
-      paper,
-    });
-  }, [draftId, title, paperHeader, creationType, mode, price, originalPrice, durationForAi, savedSubjects]);
-
-  const handlePublish = () => {
-    setPublishing(true);
-    setTimeout(() => {
-      saveTestRecord({
-        id: draftId,
+  const persistPaper = useCallback(async (paper: QuestionPaper) => {
+    setSaveState("saving");
+    setSaveError(null);
+    try {
+      await saveTestRecord({
+        draftId,
         title: title.trim() || paperHeader.heading.trim() || "Untitled test",
         creationType,
-        createdAt: new Date().toISOString(),
-        mode,
-        price,
-        originalPrice,
-        duration: generatedPaper?.durationMinutes ?? durationForAi,
+        duration: paper.durationMinutes ?? durationForAi,
         subjects: savedSubjects,
-        sectionsCount: generatedPaper?.sections.length ?? sections.length,
-        totalQuestions: generatedPaper?.totalQuestions ?? totalQuestions,
-        totalMarks: generatedPaper?.totalMarks ?? totalMarks,
+        sectionsCount: paper.sections.length,
+        totalQuestions: paper.totalQuestions,
+        totalMarks: paper.totalMarks,
         meta: { ...paperHeader, heading: title.trim() || paperHeader.heading.trim() || "Question Paper" },
-        paper: generatedPaper,
+        paper,
       });
-      setPublishing(false);
-      toast.success({
-        title: meta.toast,
-        description: `"${title}" is now live for students.`,
-      });
-      router.push(meta.redirect);
-    }, 1500);
-  };
+      setSaveState("saved");
+      toast.success({ title: "Paper saved", description: "Find it under Tests in your account." });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not save the paper to your account.";
+      setSaveState("error");
+      setSaveError(message);
+      toast.error({ title: "Paper not saved", description: message });
+    }
+  }, [draftId, title, paperHeader, creationType, durationForAi, savedSubjects, toast]);
+
+  const handlePaperReady = useCallback((paper: QuestionPaper) => {
+    setGeneratedPaper(paper);
+    void persistPaper(paper);
+  }, [persistPaper]);
 
   return (
     <div className="creator-mobile-calm w-full space-y-4 pb-10 pt-1 sm:pt-2">
@@ -433,8 +396,8 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
       {/* Desktop stepper */}
       <div className="hidden items-center gap-1 overflow-x-auto pb-1 sm:flex">
         {STEPS.map((s, i) => {
-          const done = i < step || (i === step && publishing);
-          const active = i === step && !publishing;
+          const done = i < step;
+          const active = i === step;
           return (
             <div key={s.id} className="flex shrink-0 items-center gap-1">
               <button
@@ -496,8 +459,16 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
             <ChevronRight className="h-4 w-4 shrink-0" />
           </button>
         ) : (
-          <span className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-full border-2 border-[var(--qs-ok)] bg-[var(--qs-okbg)] px-3 text-[11px] font-bold text-[var(--qs-ok)]">
-            <Check className="h-3.5 w-3.5" /> Ready to publish
+          <span
+            className={cn(
+              "ml-auto inline-flex h-9 items-center gap-1.5 rounded-full border-2 px-3 text-[11px] font-bold",
+              saveState === "error"
+                ? "border-[var(--qs-bad)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]"
+                : "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]"
+            )}
+          >
+            <Check className="h-3.5 w-3.5" />
+            {saveState === "saved" ? "Paper saved" : saveState === "saving" ? "Saving paper…" : saveState === "error" ? "Paper not saved" : "Generate your paper"}
           </span>
         )}
       </div>
@@ -756,13 +727,9 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                   <p className="text-sm font-bold text-[var(--qs-ink)]">Need a single question instead?</p>
                   <p className="mt-1 min-h-5 text-xs leading-5 text-[var(--qs-muted)]"><AiStreamText text="Open the AI question generator directly. You do not need to create sections or a full paper first." /></p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => router.push("/creator/problems/create")}
-                  className="b sm shrink-0 gap-1.5"
-                >
+                <Link href="/creator/problems/create" className="b sm shrink-0 gap-1.5">
                   <ListChecks className="h-4 w-4" /> <AiStreamText text="Open AI Question Generator" />
-                </button>
+                </Link>
               </div>
 
               {/* Section Cards */}
@@ -809,82 +776,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
           )}
 
           {step === 3 && (
-            <div className="space-y-5">
-              <div>
-                <label className="mb-2 block text-sm font-bold text-[var(--qs-ink)]">Pricing Model</label>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={() => setMode("free")}
-                    className={cn(
-                      "rounded-xl border-2 p-4 text-left transition-all",
-                      mode === "free"
-                        ? "border-[var(--qs-ink)] bg-[var(--qs-bg)] shadow-[3px_3px_0_var(--qs-sun)]"
-                        : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-brand)]"
-                    )}
-                  >
-                    <span className={cn("text-sm font-extrabold", mode === "free" ? "text-[var(--qs-ok)]" : "text-[var(--qs-ink)]")}>Free</span>
-                    <p className="mt-1 text-xs text-[var(--qs-muted)]">Reach the widest audience. No price, no friction.</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMode("paid")}
-                    className={cn(
-                      "rounded-xl border-2 p-4 text-left transition-all",
-                      mode === "paid"
-                        ? "border-[var(--qs-ink)] bg-[var(--qs-bg)] shadow-[3px_3px_0_var(--qs-sun)]"
-                        : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-brand)]"
-                    )}
-                  >
-                    <span className={cn("text-sm font-extrabold", mode === "paid" ? "text-[var(--qs-brand)]" : "text-[var(--qs-ink)]")}>Paid</span>
-                    <p className="mt-1 text-xs text-[var(--qs-muted)]">Set a price and earn from every enrollment.</p>
-                  </button>
-                </div>
-              </div>
-
-              {mode === "paid" && (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-2 block text-sm font-bold text-[var(--qs-ink)]">Your Price (₹)</label>
-                    <div className="relative">
-                      <IndianRupee className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
-                      <input
-                        type="number"
-                        min={0}
-                        value={price || ""}
-                        onChange={(e) => setPrice(Number(e.target.value))}
-                        placeholder="99"
-                        className="h-12 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-10 pr-4 text-[15px] font-bold tabular-nums text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-bold text-[var(--qs-ink)]">Original / MRP (₹)</label>
-                    <div className="relative">
-                      <IndianRupee className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
-                      <input
-                        type="number"
-                        min={0}
-                        value={originalPrice || ""}
-                        onChange={(e) => setOriginalPrice(Number(e.target.value))}
-                        placeholder="199"
-                        className="h-12 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-10 pr-4 text-[15px] font-bold tabular-nums text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
-                      />
-                    </div>
-                  </div>
-                  {price > 0 && originalPrice > price && (
-                    <div className="rounded-xl border-2 border-[var(--qs-ok)] bg-[var(--qs-okbg)] px-4 py-3 text-xs font-bold text-[var(--qs-ok)] sm:col-span-2">
-                      Students will see <span className="font-extrabold">₹{price}</span> with{" "}
-                      <span className="font-extrabold">{Math.round((1 - price / originalPrice) * 100)}% OFF</span> against ₹{originalPrice}.
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {step === 4 && (
-            <div>
+            <div className="space-y-4">
               <div className="mx-auto max-w-md overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
                 <div className="flex h-32 items-center justify-center border-b-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
                   {selectedExam ? (
@@ -897,62 +789,66 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                       </span>
                     </div>
                   ) : (
-                    <span className="text-sm font-bold">Test</span>
+                    <span className="text-sm font-bold">Question Paper</span>
                   )}
                 </div>
                 <div className="p-4">
                   <h3 className="text-sm font-bold text-[var(--qs-ink)]">{title || "Untitled Test"}</h3>
                   <p className="mt-1 line-clamp-2 text-xs text-[var(--qs-muted)]">{description || "No description yet."}</p>
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-[var(--qs-ink)]">
-                    <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 font-bold">{totalQuestions} Qs</span>
+                    <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 font-bold">
+                      {(generatedPaper?.totalQuestions ?? totalQuestions)} Qs
+                    </span>
                     <span className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 font-bold">
-                      <Clock3 className="h-3 w-3" /> {duration || 0} min
+                      <Clock3 className="h-3 w-3" /> {generatedPaper?.durationMinutes ?? duration ?? 0} min
                     </span>
                     <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 font-bold capitalize">{difficulty}</span>
                     <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 font-bold capitalize">
                       {LANGUAGES.find((l) => l.id === language)?.label}
                     </span>
                     <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 font-bold">
-                      {totalMarks} marks
+                      {generatedPaper?.totalMarks ?? totalMarks} marks
                     </span>
                   </div>
-                  <div className="mt-4 flex items-center justify-between border-t-2 border-[var(--qs-line)] pt-3">
-                    {mode === "free" ? (
-                      <span className="text-lg font-extrabold text-[var(--qs-ok)]">FREE</span>
-                    ) : (
-                      <span className="text-lg font-extrabold tabular-nums text-[var(--qs-ink)]">
-                        ₹{price}
-                        {originalPrice > price && (
-                          <span className="ml-1.5 text-xs font-medium text-[var(--qs-muted)] line-through">₹{originalPrice}</span>
-                        )}
-                      </span>
-                    )}
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t-2 border-[var(--qs-line)] pt-3">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 text-xs font-bold",
+                        saveState === "error" ? "text-[var(--qs-bad)]" : saveState === "saved" ? "text-[var(--qs-ok)]" : "text-[var(--qs-muted)]"
+                      )}
+                    >
+                      {saveState === "saved" ? <Check className="h-3.5 w-3.5" /> : null}
+                      {saveState === "saved"
+                        ? "Saved to your account"
+                        : saveState === "saving"
+                          ? "Saving to your account…"
+                          : saveState === "error"
+                            ? "Could not save this paper"
+                            : "Generate the paper to save it"}
+                    </span>
                     <span className="rounded-lg border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-3 py-1 text-[11px] font-bold text-[#1a1240]">
-                      {mode === "paid" ? `${Math.round((1 - price / originalPrice) * 100)}% OFF` : "Free to attempt"}
+                      {generatedPaper ? "Question paper" : "Draft"}
                     </span>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
 
-          {step === 5 && (
-            <div className="text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)]">
-                <Rocket className="h-8 w-8" />
-              </div>
-              <h3 className="mt-4 text-lg font-extrabold text-[var(--qs-ink)]">Ready to publish?</h3>
-              <p className="mx-auto mt-1 max-w-md text-sm text-[var(--qs-muted)]">
-                <span className="font-bold text-[var(--qs-ink)]">{title}</span> — {totalQuestions} questions across {sections.length} section
-                {sections.length !== 1 && "s"}, {totalMarks} marks, {duration || 0} minutes,{" "}
-                {mode === "free" ? "free" : `₹${price}`}. Once published it will be visible to all students.
-              </p>
-              <div className="mt-6 flex items-center justify-center gap-3">
-                <button type="button" onClick={() => setStep(4)} className="b">Back to Preview</button>
-                <button type="button" onClick={handlePublish} disabled={publishing} className="b b-pri gap-1.5 px-6">
-                  <Rocket className="h-4 w-4" />
-                  {publishing ? "Publishing…" : "Publish Test"}
-                </button>
+              {saveError && (
+                <p className="mx-auto max-w-md rounded-xl border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] px-3 py-2 text-center text-xs font-semibold text-[var(--qs-bad)]">
+                  {saveError}
+                </p>
+              )}
+
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <button type="button" onClick={() => setStep(2)} className="b">Back to Questions</button>
+                {saveState === "error" && generatedPaper && (
+                  <button type="button" onClick={() => void persistPaper(generatedPaper)} className="b b-pri gap-1.5">
+                    Retry save
+                  </button>
+                )}
+                <Link href="/creator/tests" className="b b-pri gap-1.5">
+                  View my tests
+                </Link>
               </div>
             </div>
           )}

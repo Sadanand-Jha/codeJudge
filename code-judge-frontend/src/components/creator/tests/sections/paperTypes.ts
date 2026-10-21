@@ -7,6 +7,12 @@ export interface PaperQuestion {
   difficulty: string;
   kind: string;
   marks: number;
+  /** Curriculum ids assigned to this question by the AI. */
+  subjectId?: number;
+  chapterId?: number | null;
+  topicId?: number | null;
+  /** Bank row created for this question; used to track PDF downloads. */
+  bankQuestionId?: number | null;
 }
 
 export interface PaperGroup {
@@ -116,6 +122,12 @@ export interface SubjectiveQuestion {
   questionHtml?: string | null;
   difficulty: string;
   kind: string;
+  /** Curriculum ids assigned to this question by the AI. */
+  subjectId?: number;
+  chapterId?: number | null;
+  topicId?: number | null;
+  /** Bank row created for this question; used to track PDF downloads. */
+  bankQuestionId?: number | null;
 }
 
 export interface GenerateQuestionsPayload {

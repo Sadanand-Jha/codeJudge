@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import { buildPaperNumbering, type QuestionPaper } from "@/components/creator/tests/sections/paperTypes";
-import { downloadQuestionPaper } from "@/services/aiGenerate";
+import { downloadQuestionPaper, recordQuestionUsage } from "@/services/aiGenerate";
 import {
   DEFAULT_PAPER_HEADER,
   marksForDifficulty,
@@ -15,6 +15,8 @@ export interface ExportableQuestion {
   kind: string;
   marks?: number;
   numberLabel?: string;
+  /** Bank row for this question, when it was generated and saved. */
+  bankQuestionId?: number | null;
 }
 
 const PAGE_WIDTH = 210;
@@ -22,8 +24,8 @@ const PAGE_HEIGHT = 297;
 const MARGIN = 20;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
 const CONTENT_BOTTOM = PAGE_HEIGHT - MARGIN - 5;
-const FONT = "times";
-const MONO = "courier";
+const FONT = "serif";
+const MONO = "mono";
 const INK: [number, number, number] = [0, 0, 0];
 const MUTED: [number, number, number] = [85, 85, 85];
 const SHADE: [number, number, number] = [242, 242, 242];
@@ -71,8 +73,81 @@ const resolvedHeading = (header: PaperHeaderMeta) => displayOr(header.heading, "
 
 const normalizeWhitespace = (value: string) => value.replace(/\s+/g, " ").trim();
 
+/**
+ * The bundled serif font covers arrows, minus signs, dashes and most math
+ * symbols. A handful of rarer signs are not in its cmap, so map them to plain
+ * readable ASCII instead of letting jsPDF emit a missing-glyph box.
+ */
+const PDF_GLYPH_REPLACEMENTS: Record<string, string> = {
+  "\u2208": " in ",
+  "\u2209": " not in ",
+  "\u2282": " subset of ",
+  "\u2286": " subset of or equal to ",
+  "\u222a": " union ",
+  "\u2207": " grad ",
+  "\u21d2": " => ",
+  "\u21d0": " <= ",
+};
+
+const pdfSafeText = (value: string): string =>
+  value.replace(/[\u2208\u2209\u2282\u2286\u222a\u2207\u21d2\u21d0]/g, (char) => PDF_GLYPH_REPLACEMENTS[char] ?? char);
+
 const styleOf = (run: Run): FontStyle =>
   run.bold && run.italic ? "bolditalic" : run.bold ? "bold" : run.italic ? "italic" : "normal";
+
+interface PdfFontAsset {
+  file: string;
+  vfs: string;
+  family: "PaperSerif" | "PaperMono";
+  style: FontStyle;
+}
+
+const PDF_FONT_ASSETS: PdfFontAsset[] = [
+  { file: "/fonts/LiberationSerif-Regular.ttf", vfs: "LiberationSerif-Regular.ttf", family: "PaperSerif", style: "normal" },
+  { file: "/fonts/LiberationSerif-Bold.ttf", vfs: "LiberationSerif-Bold.ttf", family: "PaperSerif", style: "bold" },
+  { file: "/fonts/LiberationSerif-Italic.ttf", vfs: "LiberationSerif-Italic.ttf", family: "PaperSerif", style: "italic" },
+  { file: "/fonts/LiberationSerif-BoldItalic.ttf", vfs: "LiberationSerif-BoldItalic.ttf", family: "PaperSerif", style: "bolditalic" },
+  { file: "/fonts/LiberationMono-Regular.ttf", vfs: "LiberationMono-Regular.ttf", family: "PaperMono", style: "normal" },
+];
+
+const registeredFontFamilies = new WeakMap<jsPDF, { serif: string; mono: string }>();
+let pdfFontFilesPromise: Promise<Map<string, string> | null> | null = null;
+
+const toBase64 = (buffer: ArrayBuffer): string => {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunk = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunk));
+  }
+  return btoa(binary);
+};
+
+/** Load the bundled Unicode fonts once; fall back to built-in fonts on failure. */
+const loadPdfFontFiles = (): Promise<Map<string, string> | null> => {
+  if (!pdfFontFilesPromise) {
+    pdfFontFilesPromise = Promise.all(
+      [...new Set(PDF_FONT_ASSETS.map((asset) => asset.file))].map(async (file) => {
+        const response = await fetch(file);
+        if (!response.ok) throw new Error(`Failed to load PDF font: ${file}`);
+        return [file, toBase64(await response.arrayBuffer())] as const;
+      })
+    )
+      .then((entries) => new Map(entries))
+      .catch(() => null);
+  }
+  return pdfFontFilesPromise;
+};
+
+const registerPdfFonts = (doc: jsPDF, files: Map<string, string>) => {
+  for (const asset of PDF_FONT_ASSETS) {
+    const data = files.get(asset.file);
+    if (!data) continue;
+    doc.addFileToVFS(asset.vfs, data);
+    doc.addFont(asset.vfs, asset.family, asset.style);
+  }
+  registeredFontFamilies.set(doc, { serif: "PaperSerif", mono: "PaperMono" });
+};
 
 const setFont = (
   doc: jsPDF,
@@ -81,7 +156,18 @@ const setFont = (
   size: number,
   color: [number, number, number] = INK
 ) => {
-  doc.setFont(family, style);
+  const registered = registeredFontFamilies.get(doc);
+  let resolvedFamily = family;
+  let resolvedStyle = style;
+  if (family === FONT) {
+    resolvedFamily = registered?.serif ?? "times";
+  } else if (family === MONO) {
+    resolvedFamily = registered?.mono ?? "courier";
+    // Only the regular mono face is bundled; keep code readable if a run is
+    // bold/italic instead of rendering with a missing face.
+    if (registered?.mono && resolvedStyle !== "normal") resolvedStyle = "normal";
+  }
+  doc.setFont(resolvedFamily, resolvedStyle);
   doc.setFontSize(size);
   doc.setTextColor(color[0], color[1], color[2]);
 };
@@ -248,7 +334,7 @@ const wrapRuns = (doc: jsPDF, runs: Run[], maxWidth: number, size: number): Run[
   };
 
   for (const run of runs) {
-    const segments = run.text.split("\n");
+    const segments = pdfSafeText(run.text).split("\n");
     segments.forEach((segment, segmentIndex) => {
       if (segmentIndex > 0) flush();
       // Monospace runs (code / ASCII art) must keep their inner spacing, so
@@ -325,7 +411,7 @@ const renderRuns = (
 
 const wrapPlain = (doc: jsPDF, text: string, width: number, size: number, style: FontStyle = "normal") => {
   setFont(doc, FONT, style, size);
-  return doc.splitTextToSize(text, width) as string[];
+  return doc.splitTextToSize(pdfSafeText(text), width) as string[];
 };
 
 const columnWidths = (doc: jsPDF, rows: string[][], columns: number, totalWidth: number) => {
@@ -402,7 +488,7 @@ const renderCode = (state: PdfState, text: string, x: number, width: number) => 
   const { doc } = state;
   setFont(doc, MONO, "normal", 10.5);
   const fitWidth = width - 6;
-  const lines = text
+  const lines = pdfSafeText(text)
     .replace(/\r\n?/g, "\n")
     .split("\n")
     .flatMap((line) => {
@@ -504,7 +590,7 @@ const drawHeader = (state: PdfState, maxMarks: number) => {
     doc.setDrawColor(...RULE);
     doc.setLineWidth(0.25);
     doc.line(left + 12, state.y + 1, 88, state.y + 1);
-    doc.setFont(FONT, "bold");
+    setFont(doc, FONT, "bold", 11, INK);
     doc.text("Roll No.:", 108, state.y);
     doc.line(128, state.y + 1, 190, state.y + 1);
     state.y += 5;
@@ -636,12 +722,20 @@ const drawQuestion = (state: PdfState, question: ExportableQuestion, number: num
   ensureSpace(state, 18);
   const top = state.y;
   const baseline = top + 3.8;
+  const questionLabel = question.numberLabel?.trim() || `Q${number}`;
+  const marksLabel = `[${marks}]`;
   setFont(doc, FONT, "bold", 12, INK);
-  doc.text(question.numberLabel?.trim() || `Q${number}`, MARGIN, baseline);
+  doc.text(questionLabel, MARGIN, baseline);
   setFont(doc, FONT, "bold", 11, INK);
-  doc.text(`[${marks}]`, PAGE_WIDTH - MARGIN, baseline, { align: "right" });
+  const marksWidth = doc.getTextWidth(marksLabel);
+  doc.text(marksLabel, PAGE_WIDTH - MARGIN, baseline, { align: "right" });
   state.y = top;
-  renderBlocks(state, blocks, MARGIN + 12, CONTENT_WIDTH - 28);
+  const contentX = MARGIN + 12;
+  const contentWidth = Math.max(
+    40,
+    PAGE_WIDTH - MARGIN - contentX - marksWidth - 10
+  );
+  renderBlocks(state, blocks, contentX, contentWidth);
   state.y += 4;
 };
 
@@ -733,8 +827,9 @@ async function renderPaperPdf({
   hasChoice: boolean;
   customInstructions?: string;
 }): Promise<void> {
+  const [logo, fontFiles] = await Promise.all([loadBrandLogo(), loadPdfFontFiles()]);
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  const logo = await loadBrandLogo();
+  if (fontFiles) registerPdfFonts(doc, fontFiles);
   const maxMarks = sections.reduce((total, section) => total + section.markTotal, 0);
 
   doc.setProperties({
@@ -826,6 +921,12 @@ export async function downloadQuestionsPdf({
     hasChoice: false,
     customInstructions: resolved.instructions,
   });
+
+  void recordQuestionUsage(
+    questions
+      .map((question) => question.bankQuestionId)
+      .filter((id): id is number => typeof id === "number" && id > 0)
+  );
 }
 
 export async function downloadPaperPdf({
@@ -904,6 +1005,12 @@ export async function downloadPaperPdf({
     hasChoice: sections.some((section) => section.groups.some((group) => Boolean(group.attempt))),
     customInstructions: resolved.instructions.trim() || paper.instructions,
   });
+
+  void recordQuestionUsage(
+    allQuestions
+      .map((question) => question.bankQuestionId)
+      .filter((id): id is number => typeof id === "number" && id > 0)
+  );
 }
 
 /** Word export uses the backend's DOCX renderer, which understands HTML tables. */

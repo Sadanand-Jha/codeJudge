@@ -81,14 +81,10 @@ export function SectionsPage() {
   );
 
   const handlePaperReady = useCallback((paper: QuestionPaper) => {
-    saveTestRecord({
-      id: draftId,
+    void saveTestRecord({
+      draftId,
       title: paper.title.trim() || paperTitle.trim() || "Untitled test",
       creationType: "test",
-      createdAt: new Date().toISOString(),
-      mode: "free",
-      price: 0,
-      originalPrice: 0,
       duration: paper.durationMinutes ?? durationForAi,
       subjects: paperHeader.subject.trim() ? [paperHeader.subject.trim()] : [],
       sectionsCount: paper.sections.length,
@@ -96,8 +92,13 @@ export function SectionsPage() {
       totalMarks: paper.totalMarks,
       meta: { ...paperHeader, heading: paper.title.trim() || paperTitle.trim() || "Question Paper" },
       paper,
-    });
-  }, [draftId, paperTitle, paperHeader, durationForAi]);
+    })
+      .then(() => toast.success({ title: "Paper saved", description: "Find it under Tests in your account." }))
+      .catch((error) => toast.error({
+        title: "Paper not saved",
+        description: error instanceof Error ? error.message : "Could not save the paper to your account.",
+      }));
+  }, [draftId, paperTitle, paperHeader, durationForAi, toast]);
 
   const updateSection = useCallback((id: string, patch: Partial<Section>) => {
     setSections((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));

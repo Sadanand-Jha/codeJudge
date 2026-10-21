@@ -247,7 +247,7 @@ export function QuestionsStep({
             </span>
           </div>
 
-          <StepSection step={1} title="Paper details" hint="Give the paper a title students will see and set the printed header">
+          <StepSection step={1} title="Paper details" hint="Give the paper a title and set the printed header">
             <input
               type="text"
               value={paperTitle}
@@ -354,7 +354,7 @@ export function QuestionsStep({
                   </button>
                   <p className="flex items-start justify-center gap-1 text-[11px] leading-4 text-[var(--qs-muted)]">
                     <AlertCircle className="mt-px h-3 w-3 shrink-0" />
-                    AI can make mistakes. Review the paper before publishing.
+                    AI can make mistakes. Review the paper before downloading.
                   </p>
                 </div>
               )}
@@ -505,7 +505,7 @@ export function QuestionsStep({
             <div className="mt-2 flex items-center gap-2 rounded-[12px] border-2 border-[var(--qs-ok)] bg-[var(--qs-okbg)] px-3 py-2">
               <Check className="h-3.5 w-3.5 shrink-0 text-[var(--qs-ok)]" />
               <p className="text-[11px] font-bold text-[var(--qs-ok)]">
-                Your question paper is ready — review every question before publishing or downloading.
+                Your question paper is ready — review every question before downloading.
               </p>
             </div>
           </div>

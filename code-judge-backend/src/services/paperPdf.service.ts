@@ -35,6 +35,10 @@ async function getBrowser(): Promise<Browser> {
   return browser;
 }
 
+export async function getPaperPdfBrowser(): Promise<Browser> {
+  return getBrowser();
+}
+
 export async function closePaperPdfBrowser(): Promise<void> {
   const pending = browserPromise;
   browserPromise = null;

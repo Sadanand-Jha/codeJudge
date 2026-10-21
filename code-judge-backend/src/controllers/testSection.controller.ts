@@ -10,7 +10,7 @@ import path from "node:path";
 import sharp from "sharp";
 import { generateSectionsFromPDF } from "../services/testSectionGeneration.service.js";
 import { generateQuestionPaper, renderPaperDocx, generateSubjectiveQuestions, getQuestionGeneratorCatalog } from "../services/question-paper.service.js";
-import { persistGeneratedProblems } from "../services/question-bank.service.js";
+import { markQuestionsUsed, persistGeneratedProblems } from "../services/question-bank.service.js";
 import type { PaperSectionInput } from "../services/question-paper.service.js";
 import { createSectionBlueprint, deleteSectionBlueprint, listSectionBlueprints, markSectionBlueprintUsed } from "../services/testSectionBlueprint.service.js";
 
@@ -256,6 +256,39 @@ export const generatePaper = async (req: Request, res: Response) => {
       kind: typeof kind === "string" ? kind as "any" | "theory" | "numerical" : "any",
     });
 
+    // Keep every generated paper question in the creator's bank so its
+    // download usage can be tracked per question. Persistence is best-effort:
+    // the paper must still be returned if the bank write fails.
+    const paperQuestions = result.paper.sections.flatMap((section) =>
+      section.questionGroups.flatMap((group) => group.questions)
+    );
+    const normalizedChapters = [...new Set(
+      (Array.isArray(chapterIds) ? chapterIds : chapterId != null ? [chapterId] : []).map(Number)
+    )].filter((id) => Number.isInteger(id) && id > 0);
+    const normalizedTopics = [...new Set(
+      (Array.isArray(topicIds) ? topicIds : topicId != null ? [topicId] : []).map(Number)
+    )].filter((id) => Number.isInteger(id) && id > 0);
+    const bankIds = await persistGeneratedProblems(
+      paperQuestions.map((question) => ({
+        question: question.question,
+        questionHtml: question.questionHtml,
+        difficulty: question.difficulty,
+        kind: question.kind,
+        chapterId: question.chapterId,
+        topicId: question.topicId,
+      })),
+      {
+        createdBy: Number(userId),
+        subjectId: Number(subjectId),
+        chapterId: normalizedChapters.length === 1 ? normalizedChapters[0] : null,
+        topicId: normalizedTopics.length === 1 ? normalizedTopics[0] : null,
+        source: "ai_test_paper",
+      }
+    );
+    paperQuestions.forEach((question, index) => {
+      question.bankQuestionId = bankIds[index] ?? null;
+    });
+
     res.status(200).json({ success: true, data: { paper: result.paper } });
   } catch (error: any) {
     console.error("Paper generation error:", error);
@@ -305,6 +338,39 @@ export const downloadPaper = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error("Paper download error:", error);
     res.status(500).json({ success: false, message: "Failed to prepare the download. Please try again." });
+  }
+};
+
+/**
+ * POST /api/v1/admin/tests/question-usage
+ *
+ * JSON body: { questionIds: number[] } — mark every question included in a
+ * downloaded paper as used. Counts are stored per bank question.
+ */
+export const recordQuestionUsage = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized" });
+      return;
+    }
+
+    const rawIds = (req.body ?? {}).questionIds;
+    if (!Array.isArray(rawIds)) {
+      res.status(400).json({ success: false, message: "questionIds must be an array." });
+      return;
+    }
+
+    const questionIds = rawIds
+      .map(Number)
+      .filter((id) => Number.isInteger(id) && id > 0)
+      .slice(0, 500);
+    const updated = await markQuestionsUsed(questionIds, Number(userId));
+
+    res.status(200).json({ success: true, data: { updated } });
+  } catch (error) {
+    console.error("Question usage tracking error:", error);
+    res.status(500).json({ success: false, message: "Unable to record question usage." });
   }
 };
 
@@ -363,13 +429,16 @@ export const generateQuestions = async (req: Request, res: Response) => {
         (Array.isArray(topicIds) ? topicIds : topicId != null ? [topicId] : []).map(Number)
       )].filter((id) => Number.isInteger(id) && id > 0);
 
-      await persistGeneratedProblems(result.questions, {
+      const bankIds = await persistGeneratedProblems(result.questions, {
         createdBy: Number(userId),
         subjectId: Number(subjectId),
         // A single chapter/topic can be stored faithfully; multi-scope
         // generations stay attached to the subject only.
         chapterId: normalizedChapters.length === 1 ? normalizedChapters[0] : null,
         topicId: normalizedTopics.length === 1 ? normalizedTopics[0] : null,
+      });
+      result.questions.forEach((question, index) => {
+        question.bankQuestionId = bankIds[index] ?? null;
       });
     }
 

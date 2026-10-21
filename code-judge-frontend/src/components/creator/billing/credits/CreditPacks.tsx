@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, Lock } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import type { CreditPurchasePack } from "@/services/aiCredits";
 
@@ -127,12 +127,12 @@ export function CreditPacks({
 
   return (
     <div>
-      <div className="mx-auto mt-16 mb-10 max-w-xl text-center">
-        <h2 className="text-[clamp(30px,4vw,44px)] font-black tracking-tight">
+      <div className="mb-6 mt-2 max-w-xl">
+        <h2 className="qs-display text-[26px] font-extrabold tracking-tight text-[var(--qs-ink)]">
           Choose your credit pack
         </h2>
-        <p className="mt-2.5 text-base text-[var(--qs-muted)]">
-          One-time purchase. No subscription. Credits valid up to 3 months.
+        <p className="mt-1 text-[14px] text-[var(--qs-muted)]">
+          One-time purchase, no subscription. Each pack has its own validity.
         </p>
       </div>
 
@@ -142,8 +142,9 @@ export function CreditPacks({
         ))}
       </div>
 
-      <p className="mt-[34px] text-center text-sm font-medium text-[var(--qs-muted)]">
-        🔒 Secure payments via UPI, Cards &amp; Net Banking
+      <p className="mt-7 flex items-center justify-center gap-1.5 text-[13px] font-medium text-[var(--qs-muted)]">
+        <Lock className="h-3.5 w-3.5" />
+        Secure payments via UPI, Cards &amp; Net Banking
       </p>
     </div>
   );

@@ -11,6 +11,16 @@ import type { LiveUsage } from "./ai.service.js";
 import { parseQuestionsJSON } from "./question-generation.service.js";
 import type { GeneratedQuestionPayload } from "./question-generation.service.js";
 import { pool } from "../config/database.js";
+import {
+  formatQuestionScope,
+  loadQuestionScope,
+  questionScopeTaggingRules,
+  resolveQuestionScopeIds,
+} from "./question-scope.service.js";
+import type {
+  QuestionScopeCatalog,
+  QuestionScopeFallback,
+} from "./question-scope.service.js";
 
 export interface QuestionBankSelectionRequest {
   numberOfQuestions: number;
@@ -77,7 +87,9 @@ Return ONLY valid JSON (no markdown fences, no commentary) matching exactly this
       "correctOptionIndex": 0,
       "explanation": "1-2 sentence explanation",
       "hint": "short hint",
-      "tags": ["subject", "chapter", "topic"]
+      "tags": ["subject", "chapter", "topic"],
+      "chapterId": 12,
+      "topicId": 34
     }
   ]
 }
@@ -85,6 +97,7 @@ Return ONLY valid JSON (no markdown fences, no commentary) matching exactly this
 Rules:
 * "correctAnswer" is REQUIRED and must exactly match one of the four options.
 * "correctOptionIndex" is REQUIRED and zero-based (0=A, 1=B, 2=C, 3=D).
+* Every question MUST include integer "chapterId" and "topicId" chosen from the scope catalogue supplied in the request. Never invent ids.
 * Always include "questionHtml". Use simple semantic HTML only (<p>, <ul>, <ol>, <li>, <strong>, <em>, <pre>, <code>, <table>, <thead>, <tbody>, <tr>, <th>, <td>). No scripts, styles, classes or inline attributes.
 * If a question includes tabular data (schedules, process tables, comparisons), render it as a real HTML <table> in "questionHtml". Never leave pipe-separated rows as plain text.
 * Do not add option labels like "A." inside option text.
@@ -110,7 +123,8 @@ const normalizeText = (value: string) => value.replace(/\s+/g, " ").trim().toLoc
  */
 function normalizeQuestion(
   raw: GeneratedQuestionPayload,
-  scopeTags: string[]
+  scopeTags: string[],
+  scope?: { catalog: QuestionScopeCatalog; fallback?: QuestionScopeFallback }
 ): GeneratedQuestionPayload | null {
   const question = String(raw.question ?? "").replace(/\s+/g, " ").trim();
   if (!question) return null;
@@ -142,6 +156,9 @@ function normalizeQuestion(
 
   const difficulty = normalizeDifficulty(raw.difficulty);
   const tags = (raw.tags ?? []).map((tag) => String(tag).trim()).filter(Boolean);
+  const scopeIds = scope
+    ? resolveQuestionScopeIds(raw, scope.catalog, scope.fallback)
+    : { chapterId: raw.chapterId ?? null, topicId: raw.topicId ?? null };
 
   return {
     question,
@@ -155,6 +172,8 @@ function normalizeQuestion(
     explanation: raw.explanation?.trim() || undefined,
     hint: raw.hint?.trim() || undefined,
     tags: tags.length > 0 ? tags : scopeTags,
+    subjectId: scope?.catalog.subjectId ?? raw.subjectId,
+    ...scopeIds,
   };
 }
 
@@ -220,6 +239,8 @@ export async function persistGeneratedQuestions(
       }));
       const answers = question.answer ? [question.answer] : [];
       const questionType = question.type === "mcq" ? "single_choice" : question.type || "single_choice";
+      const chapterId = question.chapterId ?? scope.chapterId;
+      const topicId = question.topicId ?? scope.topicId;
 
       await client.query(
         `INSERT INTO quiz_question_bank (
@@ -237,8 +258,8 @@ export async function persistGeneratedQuestions(
           scope.quizId,
           scope.createdBy,
           scope.subjectId,
-          scope.chapterId,
-          scope.topicId,
+          chapterId,
+          topicId,
           questionType,
           question.question,
           question.questionHtml ?? null,
@@ -266,6 +287,10 @@ export interface GeneratedProblemInput {
   questionHtml?: string | null;
   difficulty?: string | null;
   kind?: string | null;
+  /** Per-question curriculum ids assigned by the AI. */
+  subjectId?: number | null;
+  chapterId?: number | null;
+  topicId?: number | null;
 }
 
 /**
@@ -283,14 +308,19 @@ export async function persistGeneratedProblems(
     subjectId: number;
     chapterId: number | null;
     topicId: number | null;
+    /** "ai_problem_generator" (standalone picker) or "ai_test_paper". */
+    source?: string;
   }
-): Promise<void> {
-  if (questions.length === 0) return;
+): Promise<number[]> {
+  if (questions.length === 0) return [];
   const client = await pool.connect();
+  const ids: number[] = [];
   try {
     await client.query("BEGIN");
     for (const question of questions) {
-      await client.query(
+      const chapterId = question.chapterId ?? scope.chapterId;
+      const topicId = question.topicId ?? scope.topicId;
+      const inserted = await client.query<{ id: number }>(
         `INSERT INTO quiz_question_bank (
            quiz_id, created_by, owner_user_id, owner_type,
            subject_id, chapter_id, topic_id,
@@ -299,26 +329,56 @@ export async function persistGeneratedProblems(
          ) VALUES (
            NULL,$1,$1,'user',
            $2,$3,$4,'subjective',$5,$6,'[]'::jsonb,'[]'::jsonb,
-           NULL,NULL,$7,'ai_problem_generator', NOW() + INTERVAL '7 days'
-         )`,
+           NULL,NULL,$7,$8, NOW() + INTERVAL '7 days'
+         )
+         RETURNING id`,
         [
           scope.createdBy,
           scope.subjectId,
-          scope.chapterId,
-          scope.topicId,
+          chapterId,
+          topicId,
           question.question,
           question.questionHtml?.trim() || null,
           question.difficulty?.toLowerCase() || null,
+          scope.source ?? "ai_problem_generator",
         ]
       );
+      ids.push(Number(inserted.rows[0]?.id));
     }
     await client.query("COMMIT");
+    return ids;
   } catch (error) {
     await client.query("ROLLBACK");
     console.error("[question-bank] failed to persist generated problems:", error);
+    return [];
   } finally {
     client.release();
   }
+}
+
+/**
+ * Increase the usage count for every bank question included in a downloaded
+ * paper. Only the caller's own rows and shared system rows may be counted.
+ * Duplicate ids are counted once per download.
+ */
+export async function markQuestionsUsed(questionIds: number[], userId: number): Promise<number> {
+  const ids = [...new Set(
+    questionIds
+      .map(Number)
+      .filter((id) => Number.isInteger(id) && id > 0)
+  )];
+  if (ids.length === 0) return 0;
+
+  const result = await pool.query(
+    `UPDATE quiz_question_bank
+        SET usage_count = usage_count + 1,
+            last_used_at = NOW(),
+            updated_at = NOW()
+      WHERE id = ANY($1::bigint[])
+        AND (owner_user_id = $2 OR owner_type = 'system')`,
+    [ids, userId]
+  );
+  return result.rowCount ?? 0;
 }
 
 /** Move every expired user-owned row into the system bank. */
@@ -351,6 +411,8 @@ export interface UserBankQuestion {
   hint: string | null;
   difficulty: string | null;
   source: string;
+  usage_count: number;
+  last_used_at: string | null;
   created_at: string;
   ownership_expires_at: string;
 }
@@ -369,7 +431,8 @@ export async function listUserQuestionBank(userId: number): Promise<UserBankQues
             b.topic_id, ct.topic_name AS topic,
             b.question_type, b.question_text, b.question_html,
             b.options, b.answers, b.explanation, b.hint,
-            b.difficulty, b.source, b.created_at, b.ownership_expires_at
+            b.difficulty, b.source, b.usage_count, b.last_used_at,
+            b.created_at, b.ownership_expires_at
        FROM quiz_question_bank b
        JOIN subjects s ON s.id = b.subject_id
        LEFT JOIN subject_chapters sc ON sc.id = b.chapter_id
@@ -430,39 +493,24 @@ export const generateFromQuestionBank = async (
   if (topicId !== null && chapterId === null) throw new Error("Select a chapter before selecting a topic.");
   if (!["any", "theory", "numerical"].includes(kind)) throw new Error("Select a valid category.");
 
-  const subjectRow = await pool.query(`SELECT subject_name FROM subjects WHERE id = $1`, [subjectId]);
-  const subjectName: string = subjectRow.rows[0]?.subject_name
-    ? String(subjectRow.rows[0].subject_name)
+  const scopeCatalog = await loadQuestionScope({
+    subjectId,
+    chapterIds: chapterId !== null ? [chapterId] : [],
+    topicIds: topicId !== null ? [topicId] : [],
+  });
+  const scopeFallback: QuestionScopeFallback = { chapterId, topicId };
+  const subjectName = scopeCatalog.subjectName;
+  const chapterName = chapterId !== null
+    ? scopeCatalog.chapters.find((chapter) => chapter.id === chapterId)?.name ?? ""
     : "";
-  if (!subjectName) throw new Error("Select a valid subject.");
-
-  let chapterName = "";
-  if (chapterId !== null) {
-    const chapterRow = await pool.query(
-      `SELECT chapter_name FROM subject_chapters WHERE id = $1 AND subject_id = $2`,
-      [chapterId, subjectId]
-    );
-    chapterName = chapterRow.rows[0]?.chapter_name
-      ? String(chapterRow.rows[0].chapter_name)
-      : "";
-    if (!chapterName) throw new Error("Select a valid chapter.");
-  }
-
-  let topicName = "";
-  if (topicId !== null) {
-    const topicRow = await pool.query(`SELECT topic_name FROM chapter_topics WHERE id = $1`, [topicId]);
-    topicName = topicRow.rows[0]?.topic_name
-      ? String(topicRow.rows[0].topic_name)
-      : "";
-    if (!topicName) throw new Error("Select a valid topic.");
-  }
+  const topicName = topicId !== null
+    ? scopeCatalog.topics.find((topic) => topic.id === topicId)?.name ?? ""
+    : "";
 
   const syllabus = request.syllabus?.trim();
   const scopeTags = [subjectName, chapterName, topicName].filter(Boolean);
   const scopeLines = [
-    `Subject: ${subjectName}`,
-    chapterName ? `Chapter: ${chapterName}` : "",
-    topicName ? `Topic: ${topicName}` : "",
+    formatQuestionScope(scopeCatalog),
     syllabus ? `Syllabus / topics supplied by the creator:\n"""\n${syllabus}\n"""` : "",
   ]
     .filter(Boolean)
@@ -488,6 +536,8 @@ Generate exactly ${numberOfQuestions} single-correct MCQs that belong to this sc
 
 ${scopeLines}
 
+${questionScopeTaggingRules(scopeCatalog)}
+
 ${distributionLine}
 ${hardnessHintLine}
 ${categoryLine}
@@ -501,7 +551,10 @@ Do not return fewer than ${numberOfQuestions} questions. Each question must be u
     const seen = new Set<string>();
     const validQuestions: GeneratedQuestionPayload[] = [];
     for (const raw of parsed) {
-      const normalized = normalizeQuestion(raw, scopeTags);
+      const normalized = normalizeQuestion(raw, scopeTags, {
+        catalog: scopeCatalog,
+        fallback: scopeFallback,
+      });
       if (!normalized) continue;
       const key = normalizeText(normalized.question);
       if (seen.has(key)) continue;

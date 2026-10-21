@@ -27,6 +27,13 @@ import {
   isDoclingAvailable,
 } from "./docling-extract.service.js";
 import { sanitizeQuestionHtml } from "./subjectiveQuestionImport.service.js";
+import {
+  formatQuestionScope,
+  loadQuestionScope,
+  questionScopeTaggingRules,
+  resolveQuestionScopeIds,
+} from "./question-scope.service.js";
+import type { QuestionScopeCatalog } from "./question-scope.service.js";
 
 export interface UploadedFileInput {
   name: string;
@@ -48,6 +55,12 @@ export interface GeneratedQuestionPayload {
   type?: string;
   difficulty?: string;
   tags?: string[];
+  /** Curriculum ids assigned by the AI. */
+  subjectId?: number;
+  chapterId?: number | null;
+  topicId?: number | null;
+  chapter?: string;
+  topic?: string;
 }
 
 export interface QuestionGenerationResult {
@@ -66,6 +79,10 @@ export interface QuestionGenerationRequest {
   includeHints: boolean;
   includeReferenceNotes: boolean;
   includeTags: boolean;
+  /** Optional curriculum scope used to tag each generated question. */
+  subjectId?: number | null;
+  chapterId?: number | null;
+  topicId?: number | null;
 }
 
 /**
@@ -336,6 +353,11 @@ export const parseQuestionsJSON = (
       tags: Array.isArray(q.tags)
         ? (q.tags as unknown[]).map((t) => String(t)).filter(Boolean)
         : undefined,
+      subjectId: Number.isInteger(Number(q.subjectId)) && Number(q.subjectId) > 0 ? Number(q.subjectId) : undefined,
+      chapterId: Number.isInteger(Number(q.chapterId)) && Number(q.chapterId) > 0 ? Number(q.chapterId) : null,
+      topicId: Number.isInteger(Number(q.topicId)) && Number(q.topicId) > 0 ? Number(q.topicId) : null,
+      chapter: typeof q.chapter === "string" ? q.chapter : undefined,
+      topic: typeof q.topic === "string" ? q.topic : undefined,
     }))
     .filter((q) => q.question.length > 0)
     .map((q) => {
@@ -444,6 +466,19 @@ export const generateQuestionsFromFiles = async (
   const truncated =
     sourceText.length > 200_000 ? sourceText.slice(0, 200_000) : sourceText;
 
+  const requestedSubjectId = Number(request.subjectId);
+  let scopeCatalog: QuestionScopeCatalog | null = null;
+  if (Number.isInteger(requestedSubjectId) && requestedSubjectId > 0) {
+    scopeCatalog = await loadQuestionScope({
+      subjectId: requestedSubjectId,
+      chapterIds: request.chapterId != null ? [Number(request.chapterId)] : [],
+      topicIds: request.topicId != null ? [Number(request.topicId)] : [],
+    });
+  }
+  const scopeBlock = scopeCatalog
+    ? `\n\nCURRICULUM SCOPE:\n${formatQuestionScope(scopeCatalog)}\n\n${questionScopeTaggingRules(scopeCatalog)}`
+    : "";
+
   const questionTypeList = request.questionTypes.length
     ? request.questionTypes.join(", ")
     : "multiple choice";
@@ -479,7 +514,9 @@ Return ONLY valid JSON (no markdown fences, no commentary) matching exactly this
       "correctOptionIndex": 0,
       "explanation": "why this is correct",
       "hint": "a small hint",
-      "tags": ["tag1", "tag2"]
+      "tags": ["tag1", "tag2"],
+      "chapterId": 12,
+      "topicId": 34
     }
   ]
 }
@@ -491,13 +528,20 @@ Rules:
 - For multiple-choice questions always provide 4 options, make "correctAnswer" exactly match one option, and provide its zero-based "correctOptionIndex" (0=A, 1=B, 2=C, 3=D).
 - All options must be distinct: never repeat an option, never use two options with the same numeric value (e.g. "5" and "5" or "0" and "0.0"), and never use the correct answer as a distractor.
 - For true/false use options ["True", "False"].
-- Do not invent facts not present in the material.
+- Do not invent facts not present in the material.${scopeBlock}
 
 STUDY MATERIAL:
 ${truncated}`;
 
   const { content, usage } = await chatWithAI(prompt);
 
-  const questions = parseQuestionsJSON(content);
+  const questions = parseQuestionsJSON(content).map((question) => {
+    if (!scopeCatalog) return question;
+    const resolved = resolveQuestionScopeIds(question, scopeCatalog, {
+      chapterId: request.chapterId != null ? Number(request.chapterId) : null,
+      topicId: request.topicId != null ? Number(request.topicId) : null,
+    });
+    return { ...question, subjectId: scopeCatalog.subjectId, ...resolved };
+  });
   return { questions, extractedText: truncated, usage };
 };

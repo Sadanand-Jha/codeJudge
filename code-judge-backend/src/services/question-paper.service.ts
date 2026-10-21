@@ -27,6 +27,16 @@ import { chatWithAI } from "./ai.service.js";
 import type { LiveUsage } from "./ai.service.js";
 import { pool as db } from "../config/database.js";
 import { sanitizeQuestionHtml } from "./subjectiveQuestionImport.service.js";
+import {
+  formatQuestionScope,
+  loadQuestionScope,
+  questionScopeTaggingRules,
+  resolveQuestionScopeIds,
+} from "./question-scope.service.js";
+import type {
+  QuestionScopeCatalog,
+  QuestionScopeFallback,
+} from "./question-scope.service.js";
 
 /* ================================================================== */
 /*  Input / output types                                                */
@@ -116,6 +126,12 @@ export interface PaperQuestion {
   difficulty: string;
   kind: string;
   marks: number;
+  /** Curriculum ids assigned to this question by the AI. */
+  subjectId?: number;
+  chapterId?: number | null;
+  topicId?: number | null;
+  /** Bank row created for this question; used to track PDF downloads. */
+  bankQuestionId?: number | null;
 }
 
 export interface PaperGroup {
@@ -181,6 +197,12 @@ export interface SubjectiveQuestion {
   questionHtml?: string | null;
   difficulty: string;
   kind: string;
+  /** Curriculum ids assigned to this question by the AI. */
+  subjectId?: number;
+  chapterId?: number | null;
+  topicId?: number | null;
+  /** Bank row created for this question; used to track PDF downloads. */
+  bankQuestionId?: number | null;
 }
 
 export interface GenerateSubjectiveQuestionsResult {
@@ -203,8 +225,9 @@ ABSOLUTE RULES:
 - Always include "questionHtml": the same question rendered as clean semantic HTML. If the question contains tabular data, render it as a real <table> — never leave pipe-separated rows or space-aligned columns as plain text.
 
 OUTPUT SHAPE:
-{ "generated": [{ "question": "...", "questionHtml": "<p>...</p>", "difficulty": "easy", "kind": "Theory" }] }
-Write "difficulty" as one of easy|medium|hard (lowercase) and "kind" as Theory|Numerical.`;
+{ "generated": [{ "question": "...", "questionHtml": "<p>...</p>", "difficulty": "easy", "kind": "Theory", "chapterId": 12, "topicId": 34 }] }
+Write "difficulty" as one of easy|medium|hard (lowercase) and "kind" as Theory|Numerical.
+Every question MUST include the integer "chapterId" and "topicId" from the scope catalogue supplied in the request.`;
 
 export const generateSubjectiveQuestions = async (
   request: GenerateSubjectiveQuestionsRequest
@@ -262,28 +285,15 @@ export const generateSubjectiveQuestions = async (
   if (topicIds.some((id) => !Number.isInteger(id) || id <= 0)) throw new Error("Select valid topics.");
   if (topicIds.length > 0 && chapterIds.length === 0) throw new Error("Select at least one chapter before selecting topics.");
 
-  const subjectResult = await db.query(
-    `SELECT subject_name FROM subjects WHERE id = $1`,
-    [subjectId]
-  );
-  const subjectName = subjectResult.rows[0]?.subject_name
-    ? String(subjectResult.rows[0].subject_name)
-    : "";
-  if (!subjectName) throw new Error("Select a valid subject.");
-  const chapterResult = chapterIds.length
-    ? await db.query(
-        `SELECT id, chapter_name FROM subject_chapters
-         WHERE id = ANY($1::int[]) ORDER BY id`,
-        [chapterIds]
-      )
-    : { rows: [] as Array<{ id: number; chapter_name: string }> };
-  const topicResult = topicIds.length
-    ? await db.query(
-        `SELECT id, topic_name FROM chapter_topics
-         WHERE id = ANY($1::int[]) ORDER BY id`,
-        [topicIds]
-      )
-    : { rows: [] as Array<{ id: number; topic_name: string }> };
+  const scopeCatalog = await loadQuestionScope({
+    subjectId,
+    chapterIds,
+    topicIds,
+  });
+  const scopeFallback: QuestionScopeFallback = {
+    chapterId: chapterIds.length === 1 ? chapterIds[0] : null,
+    topicId: topicIds.length === 1 ? topicIds[0] : null,
+  };
 
   const CELLS = ["easy:theory", "easy:numerical", "medium:theory", "medium:numerical", "hard:theory", "hard:numerical"] as const;
   let cellPlan: Record<string, number> | null = null;
@@ -307,13 +317,8 @@ export const generateSubjectiveQuestions = async (
   }
 
   const syllabus = (request.syllabus ?? "").trim().slice(0, 4000);
-  const scopeLines = [`Subject: ${subjectName}`];
-  if (chapterResult.rows.length > 0) {
-    scopeLines.push(`Chapters: ${chapterResult.rows.map((r) => String(r.chapter_name)).join("; ")}`);
-  }
-  if (topicResult.rows.length > 0) {
-    scopeLines.push(`Topics: ${topicResult.rows.map((r) => String(r.topic_name)).join("; ")}`);
-  }
+  const scopeLines = formatQuestionScope(scopeCatalog);
+  const scopeRules = questionScopeTaggingRules(scopeCatalog);
   const composeLines = CELLS.filter((cell) => cellPlan[cell] > 0).map((cell) => {
     const [d, c] = cell.split(":");
     const kindLabel = c === "theory" ? "Theory" : "Numerical";
@@ -329,7 +334,8 @@ ${composeLines.join("\n")}
 Reasoning effort: ${reasoningEffort}.
 
 SCOPE:
-${scopeLines.join("\n")}
+${scopeLines}
+${scopeRules ? `\n${scopeRules}\n` : ""}
 ${syllabus ? `SYLLABUS / TOPIC GUIDANCE:\n${syllabus}\n` : ""}`;
 
   let aiComposed: ComposedQuestion[] = [];
@@ -347,7 +353,10 @@ ${syllabus ? `SYLLABUS / TOPIC GUIDANCE:\n${syllabus}\n` : ""}`;
       JSON.parse(cleaned.slice(start, end + 1))
     );
     if (!parsed.success) throw new Error("AI generation failed validation");
-    aiComposed = normalizeComposed(parsed.data.generated);
+    aiComposed = normalizeComposed(parsed.data.generated, undefined, {
+      catalog: scopeCatalog,
+      fallback: scopeFallback,
+    });
   } catch (err) {
     console.warn("[question-picker] AI generation failed:", err);
     throw new Error(
@@ -379,6 +388,9 @@ ${syllabus ? `SYLLABUS / TOPIC GUIDANCE:\n${syllabus}\n` : ""}`;
         questionHtml: g.questionHtml ?? null,
         difficulty: g.difficulty,
         kind: g.kind,
+        subjectId,
+        chapterId: g.chapterId,
+        topicId: g.topicId,
       });
     }
   }
@@ -459,6 +471,10 @@ const GeneratedItemSchema = z.object({
   questionHtml: z.string().max(20_000).nullish(),
   difficulty: z.string(),
   kind: z.string(),
+  chapterId: z.union([z.number(), z.string()]).nullish(),
+  topicId: z.union([z.number(), z.string()]).nullish(),
+  chapter: z.string().max(300).nullish(),
+  topic: z.string().max(300).nullish(),
 });
 
 export interface ComposedQuestion {
@@ -466,6 +482,8 @@ export interface ComposedQuestion {
   questionHtml?: string | null;
   difficulty: "easy" | "medium" | "hard";
   kind: "Theory" | "Numerical";
+  chapterId: number | null;
+  topicId: number | null;
 }
 
 const normDifficulty = (v: string): "easy" | "medium" | "hard" | null => {
@@ -479,8 +497,18 @@ const normKind = (v: string): "Theory" | "Numerical" | null => {
 };
 
 const normalizeComposed = (
-  items: Array<{ question: string; questionHtml?: string | null; difficulty: string; kind: string }>,
-  fallback?: { difficulty: "easy" | "medium" | "hard"; kind: "Theory" | "Numerical" }
+  items: Array<{
+    question: string;
+    questionHtml?: string | null;
+    difficulty: string;
+    kind: string;
+    chapterId?: number | string | null;
+    topicId?: number | string | null;
+    chapter?: string | null;
+    topic?: string | null;
+  }>,
+  fallback?: { difficulty: "easy" | "medium" | "hard"; kind: "Theory" | "Numerical" },
+  scope?: { catalog: QuestionScopeCatalog; fallback?: QuestionScopeFallback }
 ): ComposedQuestion[] =>
   items
     .map((g): ComposedQuestion | null => {
@@ -495,7 +523,10 @@ const normalizeComposed = (
           questionHtml = null;
         }
       }
-      return { question: g.question, questionHtml, difficulty, kind };
+      const scopeIds = scope
+        ? resolveQuestionScopeIds(g, scope.catalog, scope.fallback)
+        : { chapterId: null, topicId: null };
+      return { question: g.question, questionHtml, difficulty, kind, ...scopeIds };
     })
     .filter((g): g is ComposedQuestion => g !== null);
 
@@ -538,7 +569,8 @@ ABSOLUTE RULES:
 - Before responding, silently validate exact counts, structure, marks, uniqueness, syllabus coverage, difficulty profile, time budget, question depth and terminology.
 
 OUTPUT SHAPE:
-{ "questions": [{ "question": "...", "questionHtml": "<p>...</p>", "difficulty": "medium", "kind": "Theory" }] }
+{ "questions": [{ "question": "...", "questionHtml": "<p>...</p>", "difficulty": "medium", "kind": "Theory", "chapterId": 12, "topicId": 34 }] }
+Every question MUST include the integer "chapterId" and "topicId" from the scope catalogue in the request.
 Return exactly the number of questions requested for the current group and nothing else.`;
 
 interface PaperBatchArgs {
@@ -548,6 +580,8 @@ interface PaperBatchArgs {
   budgetMarks: number;
   totalNeeded: number;
   scopeLines: string[];
+  scopeCatalog: QuestionScopeCatalog;
+  scopeFallback: QuestionScopeFallback;
   outline: string;
   overall: OverallDifficulty | null;
   syllabus: string;
@@ -568,8 +602,9 @@ const generatePaperBatch = async (
 ): Promise<{ questions: ComposedQuestion[]; usage?: LiveUsage }> => {
   const {
     title, instructions, durationMinutes, budgetMarks, totalNeeded, scopeLines,
-    outline, overall, syllabus, legacyDifficulty, legacyKind, section, sectionIndex,
-    group, groupIndex, need, batchIndex, batchCount, already,
+    scopeCatalog, scopeFallback, outline, overall, syllabus, legacyDifficulty,
+    legacyKind, section, sectionIndex, group, groupIndex, need, batchIndex,
+    batchCount, already,
   } = args;
   const mpq = Math.max(0.5, Number(group.marksPerQuestion) || 1);
   const wantKind = groupKind(String(group.type), legacyKind);
@@ -596,6 +631,7 @@ PAPER BUDGET:
 
 SCOPE:
 ${scopeLines.join("\n")}
+${questionScopeTaggingRules(scopeCatalog)}
 ${overall !== null ? `OVERALL DIFFICULTY (${overall}): ${OVERALL_DIFFICULTY_GUIDANCE[overall]}\n` : ""}${syllabus ? `CREATOR SYLLABUS / CONTEXT:\n${syllabus}\n` : ""}
 
 PAPER OUTLINE (for coherence; generate only the current group):
@@ -628,7 +664,11 @@ ${avoid ? `DO NOT REPEAT OR NEAR-DUPLICATE THESE ALREADY GENERATED QUESTIONS:\n$
       } catch (parseErr) {
         throw new Error(`Invalid JSON from AI: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`);
       }
-      const normalized = normalizeComposed(parsed.questions, { difficulty: wantDiff, kind: wantKind });
+      const normalized = normalizeComposed(
+        parsed.questions,
+        { difficulty: wantDiff, kind: wantKind },
+        { catalog: scopeCatalog, fallback: scopeFallback }
+      );
       if (normalized.length < need) {
         throw new Error(`AI returned ${normalized.length} valid question(s), but ${need} were required`);
       }
@@ -698,29 +738,15 @@ export const generateQuestionPaper = async (
   if (!["any", "theory", "numerical"].includes(kind)) throw new Error("Select a valid category.");
   const legacyDifficulty = difficulty as "any" | "easy" | "medium" | "hard";
 
-  const subjectResult = await db.query(
-    `SELECT subject_name FROM subjects WHERE id = $1`,
-    [subjectId]
-  );
-  const subjectName = subjectResult.rows[0]?.subject_name
-    ? String(subjectResult.rows[0].subject_name)
-    : "";
-  if (!subjectName) throw new Error("Select a valid subject.");
-
-  const chapterResult = chapterIds.length
-    ? await db.query(
-        `SELECT id, chapter_name FROM subject_chapters
-         WHERE id = ANY($1::int[]) ORDER BY id`,
-        [chapterIds]
-      )
-    : { rows: [] as Array<{ id: number; chapter_name: string }> };
-  const topicResult = topicIds.length
-    ? await db.query(
-        `SELECT id, topic_name FROM chapter_topics
-         WHERE id = ANY($1::int[]) ORDER BY id`,
-        [topicIds]
-      )
-    : { rows: [] as Array<{ id: number; topic_name: string }> };
+  const scopeCatalog = await loadQuestionScope({
+    subjectId,
+    chapterIds,
+    topicIds,
+  });
+  const scopeFallback: QuestionScopeFallback = {
+    chapterId: chapterIds.length === 1 ? chapterIds[0] : null,
+    topicId: topicIds.length === 1 ? topicIds[0] : null,
+  };
 
   const syllabus = (request.syllabus ?? "").trim().slice(0, 4000);
   const title = (request.title ?? "").trim().slice(0, 200) || "Question Paper";
@@ -739,13 +765,7 @@ export const generateQuestionPaper = async (
     0
   );
 
-  const scopeLines = [`Subject: ${subjectName}`];
-  if (chapterResult.rows.length > 0) {
-    scopeLines.push(`Chapters: ${chapterResult.rows.map((r) => String(r.chapter_name)).join("; ")}`);
-  }
-  if (topicResult.rows.length > 0) {
-    scopeLines.push(`Topics: ${topicResult.rows.map((r) => String(r.topic_name)).join("; ")}`);
-  }
+  const scopeLines = formatQuestionScope(scopeCatalog).split("\n");
 
   let usage: LiveUsage | undefined;
   const addUsage = (next?: LiveUsage) => {
@@ -787,6 +807,8 @@ export const generateQuestionPaper = async (
             budgetMarks,
             totalNeeded,
             scopeLines,
+            scopeCatalog,
+            scopeFallback,
             outline: paperOutline,
             overall,
             syllabus,
@@ -838,6 +860,9 @@ export const generateQuestionPaper = async (
         difficulty: c.difficulty,
         kind: c.kind,
         marks: mpq,
+        subjectId,
+        chapterId: c.chapterId,
+        topicId: c.topicId,
       }));
 
       return {

@@ -192,20 +192,20 @@ export function Panel({
   return (
     <section
       className={cn(
-        "rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-[0_6px_18px_rgba(26,18,64,0.05)] transition-colors duration-200 hover:border-[var(--qs-line)]",
+        "rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]",
         className
       )}
     >
       {(title || action) && (
-        <div className="flex flex-col items-start justify-between gap-3 px-4 pt-4 sm:flex-row sm:px-5 sm:pt-5">
+        <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
           <div className="min-w-0">
-            {title && <h3 className="text-sm font-bold text-[var(--qs-ink)]">{title}</h3>}
-            {subtitle && <p className="mt-0.5 text-xs text-[var(--qs-muted)]">{subtitle}</p>}
+            {title && <h3 className="qs-display text-[21px] font-extrabold text-[var(--qs-ink)]">{title}</h3>}
+            {subtitle && <p className="mt-0.5 text-[13px] text-[var(--qs-muted)]">{subtitle}</p>}
           </div>
           {action && <div className="w-full min-w-0 sm:w-auto">{action}</div>}
         </div>
       )}
-      <div className={cn(noPadding ? "" : "p-4 sm:p-5", (title || action) && "pt-0", bodyClassName)}>
+      <div className={cn(noPadding ? "" : "p-5 sm:p-6", (title || action) && "pt-0", bodyClassName)}>
         {children}
       </div>
     </section>
@@ -245,23 +245,25 @@ export function StatCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      className="group relative overflow-hidden rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 sm:p-5 shadow-[0_6px_18px_rgba(26,18,64,0.05)] transition-all duration-200 hover:border-[var(--qs-brand)]/30"
+      className="group relative min-w-0 rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3.5 transition-all duration-200 hover:border-[var(--qs-brand)]/40"
     >
-      <span className={cn("absolute left-0 top-0 h-full w-[3px] rounded-full", ACCENT_DOT[accent])} />
-      <div className="flex items-center justify-between">
-        <p className="min-w-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--qs-muted)] sm:text-[11px] sm:tracking-widest">{label}</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="flex min-w-0 items-center gap-2 text-[10px] font-black uppercase tracking-[0.11em] text-[var(--qs-muted)]">
+          <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", ACCENT_DOT[accent])} />
+          <span className="truncate">{label}</span>
+        </p>
         {icon && (
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-[var(--qs-line)] bg-[var(--qs-brand)]/[0.07] text-[var(--qs-muted)] group-hover:text-[var(--qs-brand)] transition-colors sm:h-7 sm:w-7">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] text-[var(--qs-muted)] transition-colors group-hover:border-[var(--qs-brand)]/30 group-hover:text-[var(--qs-brand)]">
             {icon}
           </div>
         )}
       </div>
-      <p className="mt-2.5 text-xl font-extrabold leading-none tracking-tight text-[var(--qs-ink)] tabular-nums sm:text-[26px]">
+      <p className="qs-display mt-2 text-[30px] font-extrabold leading-none tracking-tight text-[var(--qs-ink)] tabular-nums">
         {display ?? formatINR(value)}
       </p>
-      <div className="mt-2 flex flex-wrap items-center gap-2">
+      <div className="mt-1.5 flex flex-wrap items-center gap-2">
         {typeof delta === "number" && <DeltaPill pct={delta} />}
-        {hint && <span className="text-[10px] font-medium leading-4 text-[var(--qs-muted)] sm:text-[11px]">{hint}</span>}
+        {hint && <span className="truncate text-[12px] text-[var(--qs-muted)]" title={hint}>{hint}</span>}
       </div>
     </motion.div>
   );
@@ -515,12 +517,12 @@ export function EmptyState({
   icon?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-surface)] px-6 py-16 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--qs-line)] bg-[var(--qs-brand)]/[0.07] text-[var(--qs-muted)]">
+    <div className="flex flex-col items-center justify-center rounded-[26px] border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-surface)] px-6 py-16 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)]">
         {icon ?? <Inbox className="h-6 w-6" />}
       </div>
-      <h3 className="mt-4 text-[15px] font-bold text-[var(--qs-ink)]">{title}</h3>
-      <p className="mt-1.5 max-w-sm text-[13px] text-[var(--qs-muted)]">{description}</p>
+      <h3 className="qs-display mt-4 text-[20px] font-extrabold text-[var(--qs-ink)]">{title}</h3>
+      <p className="mt-1.5 max-w-sm text-[13px] leading-6 text-[var(--qs-muted)]">{description}</p>
       {action && <div className="mt-6">{action}</div>}
     </div>
   );
@@ -531,12 +533,12 @@ export function EmptyState({
    ============================================================ */
 export function ErrorState({ onRetry, message }: { onRetry?: () => void; message?: string }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-[var(--qs-bad)]/20 bg-[var(--qs-bad)]/[0.04] px-6 py-16 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--qs-bad)]/20 bg-[var(--qs-bad)]/10 text-[var(--qs-bad)]">
+    <div className="flex flex-col items-center justify-center rounded-[26px] border-2 border-[var(--qs-bad)]/25 bg-[var(--qs-bad)]/[0.04] px-6 py-16 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[var(--qs-bad)]/25 bg-[var(--qs-bad)]/10 text-[var(--qs-bad)]">
         <X className="h-6 w-6" />
       </div>
-      <h3 className="mt-4 text-[15px] font-bold text-[var(--qs-ink)]">We couldn&apos;t load your financial data.</h3>
-      <p className="mt-1.5 max-w-sm text-[13px] text-[var(--qs-muted)]">
+      <h3 className="qs-display mt-4 text-[20px] font-extrabold text-[var(--qs-ink)]">We couldn&apos;t load your financial data.</h3>
+      <p className="mt-1.5 max-w-sm text-[13px] leading-6 text-[var(--qs-muted)]">
         {message ?? "Something went wrong on our side. Please try again in a moment."}
       </p>
       {onRetry && (
@@ -568,15 +570,15 @@ export function PageHeader({
   badge?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-start sm:gap-4">
+    <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2.5">
-          <h1 className="qs-display text-[22px] text-[var(--qs-ink)] sm:text-2xl">{title}</h1>
+          <h1 className="qs-display text-[28px] font-extrabold leading-[1.08] tracking-[-0.025em] text-[var(--qs-ink)] sm:text-[34px] lg:text-[38px]">{title}</h1>
           {badge}
         </div>
-        {subtitle && <p className="mt-1 text-[13px] text-[var(--qs-muted)]">{subtitle}</p>}
+        {subtitle && <p className="mt-1.5 text-[14px] text-[var(--qs-muted)] sm:text-[15px]">{subtitle}</p>}
       </div>
-      {actions && <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">{actions}</div>}
+      {actions && <div className="flex w-full min-w-0 flex-wrap items-center gap-2 xl:w-auto">{actions}</div>}
     </div>
   );
 }

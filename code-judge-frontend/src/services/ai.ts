@@ -90,6 +90,9 @@ export interface RawAIGeneratedQuestion {
   explanation?: string;
   hint?: string;
   tags?: string[];
+  subjectId?: number;
+  chapterId?: number | null;
+  topicId?: number | null;
 }
 
 export type AIQuestionType = "mcq" | "coding" | "true_false" | "fill" | "short" | "integer" | "long";
@@ -487,6 +490,8 @@ export interface UserBankQuestion {
   hint: string | null;
   difficulty: string | null;
   source: string;
+  usage_count: number;
+  last_used_at: string | null;
   created_at: string;
   ownership_expires_at: string;
 }

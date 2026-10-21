@@ -173,7 +173,7 @@ function SelectWrap({ id, label, value, onChange, options }: {
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-10 cursor-pointer appearance-none rounded-xl border border-[var(--qs-line)] bg-[var(--qs-surface)] pl-3.5 pr-9 text-[13px] font-semibold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)]/40 focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
+        className="h-10 cursor-pointer appearance-none rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-3.5 pr-9 text-[13px] font-semibold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)]/40 focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
       >
         {options.map((o) => (
           <option key={o.id} value={o.id}>{o.label}</option>
@@ -322,9 +322,9 @@ function DrawerShell({ txn, onClose, panelRef, onReceipt, onInvoice }: {
         role="dialog"
         aria-modal="true"
         aria-label={`Details for order ${txn.id}`}
-        className="absolute inset-x-3 bottom-3 top-auto flex max-h-[88vh] flex-col overflow-hidden rounded-3xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-2xl sm:inset-x-6 lg:inset-x-auto lg:bottom-0 lg:right-0 lg:top-0 lg:h-full lg:max-h-none lg:w-full lg:max-w-md lg:rounded-none lg:border-l"
+        className="absolute inset-x-3 bottom-3 top-auto flex max-h-[88vh] flex-col overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[0_24px_60px_rgba(26,18,64,0.24)] sm:inset-x-6 lg:inset-x-auto lg:bottom-0 lg:right-0 lg:top-0 lg:h-full lg:max-h-none lg:w-full lg:max-w-md lg:rounded-none lg:border-l-2 lg:border-t-0 lg:border-r-0 lg:border-b-0"
       >
-        <div className="flex items-center justify-between border-b border-[var(--qs-line)] px-5 py-4">
+        <div className="flex items-center justify-between border-b-2 border-[var(--qs-line)] px-5 py-4">
           <p className="text-[15px] font-bold text-[var(--qs-ink)]">Transaction details</p>
           <button
             type="button"
@@ -346,7 +346,7 @@ function DrawerShell({ txn, onClose, panelRef, onReceipt, onInvoice }: {
             <StatusChip status={txn.status} />
           </div>
 
-          <div className="mt-4 rounded-xl border border-[var(--qs-line)] bg-[var(--qs-brand)]/[0.04] p-4">
+          <div className="mt-4 rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-sun)]/[0.12] p-4">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--qs-muted)]">
               {txn.packName} · <span className="tabular-nums">+{txn.credits} credits</span>
             </p>
@@ -379,7 +379,7 @@ function DrawerShell({ txn, onClose, panelRef, onReceipt, onInvoice }: {
             ))}
           </dl>
 
-          <div className="mt-2 flex items-center gap-2.5 rounded-xl border border-[var(--qs-line)] px-3.5 py-3">
+          <div className="mt-2 flex items-center gap-2.5 rounded-[14px] border-2 border-[var(--qs-line)] px-3.5 py-3">
             <MethodIcon className="h-4 w-4 shrink-0 text-[var(--qs-brand)]" aria-hidden="true" />
             <p className="text-xs font-semibold text-[var(--qs-ink)]">{txn.methodLabel}</p>
           </div>
@@ -406,7 +406,7 @@ function DrawerShell({ txn, onClose, panelRef, onReceipt, onInvoice }: {
           </ol>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5 border-t border-[var(--qs-line)] px-5 py-4">
+        <div className="grid grid-cols-2 gap-2.5 border-t-2 border-[var(--qs-line)] px-5 py-4">
           <BillButton variant="ghost" icon={<Download className="h-4 w-4" />} onClick={() => onReceipt(txn)}>
             Receipt
           </BillButton>
@@ -506,7 +506,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
 
   const nextExpiry = useMemo(() => {
     const upcoming = completed
-      .map((t) => ({ t, exp: addMonths(t.timestamp, 3) }))
+      .map((t) => ({ t, exp: txnExpiry(t) }))
       .filter(({ exp }) => exp > now)
       .sort((a, b) => a.exp - b.exp);
     return upcoming[0] ?? null;
@@ -514,7 +514,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
 
   const expiringSoon = useMemo(() => {
     const cands = completed
-      .map((t) => ({ t, left: daysLeft(addMonths(t.timestamp, 3), now) }))
+      .map((t) => ({ t, left: daysLeft(txnExpiry(t), now) }))
       .filter(({ left }) => left >= 0 && left <= 14)
       .sort((a, b) => a.left - b.left);
     return cands[0] ?? null;
@@ -564,7 +564,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
   const exportCsv = () => {
     const head = "Order ID,Pack,Credits,Amount (INR),Status,Payment method,Date,Expiry";
     const lines = filtered.map((t) =>
-      [t.id, t.packName, t.credits, t.price, STATUS_META[t.status].label, t.methodLabel, fmtDateTime(t.timestamp), fmtDate(addMonths(t.timestamp, 3))]
+      [t.id, t.packName, t.credits, t.price, STATUS_META[t.status].label, t.methodLabel, fmtDateTime(t.timestamp), fmtDate(txnExpiry(t))]
         .map((v) => `"${String(v).replace(/"/g, '""')}"`)
         .join(",")
     );
@@ -646,7 +646,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
 
           {/* Expiry warning */}
           {expiringSoon && (
-            <div className="flex flex-col gap-2 rounded-2xl border-2 border-[var(--qs-sun)]/60 bg-[var(--qs-sun)]/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between" role="status">
+            <div className="flex flex-col gap-2 rounded-[18px] border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between" role="status">
               <p className="flex items-start gap-2 text-[13px] font-semibold text-[var(--qs-ink)]">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 {expiringSoon.t.credits} credits expire on {fmtDate(txnExpiry(expiringSoon.t))}. Use them before then.
@@ -661,9 +661,9 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
           )}
 
           {/* Table card */}
-          <div className="overflow-hidden rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-[0_6px_18px_rgba(26,18,64,0.05)]">
+          <div className="overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
             {/* Toolbar */}
-            <div className="flex flex-col gap-3 border-b border-[var(--qs-line)] p-4 sm:p-5">
+            <div className="flex flex-col gap-3 border-b-2 border-[var(--qs-line)] p-4 sm:p-5">
               <div className="relative flex-1">
                 <label htmlFor="txn-search" className="sr-only">Search transactions</label>
                 <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" aria-hidden="true" />
@@ -672,7 +672,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
                   value={query}
                   onChange={(e) => { setQuery(e.target.value); setPage(1); }}
                   placeholder="Search by pack name or order ID"
-                  className="h-10 w-full rounded-xl border border-[var(--qs-line)] bg-[var(--qs-surface)] pl-10 pr-3.5 text-[13px] text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] hover:border-[var(--qs-brand)]/40 focus:border-[var(--qs-brand)] focus:ring-2 focus:ring-[var(--qs-brand)]/25"
+                  className="h-10 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-10 pr-3.5 text-[13px] text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] hover:border-[var(--qs-brand)]/40 focus:border-[var(--qs-brand)] focus:ring-2 focus:ring-[var(--qs-brand)]/25"
                 />
               </div>
               <div className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] lg:pb-0 [&::-webkit-scrollbar]:hidden">
@@ -698,7 +698,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
 
             {filtered.length === 0 ? (
               <div className="flex flex-col items-center px-6 py-14 text-center">
-                <span className="grid h-14 w-14 place-items-center rounded-2xl border border-[var(--qs-line)] bg-[var(--qs-brand)]/[0.07] text-[var(--qs-muted)]" aria-hidden="true">
+                <span className="grid h-14 w-14 place-items-center rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)]" aria-hidden="true">
                   <Search className="h-6 w-6" />
                 </span>
                 <p className="mt-4 text-sm font-bold text-[var(--qs-ink)]">No transactions match your filters.</p>
@@ -717,7 +717,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
                   <table className="w-full table-fixed border-collapse">
                     <caption className="sr-only">AI credit purchases</caption>
                     <thead>
-                      <tr className="border-b border-[var(--qs-line)]">
+                      <tr className="border-b-2 border-[var(--qs-ink)]">
                         <th scope="col" className="w-[30%] px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[var(--qs-muted)]">Transaction</th>
                         <th scope="col" className="hidden w-[14%] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[var(--qs-muted)] lg:table-cell">Payment method</th>
                         <th scope="col" className="w-[15%] px-3 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-[var(--qs-muted)]">Credits</th>
@@ -726,7 +726,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
                         <th scope="col" className="w-[16%] px-5 py-3 text-right"><span className="sr-only">Actions</span></th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[var(--qs-line)]/70">
+                    <tbody className="divide-y divide-[var(--qs-line)]">
                       {pageItems.map((txn) => {
                         const MethodIcon = METHOD_ICON[txn.methodKind];
                         return (
@@ -742,7 +742,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
                               }
                             }}
                             aria-label={`Open details for ${txn.packName}, order ${txn.id}`}
-                            className="cursor-pointer outline-none transition-colors hover:bg-[var(--qs-brand)]/[0.05] focus-visible:bg-[var(--qs-brand)]/[0.05] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--qs-brand)]/40"
+                            className="cursor-pointer outline-none transition-colors hover:bg-[var(--qs-sun)]/[0.12] focus-visible:bg-[var(--qs-sun)]/[0.12] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--qs-brand)]/40"
                           >
                             <td className="px-5 py-3.5">
                               <div className="flex min-w-0 items-center gap-3">
@@ -800,7 +800,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
                 </div>
 
                 {/* Mobile stacked cards */}
-                <ul className="divide-y divide-[var(--qs-line)]/70 sm:hidden">
+                <ul className="divide-y divide-[var(--qs-line)] sm:hidden">
                   {pageItems.map((txn) => (
                     <li key={txn.id}>
                       <div
@@ -873,7 +873,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
                 </ul>
 
                 {/* Pagination */}
-                <div className="flex flex-col gap-3 border-t border-[var(--qs-line)] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                <div className="flex flex-col gap-3 border-t-2 border-[var(--qs-line)] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                   <p className="text-xs tabular-nums text-[var(--qs-muted)]" aria-live="polite">
                     Showing {from}–{to} of {filtered.length}
                   </p>
@@ -883,7 +883,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
                       disabled={safePage <= 1}
                       onClick={() => setPage(safePage - 1)}
                       aria-label="Previous page"
-                      className="grid h-8 w-8 place-items-center rounded-lg border border-[var(--qs-line)] text-[var(--qs-muted)] outline-none transition-colors hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="grid h-8 w-8 place-items-center rounded-lg border-2 border-[var(--qs-line)] text-[var(--qs-muted)] outline-none transition-colors hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <ChevronLeft className="h-4 w-4" aria-hidden="true" />
                     </button>
@@ -898,7 +898,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
                           "h-8 min-w-8 rounded-lg px-2 text-xs font-bold tabular-nums outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40",
                           n === safePage
                             ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
-                            : "border border-[var(--qs-line)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)]"
+                            : "border-2 border-[var(--qs-line)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)]"
                         )}
                       >
                         {n}
@@ -909,7 +909,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
                       disabled={safePage >= totalPages}
                       onClick={() => setPage(safePage + 1)}
                       aria-label="Next page"
-                      className="grid h-8 w-8 place-items-center rounded-lg border border-[var(--qs-line)] text-[var(--qs-muted)] outline-none transition-colors hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="grid h-8 w-8 place-items-center rounded-lg border-2 border-[var(--qs-line)] text-[var(--qs-muted)] outline-none transition-colors hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <ChevronRight className="h-4 w-4" aria-hidden="true" />
                     </button>
@@ -1007,7 +1007,7 @@ function RowActions({ txn, openMenuId, setOpenMenuId, menuRef, onReceipt, onRetr
           <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
         </button>
         {menuOpen && (
-          <div role="menu" aria-label={`Actions for order ${txn.id}`} className="absolute right-0 z-30 mt-1 w-52 overflow-hidden rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-1 shadow-[0_16px_40px_rgba(26,18,64,0.16)]">
+          <div role="menu" aria-label={`Actions for order ${txn.id}`} className="absolute right-0 z-30 mt-1 w-52 overflow-hidden rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] py-1 shadow-[4px_4px_0_var(--qs-sun)]">
             <button type="button" role="menuitem" onClick={() => { setOpenMenuId(null); onInvoice(); }}
               className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-xs font-semibold text-[var(--qs-ink)] outline-none transition-colors hover:bg-[var(--qs-brand)]/[0.06] hover:text-[var(--qs-brand)] focus-visible:bg-[var(--qs-brand)]/[0.06]">
               <FileText className="h-3.5 w-3.5" aria-hidden="true" /> Download GST invoice

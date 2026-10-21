@@ -17,9 +17,9 @@ const STEPS = [
 
 export function HowCreditsWork() {
   return (
-    <details className="group mt-12 rounded-[20px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-[22px] py-1.5 open:border-[var(--qs-ink)]">
+    <details className="group mt-8 rounded-[26px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-[22px] py-1.5 open:border-[var(--qs-ink)]">
       <summary className="flex cursor-pointer list-none items-center justify-between py-3.5 [&::-webkit-details-marker]:hidden">
-        <span className="text-[20px] font-extrabold tracking-tight">How credits work</span>
+        <span className="qs-display text-[21px] font-extrabold tracking-tight">How credits work</span>
         <span className="text-sm font-bold text-[var(--qs-brand)]">
           <span className="group-open:hidden">Learn more</span>
           <span className="hidden group-open:inline">Hide</span>

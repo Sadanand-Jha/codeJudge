@@ -221,6 +221,30 @@ export const paperPdfSchema = z
   })
   .strict();
 
+/** Creator Studio trusted exporter. The service performs the deep document
+ * validation; this boundary caps payload shape and page count before Chromium. */
+export const documentExportSchema = z
+  .object({
+    document: z
+      .object({
+        pages: z
+          .array(
+            z
+              .object({
+                blocks: z.array(z.record(z.unknown())).max(1_000).optional(),
+              })
+              .passthrough()
+          )
+          .min(1, "A document needs at least one page")
+          .max(120, "Documents are limited to 120 pages"),
+      })
+      .passthrough(),
+    format: z.enum(["pdf", "docx", "html", "png"]),
+    pageIndex: z.number().int().min(0).max(119).optional(),
+    filename: z.string().trim().max(160).optional(),
+  })
+  .strict();
+
 /** One immutable 1–5 star rating per learner and quiz. */
 const detailedQuizRatingSchema = z.object({
   quizRating: z.number().int().min(1).max(5),

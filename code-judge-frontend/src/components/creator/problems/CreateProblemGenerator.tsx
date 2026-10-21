@@ -488,6 +488,7 @@ export function CreateProblemGenerator() {
                   questionHtml: replacement.questionHtml ?? null,
                   difficulty: replacement.difficulty,
                   kind: replacement.kind,
+                  bankQuestionId: replacement.bankQuestionId ?? null,
                 }
               : it
           )
@@ -581,6 +582,7 @@ export function CreateProblemGenerator() {
           questionHtml: item.questionHtml,
           difficulty: item.difficulty,
           kind: item.kind,
+          bankQuestionId: item.bankQuestionId,
         })),
         title: paperHeader.heading.trim() || "Question Paper",
         subject: paperHeader.subject.trim() || subjectName,
