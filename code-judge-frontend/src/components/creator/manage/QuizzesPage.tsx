@@ -7,7 +7,6 @@ import { motion } from "framer-motion";
 import {
   BarChart3,
   ClipboardList,
-  Eye,
   HelpCircle,
   MoreHorizontal,
   Pencil,
@@ -167,7 +166,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
     }
   };
 
-  const goTo = (quizId: string, page: "edit" | "preview" | "analytics" | "responses") => {
+  const goTo = (quizId: string, page: "edit" | "analytics" | "responses") => {
     setOpenMenuId(null);
     router.push(`/creator/quizzes/${quizId}/${page}`);
   };
@@ -564,7 +563,7 @@ function QuizCardItem({
   menuOpen: boolean;
   onToggleMenu: () => void;
   onCloseMenu: () => void;
-  onGoTo: (page: "edit" | "preview" | "analytics" | "responses") => void;
+  onGoTo: (page: "edit" | "analytics" | "responses") => void;
   onDelete: () => void;
 }) {
   const hasAttempts = quiz.attempts > 0;
@@ -646,10 +645,6 @@ function QuizCardItem({
         <button type="button" onClick={() => onGoTo("edit")} className={BTN_PRI_SM}>
           <Pencil className="h-3.5 w-3.5" />
           Edit
-        </button>
-        <button type="button" onClick={() => onGoTo("preview")} className={BTN_SM}>
-          <Eye className="h-3.5 w-3.5" />
-          Preview
         </button>
         <button type="button" onClick={() => onGoTo("analytics")} className={BTN_SM}>
           <BarChart3 className="h-3.5 w-3.5" />

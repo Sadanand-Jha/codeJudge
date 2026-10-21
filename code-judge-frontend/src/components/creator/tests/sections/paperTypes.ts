@@ -11,7 +11,7 @@ export interface PaperQuestion {
   subjectId?: number;
   chapterId?: number | null;
   topicId?: number | null;
-  /** Bank row created for this question; used to track PDF downloads. */
+  /** Bank row created for this question; used when the teacher approves it. */
   bankQuestionId?: number | null;
 }
 
@@ -126,7 +126,7 @@ export interface SubjectiveQuestion {
   subjectId?: number;
   chapterId?: number | null;
   topicId?: number | null;
-  /** Bank row created for this question; used to track PDF downloads. */
+  /** Bank row created for this question; used when the teacher approves it. */
   bankQuestionId?: number | null;
 }
 
@@ -139,6 +139,10 @@ export interface GenerateQuestionsPayload {
   numericalCount?: number;
   reasoningEffort?: "plus" | "pro" | "max";
   syllabus?: string;
+  /** Extra context for a single replacement question (section, marks, tone). */
+  context?: string;
+  /** Existing questions that the new question must not duplicate. */
+  avoidQuestions?: string[];
   kind?: "any" | "theory" | "numerical";
   subjectId: number;
   chapterId?: number | null;

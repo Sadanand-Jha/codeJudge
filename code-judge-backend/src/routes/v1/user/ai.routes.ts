@@ -24,6 +24,7 @@ import {
   generateQuestionsFromUpload,
   generateFromQuestionBankHandler,
   getMyQuestionBank,
+  deleteMyQuestionBankQuestion,
 } from "../../../controllers/ai.controller.ts";
 
 const router = Router();
@@ -64,5 +65,6 @@ router.post("/generate-from-bank", generateFromQuestionBankHandler);
 
 // Creator's active bank rows (user-owned for 7 days, then system-owned).
 router.get("/question-bank", getMyQuestionBank);
+router.delete("/question-bank/:questionId", deleteMyQuestionBankQuestion);
 
 export default router;

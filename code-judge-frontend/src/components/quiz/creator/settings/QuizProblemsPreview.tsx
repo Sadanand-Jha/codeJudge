@@ -42,6 +42,8 @@ import {
   Settings2,
   MoreHorizontal,
   Download,
+  Database,
+  Loader2,
 } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
 import { useQuizProblemsStore } from "@/store/quizProblemsStore";
@@ -58,6 +60,8 @@ import {
   type CreatorQuestionType,
 } from "@/components/quiz/creator/types";
 import { useQuizSettings } from "@/components/quiz/creator/settings/QuizSettingsContext";
+import { useQuestionApproval } from "@/hooks/useQuestionApproval";
+import QuestionBankImportModal from "@/components/quiz/creator/settings/QuestionBankImportModal";
 import { downloadQuizPaperPdf, getPaperPdfErrorMessage, type PaperDownloadKind } from "@/utils/paperPdf";
 import { formatPaperDate, type PaperMeta } from "@/utils/paperHtml";
 import { toast } from "@/lib/toast";
@@ -88,12 +92,15 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
   const reorderProblem = useQuizProblemsStore((s) => s.reorderProblem);
   const deleteProblem = useQuizProblemsStore((s) => s.deleteProblem);
   const deleteAllProblems = useQuizProblemsStore((s) => s.deleteAllProblems);
+  const addProblems = useQuizProblemsStore((s) => s.addProblems);
+  const { approve, pendingId, isApproved } = useQuestionApproval();
 
   const [syncing, setSyncing] = useState(false);
   const [adding, setAdding] = useState(false);
   const [continuing, setContinuing] = useState(false);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showRightPanel, setShowRightPanel] = useState(true);
@@ -109,6 +116,11 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [now, setNow] = useState(Date.now());
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const existingBankIds = useMemo(
+    () => new Set(problems.map((problem) => problem.bankQuestionId).filter((id): id is number => typeof id === "number" && id > 0)),
+    [problems]
+  );
 
   useEffect(() => hydrate(), [hydrate]);
   useEffect(() => {
@@ -178,6 +190,28 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
     } finally {
       setAdding(false);
     }
+  };
+
+  const handleImportQuestions = (questions: CreatorQuestion[]) => {
+    const slots = 25 - problems.length;
+    if (slots <= 0) {
+      toast.error({ title: "Problem limit reached", description: "A quiz can have at most 25 problems." });
+      return;
+    }
+    const fresh = questions
+      .filter((question) => !question.bankQuestionId || !existingBankIds.has(question.bankQuestionId))
+      .slice(0, slots);
+    if (fresh.length === 0) {
+      toast.info({ title: "Nothing to import", description: "Those questions are already in this quiz." });
+      return;
+    }
+    addProblems(fresh);
+    setImportOpen(false);
+    toast.success({
+      title: `${fresh.length} question${fresh.length === 1 ? "" : "s"} imported`,
+      description: "Review them, then save the quiz questions when you are ready.",
+    });
+    router.push(`${problemsBase}/${fresh[0].id}`);
   };
 
   const handleSyncQuestions = async () => {
@@ -370,6 +404,9 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
             ))}
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <button onClick={() => setImportOpen(true)} className="h-8 px-3 rounded-lg border border-zinc-200 bg-white text-xs font-semibold text-zinc-700 inline-flex items-center gap-1.5 hover:bg-zinc-50">
+              <Database className="h-3.5 w-3.5" /> Import from bank
+            </button>
             <button onClick={handleAdd} disabled={adding} className="h-8 px-4 rounded-lg bg-zinc-900 text-white text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-50">
               {adding ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <Plus className="h-3.5 w-3.5" />} Add Question
             </button>
@@ -382,14 +419,25 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
             </div>
             <h2 className="text-xl font-semibold text-zinc-900">Build your first question</h2>
             <p className="text-sm text-zinc-500 mt-2">Create a question manually or let AI generate one from your content.</p>
-            <div className="flex gap-3 justify-center mt-6">
+            <div className="flex flex-wrap gap-3 justify-center mt-6">
               <button onClick={handleAdd} disabled={adding} className="h-9 px-5 rounded-xl bg-zinc-900 text-white text-sm font-medium inline-flex items-center gap-1.5">
                 {adding ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : <Plus className="w-4 h-4" />} Create Question
               </button>
               <button onClick={handleAdd} className="h-9 px-5 rounded-xl border border-zinc-200 bg-white text-sm font-medium">Generate with AI</button>
+              <button onClick={() => setImportOpen(true)} className="h-9 px-5 rounded-xl border border-zinc-200 bg-white text-sm font-medium inline-flex items-center gap-1.5">
+                <Database className="w-4 h-4" /> Import from bank
+              </button>
             </div>
           </div>
         </div>
+        {importOpen && (
+          <QuestionBankImportModal
+            existingBankIds={existingBankIds}
+            remainingSlots={25 - problems.length}
+            onClose={() => setImportOpen(false)}
+            onImport={handleImportQuestions}
+          />
+        )}
       </div>
     );
   }
@@ -435,6 +483,14 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
         </div>
         <div className="ml-auto flex items-center gap-2">
           <span className="hidden xl:inline text-xs text-zinc-500">{complete} / {total} complete</span>
+          <button
+            type="button"
+            onClick={() => setImportOpen(true)}
+            disabled={lockSync}
+            className="b sm hidden sm:inline-flex"
+          >
+            <Database className="w-3.5 h-3.5" /> Import
+          </button>
           <button type="button" onClick={() => setPdfModalOpen(true)} className="b sm hidden sm:inline-flex">
             <Download className="w-3.5 h-3.5" /> PDF
           </button>
@@ -505,6 +561,28 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
                     <span className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${status === "complete" ? "bg-emerald-500" : status === "missing_answer" ? "bg-amber-400" : "bg-zinc-300"}`} />
                   </div>
                   <div className="absolute right-1 top-1 hidden group-hover:flex items-center gap-0.5 bg-white rounded-lg border border-zinc-200 p-0.5 shadow-sm">
+                    {q.bankQuestionId ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void approve(q.bankQuestionId);
+                        }}
+                        disabled={pendingId !== null || isApproved(q.bankQuestionId)}
+                        className={cn(
+                          "p-1 rounded disabled:cursor-not-allowed",
+                          isApproved(q.bankQuestionId)
+                            ? "bg-emerald-50 text-emerald-600"
+                            : "hover:bg-emerald-50 text-zinc-500 hover:text-emerald-600 disabled:opacity-50"
+                        )}
+                        title={isApproved(q.bankQuestionId) ? "Approved" : "Approve question"}
+                      >
+                        {pendingId === q.bankQuestionId ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="w-3 h-3" />
+                        )}
+                      </button>
+                    ) : null}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -535,6 +613,9 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
           <div className="p-3 border-t border-zinc-100 space-y-2">
             <button onClick={handleAdd} disabled={adding} className="w-full h-9 rounded-xl bg-zinc-900 text-white text-xs font-medium hover:bg-zinc-800 flex items-center justify-center gap-1.5 disabled:opacity-50">
               {adding ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <Plus className="w-3.5 h-3.5" />} Add question
+            </button>
+            <button onClick={() => setImportOpen(true)} disabled={lockSync} className="w-full h-9 rounded-xl border border-zinc-200 bg-white text-xs font-medium text-zinc-700 hover:bg-zinc-50 flex items-center justify-center gap-1.5 disabled:opacity-50">
+              <Database className="w-3.5 h-3.5 text-violet-600" /> Import from bank
             </button>
             <button onClick={() => toast.success("AI Generate coming soon")} className="w-full h-9 rounded-xl border border-zinc-200 bg-white text-xs font-medium text-zinc-700 hover:bg-zinc-50 flex items-center justify-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-violet-600" /> AI Generate
@@ -630,6 +711,29 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
               <span className="hidden sm:inline-flex items-center gap-1 text-zinc-500">
                 <Clock className="w-3 h-3" /> {current.expectedTime} min
               </span>
+              {current.bankQuestionId ? (
+                <>
+                  <span className="text-zinc-300 hidden sm:inline">·</span>
+                  <button
+                    type="button"
+                    onClick={() => void approve(current.bankQuestionId)}
+                    disabled={pendingId !== null || isApproved(current.bankQuestionId)}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-semibold transition-colors disabled:cursor-not-allowed",
+                      isApproved(current.bankQuestionId)
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                        : "border-zinc-200 bg-white text-zinc-600 hover:border-emerald-200 hover:text-emerald-700 disabled:opacity-50"
+                    )}
+                  >
+                    {pendingId === current.bankQuestionId ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="w-3 h-3" />
+                    )}
+                    {isApproved(current.bankQuestionId) ? "Approved" : "Approve"}
+                  </button>
+                </>
+              ) : null}
               {(showTypeMenu || showDifficultyMenu || showMarksMenu) && <div className="fixed inset-0 z-10" onClick={() => { setShowTypeMenu(false); setShowDifficultyMenu(false); setShowMarksMenu(false); }} />}
             </div>
 
@@ -972,6 +1076,15 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
         generating={generatingPdf}
         onDownload={handleDownloadPdf}
       />
+
+      {importOpen && (
+        <QuestionBankImportModal
+          existingBankIds={existingBankIds}
+          remainingSlots={25 - problems.length}
+          onClose={() => setImportOpen(false)}
+          onImport={handleImportQuestions}
+        />
+      )}
     </div>
   );
 }

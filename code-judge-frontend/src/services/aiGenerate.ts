@@ -136,15 +136,16 @@ export async function generateQuestionPaper(
 }
 
 /**
- * Record that the given bank questions were used in a downloaded paper.
+ * Record that the teacher approved the given bank questions for use.
  *
- * Best-effort: tracking must never block or fail the actual download.
+ * Usage is only counted after an explicit approval action — never on PDF
+ * download. Returns whether the backend accepted the update.
  *
  * POST /api/v1/admin/tests/question-usage
  */
-export async function recordQuestionUsage(questionIds: number[]): Promise<void> {
+export async function recordQuestionUsage(questionIds: number[]): Promise<boolean> {
   const ids = [...new Set(questionIds.filter((id) => Number.isInteger(id) && id > 0))];
-  if (ids.length === 0) return;
+  if (ids.length === 0) return false;
 
   try {
     const response = await fetch(`${API_BASE}/v1/admin/tests/question-usage`, {
@@ -157,8 +158,10 @@ export async function recordQuestionUsage(questionIds: number[]): Promise<void> 
     if (!response.ok) {
       throw new Error(`Request failed with status ${response.status}`);
     }
+    return true;
   } catch (error) {
     console.warn("[question-usage] could not record question usage:", error);
+    return false;
   }
 }
 

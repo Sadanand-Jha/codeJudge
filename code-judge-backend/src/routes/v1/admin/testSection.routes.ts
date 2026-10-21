@@ -52,7 +52,7 @@ router.post("/generate-paper", generatePaper);
 // Printable HTML download of a generated paper (JSON body: { paper }).
 router.post("/paper-download", downloadPaper);
 
-// Per-question usage tracking for downloaded papers (JSON body: { questionIds }).
+// Per-question usage tracking for teacher-approved questions (JSON body: { questionIds }).
 router.post("/question-usage", recordQuestionUsage);
 
 // Teacher question picker: N subjective questions, hardness/category + curriculum filters.

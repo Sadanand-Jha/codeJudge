@@ -1,38 +1,32 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   ClipboardCheck,
-  Copy,
   Database,
-  FilePlus2,
   Gauge,
   HelpCircle,
   Lightbulb,
-  ListPlus,
-  MoreHorizontal,
-  PenLine,
   Plus,
   Search,
   Tag,
   Trash2,
   Upload,
   X,
-  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
 import { useData } from "@/lib/hooks/useData";
-import { getMyQuestionBank, type UserBankQuestion } from "@/services/ai";
-import { QuestionHtml, htmlToEditableText } from "@/components/creator/questions/QuestionHtml";
+import { deleteMyQuestionBankQuestion, getMyQuestionBank, type UserBankQuestion } from "@/services/ai";
+import { QuestionHtml } from "@/components/creator/questions/QuestionHtml";
 
 type QuestionType = "single" | "multiple" | "integer" | "true-false" | "subjective";
 type QuestionDifficulty = "easy" | "medium" | "hard" | "unrated";
-type RowAction = "edit" | "test" | "quiz" | "duplicate" | "delete";
-
 interface BankOption {
   text: string;
   isCorrect: boolean;
@@ -40,6 +34,7 @@ interface BankOption {
 
 interface BankQuestion {
   id: string;
+  bankId: number;
   text: string;
   html: string | null;
   subject: string;
@@ -80,13 +75,7 @@ const DIFFICULTIES: Array<{ id: QuestionDifficulty; label: string }> = [
   { id: "hard", label: "Hard" },
 ];
 
-const ROW_ACTIONS: Array<{ id: RowAction; label: string; icon: LucideIcon; danger?: boolean }> = [
-  { id: "edit", label: "Edit question", icon: PenLine },
-  { id: "test", label: "Add to Test", icon: FilePlus2 },
-  { id: "quiz", label: "Add to Quiz", icon: ListPlus },
-  { id: "duplicate", label: "Duplicate", icon: Copy },
-  { id: "delete", label: "Delete", icon: Trash2, danger: true },
-];
+const PAGE_SIZE = 50;
 
 const primaryButton =
   "inline-flex h-10 items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-0.5";
@@ -121,6 +110,7 @@ function mapBankQuestion(question: UserBankQuestion): BankQuestion {
   const tags = Array.from(new Set([question.topic, question.chapter].filter(Boolean) as string[]));
   return {
     id: `ai-bank-${question.id}`,
+    bankId: question.id,
     text: question.question_text,
     html: question.question_html,
     subject: question.subject,
@@ -129,13 +119,13 @@ function mapBankQuestion(question: UserBankQuestion): BankQuestion {
     type: mapQuestionType(question.question_type),
     difficulty: mapDifficulty(question.difficulty),
     tags,
-    usedIn: Math.max(question.usage_count ?? 0, question.quiz_id ? 1 : 0),
+    usedIn: question.usage_count ?? 0,
     updated: formatUpdated(question.created_at),
-    options: (question.options ?? []).map((option) => ({
+    options: (Array.isArray(question.options) ? question.options : []).map((option) => ({
       text: option.text,
       isCorrect: Boolean(option.isCorrect),
     })),
-    answers: question.answers ?? [],
+    answers: Array.isArray(question.answers) ? question.answers : [],
     explanation: question.explanation,
     hint: question.hint,
     source: question.source,
@@ -163,77 +153,40 @@ function DifficultyPill({ difficulty }: { difficulty: QuestionDifficulty }) {
   );
 }
 
-function RowActionMenu({ onAction }: { onAction: (action: RowAction) => void }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
+function DeleteQuestionButton({
+  onDelete,
+  disabled,
+}: {
+  onDelete: () => void;
+  disabled?: boolean;
+}) {
   return (
-    <div ref={ref} className="relative" onClick={(e) => e.stopPropagation()}>
-      <button
-        type="button"
-        aria-label="Question actions"
-        onClick={() => setOpen((value) => !value)}
-        className="flex h-8 w-8 items-center justify-center rounded-[9px] border-2 border-transparent text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-line)] hover:bg-[var(--qs-poly-1)] hover:text-[var(--qs-ink)]"
-      >
-        <MoreHorizontal className="h-4 w-4" />
-      </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 6, scale: 0.98 }}
-            transition={{ duration: 0.15 }}
-            className="absolute right-0 z-30 mt-1 w-44 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-1 shadow-[3px_3px_0_var(--qs-sun)]"
-          >
-            {ROW_ACTIONS.map((action) => (
-              <button
-                key={action.id}
-                type="button"
-                onClick={() => {
-                  onAction(action.id);
-                  setOpen(false);
-                }}
-                className={cn(
-                  "flex w-full items-center gap-2 rounded-[8px] px-2.5 py-2 text-left text-[13px] font-bold transition-colors",
-                  action.danger
-                    ? "text-[var(--qs-bad)] hover:bg-[var(--qs-badbg)]"
-                    : "text-[var(--qs-ink)] hover:bg-[var(--qs-poly-1)]"
-                )}
-              >
-                <action.icon className="h-4 w-4" />
-                {action.label}
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    <button
+      type="button"
+      aria-label="Delete question"
+      title="Delete question"
+      disabled={disabled}
+      onClick={(event) => {
+        event.stopPropagation();
+        onDelete();
+      }}
+      className="flex h-8 w-8 items-center justify-center rounded-[9px] border-2 border-transparent text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-bad)] hover:bg-[var(--qs-badbg)] hover:text-[var(--qs-bad)] disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      <Trash2 className="h-4 w-4" />
+    </button>
   );
 }
 
 function QuestionPreviewDrawer({
   question,
   onClose,
-  onCopy,
-  onDuplicate,
   onDelete,
-  onAddToQuiz,
+  deleting,
 }: {
   question: BankQuestion;
   onClose: () => void;
-  onCopy: () => void;
-  onDuplicate: () => void;
   onDelete: () => void;
-  onAddToQuiz: () => void;
+  deleting?: boolean;
 }) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -402,43 +355,20 @@ function QuestionPreviewDrawer({
             <span>Source: {question.source || "AI generated"}</span>
             <span className="inline-flex items-center gap-1">
               <ClipboardCheck className="h-3.5 w-3.5" />
-              Downloaded {question.usedIn} {question.usedIn === 1 ? "time" : "times"}
+              Approved {question.usedIn} {question.usedIn === 1 ? "time" : "times"}
             </span>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 border-t-2 border-[var(--qs-line)] px-5 py-4">
-          <button
-            type="button"
-            onClick={onAddToQuiz}
-            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)]"
-          >
-            <ListPlus className="h-3.5 w-3.5" />
-            Add to quiz
-          </button>
-          <button
-            type="button"
-            onClick={onCopy}
-            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-xs font-extrabold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
-          >
-            <Copy className="h-3.5 w-3.5" />
-            Copy
-          </button>
-          <button
-            type="button"
-            onClick={onDuplicate}
-            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-xs font-extrabold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
-          >
-            <FilePlus2 className="h-3.5 w-3.5" />
-            Duplicate
-          </button>
+        <div className="flex items-center justify-end gap-2 border-t-2 border-[var(--qs-line)] px-5 py-4">
           <button
             type="button"
             onClick={onDelete}
-            className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] px-2.5 text-xs font-extrabold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-bad)] hover:text-white"
+            disabled={deleting}
+            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] px-3 text-xs font-extrabold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-bad)] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Trash2 className="h-3.5 w-3.5" />
-            Delete
+            {deleting ? "Deleting…" : "Delete"}
           </button>
         </div>
       </motion.aside>
@@ -456,16 +386,17 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
   }, { delayMs: 250 });
 
   const [removed, setRemoved] = useState<Set<string>>(new Set());
-  const [added, setAdded] = useState<BankQuestion[]>([]);
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | QuestionType>("all");
   const [difficulty, setDifficulty] = useState<"all" | QuestionDifficulty>("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [preview, setPreview] = useState<BankQuestion | null>(null);
+  const [page, setPage] = useState(1);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const questions = useMemo(() => {
-    return [...(data ?? []).filter((question) => !removed.has(question.id)), ...added];
-  }, [data, removed, added]);
+    return (data ?? []).filter((question) => !removed.has(question.id));
+  }, [data, removed]);
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -484,11 +415,16 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
     });
   }, [questions, query, typeFilter, difficulty]);
 
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+  const pageStart = (safePage - 1) * PAGE_SIZE;
+  const paged = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+
   const easyCount = questions.filter((question) => question.difficulty === "easy").length;
   const mediumCount = questions.filter((question) => question.difficulty === "medium").length;
   const hardCount = questions.filter((question) => question.difficulty === "hard").length;
-  const usedInTests = questions.filter((question) => question.usedIn > 0).length;
-  const allSelected = filtered.length > 0 && filtered.every((question) => selected.has(question.id));
+  const approvedCount = questions.filter((question) => question.usedIn > 0).length;
+  const allSelected = paged.length > 0 && paged.every((question) => selected.has(question.id));
 
   const toggleRow = (id: string) => {
     setSelected((previous) => {
@@ -500,13 +436,23 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
   };
 
   const toggleAll = () => {
-    setSelected(allSelected ? new Set() : new Set(filtered.map((question) => question.id)));
+    setSelected((previous) => {
+      const next = new Set(previous);
+      if (allSelected) {
+        paged.forEach((question) => next.delete(question.id));
+      } else {
+        paged.forEach((question) => next.add(question.id));
+      }
+      return next;
+    });
   };
 
-  const handleRowAction = (id: string, action: RowAction) => {
+  const handleDelete = async (id: string) => {
     const question = questions.find((item) => item.id === id);
     if (!question) return;
-    if (action === "delete") {
+    setDeletingId(id);
+    try {
+      await deleteMyQuestionBankQuestion(question.bankId);
       setRemoved((previous) => new Set(previous).add(id));
       setSelected((previous) => {
         const next = new Set(previous);
@@ -517,62 +463,47 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
         title: "Question deleted",
         description: `"${question.text.length > 60 ? `${question.text.slice(0, 60)}…` : question.text}" was removed from your library.`,
       });
-      return;
-    }
-    if (action === "duplicate") {
-      setAdded((previous) => [
-        { ...question, id: `q_${Date.now()}`, usedIn: 0, updated: "Just now" },
-        ...previous,
-      ]);
-      toast.success({ title: "Question duplicated", description: "A copy was added to your library." });
-      return;
-    }
-    const label = action === "edit" ? "Edit question" : action === "test" ? "Add to Test" : "Add to Quiz";
-    toast.info({
-      title: label,
-      description: "This will be wired to the backend once available.",
-    });
-  };
-
-  const copyQuestion = async (question: BankQuestion) => {
-    const lines: string[] = [question.html ? htmlToEditableText(question.html) : question.text];
-    if (question.options.length > 0) {
-      question.options.forEach((option, index) => {
-        lines.push(`${String.fromCharCode(65 + index)}. ${option.text}${option.isCorrect ? " (correct)" : ""}`);
-      });
-    } else if (question.answers.length > 0) {
-      lines.push(`Answer: ${question.answers.join(", ")}`);
-    }
-    if (question.explanation) lines.push(`Explanation: ${question.explanation}`);
-    try {
-      await navigator.clipboard.writeText(lines.join("\n\n"));
-      toast.success({ title: "Question copied", description: "Text copied to your clipboard." });
     } catch {
-      toast.error({ title: "Could not copy question", description: "Please try again." });
+      toast.error({
+        title: "Could not delete question",
+        description: "Please try again in a moment.",
+      });
+    } finally {
+      setDeletingId(null);
     }
   };
 
-  const bulkAction = (action: "test" | "quiz" | "delete") => {
-    const count = selected.size;
-    if (action === "delete") {
-      setRemoved((previous) => new Set([...previous, ...selected]));
+  const bulkDelete = async () => {
+    const targets = questions.filter((question) => selected.has(question.id));
+    if (targets.length === 0) return;
+    setDeletingId("bulk");
+    const results = await Promise.allSettled(
+      targets.map((question) => deleteMyQuestionBankQuestion(question.bankId))
+    );
+    const deleted = targets.filter((_, index) => results[index].status === "fulfilled");
+    const failed = targets.length - deleted.length;
+    if (deleted.length > 0) {
+      setRemoved((previous) => new Set([...previous, ...deleted.map((question) => question.id)]));
       setSelected(new Set());
       toast.success({
         title: "Questions deleted",
-        description: `${count} question${count === 1 ? "" : "s"} removed from your library.`,
+        description: `${deleted.length} question${deleted.length === 1 ? "" : "s"} removed from your library.`,
       });
-      return;
     }
-    toast.info({
-      title: action === "test" ? "Add to Test" : "Add to Quiz",
-      description: `${count} question${count === 1 ? "" : "s"} selected. This will be wired to the backend.`,
-    });
+    if (failed > 0) {
+      toast.error({
+        title: `${failed} question${failed === 1 ? "" : "s"} could not be deleted`,
+        description: "Please try again.",
+      });
+    }
+    setDeletingId(null);
   };
 
   const clearFilters = () => {
     setQuery("");
     setTypeFilter("all");
     setDifficulty("all");
+    setPage(1);
   };
 
   return (
@@ -673,10 +604,10 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                 <ClipboardCheck className="h-4 w-4" />
               </span>
               <p className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]">
-                Downloaded questions
+                Approved questions
               </p>
-              <p className="mt-2.5 text-[27px] font-black leading-none text-[var(--qs-ink)]">{usedInTests}</p>
-              <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">of library used in PDFs</p>
+              <p className="mt-2.5 text-[27px] font-black leading-none text-[var(--qs-ink)]">{approvedCount}</p>
+              <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">of library approved for use</p>
             </div>
             <div className="relative rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 shadow-[4px_4px_0_var(--qs-sun)]">
               <span className="absolute right-4 top-3.5 grid h-[30px] w-[30px] place-items-center rounded-[9px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
@@ -698,7 +629,10 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                 <Search className="h-4 w-4 shrink-0 text-[var(--qs-muted)]" />
                 <input
                   value={query}
-                  onChange={(event) => setQuery(event.target.value)}
+                  onChange={(event) => {
+                    setQuery(event.target.value);
+                    setPage(1);
+                  }}
                   placeholder="Search questions, subjects or tags…"
                   aria-label="Search questions"
                   className="w-full bg-transparent text-[13px] font-medium text-[var(--qs-ink)] outline-none placeholder:text-[var(--qs-muted)]"
@@ -717,7 +651,10 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                       key={filter.id}
                       type="button"
                       aria-pressed={active}
-                      onClick={() => setTypeFilter(filter.id)}
+                      onClick={() => {
+                        setTypeFilter(filter.id);
+                        setPage(1);
+                      }}
                       className={cn(
                         "whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-extrabold transition-colors",
                         active
@@ -739,7 +676,10 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                       key={item.id}
                       type="button"
                       aria-pressed={active}
-                      onClick={() => setDifficulty(active ? "all" : item.id)}
+                      onClick={() => {
+                        setDifficulty(active ? "all" : item.id);
+                        setPage(1);
+                      }}
                       className={cn(
                         "rounded-[8px] border-2 px-3 py-1.5 text-xs font-extrabold transition-colors",
                         active
@@ -767,27 +707,12 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                     <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => bulkAction("test")}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-[11px] font-extrabold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
-                      >
-                        <FilePlus2 className="h-3.5 w-3.5" />
-                        Add to Test
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => bulkAction("quiz")}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-[11px] font-extrabold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
-                      >
-                        <ListPlus className="h-3.5 w-3.5" />
-                        Add to Quiz
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => bulkAction("delete")}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] px-2.5 text-[11px] font-extrabold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-bad)] hover:text-white"
+                        onClick={() => void bulkDelete()}
+                        disabled={deletingId !== null}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] px-2.5 text-[11px] font-extrabold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-bad)] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
-                        Delete
+                        {deletingId === "bulk" ? "Deleting…" : "Delete"}
                       </button>
                       <button
                         type="button"
@@ -827,13 +752,13 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                             className="h-4 w-4 cursor-pointer accent-[var(--qs-brand)]"
                           />
                         </th>
-                        {["Question", "Subject", "Type", "Difficulty", "Tags", "Downloads", "Updated", ""].map(
+                        {["Question", "Subject", "Type", "Difficulty", "Tags", "Approved", "Updated", ""].map(
                           (heading) => (
                             <th
                               key={heading || "actions"}
                               className={cn(
                                 "whitespace-nowrap border-b-2 border-[var(--qs-line)] px-2.5 py-3.5 text-[11px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]",
-                                heading === "Downloads" && "text-right",
+                                heading === "Approved" && "text-right",
                                 heading === "" && "w-[52px]"
                               )}
                             >
@@ -844,12 +769,12 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                       </tr>
                     </thead>
                     <tbody>
-                      {filtered.map((question, index) => (
+                      {paged.map((question, index) => (
                         <motion.tr
                           key={question.id}
                           initial={{ opacity: 0, y: 4 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: Math.min(index * 0.015, 0.25) }}
+                          transition={{ delay: Math.min((pageStart + index) * 0.015, 0.25) }}
                           tabIndex={0}
                           onClick={() => setPreview(question)}
                           onKeyDown={(event) => {
@@ -913,7 +838,10 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                           </td>
                           <td className="w-[52px] px-2.5 py-3.5">
                             <div className="flex items-center justify-end">
-                              <RowActionMenu onAction={(action) => handleRowAction(question.id, action)} />
+                              <DeleteQuestionButton
+                                onDelete={() => void handleDelete(question.id)}
+                                disabled={deletingId !== null}
+                              />
                             </div>
                           </td>
                         </motion.tr>
@@ -923,7 +851,7 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                 </div>
 
                 <div className="space-y-2.5 p-4 md:hidden">
-                  {filtered.map((question) => (
+                  {paged.map((question) => (
                     <div
                       key={question.id}
                       role="button"
@@ -957,7 +885,10 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                             </p>
                           </div>
                         </div>
-                        <RowActionMenu onAction={(action) => handleRowAction(question.id, action)} />
+                        <DeleteQuestionButton
+                          onDelete={() => void handleDelete(question.id)}
+                          disabled={deletingId !== null}
+                        />
                       </div>
                       <div className="mt-3 flex items-center justify-between border-t-2 border-[var(--qs-line)] pt-3">
                         <div className="flex flex-wrap gap-1">
@@ -973,7 +904,7 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                         <div className="flex shrink-0 items-center gap-2">
                           <DifficultyPill difficulty={question.difficulty} />
                           <span className="text-[11px] font-bold text-[var(--qs-muted)]">
-                            Downloads {question.usedIn}
+                            Approved {question.usedIn}
                           </span>
                         </div>
                       </div>
@@ -983,11 +914,36 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
               </>
             )}
 
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t-2 border-[var(--qs-line)] px-4 py-3 text-xs font-medium text-[var(--qs-muted)]">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t-2 border-[var(--qs-line)] px-4 py-3 text-xs font-medium text-[var(--qs-muted)]">
               <span>
-                Showing {filtered.length} of {questions.length} question{questions.length === 1 ? "" : "s"}
+                {filtered.length === 0
+                  ? `No questions · ${questions.length} total`
+                  : `Showing ${pageStart + 1}–${Math.min(pageStart + PAGE_SIZE, filtered.length)} of ${filtered.length} question${filtered.length === 1 ? "" : "s"} · ${questions.length} total`}
               </span>
-              {selected.size > 0 && <span>{selected.size} selected</span>}
+              <div className="flex items-center gap-2">
+                {selected.size > 0 && <span>{selected.size} selected</span>}
+                <button
+                  type="button"
+                  onClick={() => setPage(Math.max(1, safePage - 1))}
+                  disabled={safePage <= 1}
+                  aria-label="Previous page"
+                  className="grid h-7 w-7 place-items-center rounded-[7px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </button>
+                <span className="font-bold text-[var(--qs-ink)]">
+                  Page {safePage} of {pageCount}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPage(Math.min(pageCount, safePage + 1))}
+                  disabled={safePage >= pageCount}
+                  aria-label="Next page"
+                  className="grid h-7 w-7 place-items-center rounded-[7px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           </div>
         </>
@@ -999,16 +955,11 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
             key={preview.id}
             question={preview}
             onClose={() => setPreview(null)}
-            onCopy={() => void copyQuestion(preview)}
-            onDuplicate={() => handleRowAction(preview.id, "duplicate")}
             onDelete={() => {
-              handleRowAction(preview.id, "delete");
+              void handleDelete(preview.id);
               setPreview(null);
             }}
-            onAddToQuiz={() => {
-              handleRowAction(preview.id, "quiz");
-              setPreview(null);
-            }}
+            deleting={deletingId === preview.id}
           />
         )}
       </AnimatePresence>

@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
-import { getAdminQuizById, getQuizProblemsPublic, getQuizGameMechanics, type QuizGameMechanic } from "@/services/quiz";
+import { getAdminQuizById, getQuizProblemsPublic } from "@/services/quiz";
 import type { QuizBasic, PublicQuizProblem } from "@/services/quiz";
 import ExamModeShell from "@/components/quiz/exam/ExamModeShell";
 
@@ -156,44 +156,19 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
         const dur = (quizData.duration ?? 30) * 60;
         setTimeLeft(dur);
 
-        // Fetch game mechanics from backend
-        try {
-          const dbMechanics = await getQuizGameMechanics(quizId);
-          if (!cancelled && dbMechanics.length > 0) {
-            setMechanics(
-              dbMechanics
-                .filter((m) => m.enabled)
-                .map((m) => {
-                  const meta = MECHANIC_META[m.code] ?? { icon: "⚙", title: m.name, desc: m.description ?? "", color: "bg-pink-50 dark:bg-pink-500/10 border border-pink-200 dark:border-pink-500/30 text-pink-600 dark:text-pink-400" };
-                  return {
-                    code: m.code,
-                    icon: meta.icon,
-                    title: meta.title,
-                    desc: meta.desc,
-                    left: `${m.quantity} left`,
-                    color: meta.color,
-                    enabled: m.enabled,
-                    quantity: m.quantity,
-                  };
-                })
-            );
-          } else if (!cancelled) {
-            // Fallback to defaults if no mechanics saved
-            setMechanics(
-              Object.entries(MECHANIC_META).map(([code, meta]) => ({
-                code,
-                icon: meta.icon,
-                title: meta.title,
-                desc: meta.desc,
-                left: "0 left",
-                color: meta.color,
-                enabled: false,
-                quantity: 0,
-              }))
-            );
-          }
-        } catch {
-          // Non-critical — show defaults
+        if (!cancelled) {
+          setMechanics(
+            Object.entries(MECHANIC_META).map(([code, meta]) => ({
+              code,
+              icon: meta.icon,
+              title: meta.title,
+              desc: meta.desc,
+              left: "0 left",
+              color: meta.color,
+              enabled: false,
+              quantity: 0,
+            }))
+          );
         }
       } catch (err) {
         if (!cancelled) setError("Failed to load quiz preview. Please try again.");

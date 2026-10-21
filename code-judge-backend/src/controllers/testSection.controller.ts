@@ -256,9 +256,9 @@ export const generatePaper = async (req: Request, res: Response) => {
       kind: typeof kind === "string" ? kind as "any" | "theory" | "numerical" : "any",
     });
 
-    // Keep every generated paper question in the creator's bank so its
-    // download usage can be tracked per question. Persistence is best-effort:
-    // the paper must still be returned if the bank write fails.
+    // Keep every generated paper question in the creator's bank so the teacher
+    // can approve it later. Persistence is best-effort: the paper must still be
+    // returned if the bank write fails.
     const paperQuestions = result.paper.sections.flatMap((section) =>
       section.questionGroups.flatMap((group) => group.questions)
     );
@@ -344,8 +344,8 @@ export const downloadPaper = async (req: Request, res: Response) => {
 /**
  * POST /api/v1/admin/tests/question-usage
  *
- * JSON body: { questionIds: number[] } — mark every question included in a
- * downloaded paper as used. Counts are stored per bank question.
+ * JSON body: { questionIds: number[] } — mark every question the teacher
+ * explicitly approved as used. Counts are stored per bank question.
  */
 export const recordQuestionUsage = async (req: Request, res: Response) => {
   try {
@@ -389,7 +389,7 @@ export const generateQuestions = async (req: Request, res: Response) => {
       return;
     }
 
-    const { numberOfQuestions, easyCount, mediumCount, hardCount, theoryCount, numericalCount, reasoningEffort, syllabus, kind, subjectId, chapterId, topicId, chapterIds, topicIds, saveToBank } =
+    const { numberOfQuestions, easyCount, mediumCount, hardCount, theoryCount, numericalCount, reasoningEffort, syllabus, context, avoidQuestions, kind, subjectId, chapterId, topicId, chapterIds, topicIds, saveToBank } =
       (req.body ?? {}) as {
         numberOfQuestions?: unknown;
         easyCount?: unknown;
@@ -399,6 +399,8 @@ export const generateQuestions = async (req: Request, res: Response) => {
         numericalCount?: unknown;
         reasoningEffort?: unknown;
         syllabus?: unknown;
+        context?: unknown;
+        avoidQuestions?: unknown;
         kind?: unknown;
         subjectId?: unknown; chapterId?: unknown; topicId?: unknown; chapterIds?: unknown; topicIds?: unknown;
         saveToBank?: unknown;
@@ -413,6 +415,10 @@ export const generateQuestions = async (req: Request, res: Response) => {
       numericalCount: numericalCount != null ? Number(numericalCount) : undefined,
       reasoningEffort: typeof reasoningEffort === "string" ? reasoningEffort as "plus" | "pro" | "max" : undefined,
       syllabus: typeof syllabus === "string" ? syllabus : undefined,
+      context: typeof context === "string" ? context : undefined,
+      avoidQuestions: Array.isArray(avoidQuestions)
+        ? avoidQuestions.filter((question): question is string => typeof question === "string")
+        : undefined,
       kind: typeof kind === "string" ? (kind as "any" | "theory" | "numerical") : undefined,
       subjectId: Number(subjectId),
       chapterId: chapterId != null && chapterId !== "" ? Number(chapterId) : null,

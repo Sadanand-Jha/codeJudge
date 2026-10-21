@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
+import { useQuestionApproval } from "@/hooks/useQuestionApproval";
 import {
   generateSubjectiveQuestions,
   getQuestionGeneratorCatalog,
@@ -194,6 +195,7 @@ function StepSection({
 
 export function CreateProblemGenerator() {
   const toast = useToast();
+  const { approve, pendingId, isApproved } = useQuestionApproval();
   const abortRef = useRef<AbortController | null>(null);
   const editRef = useRef<HTMLDivElement | null>(null);
 
@@ -219,6 +221,8 @@ export function CreateProblemGenerator() {
   const [items, setItems] = useState<QuestionItem[]>([]);
   const [busyIndex, setBusyIndex] = useState<number | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [regenerateIndex, setRegenerateIndex] = useState<number | null>(null);
+  const [regenerateInstruction, setRegenerateInstruction] = useState("");
   const [thinkingIndex, setThinkingIndex] = useState(0);
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -390,6 +394,8 @@ export function CreateProblemGenerator() {
     setError(null);
     setItems([]);
     setEditingIndex(null);
+    setRegenerateIndex(null);
+    setRegenerateInstruction("");
     setCopied(false);
     setThinkingIndex(0);
     abortRef.current?.abort();
@@ -445,7 +451,7 @@ export function CreateProblemGenerator() {
   ]);
 
   const regenerateOne = useCallback(
-    async (index: number) => {
+    async (index: number, instruction?: string) => {
       const item = items[index];
       if (!item || !subjectId || busyIndex !== null) return;
       const diff = item.difficulty.toLowerCase();
@@ -474,6 +480,11 @@ export function CreateProblemGenerator() {
           chapterIds,
           topicIds,
           syllabus: syllabus.trim() || undefined,
+          context: instruction?.trim() ? `The teacher specifically wants: ${instruction.trim()}` : undefined,
+          avoidQuestions: items
+            .filter((_, itemIndex) => itemIndex !== index)
+            .map((other) => other.question)
+            .filter(Boolean),
           saveToBank: true,
         });
         const replacement = response.questions[0];
@@ -493,6 +504,8 @@ export function CreateProblemGenerator() {
               : it
           )
         );
+        setRegenerateIndex(null);
+        setRegenerateInstruction("");
       } catch (err: unknown) {
         if (!(err instanceof Error && (err.name === "CanceledError" || err.name === "AbortError"))) {
           toast.error({
@@ -506,6 +519,17 @@ export function CreateProblemGenerator() {
     },
     [items, subjectId, busyIndex, chapterIds, topicIds, syllabus, toast]
   );
+
+  const handleRegenerateClick = (index: number) => {
+    if (busyIndex !== null) return;
+    if (regenerateIndex === index) {
+      setRegenerateIndex(null);
+      setRegenerateInstruction("");
+      return;
+    }
+    setRegenerateIndex(index);
+    setRegenerateInstruction("");
+  };
 
   const toggleItem = (index: number) => {
     setItems((prev) => prev.map((it, i) => (i === index ? { ...it, selected: !it.selected } : it)));
@@ -1084,13 +1108,34 @@ export function CreateProblemGenerator() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => void regenerateOne(index)}
+                        onClick={() => handleRegenerateClick(index)}
                         disabled={busyIndex !== null}
+                        aria-expanded={regenerateIndex === index}
                         className="inline-flex items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-line)] px-3 py-1.5 text-[13px] font-bold text-[var(--qs-ink)] transition hover:border-[var(--qs-brand)] disabled:opacity-50"
                       >
                         <RotateCcw className={cn("h-3.5 w-3.5", busyIndex === index && "animate-spin")} />
                         {busyIndex === index ? "Regenerating…" : "Regenerate"}
                       </button>
+                      {item.bankQuestionId ? (
+                        <button
+                          type="button"
+                          onClick={() => void approve(item.bankQuestionId)}
+                          disabled={pendingId !== null || isApproved(item.bankQuestionId)}
+                          className={cn(
+                            "inline-flex items-center gap-1.5 rounded-[10px] border-2 px-3 py-1.5 text-[13px] font-bold transition disabled:cursor-not-allowed",
+                            isApproved(item.bankQuestionId)
+                              ? "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]"
+                              : "border-[var(--qs-line)] text-[var(--qs-ink)] hover:border-[var(--qs-ok)] hover:text-[var(--qs-ok)] disabled:opacity-50"
+                          )}
+                        >
+                          {pendingId === item.bankQuestionId ? (
+                            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          ) : (
+                            <Check className="h-3.5 w-3.5" />
+                          )}
+                          {isApproved(item.bankQuestionId) ? "Approved" : "Approve"}
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         onClick={() => deleteItem(index)}
@@ -1100,6 +1145,51 @@ export function CreateProblemGenerator() {
                         Delete
                       </button>
                     </div>
+
+                    {regenerateIndex === index && (
+                      <div className="mt-3 rounded-[12px] border-2 border-[var(--qs-brand)] bg-[var(--qs-bg)] p-3">
+                        <input
+                          autoFocus
+                          value={regenerateInstruction}
+                          onChange={(event) => setRegenerateInstruction(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              void regenerateOne(index, regenerateInstruction);
+                            }
+                            if (event.key === "Escape") {
+                              setRegenerateIndex(null);
+                              setRegenerateInstruction("");
+                            }
+                          }}
+                          placeholder="Optional: describe the kind of question you want…"
+                          aria-label={`Instruction for regenerating question ${index + 1}`}
+                          className="h-9 w-full rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-[13px] font-medium text-[var(--qs-ink)] outline-none placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
+                        />
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void regenerateOne(index, regenerateInstruction)}
+                            disabled={busyIndex !== null}
+                            className="inline-flex items-center gap-1.5 rounded-[9px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3 py-1.5 text-[12px] font-extrabold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <RotateCcw className={cn("h-3.5 w-3.5", busyIndex === index && "animate-spin")} />
+                            {busyIndex === index ? "Regenerating…" : "Regenerate"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRegenerateIndex(null);
+                              setRegenerateInstruction("");
+                            }}
+                            className="inline-flex items-center rounded-[9px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-[12px] font-bold text-[var(--qs-muted)] hover:border-[var(--qs-ink)] hover:text-[var(--qs-ink)]"
+                          >
+                            Cancel
+                          </button>
+                          <span className="text-[11px] font-medium text-[var(--qs-muted)]">Empty is fine</span>
+                        </div>
+                      </div>
+                    )}
                   </article>
                 ))}
               </div>

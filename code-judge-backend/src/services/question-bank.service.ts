@@ -357,9 +357,9 @@ export async function persistGeneratedProblems(
 }
 
 /**
- * Increase the usage count for every bank question included in a downloaded
- * paper. Only the caller's own rows and shared system rows may be counted.
- * Duplicate ids are counted once per download.
+ * Increase the usage count for every bank question the teacher explicitly
+ * approved. Only the caller's own rows and shared system rows may be counted.
+ * Duplicate ids are counted once per approval.
  */
 export async function markQuestionsUsed(questionIds: number[], userId: number): Promise<number> {
   const ids = [...new Set(
@@ -444,6 +444,18 @@ export async function listUserQuestionBank(userId: number): Promise<UserBankQues
     [userId]
   );
   return result.rows as UserBankQuestion[];
+}
+
+/** Delete one row that belongs to the creator's active question bank. */
+export async function deleteUserBankQuestion(questionId: number, userId: number): Promise<boolean> {
+  const result = await pool.query(
+    `DELETE FROM quiz_question_bank
+      WHERE id = $1
+        AND owner_user_id = $2
+        AND owner_type = 'user'`,
+    [questionId, userId]
+  );
+  return (result.rowCount ?? 0) > 0;
 }
 
 export const generateFromQuestionBank = async (

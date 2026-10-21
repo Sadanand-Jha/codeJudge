@@ -10,13 +10,16 @@ import {
   FileText,
   RotateCcw,
   Clock3,
+  Loader2,
   WandSparkles,
 } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
-import { generateQuestionPaper } from "@/services/aiGenerate";
+import { useQuestionApproval } from "@/hooks/useQuestionApproval";
+import { generateQuestionPaper, generateSubjectiveQuestions } from "@/services/aiGenerate";
 import { buildPaperNumbering, sectionsToPaperPayload } from "./paperTypes";
+import { buildRegenerateQuestionPayload, replacePaperQuestion } from "./questionRegeneration";
 import type { Section } from "./types";
 import type { QuestionPaper } from "./paperTypes";
 import { PaperScopeFilters } from "./PaperScopeFilters";
@@ -118,6 +121,7 @@ export function QuestionsStep({
   onPaperReady,
 }: QuestionsStepProps) {
   const toast = useToast();
+  const { approve, pendingId, isApproved } = useQuestionApproval();
   const abortRef = useRef<AbortController | null>(null);
 
   const [syllabus, setSyllabus] = useState("");
@@ -128,7 +132,11 @@ export function QuestionsStep({
   const [status, setStatus] = useState<QuestionsStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [paper, setPaper] = useState<QuestionPaper | null>(null);
+  const [generatedScope, setGeneratedScope] = useState<{ subjectId: number; chapterIds: number[]; topicIds: number[]; syllabus: string } | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [regeneratingKey, setRegeneratingKey] = useState<string | null>(null);
+  const [regeneratePromptKey, setRegeneratePromptKey] = useState<string | null>(null);
+  const [regenerateInstruction, setRegenerateInstruction] = useState("");
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
 
   useEffect(() => {
@@ -157,6 +165,8 @@ export function QuestionsStep({
     if (totalNeeded === 0 || !subjectId) return;
     setError(null);
     setPaper(null);
+    setRegeneratePromptKey(null);
+    setRegenerateInstruction("");
     setLoadingMessageIndex(0);
     abortRef.current = new AbortController();
     setStatus("generating");
@@ -176,6 +186,7 @@ export function QuestionsStep({
         abortRef.current.signal
       );
       setPaper(response.paper);
+      setGeneratedScope({ subjectId, chapterIds: [...chapterIds], topicIds: [...topicIds], syllabus });
       onPaperReady?.(response.paper);
       setStatus("done");
       toast.success({
@@ -220,6 +231,64 @@ export function QuestionsStep({
     setStatus("idle");
     void handleGenerate();
   }, [handleGenerate]);
+
+  const handleRegenerateQuestion = useCallback(async (
+    sectionIndex: number,
+    groupIndex: number,
+    questionIndex: number,
+    instruction?: string
+  ) => {
+    const scope = generatedScope ?? (subjectId ? { subjectId, chapterIds, topicIds, syllabus } : null);
+    if (!paper || !scope || regeneratingKey) return;
+    const question = paper.sections[sectionIndex]?.questionGroups[groupIndex]?.questions[questionIndex];
+    if (!question) return;
+
+    const key = `${sectionIndex}-${groupIndex}-${questionIndex}`;
+    setRegeneratingKey(key);
+
+    try {
+      const response = await generateSubjectiveQuestions(
+        buildRegenerateQuestionPayload(
+          paper,
+          { sectionIndex, groupIndex, questionIndex },
+          scope,
+          instruction
+        )
+      );
+      const replacement = response.questions[0];
+      if (!replacement) throw new Error("The AI did not return a replacement question.");
+      setPaper((current) => current
+        ? replacePaperQuestion(current, { sectionIndex, groupIndex, questionIndex }, replacement)
+        : current
+      );
+      setRegeneratePromptKey(null);
+      setRegenerateInstruction("");
+      toast.success({
+        title: "Question regenerated",
+        description: instruction?.trim()
+          ? "Your custom instruction was applied."
+          : "Difficulty, question type and marks were kept unchanged.",
+      });
+    } catch (err) {
+      toast.error({
+        title: "Could not regenerate question",
+        description: errorMessage(err, "Please try again."),
+      });
+    } finally {
+      setRegeneratingKey(null);
+    }
+  }, [paper, generatedScope, subjectId, chapterIds, topicIds, syllabus, regeneratingKey, toast]);
+
+  const handleRegenerateClick = useCallback((key: string) => {
+    if (regeneratingKey !== null) return;
+    if (regeneratePromptKey === key) {
+      setRegeneratePromptKey(null);
+      setRegenerateInstruction("");
+      return;
+    }
+    setRegeneratePromptKey(key);
+    setRegenerateInstruction("");
+  }, [regeneratingKey, regeneratePromptKey]);
 
   const numbering = paper ? buildPaperNumbering(paper.sections) : [];
 
@@ -581,8 +650,9 @@ export function QuestionsStep({
                     <div className="mt-1.5 space-y-2">
                       {g.questions.map((q, qi) => {
                         const label = groupNumbering?.labels[qi] ?? `Q${q.num}`;
+                        const questionKey = `${si}-${gi}-${qi}`;
                         return (
-                          <div key={`${s.label}-${gi}-${qi}`} className="flex gap-2 text-[13px]">
+                          <div key={questionKey} className="flex gap-2 text-[13px]">
                             <span className="shrink-0 font-bold text-[var(--qs-ink)] tabular-nums">
                               {label}.
                             </span>
@@ -598,10 +668,102 @@ export function QuestionsStep({
                               <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] capitalize text-[var(--qs-muted)]">
                                 <span>{q.difficulty} · {q.kind}</span>
                               </p>
+                              {regeneratePromptKey === questionKey && (
+                                <div className="mt-2 rounded-[10px] border-2 border-[var(--qs-brand)] bg-[var(--qs-surface)] p-2">
+                                  <input
+                                    autoFocus
+                                    value={regenerateInstruction}
+                                    onChange={(event) => setRegenerateInstruction(event.target.value)}
+                                    onKeyDown={(event) => {
+                                      if (event.key === "Enter") {
+                                        event.preventDefault();
+                                        void handleRegenerateQuestion(si, gi, qi, regenerateInstruction);
+                                      }
+                                      if (event.key === "Escape") {
+                                        setRegeneratePromptKey(null);
+                                        setRegenerateInstruction("");
+                                      }
+                                    }}
+                                    placeholder="Optional: describe the kind of question you want…"
+                                    aria-label={`Instruction for regenerating ${label}`}
+                                    className="h-8 w-full rounded-[7px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2 text-[11px] font-medium text-[var(--qs-ink)] outline-none placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
+                                  />
+                                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => void handleRegenerateQuestion(si, gi, qi, regenerateInstruction)}
+                                      disabled={regeneratingKey !== null}
+                                      className="inline-flex h-7 items-center gap-1 rounded-[7px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-2 text-[10px] font-extrabold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                      {regeneratingKey === questionKey ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <RotateCcw className="h-3 w-3" />
+                                      )}
+                                      {regeneratingKey === questionKey ? "Regenerating…" : "Regenerate"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setRegeneratePromptKey(null);
+                                        setRegenerateInstruction("");
+                                      }}
+                                      className="inline-flex h-7 items-center rounded-[7px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 text-[10px] font-bold text-[var(--qs-muted)] hover:border-[var(--qs-ink)] hover:text-[var(--qs-ink)]"
+                                    >
+                                      Cancel
+                                    </button>
+                                    <span className="text-[10px] font-medium text-[var(--qs-muted)]">
+                                      Empty is fine
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            <span className="shrink-0 text-xs font-bold text-[var(--qs-muted)] tabular-nums">
-                              [{q.marks} marks]
-                            </span>
+                            <div className="flex shrink-0 items-start gap-1.5">
+                              {q.bankQuestionId ? (
+                                <button
+                                  type="button"
+                                  onClick={() => void approve(q.bankQuestionId)}
+                                  disabled={pendingId !== null || isApproved(q.bankQuestionId)}
+                                  className={cn(
+                                    "inline-flex h-7 items-center gap-1 rounded-[7px] border-2 px-1.5 text-[10px] font-bold transition disabled:cursor-not-allowed",
+                                    isApproved(q.bankQuestionId)
+                                      ? "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]"
+                                      : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-ok)] hover:text-[var(--qs-ok)] disabled:opacity-40"
+                                  )}
+                                  title={isApproved(q.bankQuestionId) ? "Question approved" : "Approve this question and update its usage count"}
+                                  aria-label={`${isApproved(q.bankQuestionId) ? "Approved" : "Approve"} ${label}`}
+                                >
+                                  {pendingId === q.bankQuestionId ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <Check className="h-3.5 w-3.5" />
+                                  )}
+                                  <span className="hidden sm:inline">
+                                    {isApproved(q.bankQuestionId) ? "Approved" : "Approve"}
+                                  </span>
+                                </button>
+                              ) : null}
+                              <button
+                                type="button"
+                                onClick={() => handleRegenerateClick(questionKey)}
+                                disabled={regeneratingKey !== null}
+                                className="inline-flex h-7 items-center gap-1 rounded-[7px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-1.5 text-[10px] font-bold text-[var(--qs-muted)] transition hover:border-[var(--qs-brand)] hover:text-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-40"
+                                title="Regenerate this question with an optional instruction"
+                                aria-label={`Regenerate ${label}`}
+                                aria-expanded={regeneratePromptKey === questionKey}
+                              >
+                                {regeneratingKey === questionKey ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <RotateCcw className="h-3.5 w-3.5" />
+                                )}
+                                <span className="hidden sm:inline">Regenerate</span>
+                              </button>
+                              <span className="text-xs font-bold text-[var(--qs-muted)] tabular-nums">
+                                [{q.marks} marks]
+                              </span>
+                            </div>
                           </div>
                         );
                       })}

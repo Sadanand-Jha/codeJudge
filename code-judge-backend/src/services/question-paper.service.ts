@@ -130,7 +130,7 @@ export interface PaperQuestion {
   subjectId?: number;
   chapterId?: number | null;
   topicId?: number | null;
-  /** Bank row created for this question; used to track PDF downloads. */
+  /** Bank row created for this question; used when the teacher approves it. */
   bankQuestionId?: number | null;
 }
 
@@ -183,6 +183,10 @@ export interface GenerateSubjectiveQuestionsRequest {
   reasoningEffort?: "plus" | "pro" | "max";
   /** Topic / syllabus used by the AI to scope generated questions. */
   syllabus?: string;
+  /** Extra context for a single replacement question (section, marks, tone). */
+  context?: string;
+  /** Existing questions that the new question must not duplicate. */
+  avoidQuestions?: string[];
   kind?: "any" | "theory" | "numerical";
   subjectId: number;
   chapterId?: number | null;
@@ -201,7 +205,7 @@ export interface SubjectiveQuestion {
   subjectId?: number;
   chapterId?: number | null;
   topicId?: number | null;
-  /** Bank row created for this question; used to track PDF downloads. */
+  /** Bank row created for this question; used when the teacher approves it. */
   bankQuestionId?: number | null;
 }
 
@@ -317,6 +321,13 @@ export const generateSubjectiveQuestions = async (
   }
 
   const syllabus = (request.syllabus ?? "").trim().slice(0, 4000);
+  const context = (request.context ?? "").trim().slice(0, 2000);
+  const avoidQuestions = (request.avoidQuestions ?? [])
+    .map((question) => question.trim())
+    .filter(Boolean)
+    .slice(0, 100)
+    .map((question) => `- ${question.slice(0, 300)}`)
+    .join("\n");
   const scopeLines = formatQuestionScope(scopeCatalog);
   const scopeRules = questionScopeTaggingRules(scopeCatalog);
   const composeLines = CELLS.filter((cell) => cellPlan[cell] > 0).map((cell) => {
@@ -336,7 +347,9 @@ Reasoning effort: ${reasoningEffort}.
 SCOPE:
 ${scopeLines}
 ${scopeRules ? `\n${scopeRules}\n` : ""}
-${syllabus ? `SYLLABUS / TOPIC GUIDANCE:\n${syllabus}\n` : ""}`;
+${syllabus ? `SYLLABUS / TOPIC GUIDANCE:\n${syllabus}\n` : ""}
+${context ? `REPLACEMENT CONTEXT:\n${context}\nIf this context explicitly asks for a different category or difficulty, follow it for the replacement question.\n` : ""}
+${avoidQuestions ? `DO NOT REPEAT OR NEAR-DUPLICATE THESE EXISTING QUESTIONS:\n${avoidQuestions}\n` : ""}`;
 
   let aiComposed: ComposedQuestion[] = [];
   let usage: LiveUsage | undefined;

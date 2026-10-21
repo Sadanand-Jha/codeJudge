@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import { buildPaperNumbering, type QuestionPaper } from "@/components/creator/tests/sections/paperTypes";
-import { downloadQuestionPaper, recordQuestionUsage } from "@/services/aiGenerate";
+import { downloadQuestionPaper } from "@/services/aiGenerate";
 import {
   DEFAULT_PAPER_HEADER,
   marksForDifficulty,
@@ -15,7 +15,7 @@ export interface ExportableQuestion {
   kind: string;
   marks?: number;
   numberLabel?: string;
-  /** Bank row for this question, when it was generated and saved. */
+  /** Bank row for this question, used when the teacher approves it. */
   bankQuestionId?: number | null;
 }
 
@@ -921,12 +921,6 @@ export async function downloadQuestionsPdf({
     hasChoice: false,
     customInstructions: resolved.instructions,
   });
-
-  void recordQuestionUsage(
-    questions
-      .map((question) => question.bankQuestionId)
-      .filter((id): id is number => typeof id === "number" && id > 0)
-  );
 }
 
 export async function downloadPaperPdf({
@@ -1005,12 +999,6 @@ export async function downloadPaperPdf({
     hasChoice: sections.some((section) => section.groups.some((group) => Boolean(group.attempt))),
     customInstructions: resolved.instructions.trim() || paper.instructions,
   });
-
-  void recordQuestionUsage(
-    allQuestions
-      .map((question) => question.bankQuestionId)
-      .filter((id): id is number => typeof id === "number" && id > 0)
-  );
 }
 
 /** Word export uses the backend's DOCX renderer, which understands HTML tables. */

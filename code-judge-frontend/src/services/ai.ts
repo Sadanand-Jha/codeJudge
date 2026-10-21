@@ -496,6 +496,19 @@ export interface UserBankQuestion {
   ownership_expires_at: string;
 }
 
+/** Delete one question from the creator's own question bank. */
+export async function deleteMyQuestionBankQuestion(questionId: number): Promise<void> {
+  const response = await fetch(`${API_BASE}/v1/user/ai/question-bank/${questionId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+    credentials: "include",
+  });
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok || json.success === false) {
+    throw new Error(json.message || `Request failed with status ${response.status}`);
+  }
+}
+
 /**
  * Fetch the creator's active bank rows. Rows are user-owned for 7 days; after
  * that the backend transfers them to the system bank and stops returning them.

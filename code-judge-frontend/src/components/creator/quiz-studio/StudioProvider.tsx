@@ -23,8 +23,6 @@ import {
   getQuizParticipants,
   loadQuizMetadataForEdit,
   getQuizProblems,
-  updateQuizGameMechanics,
-  getQuizGameMechanics,
   deleteQuizProblem,
   type QuizParticipantInput,
   type QuizBasic,
@@ -94,22 +92,6 @@ const DIFFICULTY_MAP: Record<string, CreatorQuestion["difficulty"]> = {
   Medium: "Medium",
   Hard: "Hard",
   Expert: "Expert",
-};
-
-/** Backend mechanic code → frontend game-mechanics id (shared by initial + bg load). */
-const MECHANIC_CODE_TO_ID: Record<string, string> = {
-  FIFTY_FIFTY: "fiftyFifty",
-  AUDIENCE_POLL: "audiencePoll",
-  HINT: "hint",
-  SKIP_QUESTION: "skip",
-  EXTRA_TIME: "extraTime",
-  ELIMINATE_ONE: "eliminateOne",
-  DOUBLE_SCORE: "doublePoints",
-  FREEZE_TIME: "freezeTimer",
-  STREAK_BONUS: "streakBonus",
-  SPEED_BONUS: "speedBonus",
-  SECOND_CHANCE: "secondChance",
-  DECAYING_POINTS: "decayingPoints",
 };
 
 function mapBackendProblem(
@@ -478,15 +460,14 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
   const snapshotRef = useRef<Map<string, string>>(new Map());
   const quizSnapshotRef = useRef<string>("");
   const audienceSnapshotRef = useRef<string>("");
-  const gameMechanicsSnapshotRef = useRef<string>("");
   const databaseAutosaveSnapshotRef = useRef<string | null>(null);
   const audienceModeSnapshotRef = useRef<StudioState["audience"]["mode"] | null>(null);
   /**
    * Tracks which background payloads have landed. Save paths must not persist
-   * mechanics/participants until their bg fetch completes — otherwise local
-   * defaults would overwrite real server data.
+   * participants until the bg fetch completes — otherwise local defaults would
+   * overwrite real server data.
    */
-  const bgReadyRef = useRef({ mechanics: false, participants: false });
+  const bgReadyRef = useRef({ participants: false });
 
   useEffect(() => {
     if (!editMode || !initialQuizId) return;
@@ -544,7 +525,6 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
           mode: quiz.audience_mode ?? DEFAULT_AUDIENCE.mode,
         };
 
-        gameMechanicsSnapshotRef.current = JSON.stringify(loadedGameMechanics);
         setState((s) => ({
           ...s,
           info: { ...DEFAULT_QUIZ_INFO, ...info },
@@ -566,35 +546,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         if (!cancelled) setLoading(false);
       }
 
-      // Phase 2 (background): mechanics, participants, /problems — all
-      // independent, none block Setup. Each merges into state when it lands.
+      // Phase 2 (background): participants, /problems — all independent,
+      // none block Setup. Each merges into state when it lands.
       if (cancelled) return;
-
-      // — Game mechanics in bg —
-      void (async () => {
-        try {
-          const serverMechanics = await getQuizGameMechanics(initialQuizId).catch((error) => {
-            console.warn("Failed to load game mechanics (non-critical):", error);
-            return [];
-          });
-          if (cancelled) return;
-          const loadedGameMechanics = JSON.parse(JSON.stringify(DEFAULT_GAME_MECHANICS));
-          for (const sm of serverMechanics) {
-            const id = MECHANIC_CODE_TO_ID[sm.code];
-            if (!id) continue;
-            const m: any = (loadedGameMechanics as any)[id];
-            if (!m) continue;
-            m.enabled = sm.enabled;
-            if ("uses" in m) m.uses = sm.quantity;
-          }
-          gameMechanicsSnapshotRef.current = JSON.stringify(loadedGameMechanics);
-          // Re-baseline autosave so the bg merge itself isn't treated as a change.
-          databaseAutosaveSnapshotRef.current = null;
-          setState((s) => ({ ...s, gameMechanics: loadedGameMechanics }));
-        } finally {
-          bgReadyRef.current.mechanics = true;
-        }
-      })();
 
       // — Participants / audience in bg —
       void (async () => {
@@ -1068,20 +1022,6 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         }
         return;
       }
-    } else if (state.step === "gameMechanics") {
-      const currentGmSnapshot = JSON.stringify(state.gameMechanics);
-      if (currentGmSnapshot !== gameMechanicsSnapshotRef.current) {
-        try {
-          await saveGameMechanicsOnly();
-          gameMechanicsSnapshotRef.current = currentGmSnapshot;
-        } catch (err) {
-          toast.error({
-            title: "Could not save game mechanics",
-            description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
-          });
-          return;
-        }
-      }
     } else if (state.step !== "publish") {
       if (!validateAllQuestions()) return;
     }
@@ -1314,36 +1254,6 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
           audienceSnapshotRef.current = currentAudienceSnapshot;
         }
         } // skipParticipants
-
-        // Save game mechanics to backend (skip until bg load lands, so
-        // local defaults never overwrite real server values).
-        if (bgReadyRef.current.mechanics) {
-        try {
-          const gm = state.gameMechanics;
-          const mechanicMap: Record<string, { enabled: boolean; quantity: number }> = {
-            FIFTY_FIFTY: { enabled: gm.fiftyFifty.enabled, quantity: typeof gm.fiftyFifty.uses === "number" ? gm.fiftyFifty.uses : 2 },
-            AUDIENCE_POLL: { enabled: gm.audiencePoll?.enabled ?? false, quantity: typeof gm.audiencePoll?.uses === "number" ? gm.audiencePoll.uses : 1 },
-            HINT: { enabled: gm.hint.enabled, quantity: typeof gm.hint.uses === "number" ? gm.hint.uses : 2 },
-            SKIP_QUESTION: { enabled: gm.skip.enabled, quantity: typeof gm.skip.uses === "number" ? gm.skip.uses : 2 },
-            EXTRA_TIME: { enabled: gm.extraTime.enabled, quantity: typeof gm.extraTime.uses === "number" ? gm.extraTime.uses : 1 },
-            ELIMINATE_ONE: { enabled: gm.eliminateOne?.enabled ?? false, quantity: typeof gm.eliminateOne?.uses === "number" ? gm.eliminateOne.uses : 1 },
-            DOUBLE_SCORE: { enabled: gm.doublePoints.enabled, quantity: typeof gm.doublePoints.uses === "number" ? gm.doublePoints.uses : 1 },
-            FREEZE_TIME: { enabled: gm.freezeTimer?.enabled ?? false, quantity: typeof gm.freezeTimer?.uses === "number" ? gm.freezeTimer.uses : 1 },
-            STREAK_BONUS: { enabled: gm.streakBonus?.enabled ?? false, quantity: typeof gm.streakBonus?.uses === "number" ? gm.streakBonus.uses : 1 },
-            SPEED_BONUS: { enabled: gm.speedBonus?.enabled ?? false, quantity: typeof gm.speedBonus?.uses === "number" ? gm.speedBonus.uses : 1 },
-            SECOND_CHANCE: { enabled: gm.secondChance?.enabled ?? false, quantity: typeof gm.secondChance?.uses === "number" ? gm.secondChance.uses : 1 },
-            DECAYING_POINTS: { enabled: gm.decayingPoints?.enabled ?? false, quantity: 1 },
-          };
-          const mechanicsPayload = Object.entries(mechanicMap).map(([mechanicCode, { enabled, quantity }]) => ({
-            mechanicCode,
-            enabled,
-            quantity,
-          }));
-          await updateQuizGameMechanics(quizId, mechanicsPayload);
-        } catch (mechanicsErr) {
-          console.warn("Failed to save game mechanics (non-critical):", mechanicsErr);
-        }
-        }
       }
 
       if (opts?.publish) {
@@ -1389,7 +1299,6 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
       audience: state.audience,
       pricing: state.pricing,
       branding: state.branding,
-      gameMechanics: state.gameMechanics,
       registration: state.registration,
     });
 
@@ -1429,42 +1338,8 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     state.audience,
     state.pricing,
     state.branding,
-    state.gameMechanics,
     state.registration,
   ]);
-
-  const saveGameMechanicsOnly = useCallback(async () => {
-    const quizId = state.serverQuizId;
-    if (!quizId) throw new Error("Quiz not saved yet — save the quiz first");
-    if (!bgReadyRef.current.mechanics) throw new Error("Game mechanics are still loading — please wait a moment and retry.");
-
-    setSavingToServer(true);
-    try {
-      const gm = state.gameMechanics;
-      const mechanicMap: Record<string, { enabled: boolean; quantity: number }> = {
-        FIFTY_FIFTY: { enabled: gm.fiftyFifty.enabled, quantity: typeof gm.fiftyFifty.uses === "number" ? gm.fiftyFifty.uses : 2 },
-        AUDIENCE_POLL: { enabled: gm.audiencePoll?.enabled ?? false, quantity: typeof gm.audiencePoll?.uses === "number" ? gm.audiencePoll.uses : 1 },
-        HINT: { enabled: gm.hint.enabled, quantity: typeof gm.hint.uses === "number" ? gm.hint.uses : 2 },
-        SKIP_QUESTION: { enabled: gm.skip.enabled, quantity: typeof gm.skip.uses === "number" ? gm.skip.uses : 2 },
-        EXTRA_TIME: { enabled: gm.extraTime.enabled, quantity: typeof gm.extraTime.uses === "number" ? gm.extraTime.uses : 1 },
-        ELIMINATE_ONE: { enabled: gm.eliminateOne?.enabled ?? false, quantity: typeof gm.eliminateOne?.uses === "number" ? gm.eliminateOne.uses : 1 },
-        DOUBLE_SCORE: { enabled: gm.doublePoints.enabled, quantity: typeof gm.doublePoints.uses === "number" ? gm.doublePoints.uses : 1 },
-        FREEZE_TIME: { enabled: gm.freezeTimer?.enabled ?? false, quantity: typeof gm.freezeTimer?.uses === "number" ? gm.freezeTimer.uses : 1 },
-        STREAK_BONUS: { enabled: gm.streakBonus?.enabled ?? false, quantity: typeof gm.streakBonus?.uses === "number" ? gm.streakBonus.uses : 1 },
-        SPEED_BONUS: { enabled: gm.speedBonus?.enabled ?? false, quantity: typeof gm.speedBonus?.uses === "number" ? gm.speedBonus.uses : 1 },
-        SECOND_CHANCE: { enabled: gm.secondChance?.enabled ?? false, quantity: typeof gm.secondChance?.uses === "number" ? gm.secondChance.uses : 1 },
-        DECAYING_POINTS: { enabled: gm.decayingPoints?.enabled ?? false, quantity: 1 },
-      };
-      const mechanicsPayload = Object.entries(mechanicMap).map(([mechanicCode, { enabled, quantity }]) => ({
-        mechanicCode,
-        enabled,
-        quantity,
-      }));
-      await updateQuizGameMechanics(quizId, mechanicsPayload);
-    } finally {
-      setSavingToServer(false);
-    }
-  }, [state.serverQuizId, state.gameMechanics]);
 
   const saveAudienceParticipants = useCallback(async () => {
     const quizId = state.serverQuizId;

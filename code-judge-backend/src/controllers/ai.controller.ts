@@ -28,7 +28,7 @@ import { QUIZ_EXTRACTION_GUIDE } from "../services/question-generation.service.j
 import type { GeneratedQuestionPayload } from "../services/question-generation.service.js";
 import { extractFileText } from "../services/question-generation.service.js";
 import { isDoclingAvailable } from "../services/docling-extract.service.js";
-import { generateFromQuestionBank, listUserQuestionBank, persistGeneratedQuestions } from "../services/question-bank.service.js";
+import { deleteUserBankQuestion, generateFromQuestionBank, listUserQuestionBank, persistGeneratedQuestions } from "../services/question-bank.service.js";
 
 /**
  * Best-effort user id for operational logging. The AI endpoints are not
@@ -325,6 +325,33 @@ export const generateFromQuestionBankHandler = async (req: Request, res: Respons
       success: false,
       message: error instanceof Error ? error.message : "Failed to generate questions",
     });
+  }
+};
+
+/**
+ * DELETE /api/v1/user/ai/question-bank/:questionId
+ *
+ * Deletes a row the creator owns. Expired/system-owned rows are not deletable
+ * from the creator library.
+ */
+export const deleteMyQuestionBankQuestion = async (req: Request, res: Response) => {
+  try {
+    const userId = Number(req.user?.userId);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+    const questionId = Number(req.params.questionId);
+    if (!Number.isInteger(questionId) || questionId <= 0) {
+      return res.status(400).json({ success: false, message: "A valid question id is required." });
+    }
+    const deleted = await deleteUserBankQuestion(questionId, userId);
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: "Question not found." });
+    }
+    return res.status(200).json({ success: true, data: { deleted: 1, id: questionId } });
+  } catch (error) {
+    console.error("[question-bank] delete failed:", error);
+    return res.status(500).json({ success: false, message: "Unable to delete this question." });
   }
 };
 

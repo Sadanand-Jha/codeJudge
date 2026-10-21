@@ -65,6 +65,8 @@ export interface CreatorQuestion {
   createdAt: string;
   updatedAt: string;
   serverId?: number;
+  /** Source bank row when this problem was imported from the question bank. */
+  bankQuestionId?: number | null;
   // ── Match the Following ──
   matchItems?: MatchItem[];
   matchMatches?: MatchItem[];
