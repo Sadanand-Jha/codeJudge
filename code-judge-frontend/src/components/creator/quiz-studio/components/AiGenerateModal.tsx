@@ -217,10 +217,15 @@ export function AiGenerateModal({
     () => catalog?.chapters.filter((chapter) => chapter.subjectId === bankSubjectId) ?? [],
     [catalog, bankSubjectId]
   );
-  const topicOptions = useMemo(
-    () => catalog?.topics.filter((topic) => bankChapterIds.includes(topic.chapterId)) ?? [],
-    [catalog, bankChapterIds]
-  );
+  const topicOptions = useMemo(() => {
+    const topics = catalog?.topics ?? [];
+    const chapterIds = new Set(chapterOptions.map((chapter) => chapter.id));
+    return topics.filter((topic) =>
+      bankChapterIds.length === 0
+        ? chapterIds.has(topic.chapterId)
+        : bankChapterIds.includes(topic.chapterId)
+    );
+  }, [catalog, bankChapterIds, chapterOptions]);
 
   const lockedSubjectName =
     defaultSubjectName ||
@@ -236,6 +241,9 @@ export function AiGenerateModal({
 
   const handleBankChaptersChange = (next: number[]) => {
     setBankChapterIds(next);
+    // Empty chapters means "all chapters"; keep the topic selection so the
+    // creator can still narrow the scope without re-picking chapters.
+    if (next.length === 0) return;
     setBankTopicIds((prev) =>
       prev.filter((topicId) =>
         catalog?.topics.some((topic) => topic.id === topicId && next.includes(topic.chapterId))
@@ -395,6 +403,15 @@ export function AiGenerateModal({
     setElapsedSeconds(0);
     setTipIndex(0);
     setError("");
+    const scopedChapterIds = bankChapterIds.length > 0
+      ? bankChapterIds
+      : [
+          ...new Set(
+            bankTopicIds
+              .map((topicId) => catalog?.topics.find((topic) => topic.id === topicId)?.chapterId)
+              .filter((chapterId): chapterId is number => typeof chapterId === "number")
+          ),
+        ];
     try {
       const rawQuestions = await generateFromQuestionBank({
         numberOfQuestions: bankNumber,
@@ -403,7 +420,7 @@ export function AiGenerateModal({
         hardCount: bankHard,
         syllabus: bankSyllabus.trim() || undefined,
         subjectId: bankSubjectId,
-        chapterIds: bankChapterIds,
+        chapterIds: scopedChapterIds,
         topicIds: bankTopicIds,
         kind: bankKind,
         quizId,
@@ -887,7 +904,7 @@ export function AiGenerateModal({
                             label: topic.name,
                           }))}
                           placeholder="All topics"
-                          disabled={bankChapterIds.length === 0}
+                          disabled={!bankSubjectId}
                           ariaLabel="Topics"
                           searchable
                           triggerClassName="mt-1.5 h-11 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-3 text-[12px] font-bold text-[var(--qs-ink)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] disabled:opacity-50"

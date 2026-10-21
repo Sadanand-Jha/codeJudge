@@ -339,6 +339,9 @@ interface StudioContextValue {
   publish: () => void;
   saveToServer: (opts?: { publish?: boolean }) => Promise<{ quizId: string; code: string }>;
   savingToServer: boolean;
+  /** True when the Questions step differs from the last saved snapshot. */
+  questionsDirty: boolean;
+  setQuestionsDirty: (dirty: boolean) => void;
   /** Progress of the current save: { saved, total } while saving, null otherwise */
   saveProgress: { saved: number; total: number } | null;
   loading: boolean;
@@ -391,6 +394,36 @@ function initialState(): StudioState {
   lastSaved: null,
   published: false,
 };
+}
+
+type QuizMetaSnapshotInput = Pick<StudioState, "info" | "settings"> & {
+  audience: Pick<StudioState["audience"], "mode">;
+  registration: Pick<StudioState["registration"], "fields">;
+};
+
+function buildQuizMetaSnapshot(state: QuizMetaSnapshotInput): string {
+  return JSON.stringify({
+    title: state.info.title,
+    shortDescription: state.info.shortDescription,
+    fullDescription: state.info.fullDescription,
+    subjectId: state.info.subjectId,
+    examId: state.info.examId,
+    difficultyId: state.info.difficultyId,
+    duration: state.info.duration,
+    passingMarks: state.info.passingMarks,
+    startDate: state.info.startDate,
+    endDate: state.info.endDate,
+    tags: state.info.tags,
+    audienceMode: state.audience.mode,
+    settings: {
+      randomizeQuestions: state.settings.randomizeQuestions,
+      randomizeOptions: state.settings.randomizeOptions,
+      showResultsImmediately: state.settings.showResultsImmediately,
+      negativeMarking: state.settings.negativeMarking,
+      negativeMarkValue: state.settings.negativeMarkValue,
+    },
+    registrationFields: state.registration.fields.map((f) => f.name.trim()).filter(Boolean),
+  });
 }
 
 interface StudioProviderProps {
@@ -447,6 +480,10 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     return initialState();
   });
 
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
   const [loading, setLoading] = useState(editMode && !!initialQuizId);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [questionsLoading, setQuestionsLoading] = useState(editMode && !!initialQuizId);
@@ -488,30 +525,17 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         const registrationFields = Array.isArray(quiz.registration_fields)
           ? quiz.registration_fields
           : DEFAULT_REGISTRATION.fields.map((f) => f.name);
-        const quizSnapshot = JSON.stringify({
-          title: info.title,
-          shortDescription: info.shortDescription,
-          fullDescription: info.fullDescription,
-          subjectId: info.subjectId,
-          examId: info.examId,
-          difficultyId: info.difficultyId,
-          duration: info.duration,
-          passingMarks: info.passingMarks,
-          startDate: info.startDate,
-          endDate: info.endDate,
-          tags: info.tags,
-          // Participants load in bg; audienceMode is reconciled there for
-          // legacy quizzes without a stored mode.
-          audienceMode: quiz.audience_mode ?? DEFAULT_AUDIENCE.mode,
-          settings: {
-            randomizeQuestions: settings.randomizeQuestions,
-            randomizeOptions: settings.randomizeOptions,
-            showResultsImmediately: settings.showResultsImmediately,
-            negativeMarking: settings.negativeMarking,
+        // Participants load in bg; audienceMode is reconciled there for legacy
+        // quizzes without a stored mode. Use the same builder as save so the
+        // edit-mode baseline cannot drift from the live state.
+        quizSnapshotRef.current = buildQuizMetaSnapshot({
+          info,
+          settings,
+          audience: { mode: quiz.audience_mode ?? DEFAULT_AUDIENCE.mode },
+          registration: {
+            fields: registrationFields.map((name, i) => ({ id: `rfld_srv_${i}`, name })),
           },
-          registrationFields,
         });
-        quizSnapshotRef.current = quizSnapshot;
 
         // Local defaults for now — the background fetch overwrites with
         // server values when it lands (see Phase 2 below).
@@ -750,6 +774,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         (saved, total) => setSaveProgress({ saved, total })
       );
       snapshotRef.current = buildQuestionSnapshot(updatedQuestions);
+      setQuestionsDirty(false);
       setState((current) => ({
         ...current,
         questions: updatedQuestions,
@@ -1085,12 +1110,27 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     setState((s) => ({ ...s, published: true }));
 
   const [savingToServer, setSavingToServer] = useState(false);
+  const [questionsDirty, setQuestionsDirty] = useState(false);
+  const saveInFlightRef = useRef<Promise<{ quizId: string; code: string }> | null>(null);
   const [saveProgress, setSaveProgress] = useState<{ saved: number; total: number } | null>(null);
+
+  useEffect(() => {
+    if (loading || questionsLoading) return;
+    const questionsChanged = computeChangedQuestions(state.questions, snapshotRef.current).length > 0;
+    setQuestionsDirty(questionsChanged || buildQuizMetaSnapshot(state) !== quizSnapshotRef.current);
+  }, [state, loading, questionsLoading]);
 
   const saveToServer = async (
     opts?: { publish?: boolean; setupOnly?: boolean; skipParticipants?: boolean; silentValidation?: boolean }
   ): Promise<{ quizId: string; code: string }> => {
-    if (savingToServer) throw new Error("Save already in progress");
+    while (saveInFlightRef.current) {
+      if (!opts?.publish && !opts?.setupOnly) {
+        return saveInFlightRef.current;
+      }
+      await saveInFlightRef.current;
+    }
+
+    const run = (async (): Promise<{ quizId: string; code: string }> => {
     if (state.info.title.trim().length < 3) {
       throw new Error("Quiz title is required before saving");
     }
@@ -1140,28 +1180,8 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
 
       let quizId = state.serverQuizId || null;
       let savedCode = state.info.code;
+      const currentSnapshot = buildQuizMetaSnapshot(state);
       if (quizId) {
-        const currentSnapshot = JSON.stringify({
-          title: state.info.title,
-          shortDescription: state.info.shortDescription,
-          fullDescription: state.info.fullDescription,
-          subjectId: state.info.subjectId,
-          examId: state.info.examId,
-          difficultyId: state.info.difficultyId,
-          duration: state.info.duration,
-          passingMarks: state.info.passingMarks,
-          startDate: state.info.startDate,
-          endDate: state.info.endDate,
-          tags: state.info.tags,
-          audienceMode: state.audience.mode,
-          settings: {
-            randomizeQuestions: state.settings.randomizeQuestions,
-            randomizeOptions: state.settings.randomizeOptions,
-            showResultsImmediately: state.settings.showResultsImmediately,
-            negativeMarking: state.settings.negativeMarking,
-          },
-          registrationFields: payload.registrationFields,
-        });
         if (currentSnapshot !== quizSnapshotRef.current) {
           await updateQuiz(quizId, {
             name: payload.name,
@@ -1195,6 +1215,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
           quiz = await createQuiz({ ...payload, code: freshCode });
         }
         quizId = String(quiz.id);
+        quizSnapshotRef.current = currentSnapshot;
       }
 
       if (!opts?.setupOnly) {
@@ -1213,8 +1234,16 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
             setSaveProgress({ saved, total });
           });
         }
-        // Update snapshot so subsequent saves only diff against the new baseline
-        snapshotRef.current = buildQuestionSnapshot(state.questions);
+        // Update snapshot so subsequent saves only diff against the new baseline.
+        // Compare against the latest state so edits made during the request
+        // keep the Save button enabled.
+        const savedQuestionSnapshot = buildQuestionSnapshot(state.questions);
+        snapshotRef.current = savedQuestionSnapshot;
+        const latest = stateRef.current;
+        setQuestionsDirty(
+          computeChangedQuestions(latest.questions, savedQuestionSnapshot).length > 0 ||
+            buildQuizMetaSnapshot(latest) !== currentSnapshot
+        );
 
         // Skip until the bg participants fetch lands — otherwise local
         // defaults would wipe real server data.
@@ -1265,6 +1294,14 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     } finally {
       setSavingToServer(false);
       setSaveProgress(null);
+    }
+    })();
+
+    saveInFlightRef.current = run;
+    try {
+      return await run;
+    } finally {
+      saveInFlightRef.current = null;
     }
   };
 
@@ -1444,6 +1481,8 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
       publish,
       saveToServer,
       savingToServer,
+      questionsDirty,
+      setQuestionsDirty,
       saveProgress,
       loading,
       loadError,
@@ -1455,7 +1494,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
       helpExtra,
       setHelpExtra,
     }),
-    [state, stepIndex, mobileStepIndex, summary, savingToServer, saveProgress, loading, loadError, questionsLoading, editMode, steps, mobileSteps, saveAudienceParticipants, audienceDirty, helpExtra]
+    [state, stepIndex, mobileStepIndex, summary, savingToServer, questionsDirty, saveProgress, loading, loadError, questionsLoading, editMode, steps, mobileSteps, saveAudienceParticipants, audienceDirty, helpExtra]
   );
 
   return <StudioContext.Provider value={value}>{children}</StudioContext.Provider>;

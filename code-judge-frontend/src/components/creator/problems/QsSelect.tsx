@@ -145,8 +145,14 @@ export function QsSelect<T extends string | number>({
     : selected
       ? [selected]
       : [];
-  const triggerLabel =
-    selectedOptions.length === 0
+  const selectableOptions = options.filter((option) => !option.disabled);
+  const allSelected =
+    multiple &&
+    selectableOptions.length > 0 &&
+    selectableOptions.every((option) => selectedValues.includes(option.value));
+  const triggerLabel = allSelected
+    ? placeholder
+    : selectedOptions.length === 0
       ? placeholder
       : selectedOptions.length === 1
         ? selectedOptions[0].label
@@ -258,7 +264,7 @@ export function QsSelect<T extends string | number>({
                 menuClassName
               )}
             >
-              {(canSearch || (multiple && selectedValues.length > 0)) && (
+              {(canSearch || multiple) && (
                 <div className="sticky top-0 z-10 bg-[var(--qs-surface)] p-1.5 pb-0">
                   {canSearch && (
                     <div className="relative">
@@ -276,16 +282,30 @@ export function QsSelect<T extends string | number>({
                       />
                     </div>
                   )}
-                  {multiple && selectedValues.length > 0 && (
-                    <div className="flex items-center justify-between px-1 pt-1.5 text-[11px] font-bold text-[var(--qs-muted)]">
+                  {multiple && (
+                    <div className="flex items-center justify-between gap-2 px-1 pt-1.5 text-[11px] font-bold text-[var(--qs-muted)]">
                       <span>{selectedValues.length} selected</span>
-                      <button
-                        type="button"
-                        onClick={() => onValuesChange?.([])}
-                        className="rounded-[6px] px-1.5 py-0.5 text-[var(--qs-brand)] transition-colors hover:bg-[var(--qs-poly-1)]"
-                      >
-                        Clear all
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {selectableOptions.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => onValuesChange?.(selectableOptions.map((option) => option.value))}
+                            disabled={allSelected}
+                            className="rounded-[6px] px-1.5 py-0.5 text-[var(--qs-brand)] transition-colors hover:bg-[var(--qs-poly-1)] disabled:opacity-40"
+                          >
+                            Select all
+                          </button>
+                        )}
+                        {selectedValues.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => onValuesChange?.([])}
+                            className="rounded-[6px] px-1.5 py-0.5 text-[var(--qs-brand)] transition-colors hover:bg-[var(--qs-poly-1)]"
+                          >
+                            Clear all
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
