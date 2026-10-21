@@ -1341,7 +1341,15 @@ export const getCreatorProfileOverview = async (req: Request, res: Response) => 
         [userId]
       ),
       pool.query(
-        `SELECT q.id, q.name, q.code, q.quiz_status AS status, q.created_at AS "createdAt"
+        `SELECT q.id, q.name, q.code, q.starttime, q.endtime,
+                CASE
+                  WHEN q.quiz_status = 1 THEN 'draft'
+                  WHEN q.quiz_status = 4 THEN 'completed'
+                  WHEN q.endtime IS NOT NULL AND q.endtime <= NOW() THEN 'completed'
+                  WHEN q.starttime IS NOT NULL AND q.starttime > NOW() THEN 'scheduled'
+                  ELSE 'live'
+                END AS status,
+                q.created_at AS "createdAt"
          FROM quiz q
          WHERE q.createdby = $1 AND q.deleted_at IS NULL
          ORDER BY q.created_at DESC NULLS LAST, q.id DESC

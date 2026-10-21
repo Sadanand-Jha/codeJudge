@@ -132,6 +132,7 @@ export class QuizRepository {
         q.name,
         q.createdby,
         q.starttime,
+        q.endtime,
         q.visibility,
         q.audience_mode,
         q.difficulty,

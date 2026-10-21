@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { formatDate, formatDateTimeIST, IST_TIMEZONE, timeAgo } from "@/lib/formatters";
+import { deriveQuizStatus, type EffectiveQuizStatus } from "@/lib/quizStatus";
 import { useData } from "@/lib/hooks/useData";
 import { MaskedCopyCode } from "@/components/creator/common/MaskedCopyCode";
 import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
@@ -37,7 +38,7 @@ import { getMyCreatedQuizzes, type Quiz } from "@/services/quiz";
    Types & mapping
    ============================================================ */
 
-type QuizStatus = "live" | "draft" | "scheduled" | "completed";
+type QuizStatus = EffectiveQuizStatus;
 
 type QuizListRecord = Quiz & {
   participants?: number | string | null;
@@ -77,19 +78,11 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-function toQuizStatus(raw: string | null | undefined): QuizStatus {
-  const status = raw?.toLowerCase() ?? "";
-  if (status === "live" || status === "published" || status === "active") return "live";
-  if (status === "scheduled") return "scheduled";
-  if (status === "completed" || status === "ended") return "completed";
-  return "draft";
-}
-
 function mapQuiz(quiz: QuizListRecord): QuizRow {
   return {
     id: String(quiz.id),
     title: quiz.name || "Untitled quiz",
-    status: toQuizStatus(quiz.status),
+    status: deriveQuizStatus(quiz),
     questions: num(quiz.total_questions),
     attempts: num(quiz.attempts),
     participants: num(quiz.participants),

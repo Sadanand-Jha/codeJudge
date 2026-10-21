@@ -34,7 +34,9 @@ export interface CreatorRecentQuiz {
   id: number;
   name: string;
   code: string | null;
-  status: number | null;
+  status: string | null;
+  starttime: string | null;
+  endtime: string | null;
   createdAt: string | null;
 }
 

@@ -25,10 +25,11 @@ import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
 import { useData } from "@/lib/hooks/useData";
 import { Skeleton } from "@/components/creator/billing/ui";
 import { cn } from "@/lib/helpers";
+import { deriveQuizStatus, type EffectiveQuizStatus } from "@/lib/quizStatus";
 import { deleteQuiz, getMyCreatedQuizzes, type Quiz } from "@/services/quiz";
 import { toast } from "@/lib/toast";
 
-type QuizStatus = "live" | "draft" | "scheduled" | "completed";
+type QuizStatus = EffectiveQuizStatus;
 type TabId = "all" | QuizStatus;
 
 interface QuizCard {
@@ -54,12 +55,6 @@ type QuizListRecord = Quiz & {
 };
 
 function mapQuizToCard(q: QuizListRecord): QuizCard {
-  const raw = q.status?.toLowerCase() ?? "";
-  let status: QuizStatus = "draft";
-  if (raw === "published" || raw === "live") status = "live";
-  else if (raw === "scheduled") status = "scheduled";
-  else if (raw === "completed" || raw === "ended") status = "completed";
-
   return {
     id: String(q.id),
     title: q.name,
@@ -70,7 +65,7 @@ function mapQuizToCard(q: QuizListRecord): QuizCard {
     completionRate: Number(q.completion_rate) || 0,
     rating: Number(q.rating) || 0,
     ratingCount: Number(q.rating_count) || 0,
-    status,
+    status: deriveQuizStatus(q),
   };
 }
 
