@@ -10,6 +10,7 @@ import {
   Settings,
   Wallet,
   Coins,
+  CalendarClock,
   ArrowLeftRight,
   ArrowLeft,
   BookOpen,
@@ -105,12 +106,13 @@ const _FULL_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
   {
     label: "Payments",
     items: [
-      { label: "Pricing", href: "/creator/billing/credits", icon: Coins },
+      { label: "Billing overview", href: "/creator/billing", icon: Wallet, exact: true },
+      { label: "Monthly plans", href: "/creator/billing/plans", icon: CalendarClock },
+      { label: "AI credits", href: "/creator/billing/credits", icon: Coins },
+      { label: "Transactions", href: "/creator/billing/transactions", icon: ArrowLeftRight },
       // Selling pages disabled for now (routes commented out, components kept):
       // { label: "Earnings", href: "/creator/billing/earnings", icon: TrendingUp },
-      { label: "Transactions", href: "/creator/billing/transactions", icon: ArrowLeftRight },
       // { label: "Payouts", href: "/creator/billing/payouts", icon: Banknote },
-      { label: "Billing", href: "/creator/billing", icon: Wallet, exact: true },
       // { label: "Refunds", href: "/creator/billing/refunds", icon: RotateCcw },
       // { label: "Tax & Compliance", href: "/creator/billing/tax", icon: Scale },
       // { label: "Documents", href: "/creator/billing/documents", icon: FileText },
@@ -147,7 +149,8 @@ const FOCUS_CREATOR_ALLOWED = new Set([
   "/creator/create",
   // Rooms
   "/creator/rooms",
-  // Billing (credits + history; selling pages stay hidden)
+  // Billing (plans, credits + history; selling pages stay hidden)
+  "/creator/billing/plans",
   "/creator/billing/credits",
   "/creator/billing/transactions",
 ]);

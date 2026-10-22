@@ -275,7 +275,7 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
     setGeneratingPdf(true);
     downloadQuizPaperPdf(
       {
-        meta: paperMeta,
+        meta: { ...paperMeta, instructions: config.instructions },
         questions: problems,
         options: config.options,
         mode: config.mode,

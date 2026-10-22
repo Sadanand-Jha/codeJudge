@@ -3,6 +3,32 @@
  * to control quiz registration eligibility.
  */
 
+export type RoomRegistrationFieldType = "text" | "email" | "phone" | "number" | "select";
+
+/** One creator-defined field on the student registration form. */
+export interface RoomRegistrationField {
+  id: string;
+  /** Label shown to students. Also used as the answer key. */
+  label: string;
+  type: RoomRegistrationFieldType;
+  required: boolean;
+  /** Only for type="select". */
+  options: string[];
+}
+
+/** Creator-defined registration form students fill before joining. */
+export interface RoomRegistrationForm {
+  title: string;
+  description: string;
+  fields: RoomRegistrationField[];
+}
+
+export const EMPTY_ROOM_REGISTRATION_FORM: RoomRegistrationForm = {
+  title: "Student registration",
+  description: "",
+  fields: [],
+};
+
 export interface RoomStudent {
   id: string;
   name: string;
@@ -21,6 +47,8 @@ export interface RoomStudent {
    * mirroring how quiz registration fields store values per student.
    */
   data?: Record<string, string>;
+  /** Answers submitted on the room's custom registration form (label → value). */
+  registrationData?: Record<string, string>;
 }
 
 export interface Room {
@@ -42,6 +70,8 @@ export interface Room {
   students: RoomStudent[];
   /** Member count from backend (when rooms are fetched via /my-rooms). */
   memberCount?: number;
+  /** Creator-defined form students fill before joining (when loaded). */
+  registrationForm?: RoomRegistrationForm;
 }
 
 export type RoomFilterTab = "all" | "active" | "inactive";

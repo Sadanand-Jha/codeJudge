@@ -601,7 +601,7 @@ const drawHeader = (state: PdfState, maxMarks: number) => {
   state.y += 6;
 };
 
-const instructionLines = (total: number, attempt: number, hasChoice: boolean) => [
+export const defaultPaperInstructionLines = (total: number, attempt: number, hasChoice: boolean) => [
   `Total questions: ${total}. Questions to attempt: ${attempt}.`,
   hasChoice ? "Sections with internal choice are marked in the paper." : "All questions are compulsory.",
   "Figures in square brackets on the right indicate marks.",
@@ -624,7 +624,7 @@ const drawInstructions = (
 ) => {
   const { doc } = state;
   const customItems = customInstructionItems(custom);
-  const items = customItems.length ? customItems : instructionLines(total, attempt, hasChoice);
+  const items = customItems.length ? customItems : defaultPaperInstructionLines(total, attempt, hasChoice);
   const lines: Array<{ text: string; indent: boolean }> = [];
   items.forEach((item, index) => {
     const prefix = `${index + 1}. `;

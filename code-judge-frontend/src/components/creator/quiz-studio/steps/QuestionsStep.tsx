@@ -85,7 +85,7 @@ export function QuestionsStep() {
     setGeneratingPdf(true);
     downloadQuizPaperPdf(
       {
-        meta: paperMeta,
+        meta: { ...paperMeta, instructions: config.instructions },
         questions: state.questions,
         options: config.options,
         mode: config.mode,

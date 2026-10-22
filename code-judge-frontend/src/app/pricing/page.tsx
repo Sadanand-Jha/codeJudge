@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  CalendarClock,
   Check,
   FileText,
   Layers3,
@@ -9,7 +8,6 @@ import {
   Mail,
   Smartphone,
   Sparkles,
-  Users,
   Zap,
   type LucideIcon,
 } from "lucide-react";
@@ -22,8 +20,6 @@ const PLAN_INCLUDES: Array<{ title: string; icon: LucideIcon }> = [
   { title: "Instant results", icon: Zap },
   { title: "PDF & Word", icon: FileText },
   { title: "Email results to creator", icon: Mail },
-  { title: "Live quizzes", icon: Users },
-  { title: "Scheduled quizzes", icon: CalendarClock },
   { title: "Leaderboards", icon: Layers3 },
   { title: "Any device", icon: Smartphone },
 ];

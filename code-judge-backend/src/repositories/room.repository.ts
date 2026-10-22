@@ -1,27 +1,109 @@
 // Room data access layer. SQL queries for creating/listing rooms, managing members
 // (add/remove/status), searching users, and generating unique room codes.
 import { pool } from "../config/database.ts";
-import crypto from "crypto";
-
-function generateRoomCode(length = 8): string {
-  return crypto.randomBytes(length).toString("hex").slice(0, length).toUpperCase();
-}
+import { generateRoomCode, generateRoomPassword } from "../utils/roomCode.ts";
+import { hashRoomPassword } from "../services/roomAccess.service.ts";
 
 export class RoomRepository {
   async createRoom(ownerId: string, name: string, description?: string) {
-    let roomCode = generateRoomCode(8);
-    // Ensure uniqueness (retry up to 5 times)
-    for (let i = 0; i < 5; i++) {
-      const exists = await pool.query("SELECT 1 FROM quiz_rooms WHERE room_code = $1 LIMIT 1", [roomCode]);
-      if (exists.rows.length === 0) break;
-      roomCode = generateRoomCode(8);
+    // Every room carries a password, even when the caller does not use the
+    // share screen. The plaintext is intentionally discarded here.
+    const passwordHash = await hashRoomPassword(generateRoomPassword());
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const roomCode = generateRoomCode();
+      try {
+        const result = await pool.query(
+          `INSERT INTO quiz_rooms (owner_id, name, description, room_code, password_hash, is_active, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, true, NOW(), NOW())
+           RETURNING id, owner_id, room_code, name, description, visibility, is_active, created_at, updated_at`,
+          [ownerId, name, description || null, roomCode, passwordHash]
+        );
+        return result.rows[0];
+      } catch (error) {
+        if ((error as { code?: string })?.code === "23505") continue;
+        throw error;
+      }
     }
+    throw new Error("ROOM_CODE_GENERATION_FAILED");
+  }
+
+  async roomCodeExists(roomCode: string): Promise<boolean> {
+    const result = await pool.query("SELECT 1 FROM quiz_rooms WHERE room_code = $1 LIMIT 1", [roomCode]);
+    return result.rows.length > 0;
+  }
+
+  async insertRoom(input: {
+    ownerId: string;
+    name: string;
+    description?: string | null;
+    roomCode: string;
+    passwordHash: string;
+  }) {
     const result = await pool.query(
-      `INSERT INTO quiz_rooms (owner_id, name, description, room_code, is_active, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, true, NOW(), NOW()) RETURNING *`,
-      [ownerId, name, description || null, roomCode]
+      `INSERT INTO quiz_rooms (owner_id, name, description, room_code, password_hash, is_active, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, true, NOW(), NOW())
+       RETURNING id, owner_id, room_code, name, description, visibility, is_active, created_at, updated_at`,
+      [input.ownerId, input.name, input.description ?? null, input.roomCode, input.passwordHash]
     );
     return result.rows[0];
+  }
+
+  async findRoomByCode(roomCode: string) {
+    const result = await pool.query(
+      `SELECT id, owner_id, name, room_code, password_hash, is_active, registration_form
+       FROM quiz_rooms WHERE room_code = $1 LIMIT 1`,
+      [roomCode]
+    );
+    return result.rows[0] || null;
+  }
+
+  async updateRoomPassword(roomCode: string, ownerId: string, passwordHash: string) {
+    const result = await pool.query(
+      `UPDATE quiz_rooms
+       SET password_hash = $1, updated_at = NOW()
+       WHERE room_code = $2 AND owner_id::text = $3
+       RETURNING id, name, room_code, owner_id`,
+      [passwordHash, roomCode, String(ownerId)]
+    );
+    return result.rows[0] || null;
+  }
+
+  async updateRoomRegistrationForm(
+    roomId: string,
+    ownerId: string,
+    registrationForm: unknown
+  ) {
+    const result = await pool.query(
+      `UPDATE quiz_rooms
+       SET registration_form = $1::jsonb, updated_at = NOW()
+       WHERE id::text = $2 AND owner_id::text = $3
+       RETURNING id, name, room_code, registration_form`,
+      [JSON.stringify(registrationForm), String(roomId), String(ownerId)]
+    );
+    return result.rows[0] || null;
+  }
+
+  async getRoomForMember(roomId: string, userId: string) {
+    const result = await pool.query(
+      `SELECT qr.id, qr.name, qr.room_code, qr.is_active, qr.registration_form,
+              COALESCE(cnt.member_count, 0)::int AS member_count
+       FROM quiz_rooms qr
+       LEFT JOIN (
+         SELECT room_id, COUNT(*) AS member_count
+         FROM room_members GROUP BY room_id
+       ) cnt ON cnt.room_id = qr.id
+       WHERE qr.id::text = $1
+         AND (
+           qr.owner_id::text = $2
+           OR EXISTS (
+             SELECT 1 FROM room_members rm
+             WHERE rm.room_id = qr.id AND rm.user_id::text = $2
+           )
+         )
+       LIMIT 1`,
+      [String(roomId), String(userId)]
+    );
+    return result.rows[0] || null;
   }
 
   async countRoomsByOwner(ownerId: string): Promise<number> {
@@ -50,7 +132,9 @@ export class RoomRepository {
       whereOwner = "AND qr.owner_id = $2";
     }
     const result = await pool.query(
-      `SELECT qr.id, qr.owner_id, qr.name, qr.description, qr.visibility, qr.is_active, qr.created_at, qr.updated_at FROM quiz_rooms qr WHERE qr.id::text = $1 ${whereOwner} LIMIT 1`,
+      `SELECT qr.id, qr.owner_id, qr.name, qr.description, qr.visibility, qr.is_active,
+              qr.registration_form, qr.created_at, qr.updated_at
+       FROM quiz_rooms qr WHERE qr.id::text = $1 ${whereOwner} LIMIT 1`,
       params
     );
     return result.rows[0] || null;
@@ -59,6 +143,7 @@ export class RoomRepository {
   async getRoomMembers(roomId: string) {
     const result = await pool.query(
       `SELECT rm.id as membership_id, rm.room_id, rm.user_id, rm.status, rm.joined_at,
+              rm.registration_data,
               u.id, u.username, u.first_name, u.last_name, u.display_name, u.avatar_id,
               a.url as avatar_url, s.name as status_name
        FROM room_members rm
@@ -76,6 +161,7 @@ export class RoomRepository {
       status: r.status,
       statusName: r.status_name,
       joinedAt: r.joined_at,
+      registrationData: r.registration_data ?? null,
       user: {
         id: String(r.id),
         username: r.username,
@@ -130,6 +216,32 @@ export class RoomRepository {
     }
     await pool.query("UPDATE quiz_rooms SET updated_at = NOW() WHERE id::text=$1", [String(roomId)]);
     return { alreadyExists: false, member: result.rows[0] };
+  }
+
+  /**
+   * Self-service join. Joining twice is a success, not a conflict: the unique
+   * (room_id, user_id) constraint is used for ON CONFLICT DO NOTHING.
+   */
+  async addMemberIdempotent(
+    roomId: string | number,
+    userId: string,
+    role = "student",
+    registrationData: Record<string, string> | null = null
+  ) {
+    const result = await pool.query(
+      `INSERT INTO room_members
+         (room_id, user_id, status, role, registration_data, joined_at, created_at, updated_at)
+       VALUES ($1::int, $2::int, 1, $3, $4::jsonb, NOW(), NOW(), NOW())
+       ON CONFLICT (room_id, user_id) DO NOTHING
+       RETURNING id`,
+      [roomId, userId, role, registrationData ? JSON.stringify(registrationData) : null]
+    );
+
+    if (result.rows.length > 0) {
+      await pool.query("UPDATE quiz_rooms SET updated_at = NOW() WHERE id::text=$1", [String(roomId)]);
+      return { inserted: true };
+    }
+    return { inserted: false };
   }
 
   async removeMember(roomId: string, userId: string) {

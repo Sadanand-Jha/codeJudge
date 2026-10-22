@@ -88,13 +88,16 @@ ${link}
 Link na khule to site kholo aur code daalo: *${show}*`;
   }
 
-  return `📝 *${quiz.title}*
-${questions} • ${statusLine(quiz.status)}
+  return `🎯 *${quiz.title}*
 
-👉 Tap to join:
+📚 ${questions}  •  ${statusLine(quiz.status)}
+
+🔑 *Join code:* \`\`\`${show}\`\`\`
+
+👉 *Join here:*
 ${link}
 
-Code: *${show}*`;
+_Good luck!_ ✨`;
 }
 
 export async function copyText(value: string): Promise<void> {

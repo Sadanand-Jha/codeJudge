@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -23,7 +23,7 @@ import { useData } from "@/lib/hooks/useData";
 import { Skeleton } from "@/components/creator/billing/ui";
 import { cn } from "@/lib/helpers";
 import { deriveQuizStatus, type EffectiveQuizStatus } from "@/lib/quizStatus";
-import { deleteQuiz, getMyCreatedQuizzes, type Quiz } from "@/services/quiz";
+import { copyQuizCode, deleteQuiz, getMyCreatedQuizzes, type Quiz } from "@/services/quiz";
 import { toast } from "@/lib/toast";
 import { WHOLE_QUIZ_AI_ENABLED } from "@/config/creatorFeatures";
 
@@ -561,6 +561,54 @@ function QuizCardItem({
   onDelete: () => void;
 }) {
   const hasAttempts = quiz.attempts > 0;
+  const [shareCode, setShareCode] = useState(quiz.code);
+  const [sharing, setSharing] = useState(false);
+
+  useEffect(() => {
+    if (shareCode) return;
+    let active = true;
+    copyQuizCode(quiz.id)
+      .then((code) => {
+        if (active && code) setShareCode(code);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [shareCode, quiz.id]);
+
+  const shareOnWhatsApp = async () => {
+    if (sharing) return;
+    let code = shareCode || quiz.code;
+    let pendingWindow: Window | null = null;
+    if (!code) {
+      pendingWindow = window.open("", "_blank");
+      if (pendingWindow) pendingWindow.opener = null;
+      setSharing(true);
+      try {
+        code = await copyQuizCode(quiz.id);
+        setShareCode(code);
+      } catch {
+        pendingWindow?.close();
+        toast.error({
+          title: "Could not load join code",
+          description: "The quiz join code could not be loaded. Please try again.",
+        });
+        return;
+      } finally {
+        setSharing(false);
+      }
+    }
+    if (!code) {
+      pendingWindow?.close();
+      toast.error({ title: "Join code unavailable", description: "Please try again in a moment." });
+      return;
+    }
+    const href = `https://wa.me/?text=${encodeURIComponent(buildShareMessage({ ...quiz, code }, "clean"))}`;
+    if (pendingWindow) pendingWindow.location.href = href;
+    else window.open(href, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 8 }}
@@ -626,7 +674,7 @@ function QuizCardItem({
         <button
           type="button"
           onClick={() => onGoTo("edit")}
-          className="inline-flex items-center justify-center rounded-[10px] bg-[var(--qs-brand)] px-4 py-2 text-[13px] font-bold text-[var(--qs-on-brand)] transition-all hover:brightness-110"
+          className="b b-pri sm px-4 py-2"
         >
           Edit
         </button>
@@ -644,17 +692,17 @@ function QuizCardItem({
         >
           Responses
         </button>
-        <a
-          href={`https://wa.me/?text=${encodeURIComponent(buildShareMessage({ ...quiz, code: quiz.code }, "clean"))}`}
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          type="button"
+          onClick={() => void shareOnWhatsApp()}
+          disabled={sharing}
           aria-label={`Share ${quiz.title} on WhatsApp`}
           title="Share on WhatsApp"
-          className="inline-flex items-center justify-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-line)] px-3.5 py-2 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[#25d366] hover:bg-[#25d366]/10"
+          className="inline-flex items-center justify-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-line)] px-3.5 py-2 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[#25d366] hover:bg-[#25d366]/10 disabled:cursor-wait disabled:opacity-60"
         >
           <WhatsAppIcon className="h-4 w-4 text-[#25d366]" />
           Share on WhatsApp
-        </a>
+        </button>
       </div>
     </motion.article>
   );

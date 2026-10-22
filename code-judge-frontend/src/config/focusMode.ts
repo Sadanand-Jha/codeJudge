@@ -45,6 +45,8 @@ export const FOCUS_BLOCKED_STUDENT_PREFIXES: string[] = [
 export const FOCUS_ALLOWED_PREFIXES: string[] = [
   // Student quiz workspace
   "/quiz",
+  // Join-by-code classrooms shared over WhatsApp
+  "/rooms",
   // Separate non-student workspaces
   "/creator",
   "/platform",

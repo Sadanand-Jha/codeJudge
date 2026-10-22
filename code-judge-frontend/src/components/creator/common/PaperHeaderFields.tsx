@@ -202,7 +202,7 @@ export function PaperHeaderFields({
 
       <Field
         label="General instructions"
-        hint="One instruction per line — they get numbered automatically. Leave blank to use the default instructions."
+        hint="These are already used on the PDF. Edit them if you want different wording — one instruction per line. Clear the box to use the defaults."
       >
         <textarea
           value={value.instructions}

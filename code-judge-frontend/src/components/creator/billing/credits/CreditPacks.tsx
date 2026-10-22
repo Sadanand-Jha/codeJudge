@@ -83,10 +83,10 @@ function CurrentPlanCard({ plan }: { plan: CreatorPlan }) {
       </ul>
 
       <Link
-        href="/pricing"
+        href="/creator/billing/plans"
         className="flex w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] py-[15px] text-base font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
       >
-        View monthly plans
+        Compare monthly plans
         <ArrowRight className="h-4 w-4" />
       </Link>
     </article>

@@ -23,6 +23,7 @@
 
 import { Router } from "express";
 import v1Routes from "./v1/index.ts";
+import roomAccessRoutes from "./roomAccess.routes.ts";
 import problemRoutes from "./problem.routes.ts";
 import authRoutes from "./auth.routes.ts"
 import { authenticate } from "../middleware/auth.ts";
@@ -43,6 +44,10 @@ router.use("/auth", authRoutes)
 router.get("/v1/brand/logo", getBrandLogo);
 
 router.use("/v1", v1Routes);
+
+// Join-by-code classrooms. Kept at /api/rooms (outside /v1) because these
+// paths are shared directly with students in WhatsApp messages.
+router.use("/rooms", roomAccessRoutes);
 
 // Alias for spec-required path: GET/PUT /api/quizzes/:quizId/game-config
 // Mirrors /api/v1/user/quiz/:quizId/game-config so task's Curl examples work.

@@ -47,6 +47,7 @@ export interface PaperMeta {
   negativeMarking?: string;
   /** Optional paper set label such as "A" or "B". */
   setName?: string;
+  instructions?: string;
 }
 
 export interface PaperOptions {
@@ -394,17 +395,29 @@ function renderStudentBlock(meta: PaperMeta, options: PaperOptions, student: Pap
 </div>`;
 }
 
-function renderInstructions(meta: PaperMeta, questions: PaperQuestion[]): string {
+export function paperInstructionLines(meta: PaperMeta, questions: PaperQuestion[]): string[] {
   const negative = meta.negativeMarking && meta.negativeMarking.trim() ? meta.negativeMarking.trim() : "None";
   const total = questions.length;
   const hasChoice = questions.some((question) => !question.type || CHOICE_TYPES.has(question.type));
-  const lines = [
+  return [
     `Total questions: ${total}. Questions to attempt: ${total}.`,
     "All questions are compulsory.",
     ...(hasChoice ? ["Choose the most appropriate option for each multiple-choice question."] : []),
     ...(negative.toLocaleLowerCase() !== "none" ? [`Negative marking: ${negative}.`] : []),
     "Write your answers in the answer book unless instructed otherwise.",
   ].slice(0, 6);
+}
+
+export function customInstructionLines(value?: string): string[] {
+  return (value ?? "")
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s*(?:\d+\s*[.):-]\s*|[-•*]\s*)/, "").trim())
+    .filter(Boolean);
+}
+
+function renderInstructions(meta: PaperMeta, questions: PaperQuestion[]): string {
+  const custom = customInstructionLines(meta.instructions);
+  const lines = custom.length ? custom : paperInstructionLines(meta, questions);
   return `<div class="instr">
   <div class="ititle">General instructions</div>
   <ol>${lines.map((line) => `<li>${esc(line)}</li>`).join("")}</ol>

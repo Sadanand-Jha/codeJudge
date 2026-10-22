@@ -26,7 +26,7 @@ import {
 import type { SubjectiveQuestion } from "@/components/creator/tests/sections/paperTypes";
 import { QsSelect } from "@/components/creator/problems/QsSelect";
 import { QuestionHtml, htmlToEditableText } from "@/components/creator/questions/QuestionHtml";
-import { downloadQuestionsPdf } from "@/utils/questionSetExport";
+import { defaultPaperInstructionLines, downloadQuestionsPdf } from "@/utils/questionSetExport";
 import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
 import { PaperExportDialog } from "@/components/creator/common/PaperExportDialog";
 import { DEFAULT_PAPER_HEADER, type PaperHeaderMeta } from "@/utils/paperHeader";
@@ -595,6 +595,9 @@ export function CreateProblemGenerator() {
       ...prev,
       heading: prev.heading.trim() || DEFAULT_PAPER_HEADER.heading,
       subject: prev.subject.trim() || subjectName || "",
+      instructions: prev.instructions.trim()
+        ? prev.instructions
+        : defaultPaperInstructionLines(selectedCount, selectedCount, false).join("\n"),
     }));
     setExportOpen(true);
   }, [selectedCount, subjectName, toast]);

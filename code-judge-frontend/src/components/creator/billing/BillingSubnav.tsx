@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Wallet, ArrowLeftRight, CreditCard, Sparkles } from "lucide-react";
+import { Wallet, ArrowLeftRight, CalendarClock, CreditCard, Sparkles } from "lucide-react";
 import { cn } from "@/lib/helpers";
 
 const BILLING_TABS = [
   { label: "Overview", href: "/creator/billing", icon: Wallet, exact: true },
+  { label: "Monthly plans", href: "/creator/billing/plans", icon: CalendarClock },
+  { label: "AI credits", href: "/creator/billing/credits", icon: Sparkles },
   // Selling tabs disabled for now (routes commented out, components kept):
   // { label: "Earnings", href: "/creator/billing/earnings", icon: TrendingUp },
   { label: "Transactions", href: "/creator/billing/transactions", icon: ArrowLeftRight },
@@ -15,8 +17,7 @@ const BILLING_TABS = [
   // { label: "Refunds", href: "/creator/billing/refunds", icon: RotateCcw },
   // { label: "Tax", href: "/creator/billing/tax", icon: Scale },
   // { label: "Documents", href: "/creator/billing/documents", icon: FolderOpen },
-  { label: "AI Credits", href: "/creator/billing/credits", icon: Sparkles },
-  { label: "Payment Settings", href: "/creator/billing/settings", icon: CreditCard },
+  { label: "Payment settings", href: "/creator/billing/settings", icon: CreditCard },
 ];
 
 export function BillingSubnav() {

@@ -1,5 +1,87 @@
 import apiClient from "@/lib/axios";
-import type { Room } from "@/types/room";
+import type { Room, RoomRegistrationForm } from "@/types/room";
+
+/** Room credentials returned once, immediately after create/reset. */
+export interface RoomCredentials {
+  id: string;
+  name: string;
+  room_code: string;
+  /** Plaintext password — never retrievable again after this response. */
+  password: string;
+}
+
+export interface JoinedRoom {
+  room: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface RoomJoinPreview {
+  room: {
+    id: string;
+    name: string;
+  };
+  registration_form: RoomRegistrationForm;
+}
+
+export interface RoomSummary {
+  id: string;
+  name: string;
+  room_code: string;
+  memberCount: number;
+  registration_form: RoomRegistrationForm;
+}
+
+export async function createRoomWithPassword(payload: { name: string; password?: string }): Promise<RoomCredentials> {
+  const res = await apiClient.post<RoomCredentials>(`/rooms`, payload);
+  return res.data;
+}
+
+export async function resetRoomPassword(roomCode: string): Promise<RoomCredentials> {
+  const res = await apiClient.post<RoomCredentials>(`/rooms/${encodeURIComponent(roomCode)}/reset-password`);
+  return res.data;
+}
+
+export async function previewRoomJoin(payload: {
+  room_code: string;
+  password: string;
+}): Promise<RoomJoinPreview> {
+  const res = await apiClient.post<RoomJoinPreview>(`/rooms/join/form`, payload);
+  return res.data;
+}
+
+export async function joinRoom(payload: {
+  room_code: string;
+  password: string;
+  registration_data?: Record<string, string>;
+}): Promise<JoinedRoom> {
+  const res = await apiClient.post<JoinedRoom>(`/rooms/join`, payload);
+  return res.data;
+}
+
+export async function getRoomSummary(roomId: string): Promise<RoomSummary> {
+  const res = await apiClient.get<RoomSummary>(`/rooms/${encodeURIComponent(roomId)}`);
+  return res.data;
+}
+
+export async function getRoomRegistrationForm(roomId: string): Promise<RoomRegistrationForm> {
+  const res = await apiClient.get<RoomRegistrationForm>(
+    `/rooms/${encodeURIComponent(roomId)}/registration-form`
+  );
+  return res.data;
+}
+
+export async function updateRoomRegistrationForm(
+  roomId: string,
+  form: RoomRegistrationForm
+): Promise<RoomRegistrationForm> {
+  const res = await apiClient.put<RoomRegistrationForm>(
+    `/rooms/${encodeURIComponent(roomId)}/registration-form`,
+    form
+  );
+  return res.data;
+}
 
 export interface SearchedUser {
   id: string;

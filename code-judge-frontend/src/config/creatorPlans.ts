@@ -51,8 +51,8 @@ export const CREATOR_PLANS: CreatorPlan[] = [
     features: [
       "Up to 50 quiz creations",
       "Everything in Basic",
-      "Live and scheduled quizzes",
-      "Advanced analytics and priority support",
+      "No watermark or custom watermark",
+      "Priority support",
     ],
     cta: "Choose Pro",
   },

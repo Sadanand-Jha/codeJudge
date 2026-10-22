@@ -9255,3 +9255,328 @@ textarea {
     width: 100%;
   }
 }
+
+/* ============================================================
+   Pricing pages — deep dark treatment
+   The monthly plans and AI credits pages share the dark,
+   high-contrast look of the credit-pack section. Tokens are
+   scoped to .qp-page and deliberately override the global
+   light palette so the pricing story always stays dark.
+   ============================================================ */
+
+.qs-ui.qs-lp.qp-page {
+  --qs-bg: #080414;
+  --qs-surface: #14102d;
+  --qs-ink: #f4f1ff;
+  --qs-muted: #a8a1c9;
+  --qs-brand: #8f6bff;
+  --qs-on-brand: #0d0920;
+  --qs-line: #2d2557;
+  --qs-ok: #4fd1a1;
+  --qs-okbg: #103225;
+  --qs-bad: #ff7a85;
+  --qs-badbg: #3a1219;
+  --qs-warn: #ffb454;
+  --qs-blue: #7aa7ff;
+  --qs-field: #1b1440;
+  --qs-poly-0: #0a0618;
+  --qs-poly-1: #100b27;
+  --qs-poly-2: #161033;
+  --qs-poly-3: #1d1441;
+  --qs-poly-4: #251a57;
+  --qs-poly-5: #3b2476;
+  --qp-deep: #05020d;
+  --qp-edge: rgba(244, 241, 255, 0.16);
+  --qp-edge-soft: rgba(244, 241, 255, 0.1);
+  --qp-glow: rgba(143, 107, 255, 0.22);
+
+  color-scheme: dark;
+  background:
+    radial-gradient(1100px 580px at 50% -14%, var(--qp-glow), transparent 66%),
+    radial-gradient(760px 460px at 100% 8%, rgba(255, 210, 63, 0.06), transparent 62%),
+    var(--qs-bg);
+  color: var(--qs-ink);
+}
+
+.qs-lp.qp-page nav {
+  background: color-mix(in srgb, var(--qs-bg) 86%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.qs-lp.qp-page .nl a.is-active {
+  color: var(--qs-ink);
+}
+
+.qs-lp.qp-page .nl a.is-active::after {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 2px;
+  margin-top: 5px;
+  border-radius: 99px;
+  background: var(--qs-brand);
+}
+
+.qs-lp.qp-page .btn:not(.pri) {
+  box-shadow: 3px 3px 0 var(--qs-line);
+}
+
+.qs-lp.qp-page .qp-hero {
+  position: relative;
+  padding-top: 86px;
+}
+
+.qs-lp.qp-page .qp-hero::before,
+.qs-lp.qp-page .qp-credit-hero::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -120px;
+  left: 50%;
+  width: min(760px, 92vw);
+  height: 420px;
+  transform: translateX(-50%);
+  background: radial-gradient(closest-side, rgba(143, 107, 255, 0.18), transparent 72%);
+  pointer-events: none;
+}
+
+.qs-lp.qp-page .qp-hero h1 {
+  background: linear-gradient(150deg, #ffffff 24%, #dcd3ff 64%, #a98bff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.qs-lp.qp-page .qp-credit-hero {
+  position: relative;
+}
+
+.qs-lp.qp-page .qp-credit-hero h1 {
+  background: linear-gradient(150deg, #ffffff 22%, #e7e0ff 58%, #b49cff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.qs-lp.qp-page .qp-meta span {
+  background: rgba(20, 16, 45, 0.78);
+  border-color: var(--qp-edge);
+  color: var(--qs-muted);
+  backdrop-filter: blur(8px);
+}
+
+.qs-lp.qp-page .qp-plan,
+.qs-lp.qp-page .qp-pack {
+  border-color: var(--qp-edge);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.qs-lp.qp-page .qp-plan:hover,
+.qs-lp.qp-page .qp-pack:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--qs-brand) 70%, var(--qp-edge));
+}
+
+.qs-lp.qp-page .qp-plan.is-hot,
+.qs-lp.qp-page .qp-pack.is-popular {
+  border-color: var(--qs-sun);
+}
+
+.qs-lp.qp-page .qp-plan.is-hot:hover,
+.qs-lp.qp-page .qp-pack.is-popular:hover {
+  border-color: var(--qs-sun);
+}
+
+.qs-lp.qp-page .qp-plan.is-hot .qp-plan-desc,
+.qs-lp.qp-page .qp-pack.is-popular .qp-pack-desc {
+  color: var(--qs-on-brand);
+  opacity: 0.82;
+}
+
+.qs-lp.qp-page .qp-price b,
+.qs-lp.qp-page .qp-pack-price b,
+.qs-lp.qp-page .qp-credit-coin strong {
+  text-shadow: 0 10px 34px rgba(143, 107, 255, 0.18);
+}
+
+.qs-lp.qp-page .qp-features {
+  border-top-color: var(--qp-edge-soft);
+}
+
+.qs-lp.qp-page .qp-plan.is-hot .qp-features,
+.qs-lp.qp-page .qp-pack.is-popular .qp-features {
+  border-color: color-mix(in srgb, var(--qs-on-brand) 38%, transparent);
+}
+
+.qs-lp.qp-page .qp-includes {
+  border-top-color: var(--qp-edge-soft);
+}
+
+.qs-lp.qp-page .qp-cross {
+  border-color: var(--qp-edge);
+  box-shadow: 6px 6px 0 rgba(143, 107, 255, 0.18);
+}
+
+.qs-lp.qp-page .qp-cross-tag {
+  color: var(--qs-brand);
+}
+
+.qs-lp.qp-page .qp-faq details.fq {
+  border-color: var(--qp-edge-soft);
+}
+
+.qs-lp.qp-page .qp-faq details.fq:hover {
+  border-color: var(--qp-edge);
+}
+
+.qs-lp.qp-page .qp-faq details.fq[open] {
+  border-color: var(--qs-brand);
+}
+
+.qs-lp.qp-page .qp-cta-section .cta {
+  background:
+    radial-gradient(520px 300px at 12% 0%, rgba(255, 255, 255, 0.16), transparent 70%),
+    var(--qs-brand);
+  border: 2px solid var(--qp-edge);
+  box-shadow: 10px 10px 0 rgba(255, 210, 63, 0.92);
+}
+
+.qs-lp.qp-page .qp-credit-visual {
+  background:
+    radial-gradient(300px 220px at 50% -10%, rgba(255, 210, 63, 0.12), transparent 68%),
+    linear-gradient(160deg, #1b133d 0%, #110b29 48%, #0a0620 100%);
+  color: var(--qs-ink);
+  border-color: var(--qp-edge);
+  box-shadow: 12px 12px 0 var(--qs-brand), 0 30px 80px -50px rgba(143, 107, 255, 0.9);
+}
+
+.qs-lp.qp-page .qp-credit-visual-validity {
+  color: var(--qs-muted);
+}
+
+.qs-lp.qp-page .qp-credit-coin {
+  border-color: var(--qp-edge);
+}
+
+.qs-lp.qp-page .qp-credit-visual-price span {
+  color: var(--qs-muted);
+}
+
+.qs-lp.qp-page .qp-credit-section {
+  position: relative;
+  background:
+    radial-gradient(900px 540px at 50% -22%, rgba(143, 107, 255, 0.2), transparent 68%),
+    var(--qp-deep);
+  color: var(--qs-ink);
+}
+
+.qs-lp.qp-page .qp-credit-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(244, 241, 255, 0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(#000, transparent 62%);
+  -webkit-mask-image: linear-gradient(#000, transparent 62%);
+  pointer-events: none;
+}
+
+.qs-lp.qp-page .qp-credit-section .qp-cine-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.qs-lp.qp-page .qp-credit-section .qp-credit-head .t {
+  color: var(--qs-ink);
+}
+
+.qs-lp.qp-page .qp-credit-note {
+  background: rgba(20, 16, 45, 0.9);
+  border-color: var(--qp-edge);
+  color: var(--qs-ink);
+  box-shadow: 6px 6px 0 var(--qs-brand);
+}
+
+.qs-lp.qp-page .qp-credit-note p {
+  color: var(--qs-muted);
+}
+
+.qs-lp.qp-page .qp-credit-section .qp-pack {
+  border-color: var(--qp-edge);
+}
+
+.qs-lp.qp-page .qp-credit-section .qp-pack:not(.is-popular) {
+  background: rgba(20, 16, 45, 0.88);
+  color: var(--qs-ink);
+}
+
+.qs-lp.qp-page .qp-table-wrap {
+  background: rgba(20, 16, 45, 0.9);
+  border-color: var(--qp-edge);
+  color: var(--qs-ink);
+  box-shadow: 8px 8px 0 var(--qs-brand);
+}
+
+.qs-lp.qp-page .qp-credit-section .qp-table th {
+  background: var(--qs-brand);
+  color: var(--qs-on-brand);
+  border-bottom-color: var(--qp-edge);
+}
+
+.qs-lp.qp-page .qp-table td {
+  border-top-color: var(--qp-edge-soft);
+}
+
+.qs-lp.qp-page .qp-table td span {
+  color: var(--qs-muted);
+}
+
+.qs-lp.qp-page .qp-cross-dark {
+  background:
+    radial-gradient(500px 260px at 16% 0%, rgba(143, 107, 255, 0.18), transparent 70%),
+    var(--qp-deep);
+  border-color: var(--qp-edge);
+  color: var(--qs-ink);
+  box-shadow: 8px 8px 0 var(--qs-brand);
+}
+
+.qs-lp.qp-page .qp-cross-dark p {
+  color: var(--qs-muted);
+}
+
+.qs-lp.qp-page .qp-steps .qs-step {
+  background: var(--qs-surface);
+  border-color: var(--qp-edge);
+  box-shadow: 5px 5px 0 rgba(143, 107, 255, 0.2);
+}
+
+.qs-lp.qp-page .qp-step-num {
+  border-color: var(--qp-edge);
+}
+
+.qs-lp.qp-page .qp-pay-secure {
+  color: var(--qs-ok);
+}
+
+.qs-lp.qp-page footer {
+  border-top-color: var(--qp-edge-soft);
+}
+
+@media (max-width: 900px) {
+  .qs-lp.qp-page .qp-credit-section::before {
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qs-lp.qp-page .qp-plan,
+  .qs-lp.qp-page .qp-pack {
+    transition: none;
+  }
+
+  .qs-lp.qp-page .qp-plan:hover,
+  .qs-lp.qp-page .qp-pack:hover {
+    transform: none;
+  }
+}

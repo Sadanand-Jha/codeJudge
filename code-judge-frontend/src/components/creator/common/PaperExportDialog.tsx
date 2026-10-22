@@ -54,7 +54,7 @@ export function PaperExportDialog({
                     Paper details
                   </h2>
                   <p className="mt-0.5 text-xs font-medium text-[var(--qs-muted)]">
-                    Set the heading, institute and date. These appear on the PDF paper.
+                    Set the heading, institute, date and instructions. These appear on the PDF paper.
                   </p>
                 </div>
               </div>

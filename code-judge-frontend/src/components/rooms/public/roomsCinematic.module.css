@@ -1,0 +1,689 @@
+:root {
+  --rooms-dur-instant: 120ms;
+  --rooms-dur-swift: 150ms;
+  --rooms-dur-base: 250ms;
+  --rooms-dur-med: 300ms;
+  --rooms-dur-slow: 500ms;
+  --rooms-dur-title: 600ms;
+  --rooms-dur-tab-out: 200ms;
+  --rooms-dur-tab-in: 300ms;
+  --rooms-dur-curtain: 400ms;
+  --rooms-dur-shake: 350ms;
+  --rooms-dur-pulse: 450ms;
+  --rooms-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --rooms-ease-soft: ease-out;
+}
+
+.logoRise,
+.logoFloat {
+  display: inline-block;
+}
+
+.logoRiseAnimated {
+  animation: rooms-rise-in var(--rooms-dur-slow) var(--rooms-ease-out) both;
+}
+
+.logoFloat {
+  animation: rooms-float 6s ease-in-out infinite;
+}
+
+.toggleFadeAnimated {
+  animation: rooms-fade-in 400ms var(--rooms-ease-out) 500ms both;
+}
+
+.heroCard {
+  position: relative;
+}
+
+.heroCardAnimated {
+  animation: rooms-fade-in 400ms var(--rooms-ease-out) 500ms both;
+}
+
+.pillAnimated {
+  animation: rooms-pill-in 400ms var(--rooms-ease-out) 500ms both;
+  transform-origin: left center;
+}
+
+.wordMask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+
+.word {
+  display: inline-block;
+}
+
+.wordAnimated {
+  animation: rooms-word-rise var(--rooms-dur-title) var(--rooms-ease-out) both;
+  animation-delay: calc(800ms + var(--word-i) * 90ms);
+}
+
+.fadeUpAnimated {
+  animation: rooms-rise-in var(--rooms-dur-slow) var(--rooms-ease-out) var(--fade-delay, 1500ms) both;
+}
+
+.tablistAnimated {
+  animation: rooms-fade-in var(--rooms-dur-slow) var(--rooms-ease-out) 1500ms both;
+}
+
+.staggerItemAnimated {
+  animation: rooms-step-in var(--rooms-dur-slow) var(--rooms-ease-out) both;
+  animation-delay: var(--stagger-delay, 1800ms);
+}
+
+.viewLeave {
+  animation: rooms-tab-out var(--rooms-dur-tab-out) var(--rooms-ease-out) both;
+}
+
+.viewEnter {
+  animation: rooms-tab-in var(--rooms-dur-tab-in) var(--rooms-ease-out) both;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+.revealVisible {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--rooms-dur-slow) var(--rooms-ease-out) var(--reveal-delay, 0ms),
+    transform var(--rooms-dur-slow) var(--rooms-ease-out) var(--reveal-delay, 0ms);
+}
+
+.joinStage,
+.shareStage {
+  position: relative;
+}
+
+.offsetBlock {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.offsetBlockClapper {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 26px;
+  transform: translate(16px, 16px);
+}
+
+.offsetBlockAnimated {
+  animation: rooms-clapper var(--rooms-dur-slow) var(--rooms-ease-out) 2000ms both;
+}
+
+.offsetBlockFill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 26px;
+  background: var(--qs-sun);
+  animation: rooms-breathe 4s ease-in-out infinite;
+}
+
+.joinCard,
+.shareCard {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.cardAnimated {
+  animation: rooms-card-up var(--rooms-dur-slow) var(--rooms-ease-out) 2000ms both;
+}
+
+.root[data-ambient="paused"] .ambient {
+  animation-play-state: paused;
+}
+
+.joinStack {
+  position: relative;
+}
+
+.formLayer {
+  transition: opacity var(--rooms-dur-base) var(--rooms-ease-soft);
+}
+
+.formLayerHidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.joinedLayer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--qs-surface);
+  text-align: center;
+}
+
+.joinedLayer:focus {
+  outline: none;
+}
+
+.joinedLayerReduced {
+  animation: rooms-fade-in var(--rooms-dur-swift) var(--rooms-ease-soft) both;
+}
+
+.joinedCircle {
+  display: grid;
+  width: 4rem;
+  height: 4rem;
+  place-items: center;
+  border: 2px solid var(--qs-ok);
+  border-radius: 9999px;
+  color: var(--qs-ok);
+}
+
+.checkSvg {
+  width: 2rem;
+  height: 2rem;
+}
+
+.checkPath {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.checkPathDrawn {
+  animation: rooms-check-draw var(--rooms-dur-slow) var(--rooms-ease-out) forwards;
+}
+
+.joinedName {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.joinedRevealed .joinedName {
+  animation: rooms-name-up var(--rooms-dur-slow) var(--rooms-ease-out) 500ms both;
+}
+
+.curtain {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.curtainPanel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 51%;
+  background: var(--qs-ink);
+}
+
+.curtainLeft {
+  left: 0;
+  transform: translateX(-101%);
+}
+
+.curtainRight {
+  right: 0;
+  transform: translateX(101%);
+}
+
+.curtain[data-phase="closing"] .curtainLeft {
+  animation: rooms-curtain-close-left var(--rooms-dur-curtain) var(--rooms-ease-out) forwards;
+}
+
+.curtain[data-phase="closing"] .curtainRight {
+  animation: rooms-curtain-close-right var(--rooms-dur-curtain) var(--rooms-ease-out) forwards;
+}
+
+.curtain[data-phase="opening"] .curtainLeft {
+  transform: translateX(0);
+  animation: rooms-curtain-open-left var(--rooms-dur-curtain) var(--rooms-ease-out) forwards;
+}
+
+.curtain[data-phase="opening"] .curtainRight {
+  transform: translateX(0);
+  animation: rooms-curtain-open-right var(--rooms-dur-curtain) var(--rooms-ease-out) forwards;
+}
+
+.codeField {
+  position: relative;
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 2px solid var(--qs-line);
+  border-radius: 12px;
+  background: var(--qs-field);
+}
+
+.codeField:focus-within {
+  border-color: var(--qs-brand);
+  outline: 3px solid var(--qs-brand);
+  outline-offset: 3px;
+}
+
+.codeFieldInvalid,
+.codeFieldInvalid:focus-within {
+  border-color: var(--qs-bad);
+}
+
+.codeFieldPulse::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border: 2px solid var(--qs-brand);
+  border-radius: 14px;
+  opacity: 0;
+  pointer-events: none;
+  animation: rooms-pulse var(--rooms-dur-pulse) var(--rooms-ease-out) 1;
+}
+
+.codeInput {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  font-size: 16px;
+  cursor: text;
+  opacity: 0;
+}
+
+.codeInput:focus-visible {
+  outline: none;
+}
+
+.codeDisplay {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--qs-ink);
+  pointer-events: none;
+}
+
+.codeSlot {
+  display: inline-flex;
+  width: 1.1em;
+  height: 1.4em;
+  align-items: center;
+  justify-content: center;
+}
+
+.codeChar {
+  display: inline-block;
+}
+
+.codeCharPop {
+  animation: rooms-char-pop var(--rooms-dur-instant) var(--rooms-ease-out);
+}
+
+.codeGhost {
+  opacity: 0.32;
+}
+
+.codeDash {
+  display: inline-block;
+  width: 0.62em;
+  opacity: 0;
+  transform: translateX(-2px);
+  text-align: center;
+}
+
+.codeDashVisible {
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    opacity var(--rooms-dur-instant) var(--rooms-ease-soft),
+    transform var(--rooms-dur-instant) var(--rooms-ease-soft);
+}
+
+.helperError {
+  animation: rooms-fade-in 220ms var(--rooms-ease-soft) both;
+}
+
+.shake {
+  animation: rooms-shake var(--rooms-dur-shake) var(--rooms-ease-soft);
+}
+
+.typewriter {
+  display: grid;
+}
+
+.typewriterReserve {
+  grid-area: 1 / 1;
+  visibility: hidden;
+}
+
+.typewriterLive {
+  grid-area: 1 / 1;
+}
+
+.typewriterReserve,
+.typewriterLive {
+  margin: 0;
+  font: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@keyframes rooms-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rooms-pill-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes rooms-word-rise {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes rooms-step-in {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes rooms-clapper {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(16px, 16px);
+  }
+}
+
+@keyframes rooms-breathe {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(2px, 2px);
+  }
+}
+
+@keyframes rooms-card-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rooms-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes rooms-tab-out {
+  to {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+}
+
+@keyframes rooms-tab-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rooms-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rooms-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes rooms-char-pop {
+  from {
+    opacity: 0.6;
+    transform: scale(1.15);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes rooms-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  12.5%,
+  37.5%,
+  62.5% {
+    transform: translateX(-6px);
+  }
+  25%,
+  50%,
+  75% {
+    transform: translateX(6px);
+  }
+  87.5% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes rooms-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.995);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes rooms-curtain-close-left {
+  from {
+    transform: translateX(-101%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes rooms-curtain-close-right {
+  from {
+    transform: translateX(101%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes rooms-curtain-open-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-101%);
+  }
+}
+
+@keyframes rooms-curtain-open-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(101%);
+  }
+}
+
+@keyframes rooms-check-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes rooms-name-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logoRiseAnimated,
+  .toggleFadeAnimated,
+  .heroCardAnimated,
+  .pillAnimated,
+  .wordAnimated,
+  .tablistAnimated,
+  .fadeUpAnimated,
+  .staggerItemAnimated,
+  .offsetBlockAnimated,
+  .cardAnimated,
+  .ambient,
+  .codeCharPop,
+  .codeFieldPulse::after,
+  .checkPathDrawn,
+  .shake {
+    animation: none;
+  }
+
+  .toggleFadeAnimated,
+  .heroCardAnimated,
+  .tablistAnimated,
+  .fadeUpAnimated,
+  .staggerItemAnimated,
+  .cardAnimated {
+    opacity: 1;
+    transform: none;
+  }
+
+  .wordAnimated {
+    transform: none;
+  }
+
+  .offsetBlockAnimated {
+    transform: translate(16px, 16px);
+  }
+
+  .offsetBlockFill {
+    transform: none;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .checkPath {
+    stroke-dashoffset: 0;
+  }
+
+  .joinedLayer .joinedName {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+
+  .viewLeave {
+    animation: rooms-fade-out var(--rooms-dur-swift) var(--rooms-ease-soft) both;
+  }
+
+  .viewEnter,
+  .joinedLayerReduced,
+  .helperError {
+    animation: rooms-fade-in var(--rooms-dur-swift) var(--rooms-ease-soft) both;
+  }
+
+  .formLayer {
+    transition-duration: var(--rooms-dur-swift);
+  }
+
+  .codeDashVisible {
+    transition-duration: var(--rooms-dur-swift);
+  }
+
+  .curtain {
+    display: none;
+  }
+}
