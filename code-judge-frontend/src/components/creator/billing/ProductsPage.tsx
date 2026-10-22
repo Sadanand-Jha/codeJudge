@@ -15,7 +15,6 @@ import {
   DeltaPill,
   formatINR,
 } from "./ui";
-import { PRODUCTS } from "./mockData";
 import type { ProductRevenue } from "./types";
 
 const TYPE_FILTERS = [
@@ -28,7 +27,7 @@ const TYPE_FILTERS = [
 const TYPE_ICON = { test: ShoppingBag, series: Layers, assessment: Sparkles };
 
 export function ProductsPage({ demoState }: { demoState?: "empty" | "error" }) {
-  const { state, data, retry } = useBillingData(() => PRODUCTS as ProductRevenue[], { demoState });
+  const { state, data, retry } = useBillingData(() => [] as ProductRevenue[], { demoState });
   const [filter, setFilter] = useState<"all" | "test" | "series" | "assessment">("all");
 
   const filtered = useMemo(

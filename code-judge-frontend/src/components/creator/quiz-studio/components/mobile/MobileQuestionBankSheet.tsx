@@ -162,7 +162,6 @@ export function MobileQuestionBankSheet({ open, onClose, onAiGenerate }: Props) 
                           <span className="rounded-full border border-border bg-white/[0.03] px-2 py-0.5 text-[11px] font-medium">
                             {typeLabel}
                           </span>
-                          <span>{q.marks} marks</span>
                           <span
                             className={cn(
                               "h-2 w-2 rounded-full",

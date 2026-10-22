@@ -76,12 +76,18 @@ export interface CreatorAIUsage {
   totalThisMonth: number;
 }
 
+export type AICreditPaymentMethod = "upi" | "card" | "netbanking";
+
 export interface AICreditPurchase {
+  /** Backend transaction id. Purchases without one are not shown as transactions. */
+  transactionId?: string;
   packId: string;
   packName: string;
   credits: number;
   price: number;
   timestamp: number;
+  method?: AICreditPaymentMethod;
+  status?: "completed" | "pending" | "failed" | "refunded";
 }
 
 export interface FairUsageStatus {

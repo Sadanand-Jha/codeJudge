@@ -6,6 +6,7 @@ import { cn } from "@/lib/helpers";
 import { getQuestionStatus } from "@/components/quiz/creator/types";
 import { useStudio } from "../StudioProvider";
 import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
+import { toast } from "@/lib/toast";
 
 /**
  * Strips HTML tags and decodes common HTML entities (&nbsp;, &amp;, etc.)
@@ -29,6 +30,7 @@ export function QuestionList({
   onDownloadPdf,
   onSave,
   saving,
+  hasChanges = true,
   saveProgress,
   onToggleSidebar,
 }: {
@@ -36,6 +38,7 @@ export function QuestionList({
   onDownloadPdf?: () => void;
   onSave?: () => void;
   saving?: boolean;
+  hasChanges?: boolean;
   saveProgress?: { saved: number; total: number } | null;
   onToggleSidebar?: () => void;
 }) {
@@ -254,14 +257,24 @@ export function QuestionList({
         </div>
         <button
           type="button"
-          onClick={onSave}
+          onClick={() => {
+            if (!hasChanges) {
+              toast.info({ title: "Nothing to save", description: "You're already up to date." });
+              return;
+            }
+            onSave?.();
+          }}
           disabled={saving}
+          aria-disabled={!hasChanges || undefined}
           aria-busy={saving || undefined}
+          title={!hasChanges && !saving ? "Nothing to save" : undefined}
           className="b b-pri b-full sm mt-2"
         >
           {saving
             ? (saveProgress ? `Saving ${saveProgress.saved}/${saveProgress.total}…` : "Saving…")
-            : "Save changes"}
+            : hasChanges
+              ? "Save changes"
+              : "Nothing to save"}
         </button>
       </div>
     </div>

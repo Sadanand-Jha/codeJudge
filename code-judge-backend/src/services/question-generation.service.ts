@@ -495,7 +495,7 @@ export const generateQuestionsFromFiles = async (
     extras.length > 0 ? ` Each question may also include ${extras.join(", ")}.` : "";
 
   const prompt = `You are a quiz generator. Based strictly on the study material below,
-generate exactly ${clamp(request.numberOfQuestions, 1, 50)} quiz questions.
+generate exactly ${clamp(request.numberOfQuestions, 1, 25)} quiz questions.
 
 Question types to use (mixed): ${questionTypeList}.
 Target difficulty: ${difficultyList}.

@@ -1282,17 +1282,6 @@ Type is inferred from usage/className/props: `primary` (main CTA), `secondary`, 
 - `"Confirm and continue"` — primary — :1590
 - `"Save"` — primary — :1634
 
-### src/components/creator/billing/UpiPayment.tsx
-- `"Retry"` — secondary — :345
-- `"Generate new QR"` — secondary — :370
-- `[icon: RefreshCw]` aria-label `Generate a new QR code` — icon-only — :404
-- `"Verify"` — primary — :493
-- `"Send payment request · {amount}"` — secondary — :519
-- `"Cancel"` — secondary — :548
-- `"Try again"` — secondary — :575, :599
-- `"Pay {amount} with UPI app"` — primary — :610
-- `"Hide QR code" / "Show QR instead"` — secondary — :630
-
 ### src/components/creator/billing/withdraw.tsx
 - `[icon: X]` `Close` — close — :105
 - quick %: 25 / 50 / 75 / MAX — filter — :170

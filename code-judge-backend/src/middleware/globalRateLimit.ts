@@ -1,11 +1,11 @@
-// Global rate limiter: 400 requests per minute per IP, block for 1 day if exceeded.
+// Global rate limiter: 400 requests per minute per IP, block for 30 seconds if exceeded.
 import type { Request, Response, NextFunction } from "express";
 import redisClient from "../config/redis.js";
 import { getClientIp } from "../utils/getClientIp.js";
 
 const MAX_REQUESTS_PER_MINUTE = 400;
 const WINDOW_SECONDS = 60;
-const BLOCK_DURATION_SECONDS = 24 * 60 * 60; // 1 day
+const BLOCK_DURATION_SECONDS = 30;
 
 // Paths that bypass global rate limiting (health checks, etc.)
 const BYPASS_PATHS = new Set(["/health"]);
@@ -27,13 +27,19 @@ export async function globalRateLimit(req: Request, res: Response, next: NextFun
   const countKey = `req_count:${ip}`;
 
   try {
-    // 1. Check if IP is currently blocked (1-day block)
+    // 1. Check if IP is currently blocked (30-second block)
     const blocked = await redisClient.get(blockKey);
     if (blocked) {
       let retryAfter = BLOCK_DURATION_SECONDS;
       try {
         const ttl = await redisClient.ttl(blockKey);
-        if (ttl > 0) retryAfter = ttl;
+        // Shorten blocks created before the 30-second policy was introduced.
+        if (ttl > BLOCK_DURATION_SECONDS) {
+          await redisClient.expire(blockKey, BLOCK_DURATION_SECONDS);
+          retryAfter = BLOCK_DURATION_SECONDS;
+        } else if (ttl > 0) {
+          retryAfter = ttl;
+        }
       } catch {}
 
       res.setHeader("Retry-After", String(retryAfter));
@@ -41,7 +47,7 @@ export async function globalRateLimit(req: Request, res: Response, next: NextFun
       res.setHeader("X-RateLimit-Remaining", "0");
       res.status(429).json({
         success: false,
-        message: `Too many requests. Your IP has been blocked for 1 day due to exceeding ${MAX_REQUESTS_PER_MINUTE} requests per minute. Please try again after 24 hours.`,
+        message: `Too many requests. Your IP has been blocked for 30 seconds due to exceeding ${MAX_REQUESTS_PER_MINUTE} requests per minute. Please try again after ${retryAfter} seconds.`,
         statusCode: 429,
         retryAfter,
       });
@@ -54,7 +60,7 @@ export async function globalRateLimit(req: Request, res: Response, next: NextFun
       await redisClient.expire(countKey, WINDOW_SECONDS);
     }
 
-    // 3. If limit exceeded, block IP for 1 day
+    // 3. If limit exceeded, block IP for 30 seconds
     if (count > MAX_REQUESTS_PER_MINUTE) {
       await redisClient.setEx(blockKey, BLOCK_DURATION_SECONDS, "1");
       // Clean up counter to avoid stale data
@@ -65,7 +71,7 @@ export async function globalRateLimit(req: Request, res: Response, next: NextFun
       res.setHeader("X-RateLimit-Remaining", "0");
       res.status(429).json({
         success: false,
-        message: `Too many requests. You have exceeded ${MAX_REQUESTS_PER_MINUTE} requests per minute. Your IP is now blocked for 1 day.`,
+        message: `Too many requests. You have exceeded ${MAX_REQUESTS_PER_MINUTE} requests per minute. Your IP is now blocked for 30 seconds.`,
         statusCode: 429,
         retryAfter: BLOCK_DURATION_SECONDS,
       });

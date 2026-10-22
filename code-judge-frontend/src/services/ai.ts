@@ -264,6 +264,8 @@ export interface GenerateFromBankOptions {
   subjectId: number;
   chapterId?: number | null;
   topicId?: number | null;
+  chapterIds?: number[];
+  topicIds?: number[];
   kind?: "any" | "theory" | "numerical";
   /** Quiz being authored — lets the backend store generated questions in the bank. */
   quizId?: string | number | null;
@@ -289,8 +291,10 @@ export const generateFromQuestionBank = async (
       hardnessHint: options.hardnessHint,
       syllabus: options.syllabus,
       subjectId: options.subjectId,
-      chapterId: options.chapterId,
-      topicId: options.topicId,
+      chapterId: options.chapterId ?? options.chapterIds?.[0] ?? null,
+      topicId: options.topicId ?? options.topicIds?.[0] ?? null,
+      chapterIds: options.chapterIds,
+      topicIds: options.topicIds,
       kind: options.kind,
       quizId: options.quizId,
     }),

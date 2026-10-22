@@ -27,6 +27,8 @@ import { AiStreamText } from "@/components/ui";
 
 type GeneratorStatus = "idle" | "generating" | "done" | "error";
 
+const MAX_QUESTIONS = 10;
+
 const splitFor = (total: number) => {
   const easy = Math.round(total * 0.4);
   const medium = Math.round(total * 0.3);
@@ -184,15 +186,20 @@ export function QuestionGeneratorPanel() {
   const [effortOpen, setEffortOpen] = useState(false);
   const effortWrapRef = useRef<HTMLDivElement | null>(null);
 
+  const closeEffort = useCallback(() => {
+    setEffortOpen(false);
+    setEffortPreview(0);
+  }, []);
+
   useEffect(() => {
     if (!effortOpen) return;
     const handlePointerDown = (event: MouseEvent | TouchEvent) => {
       if (effortWrapRef.current && !effortWrapRef.current.contains(event.target as Node)) {
-        setEffortOpen(false);
+        closeEffort();
       }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setEffortOpen(false);
+      if (event.key === "Escape") closeEffort();
     };
     document.addEventListener("mousedown", handlePointerDown);
     document.addEventListener("touchstart", handlePointerDown);
@@ -202,13 +209,7 @@ export function QuestionGeneratorPanel() {
       document.removeEventListener("touchstart", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [effortOpen]);
-
-  // Reset the effort preview to "Plus" every time the popover closes, so it
-  // opens fresh on the default instead of remembering the last selection.
-  useEffect(() => {
-    if (!effortOpen) setEffortPreview(0);
-  }, [effortOpen]);
+  }, [effortOpen, closeEffort]);
 
   const [subjectId, setSubjectId] = useState<number | null>(null);
   const [chapterIds, setChapterIds] = useState<number[]>([]);
@@ -238,7 +239,7 @@ export function QuestionGeneratorPanel() {
   }, [total]);
 
   const handleTotalChange = useCallback((next: number) => {
-    const clamped = Math.min(25, Math.max(1, Math.floor(next) || 1));
+    const clamped = Math.min(MAX_QUESTIONS, Math.max(1, Math.floor(next) || 1));
     setTotal(clamped);
     const s = splitFor(clamped);
     setEasy(s.easy);
@@ -250,11 +251,15 @@ export function QuestionGeneratorPanel() {
   }, []);
 
   const handleGenerate = useCallback(async () => {
+    if (total > MAX_QUESTIONS) {
+      setError(`You can generate at most ${MAX_QUESTIONS} questions at a time.`);
+      return;
+    }
     if (sumMismatch || categorySumMismatch || !subjectId) return;
     setError(null);
     setQuestions([]);
     setCopied(false);
-    setEffortOpen(false);
+    closeEffort();
     abortRef.current = new AbortController();
     setStatus("generating");
 
@@ -281,15 +286,16 @@ export function QuestionGeneratorPanel() {
         title: "Questions ready",
         description: `${response.questions.length} questions generated for your selected scope.`,
       });
-    } catch (err: any) {
-      if (err?.name === "CanceledError" || err?.name === "AbortError") {
+    } catch (err) {
+      const errorName = (err as { name?: string } | null)?.name;
+      if (errorName === "CanceledError" || errorName === "AbortError") {
         setStatus("idle");
         return;
       }
-      setError(err?.message || "Failed to generate questions. Please try again.");
+      setError(err instanceof Error ? err.message : "Failed to generate questions. Please try again.");
       setStatus("error");
     }
-  }, [total, easy, medium, hard, theory, numerical, reasoningEffort, subjectId, chapterIds, topicIds, syllabus, sumMismatch, categorySumMismatch, toast]);
+  }, [total, easy, medium, hard, theory, numerical, reasoningEffort, subjectId, chapterIds, topicIds, syllabus, sumMismatch, categorySumMismatch, closeEffort, toast]);
 
   const handleCopyAll = useCallback(async () => {
     if (questions.length === 0) return;
@@ -324,7 +330,10 @@ export function QuestionGeneratorPanel() {
           <div className="relative shrink-0" ref={effortWrapRef}>
             <button
               type="button"
-              onClick={() => setEffortOpen((open) => !open)}
+              onClick={() => {
+                if (effortOpen) closeEffort();
+                else setEffortOpen(true);
+              }}
               disabled={status === "generating"}
               className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-[11px] font-semibold text-text-secondary transition-all hover:border-violet-400/40 hover:bg-card-hover disabled:opacity-50"
             >
@@ -390,14 +399,14 @@ export function QuestionGeneratorPanel() {
             <SectionHeading icon={<Gauge className="h-3.5 w-3.5" />} title="Generation Settings" hint="Counts must add up to the total" />
             <div className="grid gap-4 md:grid-cols-[20fr_45fr_35fr]">
               <div className="md:pr-4">
-                {thinSlider("Number of questions", total, 1, 25, (v) => handleTotalChange(v), status === "generating", "total")}
+                {thinSlider("Number of questions", total, 1, MAX_QUESTIONS, (v) => handleTotalChange(v), status === "generating", "total")}
               </div>
               <div className="md:border-x md:border-border md:px-4">
                 <p className="mb-1.5 text-[11px] font-bold text-text-primary">Difficulty</p>
                 <div className="flex gap-2">
-                  {compactCounter({ label: "Easy", value: easy, onChange: (v) => setEasy(v), max: 25, disabled: status === "generating", labelClass: "text-emerald-600 dark:text-emerald-400", incrementDisabled: sum >= total })}
-                  {compactCounter({ label: "Medium", value: medium, onChange: (v) => setMedium(v), max: 25, disabled: status === "generating", labelClass: "text-amber-600 dark:text-amber-400", incrementDisabled: sum >= total })}
-                  {compactCounter({ label: "Hard", value: hard, onChange: (v) => setHard(v), max: 25, disabled: status === "generating", labelClass: "text-rose-600 dark:text-rose-400", incrementDisabled: sum >= total })}
+                  {compactCounter({ label: "Easy", value: easy, onChange: (v) => setEasy(v), max: MAX_QUESTIONS, disabled: status === "generating", labelClass: "text-emerald-600 dark:text-emerald-400", incrementDisabled: sum >= total })}
+                  {compactCounter({ label: "Medium", value: medium, onChange: (v) => setMedium(v), max: MAX_QUESTIONS, disabled: status === "generating", labelClass: "text-amber-600 dark:text-amber-400", incrementDisabled: sum >= total })}
+                  {compactCounter({ label: "Hard", value: hard, onChange: (v) => setHard(v), max: MAX_QUESTIONS, disabled: status === "generating", labelClass: "text-rose-600 dark:text-rose-400", incrementDisabled: sum >= total })}
                 </div>
                 {sumMismatch ? (
                   <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
@@ -419,8 +428,8 @@ export function QuestionGeneratorPanel() {
               <div className="md:pl-4">
                 <p className="mb-1.5 text-[11px] font-bold text-text-primary">Category</p>
                 <div className="flex gap-2">
-                  {compactCounter({ label: "Theory", value: theory, onChange: (v) => setTheory(v), max: 25, disabled: status === "generating", labelClass: "text-violet-600 dark:text-violet-400", incrementDisabled: categorySum >= total })}
-                  {compactCounter({ label: "Numerical", value: numerical, onChange: (v) => setNumerical(v), max: 25, disabled: status === "generating", labelClass: "text-cyan-600 dark:text-cyan-400", incrementDisabled: categorySum >= total })}
+                  {compactCounter({ label: "Theory", value: theory, onChange: (v) => setTheory(v), max: MAX_QUESTIONS, disabled: status === "generating", labelClass: "text-violet-600 dark:text-violet-400", incrementDisabled: categorySum >= total })}
+                  {compactCounter({ label: "Numerical", value: numerical, onChange: (v) => setNumerical(v), max: MAX_QUESTIONS, disabled: status === "generating", labelClass: "text-cyan-600 dark:text-cyan-400", incrementDisabled: categorySum >= total })}
                 </div>
                 {categorySumMismatch ? (
                   <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">

@@ -17,7 +17,6 @@ import {
   StatusBadge,
   formatINR,
 } from "./ui";
-import { DOCUMENTS } from "./mockData";
 import type { FinancialDocument } from "./types";
 
 const TAB_OPTIONS = [
@@ -29,12 +28,11 @@ const TAB_OPTIONS = [
 
 export function DocumentsPage({ demoState }: { demoState?: "empty" | "error" }) {
   const toast = useToast();
-  const { state, retry } = useBillingData(() => DOCUMENTS as FinancialDocument[], { demoState });
+  const { state, retry } = useBillingData(() => [] as FinancialDocument[], { demoState });
   const [tab, setTab] = useState<"all" | "invoice" | "statement" | "tax">("all");
-  const [docs, setDocs] = useState<FinancialDocument[]>(DOCUMENTS);
+  const [docs] = useState<FinancialDocument[]>([]);
   const [genOpen, setGenOpen] = useState(false);
   const [genMonth, setGenMonth] = useState("2026-07");
-  const [generating, setGenerating] = useState(false);
 
   const filtered = useMemo(
     () => docs.filter((d) => tab === "all" || d.type === tab),
@@ -45,24 +43,11 @@ export function DocumentsPage({ demoState }: { demoState?: "empty" | "error" }) 
     toast.info({ title: `Downloading ${name}`, description: `${format.toUpperCase()} export is being prepared.` });
 
   const generate = () => {
-    setGenerating(true);
-    setTimeout(() => {
-      setGenerating(false);
-      setGenOpen(false);
-      const [y, m] = genMonth.split("-");
-      const label = new Date(Number(y), Number(m) - 1, 1).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", month: "long", year: "numeric" });
-      const doc: FinancialDocument = {
-        id: `doc_gen_${Date.now()}`,
-        name: `Monthly Statement — ${label}`,
-        period: genMonth,
-        generatedAt: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
-        amount: 64280,
-        type: "statement",
-        formats: ["pdf", "excel"],
-      };
-      setDocs((prev) => [doc, ...prev]);
-      toast.success({ title: "Statement generated", description: `Statement for ${label} is ready.` });
-    }, 1400);
+    setGenOpen(false);
+    toast.info({
+      title: "No statements yet",
+      description: "Statements appear after your first completed sale.",
+    });
   };
 
   return (
@@ -248,11 +233,11 @@ export function DocumentsPage({ demoState }: { demoState?: "empty" | "error" }) 
                 className="w-full rounded-xl border border-input-border bg-input-bg px-4 py-3 text-sm text-text-primary outline-none transition-all focus:border-accent focus:shadow-[0_0_0_3px_var(--input-focus-ring)]"
               />
               <div className="mt-5 flex items-center justify-end gap-3">
-                <BillButton variant="ghost" onClick={() => setGenOpen(false)} disabled={generating}>
+                <BillButton variant="ghost" onClick={() => setGenOpen(false)}>
                   Cancel
                 </BillButton>
-                <BillButton onClick={generate} loading={generating} icon={generating ? undefined : <FilePlus2 className="h-4 w-4" />}>
-                  {generating ? "Generating..." : "Generate"}
+                <BillButton onClick={generate} icon={<FilePlus2 className="h-4 w-4" />}>
+                  Generate
                 </BillButton>
               </div>
             </motion.div>

@@ -7,7 +7,7 @@ import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
 import { formatINR } from "./ui";
 import { BillButton, IconButton } from "./ui";
-import { WALLET, WITHDRAWAL_FEE, WITHDRAWAL_FEE_EXCL_GST, WITHDRAWAL_GST, WITHDRAWAL_MIN, WITHDRAWAL_FEE_NOTE } from "./mockData";
+import { WITHDRAWAL_FEE, WITHDRAWAL_FEE_EXCL_GST, WITHDRAWAL_GST, WITHDRAWAL_MIN, WITHDRAWAL_FEE_NOTE } from "@/config/payouts";
 import type { BankAccount } from "./types";
 
 const QUICK_PCTS = [25, 50, 75, 100];
@@ -16,12 +16,16 @@ export function WithdrawDrawer({
   open,
   onClose,
   accounts,
-  available = WALLET.available,
+  available = 0,
+  nextPayoutDate = "the next payout date",
+  onConfirm,
 }: {
   open: boolean;
   onClose: () => void;
   accounts: BankAccount[];
   available?: number;
+  nextPayoutDate?: string;
+  onConfirm?: (args: { amount: number; accountId: string }) => Promise<{ referenceId: string }> | { referenceId: string };
 }) {
   const toast = useToast();
   const [step, setStep] = useState(1);
@@ -58,18 +62,32 @@ export function WithdrawDrawer({
     setAmountDirty(true);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    if (!selectedAccount) return;
+    if (!onConfirm) {
+      toast.error({
+        title: "Withdrawals are not available yet",
+        description: "Connect the payout API before requesting a withdrawal.",
+      });
+      return;
+    }
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      const ref = `WDL_${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-      setReference(ref);
+    try {
+      const result = await onConfirm({ amount: parsed, accountId: selectedAccount });
+      setReference(result.referenceId);
       setStep(4);
       toast.success({
         title: "Withdrawal requested",
-        description: `${formatINR(parsed)} is being processed. Expected by ${WALLET.nextPayoutDate}.`,
+        description: `${formatINR(parsed)} is being processed. Expected by ${nextPayoutDate}.`,
       });
-    }, 1200);
+    } catch {
+      toast.error({
+        title: "Withdrawal failed",
+        description: "The payout could not be requested. Please try again.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -279,7 +297,7 @@ export function WithdrawDrawer({
                         <span className="text-xs text-text-secondary">Estimated arrival</span>
                         <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-500">
                           <ShieldCheck className="h-3.5 w-3.5" />
-                          By {WALLET.nextPayoutDate}
+                          By {nextPayoutDate}
                         </span>
                       </div>
                     </div>
@@ -306,7 +324,7 @@ export function WithdrawDrawer({
                     <h3 className="mt-5 text-lg font-bold text-text-primary">Withdrawal requested</h3>
                     <p className="mt-1 text-sm font-bold text-text-primary tabular-nums">{formatINR(parsed)}</p>
                     <p className="mt-1 text-xs text-text-secondary">
-                      Expected by <span className="font-semibold text-text-primary">{WALLET.nextPayoutDate}</span>
+                      Expected by <span className="font-semibold text-text-primary">{nextPayoutDate}</span>
                     </p>
                     <div className="mt-5 w-full rounded-xl border border-border bg-white/[0.03] p-4">
                       <div className="flex items-center justify-between text-xs">

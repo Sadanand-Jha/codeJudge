@@ -15,7 +15,7 @@
  */
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { QuestionList } from "../components/QuestionList";
 import { QuestionEditor } from "../components/QuestionEditor";
@@ -23,7 +23,7 @@ import { LiveRail } from "../components/LiveRail";
 import { AiGenerateModal } from "../components/AiGenerateModal";
 import { StudentPreviewModal } from "../components/StudentPreviewModal";
 import { useStudio, isQuestionValidationError } from "../StudioProvider";
-import { Plus, ListChecks, Settings2, ChevronLeft, ChevronRight, Save, Eye, X } from "lucide-react";
+import { Plus, ListChecks, Settings2, ChevronLeft, ChevronRight, Save, Eye, X, Download } from "lucide-react";
 import type { CreatorQuestion } from "../types";
 import { downloadQuizPaperPdf, getPaperPdfErrorMessage, type PaperDownloadKind } from "@/utils/paperPdf";
 import { formatPaperDate, type PaperMeta } from "@/utils/paperHtml";
@@ -37,12 +37,8 @@ import { AiStreamText } from "@/components/ui";
 import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
 import { MobileQuestionEditor } from "../components/mobile/MobileQuestionEditor";
 
-function hashState(questions: CreatorQuestion[], info: { title: string; shortDescription: string; fullDescription: string; subject: string; difficulty: string; duration: number; passingMarks: number; tags: string[] }) {
-  return JSON.stringify({ questions, title: info.title, shortDescription: info.shortDescription, fullDescription: info.fullDescription, subject: info.subject, difficulty: info.difficulty, duration: info.duration, passingMarks: info.passingMarks, tags: info.tags });
-}
-
 export function QuestionsStep() {
-  const { state, addQuestion, importQuestionsAndSave, saveToServer, saveProgress, setActiveQuestion, questionsLoading } = useStudio();
+  const { state, addQuestion, importQuestionsAndSave, saveToServer, saveProgress, setActiveQuestion, questionsLoading, questionsDirty: hasChanges, savingToServer } = useStudio();
   const [aiOpen, setAiOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
@@ -56,9 +52,6 @@ export function QuestionsStep() {
   // Mobile sheets
   const [mobileBankOpen, setMobileBankOpen] = useState(false);
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
-
-  const snapshotRef = useRef(hashState(state.questions, state.info));
-  const [hasChanges, setHasChanges] = useState(false);
 
   const openPdfModal = useCallback(async () => {
     if (pdfCode) {
@@ -74,17 +67,11 @@ export function QuestionsStep() {
     }
   }, [pdfCode]);
 
-  useEffect(() => {
-    setHasChanges(hashState(state.questions, state.info) !== snapshotRef.current);
-  }, [state.questions, state.info]);
-
   const handleSave = useCallback(async () => {
-    if (saving) return;
+    if (saving || !hasChanges) return;
     setSaving(true);
     try {
       await saveToServer();
-      snapshotRef.current = hashState(state.questions, state.info);
-      setHasChanges(false);
       toast.success({ title: "Saved", description: "Your changes have been saved." });
     } catch (err) {
       if (isQuestionValidationError(err)) return;
@@ -92,14 +79,10 @@ export function QuestionsStep() {
     } finally {
       setSaving(false);
     }
-  }, [saving, saveToServer, state.questions, state.info]);
+  }, [saving, hasChanges, saveToServer]);
 
   const handleAiQuestions = async (questions: CreatorQuestion[]) => {
     await importQuestionsAndSave(questions);
-    snapshotRef.current = hashState([...state.questions.filter((question) =>
-      question.title.trim() || question.options.some((option) => option.content.trim())
-    ), ...questions], state.info);
-    setHasChanges(false);
   };
 
   const paperMeta: PaperMeta = {
@@ -178,6 +161,16 @@ export function QuestionsStep() {
               onClick={() => setAiOpen(true)}
               className="shrink-0"
             />
+            <button
+              onClick={() => void openPdfModal()}
+              disabled={state.questions.length === 0}
+              aria-label="Download PDF"
+              title={state.questions.length === 0 ? "Add a question to download a PDF" : "Download PDF"}
+              className="flex shrink-0 items-center gap-1 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 sm:px-3 py-2 text-xs font-bold text-[var(--qs-ink)] disabled:opacity-40"
+            >
+              <Download className="h-3.5 w-3.5 shrink-0" />
+              PDF
+            </button>
             <button
               onClick={() => setMobileSettingsOpen(true)}
               className="flex shrink-0 items-center gap-1 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 sm:px-3 py-2 text-xs font-bold text-[var(--qs-ink)]"
@@ -260,12 +253,27 @@ export function QuestionsStep() {
         {state.activeQuestionId && (
           <div className="mt-2 flex w-full max-w-full min-w-0 items-center gap-2 overflow-hidden rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2">
             <button
-              onClick={handleSave}
-              disabled={!hasChanges || saving}
-              className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-3 text-sm font-bold text-[var(--qs-ink)] disabled:opacity-40"
+              onClick={() => {
+                if (!hasChanges) {
+                  toast.info({ title: "Nothing to save", description: "You're already up to date." });
+                  return;
+                }
+                void handleSave();
+              }}
+              disabled={saving || savingToServer}
+              aria-disabled={!hasChanges || undefined}
+              aria-busy={saving || savingToServer || undefined}
+              title={!hasChanges && !saving && !savingToServer ? "Nothing to save" : undefined}
+              className={`flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[12px] border-2 bg-[var(--qs-surface)] py-3 text-sm font-bold text-[var(--qs-ink)] transition-transform active:translate-x-[3px] active:translate-y-[3px] active:shadow-none disabled:opacity-40 ${
+                hasChanges
+                  ? "border-[var(--qs-ink)] shadow-[3px_3px_0_var(--qs-sun)]"
+                  : "border-[var(--qs-line)]"
+              }`}
             >
               <Save className="h-4 w-4 shrink-0" />
-              <span className="truncate">{saving ? "Saving…" : "Save"}</span>
+              <span className="truncate">
+                {saving || savingToServer ? "Saving…" : hasChanges ? "Save" : "Saved"}
+              </span>
             </button>
             <AiGenerateButton
               size="md"
@@ -312,7 +320,7 @@ export function QuestionsStep() {
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0"}
           `}
         >
-          <QuestionList onAiGenerate={() => setAiOpen(true)} onDownloadPdf={openPdfModal} onSave={handleSave} saving={saving} saveProgress={saveProgress} onToggleSidebar={() => setSidebarOpen(false)} />
+          <QuestionList onAiGenerate={() => setAiOpen(true)} onDownloadPdf={openPdfModal} onSave={handleSave} saving={saving} hasChanges={hasChanges} saveProgress={saveProgress} onToggleSidebar={() => setSidebarOpen(false)} />
         </aside>
 
         <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
@@ -372,7 +380,7 @@ export function QuestionsStep() {
           )}
         </main>
 
-        <div className={`${rightCollapsed ? "w-10" : "w-[340px]"} hidden shrink-0 xl:flex`}>
+        <div className={`${rightCollapsed ? "w-10" : "w-[340px]"} hidden h-[calc(100dvh-13rem)] max-h-full min-h-0 shrink-0 xl:flex`}>
           <LiveRail onDownloadPdf={openPdfModal} onStudentPreview={() => setStudentPreviewOpen(true)} collapsed={rightCollapsed} onToggle={() => setRightCollapsed(!rightCollapsed)} />
         </div>
 
@@ -401,6 +409,7 @@ export function QuestionsStep() {
         defaultSubjectId={state.info.subjectId ? Number(state.info.subjectId) || null : null}
         defaultSubjectName={state.info.subject || undefined}
         quizId={state.serverQuizId ?? null}
+        currentQuestionCount={state.questions.length}
       />
 
       <StudentPreviewModal

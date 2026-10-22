@@ -32,8 +32,11 @@ export interface QuestionBankSelectionRequest {
   /** Creator-provided syllabus/topics used to scope the generated questions. */
   syllabus?: string;
   subjectId: number;
+  /** Legacy single-selection fields kept for older clients. */
   chapterId?: number | null;
   topicId?: number | null;
+  chapterIds?: number[];
+  topicIds?: number[];
   kind?: "any" | "theory" | "numerical";
   /** Quiz these questions are being generated for (optional). */
   quizId?: number | null;
@@ -461,7 +464,11 @@ export async function deleteUserBankQuestion(questionId: number, userId: number)
 export const generateFromQuestionBank = async (
   request: QuestionBankSelectionRequest
 ): Promise<QuestionBankSelectionResult> => {
-  const numberOfQuestions = clamp(request.numberOfQuestions || 10, 1, 50);
+  const requestedQuestions = Number(request.numberOfQuestions) || 10;
+  if (requestedQuestions > 25) {
+    throw new Error("You can generate at most 25 questions at a time.");
+  }
+  const numberOfQuestions = clamp(requestedQuestions, 1, 25);
 
   let easy = request.easyCount;
   let medium = request.mediumCount;
@@ -495,32 +502,54 @@ export const generateFromQuestionBank = async (
   }
 
   const subjectId = Number(request.subjectId);
-  const chapterId = request.chapterId == null ? null : Number(request.chapterId);
-  const topicId = request.topicId == null ? null : Number(request.topicId);
+  const chapterIds = [
+    ...new Set(
+      [
+        ...(Array.isArray(request.chapterIds) ? request.chapterIds : []),
+        ...(request.chapterId != null ? [request.chapterId] : []),
+      ]
+        .map(Number)
+        .filter((id) => Number.isInteger(id) && id > 0)
+    ),
+  ];
+  const topicIds = [
+    ...new Set(
+      [
+        ...(Array.isArray(request.topicIds) ? request.topicIds : []),
+        ...(request.topicId != null ? [request.topicId] : []),
+      ]
+        .map(Number)
+        .filter((id) => Number.isInteger(id) && id > 0)
+    ),
+  ];
+  const chapterId = chapterIds[0] ?? null;
+  const topicId = topicIds[0] ?? null;
   const quizId = request.quizId == null ? null : Number(request.quizId);
   const createdBy = request.createdBy == null ? null : Number(request.createdBy);
   const kind = String(request.kind ?? "any").toLowerCase();
   if (!Number.isInteger(subjectId) || subjectId <= 0) throw new Error("Select a subject.");
   if (quizId !== null && (!Number.isInteger(quizId) || quizId <= 0)) throw new Error("Select a valid quiz.");
-  if (topicId !== null && chapterId === null) throw new Error("Select a chapter before selecting a topic.");
+  if (topicIds.length > 0 && chapterIds.length === 0) {
+    throw new Error("Select at least one chapter before selecting topics.");
+  }
   if (!["any", "theory", "numerical"].includes(kind)) throw new Error("Select a valid category.");
 
   const scopeCatalog = await loadQuestionScope({
     subjectId,
-    chapterIds: chapterId !== null ? [chapterId] : [],
-    topicIds: topicId !== null ? [topicId] : [],
+    chapterIds,
+    topicIds,
   });
   const scopeFallback: QuestionScopeFallback = { chapterId, topicId };
   const subjectName = scopeCatalog.subjectName;
-  const chapterName = chapterId !== null
-    ? scopeCatalog.chapters.find((chapter) => chapter.id === chapterId)?.name ?? ""
-    : "";
-  const topicName = topicId !== null
-    ? scopeCatalog.topics.find((topic) => topic.id === topicId)?.name ?? ""
-    : "";
+  const chapterNames = chapterIds
+    .map((id) => scopeCatalog.chapters.find((chapter) => chapter.id === id)?.name ?? "")
+    .filter(Boolean);
+  const topicNames = topicIds
+    .map((id) => scopeCatalog.topics.find((topic) => topic.id === id)?.name ?? "")
+    .filter(Boolean);
 
   const syllabus = request.syllabus?.trim();
-  const scopeTags = [subjectName, chapterName, topicName].filter(Boolean);
+  const scopeTags = [subjectName, ...chapterNames, ...topicNames].filter(Boolean);
   const scopeLines = [
     formatQuestionScope(scopeCatalog),
     syllabus ? `Syllabus / topics supplied by the creator:\n"""\n${syllabus}\n"""` : "",

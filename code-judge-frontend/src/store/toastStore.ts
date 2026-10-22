@@ -8,6 +8,7 @@ import type { ToastItem, ToastOptions, ToastType } from "@/types/toast";
 
 const MAX_VISIBLE = 4;
 const DEFAULT_DURATION = 3000;
+const DUPLICATE_WINDOW_MS = 1500;
 
 let toastIdCounter = 0;
 
@@ -48,10 +49,20 @@ interface ToastState {
   clearToasts: () => void;
 }
 
-export const useToastStore = create<ToastState>((set) => ({
+export const useToastStore = create<ToastState>((set, get) => ({
   toasts: [],
 
   addToast: (type, options) => {
+    const description = options.description ?? "";
+    const duplicate = get().toasts.find(
+      (toast) =>
+        toast.type === type &&
+        toast.title === options.title &&
+        toast.description === description &&
+        Date.now() - toast.createdAt < DUPLICATE_WINDOW_MS
+    );
+    if (duplicate) return duplicate.id;
+
     const id = generateId();
     const item = createToastItem(type, options);
 

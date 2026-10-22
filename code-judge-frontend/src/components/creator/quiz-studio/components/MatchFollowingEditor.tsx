@@ -681,52 +681,17 @@ export function MatchFollowingEditor() {
                     {/* Scoring */}
                     <div>
                       <h4 className="text-xs font-semibold uppercase tracking-wider text-text-muted">Scoring</h4>
-                      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                        <label className="flex flex-col gap-1.5">
-                          <span className="text-xs font-medium text-text-secondary">Marks</span>
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            value={q.marks}
-                            onChange={(e) => {
-                              const v = e.target.value.replace(/[^0-9.]/g, "");
-                              update({ marks: v === "" ? 0 : Math.max(0, Number(v) || 0) });
-                            }}
-                            className="h-9 rounded-xl border border-border bg-card px-3 text-sm"
-                          />
-                        </label>
+                      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2.5">
                           <div>
                             <p className="text-xs font-medium text-text-primary">Partial marking</p>
-                            <p className="text-[11px] text-text-muted">Proportional marks</p>
+                            <p className="text-[11px] text-text-muted">Proportional credit for matched pairs</p>
                           </div>
                           <Toggle enabled={!!q.partialMarking} onToggle={() => update({ partialMarking: !q.partialMarking })} />
                         </div>
-                        <div className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2.5">
-                          <div>
-                            <p className="text-xs font-medium text-text-primary">Negative marking</p>
-                            <p className="text-[11px] text-text-muted">Penalty for wrong</p>
-                          </div>
-                          <Toggle enabled={!!q.negativeMarkingEnabled} onToggle={() => update({ negativeMarkingEnabled: !q.negativeMarkingEnabled })} />
-                        </div>
                       </div>
                       {q.partialMarking && (
-                        <p className="mt-2 text-[11px] text-text-muted">Award proportional marks for partially correct matches.</p>
-                      )}
-                      {q.negativeMarkingEnabled && (
-                        <label className="mt-3 flex items-center gap-2 text-xs">
-                          <span className="text-text-secondary">Negative marks</span>
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            value={q.negativeMarks ?? 0}
-                            onChange={(e) => {
-                              const v = e.target.value.replace(/[^0-9.]/g, "");
-                              update({ negativeMarks: v === "" ? 0 : Math.max(0, Number(v) || 0) });
-                            }}
-                            className="h-7 w-20 rounded-lg border border-border bg-card px-2 text-xs"
-                          />
-                        </label>
+                        <p className="mt-2 text-[11px] text-text-muted">Award proportional credit for partially correct matches.</p>
                       )}
                     </div>
 
@@ -777,7 +742,7 @@ export function MatchFollowingEditor() {
             </AnimatePresence>
           </div>
 
-          <p className="text-center text-[11px] text-text-muted">Question {activeIdx + 1} · {pairCount} pairs · Marks {q.marks} · {q.difficulty}</p>
+          <p className="text-center text-[11px] text-text-muted">Question {activeIdx + 1} · {pairCount} pairs · {q.difficulty}</p>
         </div>
       </div>
 

@@ -28,6 +28,11 @@ import {
   type CreditPurchasePack,
   type PackOrderSummary,
 } from "@/services/aiCredits";
+import type { AICreditPaymentMethod } from "@/types/aiCredits";
+
+function paymentMethod(method: string): AICreditPaymentMethod {
+  return method === "card" || method === "netbanking" ? method : "upi";
+}
 
 export function AICreditsPage({
   demoState,
@@ -90,12 +95,18 @@ export function AICreditsPage({
       });
       setProcessingNote("Verifying payment…");
       const verified = await verifyCreditPayment(order, payment);
+      await purchasePack(summary.pack.id, {
+        transactionId: verified.transactionId,
+        method: paymentMethod(args.method),
+        status: "completed",
+      });
       await refreshCredits();
+      const newBalance = useAICreditsStore.getState().balance.totalRemaining;
       setReceipt({
         transactionId: verified.transactionId,
         packName: summary.pack.name,
         credits: verified.credits,
-        newBalance: verified.newBalance,
+        newBalance: newBalance || verified.newBalance,
       });
       setPhase("success");
       toast.success({
@@ -110,41 +121,7 @@ export function AICreditsPage({
 
   const handlePay = async (method: string) => {
     if (!selected) return;
-    // UPI opens the QR page first; credits are confirmed after the scan.
-    if (method === "upi") {
-      setPhase("upi");
-      setPhaseError(null);
-      return;
-    }
     await runPurchase({ packId: selected.pack.id, method });
-  };
-
-  const handleUpiSuccess = async (orderId: string) => {
-    if (!selected) return;
-    const summary = selected;
-    setPhase("processing");
-    setPhaseError(null);
-    setProcessingNote("Confirming your payment…");
-    try {
-      await purchasePack(summary.pack.id);
-      const newBalance = useAICreditsStore.getState().balance.totalRemaining;
-      setReceipt({
-        transactionId: orderId,
-        packName: summary.pack.name,
-        credits: summary.credits,
-        newBalance,
-      });
-      setPhase("success");
-      toast.success({
-        title: "Credits added",
-        description: `${summary.credits} AI credits are now available.`,
-      });
-    } catch (err: unknown) {
-      setPhaseError(
-        getApiErrorMessage(err, "Payment succeeded but credits could not be added. Please contact support.")
-      );
-      setPhase("failed");
-    }
   };
 
   return (
@@ -211,7 +188,6 @@ export function AICreditsPage({
             receipt={receipt}
             onClose={closeDialog}
             onPay={handlePay}
-            onUpiSuccess={handleUpiSuccess}
             onBack={() => {
               setPhase("summary");
               setPhaseError(null);

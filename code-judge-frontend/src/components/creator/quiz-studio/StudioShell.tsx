@@ -9,6 +9,7 @@ import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import { useStudio, useSaveStatus, isQuestionValidationError } from "./StudioProvider";
 import { toast } from "@/lib/toast";
+import { getApiErrorMessage } from "@/lib/apiError";
 
 const STEP_HELP: Record<string, { title: string; intro: string; items: string[] }> = {
   setup: {
@@ -185,13 +186,14 @@ function StudioHelpButton() {
 
 export function StudioHeader() {
   const router = useRouter();
-  const { state, updateInfo, prevStep, nextStep, prevMobileStep, nextMobileStep, stepIndex, saveToServer, mobileSteps, mobileStepIndex, editMode } = useStudio();
+  const { state, updateInfo, prevStep, nextStep, prevMobileStep, nextMobileStep, stepIndex, saveToServer, mobileSteps, mobileStepIndex, editMode, questionsDirty, savingToServer } = useStudio();
   const { status, lastSaved } = useSaveStatus();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(state.info.title);
   const [continuing, setContinuing] = useState(false);
   const [saving, setSaving] = useState(false);
   const isMobileLast = mobileStepIndex !== -1 && mobileStepIndex === mobileSteps.length - 1;
+  const saveDisabled = state.step === "questions" && !questionsDirty;
   const label = state.info.title.trim();
   const activeIdx = state.questions.findIndex((q) => q.id === state.activeQuestionId);
   const total = state.questions.length;
@@ -208,13 +210,15 @@ export function StudioHeader() {
   };
 
   const handleSave = async () => {
-    if (saving) return;
+    if (saving || savingToServer || saveDisabled) return;
     setSaving(true);
     try {
       await saveToServer();
       toast.success({ title: "Saved", description: "Your quiz has been saved." });
     } catch (err) {
-      if (!isQuestionValidationError(err)) toast.error({ title: "Could not save", description: err instanceof Error ? err.message : "Something went wrong." });
+      if (!isQuestionValidationError(err)) {
+        toast.error({ title: "Could not save", description: getApiErrorMessage(err, "Something went wrong.") });
+      }
     } finally {
       setSaving(false);
     }
@@ -289,12 +293,25 @@ export function StudioHeader() {
           {!editMode && (
             <button
               type="button"
-              onClick={handleSave}
-              disabled={saving}
+              onClick={() => {
+                if (saveDisabled) {
+                  toast.info({ title: "Nothing to save", description: "You're already up to date." });
+                  return;
+                }
+                void handleSave();
+              }}
+              disabled={saving || savingToServer}
+              aria-disabled={saveDisabled || undefined}
               aria-busy={saving || undefined}
-              className={cn("b sm min-w-0 flex-1", saving && "loading")}
+              title={saveDisabled ? "Nothing to save" : undefined}
+              className={cn(
+                "b sm min-w-0 flex-1 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[3px_3px_0_var(--qs-sun)]",
+                "active:translate-x-[3px] active:translate-y-[3px] active:shadow-none",
+                (saving || savingToServer) && "loading",
+                saveDisabled && "border-[var(--qs-line)] shadow-none"
+              )}
             >
-              {saving ? "Saving…" : "Save"}
+              {saving || savingToServer ? "Saving…" : saveDisabled ? "Saved" : "Save"}
             </button>
           )}
           <button

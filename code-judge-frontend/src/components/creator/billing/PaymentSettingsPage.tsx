@@ -17,7 +17,6 @@ import {
   MoreHorizontal,
   Plus,
   ShieldAlert,
-  ShieldCheck,
   Smartphone,
   Wallet,
   X,
@@ -34,13 +33,7 @@ import {
   formatINR,
 } from "./ui";
 import { WithdrawDrawer } from "./withdraw";
-import {
-  BANK_ACCOUNTS,
-  PAYOUT_SCHEDULE,
-  NOTIFICATION_SETTINGS,
-  AUDIT_LOG,
-  WITHDRAWAL_MIN,
-} from "./mockData";
+import { WITHDRAWAL_MIN } from "@/config/payouts";
 import type {
   BankAccount,
   PaymentNotificationSetting,
@@ -73,10 +66,10 @@ interface AuditItem {
   device?: string;
 }
 
-const SUMMARY = {
-  available: 12480,
-  pending: 1950,
-  lastActivity: "20 Aug 2026, 8:14 PM",
+const EMPTY_SUMMARY = {
+  available: 0,
+  pending: 0,
+  lastActivity: "No activity yet",
 };
 
 const DAILY_LIMIT = 200000;
@@ -86,13 +79,6 @@ const WEEKDAY_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "F
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const MONDAY_FIRST = [1, 2, 3, 4, 5, 6, 0];
 const MONTHLY_DAYS = ["1", "5", "10", "15", "20", "25", "last"];
-
-const IFSC_LOOKUP: Record<string, { bank: string; branch: string }> = {
-  HDFC0001234: { bank: "HDFC Bank", branch: "Fort, Mumbai" },
-  ICIC0007710: { bank: "ICICI Bank", branch: "Andheri West, Mumbai" },
-  SBIN0060231: { bank: "State Bank of India", branch: "Connaught Place, New Delhi" },
-  UTIB0000456: { bank: "Axis Bank", branch: "Koramangala, Bengaluru" },
-};
 
 const NOTIF_GROUPS: Array<{ title: string; ids: PaymentNotificationSetting[] }> = [
   { title: "Earnings", ids: ["payment_received", "weekly_summary"] },
@@ -525,8 +511,8 @@ export interface PaymentSettingsPageProps {
 }
 
 const INITIAL_SCHED: SchedState = {
-  mode: PAYOUT_SCHEDULE.mode,
-  weeklyDay: PAYOUT_SCHEDULE.dayOfWeek,
+  mode: "manual",
+  weeklyDay: 1,
   monthlyDay: "1",
 };
 
@@ -537,39 +523,24 @@ export function PaymentSettingsPage({
   const { state, retry } = useBillingData(() => ({ ok: true }), { demoState });
   const [today] = useState(() => new Date());
 
-  const kycComplete = true;
+  const kycComplete = false;
 
-  const [accounts, setAccounts] = useState<PayoutAccount[]>(BANK_ACCOUNTS);
-  const [upi, setUpi] = useState<string | null>("sa••••@okhdfcbank");
+  const [accounts, setAccounts] = useState<PayoutAccount[]>([]);
+  const [upi, setUpi] = useState<string | null>(null);
   const [sched, setSched] = useState<SchedState>(INITIAL_SCHED);
   const [savedSched, setSavedSched] = useState<SchedState>(INITIAL_SCHED);
 
   const [events, setEvents] = useState<Record<PaymentNotificationSetting, boolean>>(() => {
-    const base = Object.fromEntries(NOTIFICATION_SETTINGS.map((n) => [n.id, n.enabled])) as Record<PaymentNotificationSetting, boolean>;
-    return { ...base, security_alerts: true };
+    const base = Object.fromEntries(
+      NOTIF_GROUPS.flatMap((group) => group.ids).map((id) => [id, false])
+    ) as Record<PaymentNotificationSetting, boolean>;
+    return base;
   });
-  const [channels, setChannels] = useState({ email: true, sms: true, whatsapp: false });
+  const [channels, setChannels] = useState({ email: false, sms: false, whatsapp: false });
   const [saveNote, setSaveNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [confirmOff, setConfirmOff] = useState<PaymentNotificationSetting | null>(null);
 
-  const [audit, setAudit] = useState<AuditItem[]>(() => {
-    const mapped: AuditItem[] = AUDIT_LOG.map((e) => ({
-      id: e.id,
-      label: e.label,
-      detail: e.detail,
-      time: e.time,
-      kind: e.kind === "login" ? "security" : e.kind,
-      device: "Chrome on Windows, New Delhi",
-    }));
-    return [
-      ...mapped.slice(0, 2),
-      { id: "aud_6", label: "Withdrawal failed", detail: "₹22,800 → HDFC Bank •••• 4821 · Incorrect IFSC", time: "9 Jul 2026, 3:20 PM", kind: "withdraw" as AuditKind, failed: true, device: "Chrome on Windows, New Delhi" },
-      ...mapped.slice(2, 4),
-      { id: "aud_7", label: "UPI ID updated", detail: "sa••••@okhdfcbank verified", time: "2 Jul 2026, 12:05 PM", kind: "account" as AuditKind, device: "Safari on iPhone, Mumbai" },
-      mapped[4],
-      { id: "aud_8", label: "Payout schedule changed", detail: "Manual → Weekly (Monday)", time: "25 Jun 2026, 10:44 AM", kind: "settings" as AuditKind, device: "Chrome on Mac, Bengaluru" },
-    ];
-  });
+  const [audit, setAudit] = useState<AuditItem[]>([]);
   const [auditFilter, setAuditFilter] = useState<AuditFilter>("all");
   const [auditShown, setAuditShown] = useState(5);
 
@@ -591,12 +562,12 @@ export function PaymentSettingsPage({
   const pushAudit = (item: Omit<AuditItem, "id" | "time">) =>
     setAudit((prev) => [{ ...item, id: `aud_${Date.now()}`, time: "Just now" }, ...prev]);
 
-  const canWithdraw = kycComplete && (accounts.length > 0 || upi !== null) && SUMMARY.available >= WITHDRAWAL_MIN;
+  const canWithdraw = kycComplete && (accounts.length > 0 || upi !== null) && EMPTY_SUMMARY.available >= WITHDRAWAL_MIN;
   const withdrawHint = !kycComplete
     ? "Complete KYC to enable withdrawals"
     : accounts.length === 0 && upi === null
       ? "Add a payout account first"
-      : SUMMARY.available < WITHDRAWAL_MIN
+      : EMPTY_SUMMARY.available < WITHDRAWAL_MIN
         ? `Minimum withdrawal is ${formatINR(WITHDRAWAL_MIN)}`
         : undefined;
 
@@ -736,7 +707,7 @@ export function PaymentSettingsPage({
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <p className="qs-display text-[26px] font-extrabold leading-none tracking-tight tabular-nums text-[var(--qs-ink)]">
-                  {formatINR(SUMMARY.available)}
+                  {formatINR(EMPTY_SUMMARY.available)}
                 </p>
                 <span title={withdrawHint} className="inline-flex">
                   <BillButton variant="primary" className="h-8 px-3 text-[11px]" disabled={!canWithdraw} onClick={doWithdraw}>
@@ -755,7 +726,7 @@ export function PaymentSettingsPage({
                 </span>
               </p>
               <p className="qs-display mt-2 text-[26px] font-extrabold leading-none tracking-tight tabular-nums text-[var(--qs-ink)]">
-                {formatINR(SUMMARY.pending)}
+                {formatINR(EMPTY_SUMMARY.pending)}
               </p>
               <p className="mt-1.5 text-[12px] text-[var(--qs-muted)]">Clears in up to 3 days</p>
             </div>
@@ -776,7 +747,7 @@ export function PaymentSettingsPage({
               </p>
               <p className="mt-2 flex items-center gap-1.5 text-[14px] font-bold tabular-nums text-[var(--qs-ink)]">
                 <Lock className="h-3.5 w-3.5 shrink-0 text-[var(--qs-muted)]" aria-hidden="true" />
-                {SUMMARY.lastActivity}
+                {EMPTY_SUMMARY.lastActivity}
               </p>
               <p className="mt-1.5 text-[12px] text-[var(--qs-muted)]">Secure account activity</p>
             </div>
@@ -833,9 +804,13 @@ export function PaymentSettingsPage({
                               Primary
                             </span>
                           )}
-                          {acc.verified && (
+                          {acc.verified ? (
                             <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--qs-ok)]/30 bg-[var(--qs-okbg)] px-2 py-0.5 text-[11px] font-bold text-[var(--qs-ok)] ">
                               <Check className="h-3 w-3" aria-hidden="true" /> Verified
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full border border-[var(--qs-line)] px-2 py-0.5 text-[11px] font-bold text-[var(--qs-muted)] ">
+                              Pending
                             </span>
                           )}
                         </p>
@@ -1227,11 +1202,11 @@ export function PaymentSettingsPage({
                 ifsc: data.ifsc,
                 upiId: "",
                 isPrimary: accounts.length === 0,
-                verified: true,
+                verified: false,
               };
               setAccounts((prev) => [...prev, acc]);
               pushAudit({ label: "Bank account added", detail: `${data.bankName} ${data.maskedNumber}`, kind: "account", device: "Chrome on Windows, New Delhi" });
-              toast.success({ title: "Account added", description: `${data.bankName} ${data.maskedNumber} is ready for payouts.` });
+              toast.success({ title: "Account added", description: `${data.bankName} ${data.maskedNumber} is pending verification.` });
               setAddBankOpen(false);
               if (onAddAccount) onAddAccount(data);
             }}
@@ -1244,8 +1219,8 @@ export function PaymentSettingsPage({
             onClose={() => setUpiOpen(false)}
             onSaved={(masked) => {
               setUpi(masked);
-              pushAudit({ label: "UPI ID updated", detail: `${masked} verified`, kind: "account", device: "Chrome on Windows, New Delhi" });
-              toast.success({ title: "UPI ID updated", description: `${masked} is ready for payouts.` });
+              pushAudit({ label: "UPI ID updated", detail: `${masked} added`, kind: "account", device: "Chrome on Windows, New Delhi" });
+              toast.success({ title: "UPI ID updated", description: `${masked} is pending verification.` });
               setUpiOpen(false);
             }}
           />
@@ -1355,7 +1330,8 @@ export function PaymentSettingsPage({
         open={withdrawOpen}
         onClose={() => setWithdrawOpen(false)}
         accounts={accounts}
-        available={SUMMARY.available}
+        available={EMPTY_SUMMARY.available}
+        nextPayoutDate={nextPayout ? fmtPayout(nextPayout) : "Manual"}
       />
     </div>
   );
@@ -1376,12 +1352,8 @@ function AddBankModal({ onClose, onAdded }: {
   const [ifsc, setIfsc] = useState("");
   const [accType, setAccType] = useState("Savings");
   const [errors, setErrors] = useState({ holder: "", acc: "", confirm: "", ifsc: "" });
-  const [verifying, setVerifying] = useState(false);
-  const [verifyOk, setVerifyOk] = useState<boolean | null>(null);
 
   const ifscValid = /^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc);
-  const bankInfo = ifscValid ? IFSC_LOOKUP[ifsc] : undefined;
-
   const validate = () => {
     const e = { holder: "", acc: "", confirm: "", ifsc: "" };
     if (holder.trim().length < 3) e.holder = "Enter the account holder name.";
@@ -1392,19 +1364,10 @@ function AddBankModal({ onClose, onAdded }: {
     return !e.holder && !e.acc && !e.confirm && !e.ifsc;
   };
 
-  const startVerify = () => {
-    setVerifying(true);
-    setVerifyOk(null);
-    window.setTimeout(() => {
-      setVerifying(false);
-      setVerifyOk(holder.trim().split(/\s+/).length >= 2);
-    }, 1500);
-  };
-
   return (
     <ModalShell label="Add bank account" onClose={onClose} wide>
-      <ModalHead title="Add bank account" sub="Verified with a ₹1 penny drop." onClose={onClose} />
-      <StepIndicator step={step} total={3} labels={["Details", "Verify", "OTP"]} />
+      <ModalHead title="Add bank account" sub="Payouts are enabled after the provider verifies this account." onClose={onClose} />
+      <StepIndicator step={step} total={2} labels={["Details", "Review"]} />
       <div className="overflow-y-auto p-5">
         {step === 1 && (
           <div className="space-y-3.5">
@@ -1441,7 +1404,7 @@ function AddBankModal({ onClose, onAdded }: {
             {ifscValid && (
               <p className="flex items-start gap-1.5 rounded-[10px] bg-[var(--qs-okbg)] px-3 py-2.5 text-xs text-[var(--qs-ok)] " role="status">
                 <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                {bankInfo ? `${bankInfo.bank} · ${bankInfo.branch}` : "IFSC format is valid — bank will be confirmed during verification."}
+                IFSC format is valid — bank will be confirmed during verification.
               </p>
             )}
             <div className="relative">
@@ -1458,7 +1421,6 @@ function AddBankModal({ onClose, onAdded }: {
               variant="primary" className="h-11 w-full justify-center" data-autofocus
               onClick={() => {
                 if (!validate()) return;
-                setVerifyOk(null);
                 setStep(2);
               }}
             >
@@ -1470,60 +1432,36 @@ function AddBankModal({ onClose, onAdded }: {
         {step === 2 && (
           <div>
             <div className="rounded-[14px] border-2 border-[var(--qs-line)] p-4 text-sm ">
-              <p className="font-semibold text-[var(--qs-ink)] ">We’ll send ₹1 to verify your account (it will be refunded).</p>
+              <p className="font-semibold text-[var(--qs-ink)] ">Review the account details.</p>
               <p className="mt-1 text-xs tabular-nums text-[var(--qs-muted)] ">
-                {bankInfo?.bank ?? "Your bank"} · {maskAcc(accNum)} · IFSC {ifsc}
+                {holder.trim()} · {maskAcc(accNum)} · IFSC {ifsc}
               </p>
             </div>
-            {verifyOk === null && (
-              <BillButton
-                variant="primary" className="mt-4 h-11 w-full justify-center"
-                disabled={verifying} loading={verifying} data-autofocus
-                onClick={startVerify}
-              >
-                {verifying ? "Verifying…" : "Verify with ₹1"}
+            <p className="mt-3 rounded-[14px] bg-[var(--qs-okbg)] px-3.5 py-3 text-xs text-[var(--qs-ok)] " role="status">
+              The payout provider will verify this account before withdrawals are enabled.
+            </p>
+            <div className="mt-4 flex gap-2">
+              <BillButton variant="ghost" className="h-11 flex-1 justify-center" onClick={() => setStep(1)}>
+                Back
               </BillButton>
-            )}
-            {verifyOk === true && (
-              <div className="mt-4">
-                <p className="flex items-center gap-2 rounded-[14px] bg-[var(--qs-okbg)] px-3.5 py-3 text-sm font-bold text-[var(--qs-ok)] " role="status">
-                  <ShieldCheck className="h-5 w-5 shrink-0" aria-hidden="true" /> Name matches
-                </p>
-                <div className="mt-4 flex gap-2">
-                  <BillButton variant="ghost" className="h-11 flex-1 justify-center" onClick={() => setStep(1)}>
-                    Back
-                  </BillButton>
-                  <BillButton variant="primary" className="h-11 flex-1 justify-center" data-autofocus onClick={() => setStep(3)}>
-                    Continue
-                  </BillButton>
-                </div>
-              </div>
-            )}
-            {verifyOk === false && (
-              <div className="mt-4">
-                <p className="flex items-start gap-2 rounded-[14px] bg-[var(--qs-badbg)] px-3.5 py-3 text-sm font-bold text-[var(--qs-bad)] " role="alert">
-                  <X className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                  Name does not match your KYC name. Check the holder name and try again.
-                </p>
-                <BillButton variant="ghost" className="mt-4 h-11 w-full justify-center" data-autofocus onClick={() => setStep(1)}>
-                  Back to details
-                </BillButton>
-              </div>
-            )}
+              <BillButton
+                variant="primary"
+                className="h-11 flex-1 justify-center"
+                data-autofocus
+                onClick={() =>
+                  onAdded({
+                    holderName: holder.trim(),
+                    bankName: "Bank account",
+                    maskedNumber: maskAcc(accNum),
+                    ifsc,
+                    type: accType,
+                  })
+                }
+              >
+                Add account
+              </BillButton>
+            </div>
           </div>
-        )}
-
-        {step === 3 && (
-          <OtpStep
-            actionLabel="Confirm and add account"
-            onVerified={() => onAdded({
-              holderName: holder.trim(),
-              bankName: bankInfo?.bank ?? "Bank account",
-              maskedNumber: maskAcc(accNum),
-              ifsc,
-              type: accType,
-            })}
-          />
         )}
 
         <p className="mt-4 flex items-start gap-1.5 text-xs text-[var(--qs-muted)] ">
@@ -1544,21 +1482,14 @@ function UpiModal({ current, onClose, onSaved }: {
 }) {
   const [upiId, setUpiId] = useState("");
   const [error, setError] = useState("");
-  const [checking, setChecking] = useState(false);
-  const [holder, setHolder] = useState<string | null>(null);
-  const [step, setStep] = useState(1);
 
-  const verify = () => {
+  const save = () => {
     if (!/^[\w.\-]{2,}@[a-zA-Z]{2,}$/.test(upiId.trim())) {
       setError("Enter a valid UPI ID, e.g. name@okhdfcbank.");
       return;
     }
     setError("");
-    setChecking(true);
-    window.setTimeout(() => {
-      setChecking(false);
-      setHolder("Aarav Verma");
-    }, 1000);
+    onSaved(maskedPreview(upiId.trim()));
   };
 
   const maskedPreview = (id: string) => {
@@ -1574,39 +1505,22 @@ function UpiModal({ current, onClose, onSaved }: {
         onClose={onClose}
       />
       <div className="overflow-y-auto p-5">
-        {step === 1 && (
-          <div>
-            <Field id="upi-id" label="UPI ID" error={error}>
-              <input
-                id="upi-id" value={upiId}
-                onChange={(e) => { setUpiId(e.target.value); setError(""); setHolder(null); }}
-                placeholder="name@okhdfcbank" autoComplete="off" inputMode="email" autoCapitalize="off"
-                className={cn(INPUT, error && "border-[var(--qs-bad)]", FOCUS)} data-autofocus
-              />
-            </Field>
-            {holder === null ? (
-              <BillButton
-                variant="primary" className="mt-4 h-11 w-full justify-center"
-                disabled={checking} loading={checking} onClick={verify}
-              >
-                {checking ? "Verifying…" : "Verify"}
-              </BillButton>
-            ) : (
-              <div className="mt-4">
-                <p className="flex items-center gap-2 rounded-[14px] bg-[var(--qs-okbg)] px-3.5 py-3 text-sm font-bold text-[var(--qs-ok)] " role="status">
-                  <ShieldCheck className="h-5 w-5 shrink-0" aria-hidden="true" />
-                  {holder} · {maskedPreview(upiId.trim())}
-                </p>
-                <BillButton variant="primary" className="mt-4 h-11 w-full justify-center" data-autofocus onClick={() => setStep(2)}>
-                  Confirm and continue
-                </BillButton>
-              </div>
-            )}
-          </div>
-        )}
-        {step === 2 && (
-          <OtpStep actionLabel="Confirm UPI ID" onVerified={() => onSaved(maskedPreview(upiId.trim()))} />
-        )}
+        <div>
+          <Field id="upi-id" label="UPI ID" error={error}>
+            <input
+              id="upi-id" value={upiId}
+              onChange={(e) => { setUpiId(e.target.value); setError(""); }}
+              placeholder="name@okhdfcbank" autoComplete="off" inputMode="email" autoCapitalize="off"
+              className={cn(INPUT, error && "border-[var(--qs-bad)]", FOCUS)} data-autofocus
+            />
+          </Field>
+          <p className="mt-3 rounded-[14px] bg-[var(--qs-okbg)] px-3.5 py-3 text-xs text-[var(--qs-ok)] " role="status">
+            The payout provider will verify this UPI ID before withdrawals are enabled.
+          </p>
+          <BillButton variant="primary" className="mt-4 h-11 w-full justify-center" onClick={save}>
+            Save UPI ID
+          </BillButton>
+        </div>
         <p className="mt-4 flex items-start gap-1.5 text-xs text-[var(--qs-muted)] ">
           <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           For your safety, withdrawals to a new account are held for 24 hours.

@@ -60,8 +60,8 @@ const _FULL_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
       { label: "Create Quiz", href: "/creator/quizzes/create", icon: FilePlus2, match: (p) => p === "/creator/quizzes/create" || p === "/creator/quizzes/ai-generate" },
       { label: "Tests", href: "/creator/tests", icon: ClipboardList, match: (p) => p === "/creator/tests" || (p.startsWith("/creator/tests/") && !p.startsWith("/creator/tests/create")), color: "purple" },
       { label: "Create Test", href: "/creator/tests/create", icon: NotebookPen, match: (p) => p === "/creator/tests/create", color: "purple" },
-      { label: "Test Series", href: "/creator/series", icon: Layers, color: "purple" },
-      { label: "Create Test Series", href: "/creator/series/create", icon: FolderKanban, color: "purple" },
+      { label: "Test Series", href: "/creator/series", icon: Layers, match: (p) => p === "/creator/series" || (p.startsWith("/creator/series/") && !p.startsWith("/creator/series/create")), color: "purple" },
+      { label: "Create Test Series", href: "/creator/series/create", icon: FolderKanban, match: (p) => p === "/creator/series/create", color: "purple" },
     ],
   },
   {
@@ -97,9 +97,9 @@ const _FULL_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
         label: "Advertise",
         href: "/creator/advertise",
         icon: Megaphone,
-        match: (p) => p === "/creator/advertise" || p.startsWith("/creator/advertise/"),
+        match: (p) => p === "/creator/advertise" || (p.startsWith("/creator/advertise/") && !p.startsWith("/creator/advertise/create")),
       },
-      { label: "Create Campaign", href: "/creator/advertise/create", icon: Plus },
+      { label: "Create Campaign", href: "/creator/advertise/create", icon: Plus, match: (p) => p === "/creator/advertise/create" },
     ],
   },
   {

@@ -627,9 +627,8 @@ export interface CreditPackage {
 }
 
 export const CREDIT_PACKAGES: CreditPackage[] = [
-  { id: "starter", name: "Starter", priceInr: 49, credits: 50, note: "For trying tutor chat and short quizzes." },
-  { id: "teacher", name: "Teacher", priceInr: 99, credits: 200, note: "Most popular for regular classroom use." },
-  { id: "master", name: "Master", priceInr: 199, credits: null, note: "Credit quantity is configurable and not finalised yet." },
+  { id: "teacher", name: "Teacher", priceInr: 99, credits: 120, note: "Most popular for regular classroom use." },
+  { id: "master", name: "Master", priceInr: 199, credits: 250, note: "For frequent paper generation and advanced AI workflows." },
 ];
 
 export type TransactionType = "purchase" | "consume" | "refund" | "bonus";
@@ -646,20 +645,17 @@ export interface CreditTransaction {
 }
 
 export const CREDIT_TRANSACTIONS: CreditTransaction[] = [
-  { id: "txn_9031", ts: "19 Oct · 17:22", user: "aarav.sharma", type: "purchase", packageName: "Master", credits: 500, amountInr: 199, status: "completed" },
+  { id: "txn_9031", ts: "19 Oct · 17:22", user: "aarav.sharma", type: "purchase", packageName: "Master", credits: 250, amountInr: 199, status: "completed" },
   { id: "txn_9030", ts: "19 Oct · 16:40", user: "priya.nair", type: "consume", packageName: null, credits: -86, amountInr: null, status: "completed" },
-  { id: "txn_9029", ts: "19 Oct · 15:08", user: "meera.iyer", type: "purchase", packageName: "Teacher", credits: 200, amountInr: 99, status: "completed" },
-  { id: "txn_9028", ts: "19 Oct · 13:51", user: "karthik.rao", type: "refund", packageName: "Starter", credits: 50, amountInr: 49, status: "refunded" },
+  { id: "txn_9029", ts: "19 Oct · 15:08", user: "meera.iyer", type: "purchase", packageName: "Teacher", credits: 120, amountInr: 99, status: "completed" },
   { id: "txn_9027", ts: "19 Oct · 12:14", user: "rohan.gupta", type: "consume", packageName: null, credits: -120, amountInr: null, status: "completed" },
-  { id: "txn_9026", ts: "19 Oct · 10:02", user: "sana.khan", type: "purchase", packageName: "Starter", credits: 50, amountInr: 49, status: "completed" },
   { id: "txn_9025", ts: "18 Oct · 21:36", user: "dev.patel", type: "bonus", packageName: null, credits: 25, amountInr: null, status: "completed" },
-  { id: "txn_9024", ts: "18 Oct · 19:18", user: "ananya.das", type: "purchase", packageName: "Master", credits: 500, amountInr: 199, status: "pending" },
+  { id: "txn_9024", ts: "18 Oct · 19:18", user: "ananya.das", type: "purchase", packageName: "Master", credits: 250, amountInr: 199, status: "pending" },
   { id: "txn_9023", ts: "18 Oct · 17:44", user: "ishita.bose", type: "consume", packageName: null, credits: -64, amountInr: null, status: "completed" },
-  { id: "txn_9022", ts: "18 Oct · 15:10", user: "vikram.singh", type: "purchase", packageName: "Starter", credits: 50, amountInr: 49, status: "failed" },
   { id: "txn_9021", ts: "18 Oct · 11:52", user: "aarav.sharma", type: "consume", packageName: null, credits: -142, amountInr: null, status: "completed" },
-  { id: "txn_9020", ts: "17 Oct · 20:31", user: "priya.nair", type: "refund", packageName: "Teacher", credits: 200, amountInr: 99, status: "refunded" },
+  { id: "txn_9020", ts: "17 Oct · 20:31", user: "priya.nair", type: "refund", packageName: "Teacher", credits: 120, amountInr: 99, status: "refunded" },
   { id: "txn_9019", ts: "17 Oct · 18:07", user: "meera.iyer", type: "consume", packageName: null, credits: -95, amountInr: null, status: "completed" },
-  { id: "txn_9018", ts: "17 Oct · 14:26", user: "rohan.gupta", type: "purchase", packageName: "Teacher", credits: 200, amountInr: 99, status: "completed" },
+  { id: "txn_9018", ts: "17 Oct · 14:26", user: "rohan.gupta", type: "purchase", packageName: "Teacher", credits: 120, amountInr: 99, status: "completed" },
 ];
 
 export interface CreditMetrics {

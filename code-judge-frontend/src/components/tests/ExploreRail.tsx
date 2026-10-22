@@ -190,7 +190,12 @@ function AdSlot() {
           <Sparkles className="h-5 w-5" />
         </span>
         <div className="min-w-0">
-          <div className="text-[12px] font-extrabold leading-tight text-text-primary">QuizSupport Pro</div>
+          <div className="flex items-center gap-1.5">
+            <div className="text-[12px] font-extrabold leading-tight text-text-primary">QuizSupport Pro</div>
+            <span className="shrink-0 rounded-full bg-pink-500 px-1.5 py-0.5 text-[8px] font-extrabold uppercase leading-none tracking-wider text-white">
+              25% off
+            </span>
+          </div>
           <div className="mt-0.5 text-[10px] leading-snug text-text-secondary">
             Unlimited mocks, AI analytics & rank tracking for all exams.
           </div>

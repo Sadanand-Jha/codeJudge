@@ -5,9 +5,9 @@ import { ArrowLeft, Lock } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import {
   CREDIT_PURCHASE_PACKS,
+  formatPaperEstimates,
   type CreditPurchasePack,
 } from "@/config/aiCredits";
-import { UpiPayment } from "./UpiPayment";
 
 /* Layout: left column (steps) + sticky right summary. Pack/payment
    components keep their behaviour; only arrangement changed. */
@@ -35,8 +35,6 @@ interface CreditPackCheckoutProps {
   initialPackId?: string;
   /** Back to the pricing cards. */
   onBack?: () => void;
-  /** UPI QR/collect-request flow confirmed payment (demo-verified). */
-  onUpiSuccess?: (info: { pack: CreditPurchasePack; orderId: string; total: number }) => void;
 }
 
 const PACKS: CreditPurchasePack[] = CREDIT_PURCHASE_PACKS;
@@ -180,13 +178,12 @@ function Tiles({
   );
 }
 
-export function CreditPackCheckout({ onPay, processing, initialPackId, onBack, onUpiSuccess }: CreditPackCheckoutProps) {
+export function CreditPackCheckout({ onPay, processing, initialPackId, onBack }: CreditPackCheckoutProps) {
   /* Remounted via key={packId} by the parent, so initial state is enough. */
   const [packId, setPackId] = useState<string>(
     initialPackId ?? PACKS.find((p) => p.popular)?.id ?? PACKS[0].id
   );
   const [tab, setTab] = useState<PayMethodId>("upi");
-  const [upiWaiting, setUpiWaiting] = useState(false);
 
   const [tilePick, setTilePick] = useState<Record<Exclude<PayMethodId, "upi">, number | null>>({
     card: null,
@@ -315,8 +312,7 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack, o
   };
 
   const handlePay = () => {
-    // UPI has its own QR / collect-request flow inside <UpiPayment />.
-    if (processing || tab === "upi") return;
+    if (processing) return;
     const payload = buildPayload();
     if (payload) onPay(payload);
   };
@@ -390,6 +386,9 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack, o
                   <span className="mt-1.5 text-xs tabular-nums text-slate-500 dark:text-slate-400">
                     {p.credits} credits · ₹{(p.price / p.credits).toFixed(2)}/credit
                   </span>
+                  <span className="mt-1 text-[11px] tabular-nums text-slate-500 dark:text-slate-400">
+                    {formatPaperEstimates(p.credits)}
+                  </span>
                 </button>
               );
             })}
@@ -405,7 +404,6 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack, o
                 type="button"
                 role="tab"
                 aria-selected={tab === t.id}
-                disabled={upiWaiting}
                 onClick={() => {
                   setTab(t.id);
                   setFormErr("");
@@ -426,17 +424,11 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack, o
             ))}
           </div>
 
-          {/* UPI — QR + UPI ID + status flow live in <UpiPayment /> */}
           <div role="tabpanel" hidden={tab !== "upi"}>
             {tab === "upi" && (
-              <UpiPayment
-                key={`${pack.id}-${total}`}
-                total={total}
-                packName={pack.name}
-                packCredits={pack.credits}
-                onSuccess={(orderId) => onUpiSuccess?.({ pack, orderId, total })}
-                onWaitingChange={setUpiWaiting}
-              />
+              <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[13px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300">
+                Continue to pay — you&apos;ll approve the UPI request in the secure Razorpay window.
+              </p>
             )}
           </div>
 
@@ -692,20 +684,17 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack, o
             {couponMsg ? couponMsg.text : "Try: TEACHER10"}
           </div>
 
-          {/* UPI owns its own Pay actions inside <UpiPayment /> */}
-          {tab !== "upi" && (
-            <button
-              type="button"
-              onClick={handlePay}
-              disabled={processing}
-              className={cn(
-                "mt-3 hidden h-13 w-full cursor-pointer items-center justify-center rounded-xl border-0 bg-pink-600 px-4 py-4 text-base font-extrabold text-white hover:bg-pink-700 active:scale-[0.99] disabled:cursor-progress disabled:opacity-65 lg:inline-flex dark:bg-pink-500 dark:hover:bg-pink-400",
-                FOCUS
-              )}
-            >
-              {payLabel}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handlePay}
+            disabled={processing}
+            className={cn(
+              "mt-3 hidden h-13 w-full cursor-pointer items-center justify-center rounded-xl border-0 bg-pink-600 px-4 py-4 text-base font-extrabold text-white hover:bg-pink-700 active:scale-[0.99] disabled:cursor-progress disabled:opacity-65 lg:inline-flex dark:bg-pink-500 dark:hover:bg-pink-400",
+              FOCUS
+            )}
+          >
+            {payLabel}
+          </button>
           <div className="mt-3.5 hidden flex-wrap justify-center gap-x-3.5 gap-y-1.5 text-xs text-slate-500 lg:flex dark:text-slate-400">
             <span className="inline-flex items-center gap-1">
               <Lock className="h-3 w-3" aria-hidden="true" /> Secure payment
@@ -732,10 +721,9 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack, o
       </div>
 
       {/* Spacer so the sticky mobile bar never covers content */}
-      {tab !== "upi" && <div className="h-[92px] lg:hidden" aria-hidden="true" />}
+      <div className="h-[92px] lg:hidden" aria-hidden="true" />
 
-      {/* Sticky mobile Pay bar (UPI has its own in-tab actions) */}
-      {tab !== "upi" && (
+      {/* Sticky mobile Pay bar */}
       <div
         className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pt-3 backdrop-blur lg:hidden dark:border-white/10 dark:bg-[#1e1419]/95"
         style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
@@ -762,7 +750,6 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack, o
           </button>
         </div>
       </div>
-      )}
     </section>
   );
 }

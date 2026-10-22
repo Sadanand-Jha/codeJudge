@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   CircleDot,
   ListChecks,
@@ -15,7 +15,6 @@ import {
   ChevronDown,
   ChevronUp,
   Check,
-  Clock,
   GripVertical,
   AlertTriangle,
 } from "lucide-react";
@@ -25,7 +24,6 @@ import { useStudio } from "../StudioProvider";
 import { EditableContent, RichToolbar } from "./RichToolbar";
 import { MatchFollowingEditor } from "./MatchFollowingEditor";
 import { motion, AnimatePresence } from "framer-motion";
-import { useQuizReferenceStore } from "@/store/quizReferenceStore";
 
 const SELECTABLE_TYPES: CreatorQuestionType[] = [
   "single_choice", "multiple_choice", "true_false", "fill_blanks", "match_following",
@@ -74,14 +72,8 @@ export function QuestionEditor() {
   const [showAfter, setShowAfter] = useState(false);
   const [afterTab, setAfterTab] = useState<"explanation" | "hint" | "solution">("explanation");
   const [showType, setShowType] = useState(false);
-  const [showDiff, setShowDiff] = useState(false);
   const [pendingType, setPendingType] = useState<CreatorQuestionType | null>(null);
   const [draggedOpt, setDraggedOpt] = useState<string | null>(null);
-  const { difficultyOptions, fetchAll } = useQuizReferenceStore();
-
-  useEffect(() => {
-    fetchAll();
-  }, []);
 
   const hasDataToLose = (qq: CreatorQuestion) => {
     const hasTitle = qq.title.replace(/<[^>]*>/g, "").trim().length > 0;
@@ -195,143 +187,91 @@ export function QuestionEditor() {
 
   return (
     <div className="flex flex-1 flex-col min-h-0 bg-[var(--qs-surface)]">
-      <div className="shrink-0 border-b-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 sm:px-6 py-3">
-        <div className="flex items-center justify-between gap-2 sm:gap-3 min-w-0">
-          <h2 className="text-[15px] sm:text-[16px] font-extrabold text-[var(--qs-ink)] shrink-0">Question {String(activeIdx + 1).padStart(2, "0")}</h2>
-          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            <div className="relative">
-              <button
-                onClick={() => setShowType(!showType)}
-                className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
-              >
-                {TYPE_SHORT[q.type]} <ChevronDown className="h-3 w-3 text-[var(--qs-muted)]" />
-              </button>
-              {showType && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[4px_4px_0_var(--qs-sun)]">
-                  {SELECTABLE_TYPES.map((t) => {
-                    const Icon = TYPE_ICON[t];
-                    const active = t === q.type;
-                    const handlePick = () => requestTypeChange(t);
-                    return (
-                      <button
-                        key={t}
-                        onClick={handlePick}
-                        className={cn("flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[var(--qs-poly-1)]", active && "bg-[var(--qs-poly-1)]")}
-                      >
-                        <Icon className={cn("h-4 w-4 mt-0.5", active ? "text-[var(--qs-brand)]" : "text-[var(--qs-muted)]")} />
-                        <div>
-                          <p className={cn("text-xs font-bold", active ? "text-[var(--qs-brand)]" : "text-[var(--qs-ink)]")}>
-                            {TYPE_SHORT[t]} — {TYPE_DESC[t]}
-                          </p>
-                        </div>
-                        {active && <Check className="ml-auto h-4 w-4 text-[var(--qs-brand)]" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+      <div className="shrink-0 border-b-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3 py-4 text-[var(--qs-on-brand)] sm:px-6">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] border-2 border-[#1a1240] bg-[var(--qs-sun)] text-[#1a1240]">
+            <FileText className="h-5 w-5" />
+          </span>
+          <h2 className="min-w-0 flex-1 text-lg font-extrabold tracking-tight sm:text-xl">Question {String(activeIdx + 1).padStart(2, "0")}</h2>
+          <div className="relative shrink-0">
             <button
-              onClick={() => duplicateQuestion(q.id)}
-              className="flex h-7 w-7 items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
+              onClick={() => setShowType(!showType)}
+              className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-3 py-1.5 text-xs font-extrabold text-[var(--qs-ink)] transition-colors hover:border-[#1a1240]"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" />
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v3" />
-              </svg>
+              {TYPE_SHORT[q.type]} <ChevronDown className="h-3 w-3" />
             </button>
-            <button
-              onClick={() => removeQuestion(q.id)}
-              className="flex h-7 w-7 items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-bad)] hover:text-[var(--qs-bad)]"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-        <div className="mt-3 grid grid-cols-2 sm:flex sm:flex-wrap items-stretch rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-xs overflow-hidden divide-y-2 divide-[var(--qs-line)] sm:divide-y-0 sm:divide-x-2">
-          <div className="relative flex items-center gap-1.5 px-3 py-2">
-            <span className="font-bold text-[var(--qs-muted)]">Difficulty</span>
-            <span className={cn("h-2 w-2 rounded-full", q.difficulty === "Easy" ? "bg-[var(--qs-ok)]" : q.difficulty === "Medium" ? "bg-[var(--qs-sun)]" : q.difficulty === "Hard" ? "bg-[#a85d00]" : "bg-[var(--qs-bad)]")} />
-            <button onClick={() => setShowDiff(!showDiff)} className="inline-flex items-center gap-1 font-bold text-[var(--qs-ink)]">
-              {q.difficulty}
-            </button>
-            {showDiff && (
-              <div className="absolute left-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[4px_4px_0_var(--qs-sun)]">
-                {difficultyOptions.length === 0 ? (
-                  <div className="px-3 py-2 text-xs font-medium text-[var(--qs-muted)]">Loading…</div>
-                ) : (
-                  difficultyOptions.map((opt) => {
-                    const active = q.difficulty === opt.heading;
-                    return (
-                      <button
-                        key={opt.id}
-                        onClick={() => {
-                          update({ difficulty: opt.heading, difficultyId: opt.id } as any);
-                          setShowDiff(false);
-                        }}
-                        className={cn("flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[var(--qs-poly-1)]", active && "bg-[var(--qs-poly-1)]")}
-                      >
-                        <span className={cn("h-2.5 w-2.5 rounded-full", opt.heading === "Easy" ? "bg-[var(--qs-ok)]" : opt.heading === "Medium" ? "bg-[var(--qs-sun)]" : opt.heading === "Hard" ? "bg-[#a85d00]" : "bg-[var(--qs-bad)]")} />
-                        <span className={cn("text-xs font-bold", active ? "text-[var(--qs-brand)]" : "text-[var(--qs-ink)]")}>
-                          {opt.heading}
-                        </span>
-                        {active && <Check className="ml-auto h-4 w-4 text-[var(--qs-brand)]" />}
-                      </button>
-                    );
-                  })
-                )}
+            {showType && (
+              <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[4px_4px_0_var(--qs-sun)]">
+                {SELECTABLE_TYPES.map((t) => {
+                  const Icon = TYPE_ICON[t];
+                  const active = t === q.type;
+                  const handlePick = () => requestTypeChange(t);
+                  return (
+                    <button
+                      key={t}
+                      onClick={handlePick}
+                      className={cn("flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[var(--qs-poly-1)]", active && "bg-[var(--qs-poly-1)]")}
+                    >
+                      <Icon className={cn("mt-0.5 h-4 w-4", active ? "text-[var(--qs-brand)]" : "text-[var(--qs-muted)]")} />
+                      <div>
+                        <p className={cn("text-xs font-bold", active ? "text-[var(--qs-brand)]" : "text-[var(--qs-ink)]")}>
+                          {TYPE_SHORT[t]} — {TYPE_DESC[t]}
+                        </p>
+                      </div>
+                      {active && <Check className="ml-auto h-4 w-4 text-[var(--qs-brand)]" />}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-2">
-            <span className="font-bold text-[var(--qs-muted)]">Marks</span>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={q.marks}
-              onChange={(e) => {
-                const v = e.target.value.replace(/[^0-9.]/g, "");
-                update({ marks: v === "" ? 0 : Math.max(0, Number(v) || 0) });
-              }}
-              className="w-12 bg-transparent text-xs font-bold text-[var(--qs-ink)] focus:outline-none"
-            />
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-2">
-            <span className="font-bold text-[var(--qs-muted)]">Negative</span>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={q.negativeMarks ?? 0}
-              onChange={(e) => {
-                const v = e.target.value.replace(/[^0-9.]/g, "");
-                update({ negativeMarks: v === "" ? 0 : Math.max(0, Number(v) || 0) });
-              }}
-              className="w-12 bg-transparent text-xs font-bold text-[var(--qs-ink)] focus:outline-none"
-            />
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-2">
-            <span className="font-bold text-[var(--qs-muted)]">Time</span>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={q.expectedTime}
-              onChange={(e) => {
-                const v = e.target.value.replace(/[^0-9]/g, "");
-                update({ expectedTime: v === "" ? 0 : Math.max(0, Number(v) || 0) });
-              }}
-              className="w-12 bg-transparent text-xs font-bold text-[var(--qs-ink)] focus:outline-none"
-            />
-            <span className="text-xs font-medium text-[var(--qs-muted)]">min</span>
-          </div>
+          <button
+            onClick={() => duplicateQuestion(q.id)}
+            aria-label="Duplicate question"
+            title="Duplicate question"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-sun)]"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v3" />
+            </svg>
+          </button>
+          <button
+            onClick={() => removeQuestion(q.id)}
+            aria-label="Delete question"
+            title="Delete question"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-bad)] hover:bg-[var(--qs-bad)] hover:text-white"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
         </div>
-        {(showType || showDiff) && <div className="fixed inset-0 z-40" onClick={() => { setShowType(false); setShowDiff(false); }} />}
+        <div className="mt-4 grid grid-cols-2 gap-y-3 sm:grid-cols-4">
+          {[
+            { label: "Difficulty", value: q.difficulty },
+            { label: "Type", value: TYPE_SHORT[q.type] },
+            { label: "Options", value: isMcq ? q.options.length : "—" },
+            { label: "Time", value: `${q.expectedTime} min` },
+          ].map((stat, index) => (
+            <div key={stat.label} className={cn("min-w-0", index > 0 && "sm:border-l-2 sm:border-white/25 sm:pl-4")}>
+              <b className="block truncate text-lg font-extrabold leading-tight sm:text-[22px]">{stat.value}</b>
+              <small className="text-[10px] font-extrabold uppercase tracking-[0.08em] opacity-80">{stat.label}</small>
+            </div>
+          ))}
+        </div>
+        {showType && <div className="fixed inset-0 z-40" onClick={() => setShowType(false)} />}
       </div>
 
       <div className="p-3 sm:p-6">
         <div className="mx-auto w-full max-w-[720px] space-y-4 sm:space-y-6 min-w-0">
           <div>
-            <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Question</label>
-            <div className="overflow-hidden rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
+            <div className="mb-3 flex items-center gap-3">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--qs-ink)] text-[12px] font-extrabold text-[var(--qs-bg)]">1</span>
+              <div className="min-w-0">
+                <h3 className="text-[17px] font-extrabold leading-tight text-[var(--qs-ink)]">Question</h3>
+                <p className="text-[12px] font-medium text-[var(--qs-muted)]">Press a key to format the selected text.</p>
+              </div>
+            </div>
+            <div className="overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
               <RichToolbar />
               <EditableContent
                 value={q.title}
@@ -343,14 +283,20 @@ export function QuestionEditor() {
           </div>
 
           {isMcq ? (
-            <div>
-              <div className="flex items-center justify-between">
-                <h3 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Answer Options</h3>
-                <span className="text-xs font-medium text-[var(--qs-muted)]">
+            <div className="border-t-2 border-[var(--qs-line)] pt-5">
+              <div className="mb-3 flex items-center gap-3">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--qs-ink)] text-[12px] font-extrabold text-[var(--qs-bg)]">2</span>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-[17px] font-extrabold leading-tight text-[var(--qs-ink)]">Answer options</h3>
+                  <p className="text-[12px] font-medium text-[var(--qs-muted)]">
+                    {q.type === "single_choice" ? "Tick the one correct answer." : q.type === "multiple_choice" ? "Tick every correct answer." : "Choose the correct answer."}
+                  </p>
+                </div>
+                <span className="shrink-0 text-xs font-bold text-[var(--qs-muted)]">
                   {q.type === "single_choice" ? "Single answer" : q.type === "multiple_choice" ? "Multiple answers" : "True / False"}
                 </span>
               </div>
-              <div className="mt-3 space-y-2">
+              <div className="space-y-2">
                 {q.options.map((o) => {
                   if (q.type === "true_false") {
                     return (
