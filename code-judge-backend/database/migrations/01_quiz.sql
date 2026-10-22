@@ -3,7 +3,7 @@ CREATE TABLE if not exists exam_categories (
     exam_cat VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE quiz_status (
+CREATE TABLE if not exists quiz_status (
     id INTEGER PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE,
     description TEXT

@@ -12,11 +12,11 @@
     "start": "node dist/server.js",
     "worker": "tsx src/queues/startWorker.ts",
     "worker:prod": "node dist/queues/startWorker.js",
-    "migrate": "tsx src/migrate.ts",
     "migration:dry": "tsx src/migrate.ts --dry-run",
     "seed:plans": "tsx src/scripts/seedSubscriptionPlans.ts",
     "prepare-avatars": "tsx src/utils/avatarProcessor.ts",
-    "test:document-export": "tsx src/scripts/testDocumentExport.ts"
+    "test:document-export": "tsx src/scripts/testDocumentExport.ts",
+    "migrate": "node scripts/migrate.js"
   },
   "dependencies": {
     "@prisma/client": "^5.6.0",
@@ -44,7 +44,7 @@
     "openai": "^7.4.0",
     "otp-generator": "^4.0.1",
     "pdfjs-dist": "^6.3.289",
-    "pg": "^8.22.0",
+    "pg": "^8.23.1",
     "playwright": "^1.62.0",
     "playwright-extra": "^4.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
