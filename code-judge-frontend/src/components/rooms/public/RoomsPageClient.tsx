@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { BookOpen, KeyRound, MessageSquareText } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { cn } from "@/lib/helpers";
 import RoomJoinForm from "./RoomJoinForm";
@@ -49,10 +50,7 @@ export default function RoomsPageClient() {
   const transitionTimers = useRef<number[]>([]);
 
   useEffect(() => {
-    if (reduced) {
-      setSequence("done");
-      return;
-    }
+    if (reduced) return;
 
     let finished = false;
     let timer = 0;
@@ -104,8 +102,9 @@ export default function RoomsPageClient() {
   }, []);
 
   useEffect(() => {
+    const timers = transitionTimers.current;
     return () => {
-      transitionTimers.current.forEach((timer) => window.clearTimeout(timer));
+      timers.forEach((timer) => window.clearTimeout(timer));
     };
   }, []);
 
@@ -139,11 +138,14 @@ export default function RoomsPageClient() {
     >
       <div className="mx-auto w-full max-w-[1100px]">
         <header className="mb-7 flex items-center justify-between gap-3">
-          <Link href="/" className="qs-display text-[22px] font-bold text-[var(--qs-ink)]">
-            <span className={cn(styles.logoRise, animate && styles.logoRiseAnimated)}>
-              <span className={cn(styles.logoFloat, styles.ambient)}>
-                Quiz<span className="font-medium text-[var(--qs-brand)]">Support</span>
-              </span>
+          <Link
+            href="/"
+            className="flex shrink-0 items-center gap-2.5"
+            aria-label="QuizSupport home"
+          >
+            <SecureLogo size={36} variant="mark" />
+            <span className="qs-display text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)]">
+              QuizSupport
             </span>
           </Link>
           <ThemeToggle

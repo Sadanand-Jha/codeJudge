@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   AlertCircle,
   Check,
+  Clock,
   Copy,
   Eye,
   EyeOff,
@@ -28,6 +29,12 @@ import {
   buildWhatsAppHref,
   copyText,
 } from "@/utils/roomShare";
+import {
+  DEFAULT_PASSWORD_EXPIRY_MINUTES,
+  PASSWORD_EXPIRY_OPTIONS,
+  formatPasswordExpiry,
+  formatPasswordExpiryRelative,
+} from "@/utils/passwordExpiry";
 import { Reveal, Scramble, Typewriter } from "./roomMotion";
 import styles from "./roomsCinematic.module.css";
 
@@ -45,6 +52,9 @@ export default function RoomSharePanel({ animate = false }: { animate?: boolean 
   const [name, setName] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [showPasswordInput, setShowPasswordInput] = useState(false);
+  const [expiryMinutes, setExpiryMinutes] = useState<number | null>(
+    DEFAULT_PASSWORD_EXPIRY_MINUTES
+  );
   const [created, setCreated] = useState<RoomCredentials | null>(null);
   const [creating, setCreating] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -64,6 +74,8 @@ export default function RoomSharePanel({ animate = false }: { animate?: boolean 
     roomName: created?.name || name.trim() || "Your classroom",
     roomCode: created?.room_code || "------",
     password: created?.password || "••••••••",
+    creatorUsername: user?.username,
+    ...(created ? { passwordExpiresAt: created.password_expires_at } : {}),
   });
   const whatsappHref = buildWhatsAppHref(message);
 
@@ -86,6 +98,7 @@ export default function RoomSharePanel({ animate = false }: { animate?: boolean 
       const credentials = await createRoomWithPassword({
         name: trimmedName,
         password: passwordInput || undefined,
+        expires_in_minutes: expiryMinutes,
       });
       setCreated(credentials);
       toast.success({ title: "Room created", description: "Share the code and password now — the password is not shown again." });
@@ -102,7 +115,9 @@ export default function RoomSharePanel({ animate = false }: { animate?: boolean 
     setResetting(true);
     setScrambleNonce((value) => value + 1);
     try {
-      const credentials = await resetRoomPassword(created.room_code);
+      const credentials = await resetRoomPassword(created.room_code, {
+        expires_in_minutes: expiryMinutes,
+      });
       setCreated(credentials);
       toast.success({ title: "Password reset", description: "Update the WhatsApp message with the new password." });
     } catch (err: unknown) {
@@ -126,6 +141,7 @@ export default function RoomSharePanel({ animate = false }: { animate?: boolean 
     setCreated(null);
     setName("");
     setPasswordInput("");
+    setExpiryMinutes(DEFAULT_PASSWORD_EXPIRY_MINUTES);
     setError(null);
   }
 
@@ -236,6 +252,37 @@ export default function RoomSharePanel({ animate = false }: { animate?: boolean 
                 {showPasswordInput ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
+
+            <label htmlFor="share-room-expiry" className="mt-4 block text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+              Password expiry
+            </label>
+            <div className="relative mt-1.5">
+              <Clock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
+              <select
+                id="share-room-expiry"
+                value={expiryMinutes === null ? "never" : String(expiryMinutes)}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setExpiryMinutes(value === "never" ? null : Number(value));
+                  setError(null);
+                }}
+                disabled={creating}
+                className="w-full rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-field)] py-3 pl-10 pr-4 text-sm font-medium text-[var(--qs-ink)] outline-none transition-colors focus:border-[var(--qs-brand)] disabled:opacity-60"
+              >
+                {PASSWORD_EXPIRY_OPTIONS.map((option) => (
+                  <option
+                    key={option.label}
+                    value={option.minutes === null ? "never" : String(option.minutes)}
+                  >
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <p className="mt-1.5 text-[11px] font-medium text-[var(--qs-muted)]">
+              Room codes never expire. Password times are shown in IST (Asia/Kolkata).
+              {created ? " Changing this applies when you tap New." : ""}
+            </p>
           </Reveal>
 
           <Reveal as="section" delay={100} className="mt-6 border-t-2 border-[var(--qs-line)] pt-5">
@@ -282,6 +329,23 @@ export default function RoomSharePanel({ animate = false }: { animate?: boolean 
                 New
               </button>
             </div>
+
+            {created ? (
+              <div className="mt-3 flex items-start gap-2.5 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2.5">
+                <Clock className="mt-0.5 h-4 w-4 shrink-0 text-[var(--qs-brand)]" />
+                <div className="min-w-0">
+                  <p className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+                    Password expires
+                  </p>
+                  <p className="text-sm font-extrabold text-[var(--qs-ink)]">
+                    {formatPasswordExpiry(created.password_expires_at)}
+                  </p>
+                  <p className="text-[11px] font-semibold text-[var(--qs-muted)]">
+                    {formatPasswordExpiryRelative(created.password_expires_at)} · room code never expires
+                  </p>
+                </div>
+              </div>
+            ) : null}
           </Reveal>
 
           {!created ? (
@@ -322,6 +386,7 @@ export default function RoomSharePanel({ animate = false }: { animate?: boolean 
 
           <Typewriter
             text={message}
+            animate={Boolean(created)}
             className="mt-3 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3.5 font-sans text-sm leading-relaxed text-[var(--qs-ink)]"
           />
 

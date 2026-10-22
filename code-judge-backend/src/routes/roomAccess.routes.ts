@@ -8,11 +8,13 @@ import { roomJoinRateLimit } from "../middleware/roomJoinRateLimit.ts";
 import {
   roomCreateSchema,
   roomJoinSchema,
+  roomPasswordResetSchema,
   roomRegistrationFormSchema,
   validate,
 } from "../middleware/validate.ts";
 import {
   createRoomWithCredentials,
+  getEnrolledRooms,
   getRoomRegistrationForm,
   getRoomSummary,
   joinRoom,
@@ -28,7 +30,13 @@ router.use(authenticate);
 router.post("/", requireTeacher, validate(roomCreateSchema), createRoomWithCredentials);
 router.post("/join/form", roomJoinRateLimit, validate(roomJoinSchema), previewRoomJoin);
 router.post("/join", roomJoinRateLimit, validate(roomJoinSchema), joinRoom);
-router.post("/:code/reset-password", requireTeacher, resetRoomPassword);
+router.get("/enrolled", getEnrolledRooms);
+router.post(
+  "/:code/reset-password",
+  requireTeacher,
+  validate(roomPasswordResetSchema),
+  resetRoomPassword
+);
 router.get("/:id/registration-form", getRoomRegistrationForm);
 router.put(
   "/:id/registration-form",

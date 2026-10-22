@@ -4,10 +4,13 @@ import type { Request, Response } from "express";
 import { RoomRepository } from "../repositories/room.repository.ts";
 import {
   ROOM_JOIN_ERROR,
+  ROOM_PASSWORD_EXPIRED_ERROR,
+  computePasswordExpiresAt,
   hashRoomPassword,
   insertRoomWithUniqueCode,
   joinRoomWithPassword,
   previewRoomJoinWithPassword,
+  roomPasswordExpiresAtIso,
 } from "../services/roomAccess.service.ts";
 import { normalizeRoomRegistrationForm } from "../services/roomRegistration.service.ts";
 import {
@@ -20,6 +23,10 @@ const roomRepo = new RoomRepository();
 
 // Must match MAX_ROOMS_PER_CREATOR in the frontend.
 const MAX_ROOMS_PER_CREATOR = 5;
+
+function passwordExpiryFromBody(body: Record<string, unknown>): Date | null {
+  return computePasswordExpiresAt(body.expires_in_minutes as number | null | undefined);
+}
 
 // POST /api/rooms  { name, password? }  (teacher only)
 export const createRoomWithCredentials = async (req: Request, res: Response) => {
@@ -50,6 +57,7 @@ export const createRoomWithCredentials = async (req: Request, res: Response) => 
     // The plaintext only exists in this response. Only the hash is persisted.
     const password = suppliedPassword ? suppliedPassword : generateRoomPassword();
     const passwordHash = await hashRoomPassword(password);
+    const passwordExpiresAt = passwordExpiryFromBody(req.body);
 
     const { room } = await insertRoomWithUniqueCode({
       codeExists: (code) => roomRepo.roomCodeExists(code),
@@ -59,6 +67,7 @@ export const createRoomWithCredentials = async (req: Request, res: Response) => 
           name,
           roomCode: code,
           passwordHash,
+          passwordExpiresAt,
         }),
     });
 
@@ -69,6 +78,7 @@ export const createRoomWithCredentials = async (req: Request, res: Response) => 
         name: room.name,
         room_code: room.room_code,
         password,
+        password_expires_at: passwordExpiresAt ? passwordExpiresAt.toISOString() : null,
       },
     });
   } catch (error) {
@@ -98,7 +108,13 @@ export const resetRoomPassword = async (req: Request, res: Response) => {
 
     const password = generateRoomPassword();
     const passwordHash = await hashRoomPassword(password);
-    const room = await roomRepo.updateRoomPassword(roomCode, String(userId), passwordHash);
+    const passwordExpiresAt = passwordExpiryFromBody(req.body);
+    const room = await roomRepo.updateRoomPassword(
+      roomCode,
+      String(userId),
+      passwordHash,
+      passwordExpiresAt
+    );
 
     if (!room) {
       // Deliberately identical for "does not exist" and "not yours".
@@ -113,6 +129,7 @@ export const resetRoomPassword = async (req: Request, res: Response) => {
         name: room.name,
         room_code: room.room_code,
         password,
+        password_expires_at: passwordExpiresAt ? passwordExpiresAt.toISOString() : null,
       },
     });
   } catch (error) {
@@ -144,16 +161,20 @@ export const previewRoomJoin = async (req: Request, res: Response) => {
       }
     );
 
-    if (!result) {
+    if (!result.ok) {
       res.status(401).json({
         success: false,
-        message: ROOM_JOIN_ERROR,
+        code: result.reason === "password_expired" ? "PASSWORD_EXPIRED" : "INVALID_CREDENTIALS",
+        message:
+          result.reason === "password_expired"
+            ? ROOM_PASSWORD_EXPIRED_ERROR
+            : ROOM_JOIN_ERROR,
         statusCode: 401,
       });
       return;
     }
 
-    res.status(200).json({ success: true, data: result });
+    res.status(200).json({ success: true, data: result.preview });
   } catch (error) {
     console.error("previewRoomJoin error", error);
     res.status(500).json({
@@ -188,11 +209,20 @@ export const joinRoom = async (req: Request, res: Response) => {
     );
 
     if (!result.ok) {
-      if (result.reason === "invalid_credentials") {
+      if (result.reason !== "registration_invalid") {
         // One response for bad code, bad password, archived and closed rooms.
+        // Expiry is only reported after a correct password, so it is not a
+        // credential oracle.
         res.status(401).json({
           success: false,
-          message: ROOM_JOIN_ERROR,
+          code:
+            result.reason === "password_expired"
+              ? "PASSWORD_EXPIRED"
+              : "INVALID_CREDENTIALS",
+          message:
+            result.reason === "password_expired"
+              ? ROOM_PASSWORD_EXPIRED_ERROR
+              : ROOM_JOIN_ERROR,
           statusCode: 401,
         });
         return;
@@ -299,7 +329,51 @@ export const updateRoomRegistrationForm = async (req: Request, res: Response) =>
   }
 };
 
-// GET /api/rooms/:id  (owner or member) — minimal summary for /rooms/:id.
+// GET /api/rooms/enrolled  (authenticated) — every room the current student
+// has joined, with the teacher owner and member count for the sidebar page.
+export const getEnrolledRooms = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized", statusCode: 401 });
+      return;
+    }
+
+    const rooms = await roomRepo.getRoomsForMember(String(userId));
+
+    res.status(200).json({
+      success: true,
+      data: rooms.map((room) => ({
+        id: String(room.id),
+        name: room.name,
+        description: room.description ?? null,
+        room_code: room.room_code,
+        is_active: room.is_active !== false,
+        member_count: Number(room.member_count ?? 0),
+        joined_at: room.joined_at ?? null,
+        created_at: room.created_at ?? null,
+        updated_at: room.updated_at ?? null,
+        owner: {
+          id: String(room.owner_id),
+          username: room.owner_username ?? null,
+          displayName: room.owner_display_name ?? null,
+          avatarId: room.owner_avatar_id ?? null,
+          avatarUrl: room.owner_avatar_url ?? null,
+        },
+      })),
+    });
+  } catch (error) {
+    console.error("getEnrolledRooms error", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while loading your rooms",
+      statusCode: 500,
+    });
+  }
+};
+
+// GET /api/rooms/:id  (owner or member) — room summary plus the member roster
+// students see after joining (usernames, avatars, join dates).
 export const getRoomSummary = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
@@ -320,14 +394,38 @@ export const getRoomSummary = async (req: Request, res: Response) => {
       return;
     }
 
+    const members = await roomRepo.getRoomMembers(roomId);
+
     res.status(200).json({
       success: true,
       data: {
         id: String(room.id),
         name: room.name,
+        description: room.description ?? null,
         room_code: room.room_code,
-        memberCount: Number(room.member_count ?? 0),
+        memberCount: Number(room.member_count ?? members.length),
+        password_expires_at: roomPasswordExpiresAtIso(room),
         registration_form: normalizeRoomRegistrationForm(room.registration_form),
+        is_owner: String(room.owner_id) === String(userId),
+        owner: {
+          id: String(room.owner_id),
+          username: room.owner_username ?? null,
+          displayName: room.owner_display_name ?? null,
+          avatarId: room.owner_avatar_id ?? null,
+          avatarUrl: room.owner_avatar_url ?? null,
+        },
+        members: members.map((member) => ({
+          id: member.user.id,
+          username: member.user.username,
+          displayName: member.user.displayName ?? member.user.username,
+          firstName: member.user.firstName ?? null,
+          lastName: member.user.lastName ?? null,
+          avatarId: member.user.avatarId ?? null,
+          avatarUrl: member.user.avatarUrl ?? null,
+          joinedAt: member.joinedAt ?? null,
+          status: member.statusName ?? null,
+          is_you: String(member.user.id) === String(userId),
+        })),
       },
     });
   } catch (error) {

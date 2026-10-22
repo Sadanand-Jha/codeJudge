@@ -186,6 +186,14 @@ export const joinQuizSchema = z.object({
  * Schema for creating a room from the public /rooms share screen.
  * A missing password asks the server to generate an 8-character one.
  */
+const roomPasswordExpirySchema = z
+  .number()
+  .int("Expiry must be a whole number of minutes")
+  .min(1, "Expiry must be at least 1 minute")
+  .max(525600, "Expiry can be at most 365 days")
+  .nullable()
+  .optional();
+
 export const roomCreateSchema = z.object({
   name: z
     .string()
@@ -197,7 +205,17 @@ export const roomCreateSchema = z.object({
     .min(6, "Password must be at least 6 characters")
     .max(128, "Password must be at most 128 characters")
     .optional(),
+  /** Minutes until the password stops working; null = never, omitted = 24h. */
+  expires_in_minutes: roomPasswordExpirySchema,
 }).strict();
+
+/** Rotating a room password accepts the same validity window. */
+export const roomPasswordResetSchema = z
+  .object({
+    expires_in_minutes: roomPasswordExpirySchema,
+  })
+  .strict()
+  .default({});
 
 /**
  * Schema for joining a room by code and password. The code is normalized to

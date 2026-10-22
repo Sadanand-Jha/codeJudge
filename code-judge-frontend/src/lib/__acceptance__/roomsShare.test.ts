@@ -11,6 +11,11 @@ import {
   normalizeRoomCodeInput,
   parseRoomInvitePassword,
 } from "@/utils/roomShare";
+import {
+  formatPasswordExpiry,
+  formatPasswordExpiryRelative,
+  isPasswordExpired,
+} from "@/utils/passwordExpiry";
 
 let passed = 0;
 const test = (name: string, fn: () => void) => {
@@ -38,12 +43,25 @@ test("share message matches the requested template exactly", () => {
     roomCode: "AB23CD",
     password: "maple7x",
     appUrl: "https://www.quizsupport.com",
+    creatorUsername: "quizteacher",
   });
 
   assert.equal(
     message,
-    "📚 Join my class: Class 10 Maths\n\n1. Tap to join: https://www.quizsupport.com/rooms?code=AB23CD#p=maple7x\n2. Room code: AB23CD\n3. Password: maple7x"
+    "📚 Join my class: Class 10 Maths\nTeacher: @quizteacher\n\n1. Tap to join: https://www.quizsupport.com/rooms?code=AB23CD#p=maple7x\n2. Room code: AB23CD\n3. Password: maple7x"
   );
+});
+
+test("creator username is normalized and included in the share message", () => {
+  const message = buildRoomShareMessage({
+    roomName: "Physics",
+    roomCode: "XY34ZW",
+    password: "abc12345",
+    appUrl: "https://www.quizsupport.com",
+    creatorUsername: "@sadanand",
+  });
+  assert.ok(message.includes("Teacher: @sadanand"));
+  assert.ok(!message.includes("@@"), "username must not get a double @");
 });
 
 test("share message normalizes a trailing slash on APP_URL", () => {
@@ -73,6 +91,39 @@ test("invite password parses from #p= and ignores empty/oversized values", () =>
   assert.equal(parseRoomInvitePassword(""), null);
   assert.equal(parseRoomInvitePassword("#p="), null);
   assert.equal(parseRoomInvitePassword(`#p=${"a".repeat(129)}`), null);
+});
+
+test("share message appends the password expiry in IST", () => {
+  const message = buildRoomShareMessage({
+    roomName: "Physics",
+    roomCode: "XY34ZW",
+    password: "abc12345",
+    appUrl: "https://www.quizsupport.com",
+    passwordExpiresAt: "2026-10-24T13:00:00.000Z",
+  });
+  assert.ok(
+    message.endsWith(
+      "3. Password: abc12345\n4. Password valid till: 24 Oct 2026, 6:30 pm IST"
+    ),
+    message
+  );
+});
+
+test("password expiry is formatted for the Kolkata region", () => {
+  assert.equal(
+    formatPasswordExpiry("2026-10-24T13:00:00.000Z"),
+    "24 Oct 2026, 6:30 pm IST"
+  );
+  assert.equal(formatPasswordExpiry(null), "Does not expire");
+  assert.equal(
+    formatPasswordExpiryRelative("2026-10-24T13:00:00.000Z", Date.parse("2026-10-24T11:00:00.000Z")),
+    "Expires in 2h"
+  );
+  assert.equal(
+    isPasswordExpired("2026-10-24T13:00:00.000Z", Date.parse("2026-10-24T13:00:00.000Z")),
+    true
+  );
+  assert.equal(isPasswordExpired(null), false);
 });
 
 test("WhatsApp link URI-encodes the whole message", () => {

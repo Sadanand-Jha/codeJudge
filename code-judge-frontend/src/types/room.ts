@@ -72,6 +72,8 @@ export interface Room {
   memberCount?: number;
   /** Creator-defined form students fill before joining (when loaded). */
   registrationForm?: RoomRegistrationForm;
+  /** ISO timestamp when the shared password stops working; null = never. */
+  passwordExpiresAt?: string | null;
 }
 
 export type RoomFilterTab = "all" | "active" | "inactive";

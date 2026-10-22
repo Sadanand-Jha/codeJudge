@@ -11,6 +11,8 @@ import { generateResponsesReport } from "../services/responsesReport.service.ts"
 import { finalizeExpiredQuizAttempts, processQuizSubmission } from "../services/quizSubmission.service.ts";
 import { QuizCreationLimitError } from "../services/quizCreationLimits.ts";
 import { QuizQuestionLimitError } from "../services/quizQuestionLimits.ts";
+import { prepareAttemptDecoys, TRAP_STRENGTH_DEFAULT } from "../services/quizDecoy.service.ts";
+import { sanitizeAttemptForStudent } from "../services/quizDecoy.ts";
 import { sendEntitlementError } from "../services/entitlement.service.ts";
 import { isQuizCodeConflictError } from "../utils/databaseError.ts";
 import {
@@ -1219,7 +1221,10 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
       return;
     }
 
-    const problems = await attachQuizProblemOptions(quizId, false);
+    // Fetch the authored correctness flags for server-side decoy selection.
+    // prepareAttemptDecoys whitelists the student payload before anything is
+    // returned, so iscorrect never crosses the wire.
+    const problems = await attachQuizProblemOptions(quizId, true);
     const quiz = await quizService.getQuizById(quizId);
 
     const stableShuffle = <T>(items: T[], seed: number): T[] => {
@@ -1256,7 +1261,26 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
         ...problem,
         options: stableShuffle(problem.options ?? [], Number(attempt.id) + Number(problem.id)),
       }));
-      return { attempt, problems: orderedProblems, savedResponses, remainingSeconds, resumed };
+      const prepared = await prepareAttemptDecoys(orderedProblems, attempt.decoy_map);
+      if (prepared.changed) {
+        try {
+          const refreshed = await quizService.updateQuizAttempt(Number(attempt.id), {
+            decoy_map: prepared.decoyMap,
+          });
+          if (refreshed) attempt = refreshed;
+        } catch {
+          // A failed map write is non-fatal: the same deterministic option
+          // order lets the next resume regenerate and persist it.
+        }
+      }
+      return {
+        attempt: sanitizeAttemptForStudent(attempt),
+        problems: prepared.problems,
+        savedResponses,
+        remainingSeconds,
+        resumed,
+        trapStrength: TRAP_STRENGTH_DEFAULT,
+      };
     };
 
     if (access.reason === "resume") {

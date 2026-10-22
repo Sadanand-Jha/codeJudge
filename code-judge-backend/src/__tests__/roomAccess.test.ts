@@ -13,8 +13,10 @@ import {
   normalizeRoomCode,
 } from "../utils/roomCode.ts";
 import {
+  computePasswordExpiresAt,
   hashRoomPassword,
   insertRoomWithUniqueCode,
+  isRoomPasswordExpired,
   joinRoomWithPassword,
   previewRoomJoinWithPassword,
   verifyRoomPassword,
@@ -103,6 +105,28 @@ async function main() {
     assert.equal(await verifyRoomPassword("", hash), false);
   });
 
+  await test("password expiry defaults to 24 hours and supports never", () => {
+    const now = new Date("2026-10-23T12:00:00.000Z");
+    assert.equal(
+      computePasswordExpiresAt(undefined, now)?.toISOString(),
+      "2026-10-24T12:00:00.000Z"
+    );
+    assert.equal(
+      computePasswordExpiresAt(30, now)?.toISOString(),
+      "2026-10-23T12:30:00.000Z"
+    );
+    assert.equal(computePasswordExpiresAt(null, now), null);
+    assert.equal(isRoomPasswordExpired({ password_expires_at: null }, now), false);
+    assert.equal(
+      isRoomPasswordExpired({ password_expires_at: "2026-10-23T11:59:00.000Z" }, now),
+      true
+    );
+    assert.equal(
+      isRoomPasswordExpired({ password_expires_at: "2026-10-23T12:01:00.000Z" }, now),
+      false
+    );
+  });
+
   // ────────────────────────────────────────────────────────────────────────
   // Join flow
   // ────────────────────────────────────────────────────────────────────────
@@ -172,6 +196,42 @@ async function main() {
     });
     assert.deepEqual(result, { ok: false, reason: "invalid_credentials" });
     assert.equal(joined.length, 0);
+  });
+
+  await test("expired password rejects preview and join without adding a member", async () => {
+    const expiredRoom: RoomAccessRecord = {
+      ...activeRoom,
+      password_expires_at: new Date(Date.now() - 60_000).toISOString(),
+    };
+    const { repo, joined } = fakeRepository(expiredRoom);
+
+    const preview = await previewRoomJoinWithPassword(repo, {
+      roomCode: "AB23CD",
+      password,
+    });
+    assert.deepEqual(preview, { ok: false, reason: "password_expired" });
+
+    const result = await joinRoomWithPassword(repo, {
+      roomCode: "AB23CD",
+      password,
+      userId: "7",
+    });
+    assert.deepEqual(result, { ok: false, reason: "password_expired" });
+    assert.equal(joined.length, 0);
+  });
+
+  await test("a wrong password still gets the generic outcome after expiry", async () => {
+    const expiredRoom: RoomAccessRecord = {
+      ...activeRoom,
+      password_expires_at: new Date(Date.now() - 60_000).toISOString(),
+    };
+    const { repo } = fakeRepository(expiredRoom);
+    const result = await joinRoomWithPassword(repo, {
+      roomCode: "AB23CD",
+      password: "wrongpass",
+      userId: "7",
+    });
+    assert.deepEqual(result, { ok: false, reason: "invalid_credentials" });
   });
 
   await test("duplicate join is a success, not an error", async () => {
@@ -287,9 +347,12 @@ async function main() {
       roomCode: "AB23CD",
       password,
     });
-    assert.ok(preview);
-    assert.equal(preview?.room.name, "Class 10 Maths");
-    assert.equal(preview?.registration_form.fields.length, 3);
+    assert.equal(preview.ok, true);
+    if (preview.ok) {
+      assert.equal(preview.preview.room.name, "Class 10 Maths");
+      assert.equal(preview.preview.registration_form.fields.length, 3);
+      assert.equal(preview.preview.password_expires_at, null);
+    }
     assert.equal(joined.length, 0);
   });
 

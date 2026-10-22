@@ -14,17 +14,12 @@
   --rooms-ease-soft: ease-out;
 }
 
-.logoRise,
-.logoFloat {
-  display: inline-block;
+.root {
+  position: relative;
 }
 
-.logoRiseAnimated {
-  animation: rooms-rise-in var(--rooms-dur-slow) var(--rooms-ease-out) both;
-}
-
-.logoFloat {
-  animation: rooms-float 6s ease-in-out infinite;
+.ambient {
+  animation-play-state: running;
 }
 
 .toggleFadeAnimated {
@@ -98,6 +93,19 @@
 .joinStage,
 .shareStage {
   position: relative;
+}
+
+.inviteChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.75rem;
+  border-radius: 9999px;
+  background: var(--qs-poly-1);
+  padding: 0.25rem 0.625rem;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--qs-brand);
 }
 
 .offsetBlock {
@@ -264,7 +272,7 @@
   min-height: 58px;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
   border: 2px solid var(--qs-line);
   border-radius: 12px;
   background: var(--qs-field);
@@ -279,6 +287,7 @@
 .codeFieldInvalid,
 .codeFieldInvalid:focus-within {
   border-color: var(--qs-bad);
+  outline-color: var(--qs-bad);
 }
 
 .codeFieldPulse::after {
@@ -464,16 +473,6 @@
   }
 }
 
-@keyframes rooms-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-4px);
-  }
-}
-
 @keyframes rooms-tab-out {
   to {
     opacity: 0;
@@ -609,7 +608,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .logoRiseAnimated,
   .toggleFadeAnimated,
   .heroCardAnimated,
   .pillAnimated,

@@ -18,6 +18,11 @@ const BCRYPT_SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || "10", 10);
 
 /** The only message a failed join ever learns from the server. */
 export const ROOM_JOIN_ERROR = "Wrong room code or password";
+export const ROOM_PASSWORD_EXPIRED_ERROR =
+  "This room password has expired. Ask your teacher for a new one.";
+
+/** New rooms get a 24-hour password unless the creator chooses otherwise. */
+export const DEFAULT_PASSWORD_VALIDITY_MINUTES = 24 * 60;
 
 export interface RoomAccessRecord {
   id: string | number;
@@ -25,6 +30,8 @@ export interface RoomAccessRecord {
   room_code: string;
   password_hash: string;
   is_active: boolean | null;
+  /** When the shared password stops working. NULL = never. */
+  password_expires_at?: string | Date | null;
   /** Creator-defined registration form (raw JSONB from Postgres). */
   registration_form?: unknown;
   /** Optional future-facing close state; archived rooms set is_active=false. */
@@ -53,8 +60,16 @@ export interface RoomJoinPreview {
     id: string;
     name: string;
   };
+  /** ISO timestamp for the password, or null when it never expires. */
+  password_expires_at: string | null;
   registration_form: RoomRegistrationForm;
 }
+
+export type RoomAccessFailure = "invalid_credentials" | "password_expired";
+
+export type RoomPreviewResult =
+  | { ok: true; preview: RoomJoinPreview }
+  | { ok: false; reason: RoomAccessFailure };
 
 export type RoomJoinResult =
   | {
@@ -66,7 +81,7 @@ export type RoomJoinResult =
     }
   | {
       ok: false;
-      reason: "invalid_credentials";
+      reason: RoomAccessFailure;
     }
   | {
       ok: false;
@@ -82,6 +97,41 @@ export function hashRoomPassword(password: string): Promise<string> {
 /** bcrypt.compare is constant-time with respect to the hash contents. */
 export function verifyRoomPassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
+}
+
+/**
+ * Convert the creator's validity window into an absolute timestamp.
+ * `null` explicitly means "never expires"; omitting the value applies the
+ * 24-hour default. The room code is unaffected by this timestamp.
+ */
+export function computePasswordExpiresAt(
+  expiresInMinutes: number | null | undefined,
+  now: Date = new Date()
+): Date | null {
+  if (expiresInMinutes === null) return null;
+  const minutes =
+    typeof expiresInMinutes === "number" && Number.isFinite(expiresInMinutes)
+      ? Math.max(1, Math.trunc(expiresInMinutes))
+      : DEFAULT_PASSWORD_VALIDITY_MINUTES;
+  return new Date(now.getTime() + minutes * 60_000);
+}
+
+export function isRoomPasswordExpired(
+  room: Pick<RoomAccessRecord, "password_expires_at">,
+  now: Date = new Date()
+): boolean {
+  if (!room.password_expires_at) return false;
+  const expiresAt = new Date(room.password_expires_at);
+  if (Number.isNaN(expiresAt.getTime())) return false;
+  return expiresAt.getTime() <= now.getTime();
+}
+
+export function roomPasswordExpiresAtIso(
+  room: Pick<RoomAccessRecord, "password_expires_at">
+): string | null {
+  if (!room.password_expires_at) return null;
+  const expiresAt = new Date(room.password_expires_at);
+  return Number.isNaN(expiresAt.getTime()) ? null : expiresAt.toISOString();
 }
 
 // Used when no room matches so a missing code costs the same bcrypt work as a
@@ -111,7 +161,7 @@ async function findJoinableRoom(
   repo: RoomLookupRepository,
   roomCodeInput: string,
   password: string
-): Promise<RoomAccessRecord | null> {
+): Promise<{ ok: true; room: RoomAccessRecord } | { ok: false; reason: RoomAccessFailure }> {
   const roomCode = normalizeRoomCode(roomCodeInput);
   const room = isValidRoomCodeInput(roomCode)
     ? await repo.findRoomByCode(roomCode)
@@ -120,8 +170,17 @@ async function findJoinableRoom(
   const hash = room?.password_hash ?? (await getDummyHash());
   const passwordMatches = await verifyRoomPassword(String(password ?? ""), hash);
 
-  if (!room || !passwordMatches || isClosed(room)) return null;
-  return room;
+  if (!room || !passwordMatches || isClosed(room)) {
+    return { ok: false, reason: "invalid_credentials" };
+  }
+
+  // The password was correct, so reporting expiry does not reveal whether a
+  // code exists to someone guessing credentials.
+  if (isRoomPasswordExpired(room)) {
+    return { ok: false, reason: "password_expired" };
+  }
+
+  return { ok: true, room };
 }
 
 /**
@@ -131,13 +190,17 @@ async function findJoinableRoom(
 export async function previewRoomJoinWithPassword(
   repo: RoomLookupRepository,
   input: { roomCode: string; password: string }
-): Promise<RoomJoinPreview | null> {
-  const room = await findJoinableRoom(repo, input.roomCode, input.password);
-  if (!room) return null;
+): Promise<RoomPreviewResult> {
+  const access = await findJoinableRoom(repo, input.roomCode, input.password);
+  if (!access.ok) return access;
 
   return {
-    room: { id: String(room.id), name: room.name },
-    registration_form: normalizeRoomRegistrationForm(room.registration_form),
+    ok: true,
+    preview: {
+      room: { id: String(access.room.id), name: access.room.name },
+      password_expires_at: roomPasswordExpiresAtIso(access.room),
+      registration_form: normalizeRoomRegistrationForm(access.room.registration_form),
+    },
   };
 }
 
@@ -151,8 +214,9 @@ export async function joinRoomWithPassword(
   repo: RoomAccessRepository,
   input: RoomJoinInput
 ): Promise<RoomJoinResult> {
-  const room = await findJoinableRoom(repo, input.roomCode, input.password);
-  if (!room) return { ok: false, reason: "invalid_credentials" };
+  const access = await findJoinableRoom(repo, input.roomCode, input.password);
+  if (!access.ok) return access;
+  const room = access.room;
 
   const form = normalizeRoomRegistrationForm(room.registration_form);
   const registration = validateRoomRegistrationData(form, input.registrationData);

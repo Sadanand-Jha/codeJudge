@@ -162,21 +162,35 @@ interface ScrambleProps {
 }
 
 export function Scramble({ text, trigger = 0, placeholder = "------", className }: ScrambleProps) {
+  return (
+    <ScrambleRun
+      key={`${trigger}:${text}`}
+      text={text}
+      placeholder={placeholder}
+      className={className}
+    />
+  );
+}
+
+function ScrambleRun({
+  text,
+  placeholder = "------",
+  className,
+}: Omit<ScrambleProps, "trigger">) {
   const reduced = usePrefersReducedMotion();
   const [display, setDisplay] = useState(text || placeholder);
 
   useEffect(() => {
-    if (reduced || !text) {
-      setDisplay(text || placeholder);
-      return;
-    }
+    if (reduced || !text) return;
 
     let scrambleTimer = 0;
     let settleTimer = 0;
     let revealed = 0;
     let stopped = false;
 
-    setDisplay(randomRoomChars(text.length));
+    const startTimer = window.setTimeout(() => {
+      if (!stopped) setDisplay(randomRoomChars(text.length));
+    }, 0);
 
     const settle = () => {
       revealed += 1;
@@ -201,14 +215,17 @@ export function Scramble({ text, trigger = 0, placeholder = "------", className 
 
     return () => {
       stopped = true;
+      window.clearTimeout(startTimer);
       window.clearInterval(scrambleTimer);
       window.clearInterval(settleTimer);
     };
-  }, [text, trigger, reduced, placeholder]);
+  }, [text, reduced, placeholder]);
+
+  const rendered = reduced || !text ? text || placeholder : display || placeholder;
 
   return (
     <span className={className}>
-      <span aria-hidden="true">{display || placeholder}</span>
+      <span aria-hidden="true">{rendered}</span>
       <span className="sr-only">{text || placeholder}</span>
     </span>
   );
@@ -218,23 +235,29 @@ interface TypewriterProps {
   text: string;
   speed?: number;
   className?: string;
+  animate?: boolean;
 }
 
-export function Typewriter({ text, speed = 25, className }: TypewriterProps) {
+export function Typewriter({ text, speed = 25, className, animate = true }: TypewriterProps) {
+  return (
+    <TypewriterRun
+      key={`${animate ? "on" : "off"}:${text}`}
+      text={text}
+      speed={speed}
+      className={className}
+      animate={animate}
+    />
+  );
+}
+
+function TypewriterRun({ text, speed = 25, className, animate = true }: TypewriterProps) {
   const reduced = usePrefersReducedMotion();
   const [count, setCount] = useState(0);
+  const shouldType = animate && !reduced;
 
   useEffect(() => {
-    if (!text) {
-      setCount(0);
-      return;
-    }
-    if (reduced) {
-      setCount(text.length);
-      return;
-    }
+    if (!text || !shouldType) return;
 
-    setCount(0);
     let index = 0;
     const timer = window.setInterval(() => {
       index += 1;
@@ -243,9 +266,9 @@ export function Typewriter({ text, speed = 25, className }: TypewriterProps) {
     }, speed);
 
     return () => window.clearInterval(timer);
-  }, [text, speed, reduced]);
+  }, [text, speed, shouldType]);
 
-  const shown = text.slice(0, count);
+  const shown = shouldType ? text.slice(0, count) : text;
 
   return (
     <div className={cn(styles.typewriter, className)}>

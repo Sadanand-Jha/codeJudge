@@ -63,10 +63,8 @@ export function parseRegistrationOptions(value: string): string[] {
 export function validateRegistrationFormConfig(form: RoomRegistrationForm): string[] {
   const errors: string[] = [];
   if (!form.title.trim()) errors.push("Give the form a title.");
-  if (!Array.isArray(form.fields) || form.fields.length === 0) {
-    errors.push("Add at least one field, or leave the form empty to skip registration.");
-    return errors;
-  }
+  // An empty form is valid — it turns registration off for this room.
+  if (!Array.isArray(form.fields) || form.fields.length === 0) return errors;
 
   const labels = new Set<string>();
   form.fields.forEach((field, index) => {

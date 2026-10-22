@@ -1,7 +1,7 @@
 
 "use client";
 
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, BrainCircuit, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Home, PartyPopper, Send, ShieldCheck, Sparkles, Target, Volume2, VolumeX } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -29,6 +29,9 @@ import {
 import { useQuizSounds, type QuizSound } from "@/hooks/useQuizSounds";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
+import { AiTrap, TrapCalibrationPanel } from "@/components/quiz/exam/AiTrap";
+import { trapPlacementFor } from "@/lib/aiTrap";
+import { useAuthStore } from "@/store/authStore";
 
 type AnswerValue = StoredAttemptAnswer;
 
@@ -49,24 +52,6 @@ function plainText(html: string | null | undefined): string {
     .replace(/&#39;/g, "’")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
-}
-
-function stableShuffle<T>(items: T[], seed: number): T[] {
-  const shuffled = [...items];
-  let state = seed || 1;
-  for (let index = shuffled.length - 1; index > 0; index--) {
-    state = (state * 1664525 + 1013904223) >>> 0;
-    const swapIndex = state % (index + 1);
-    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
-  }
-  return shuffled;
-}
-
-function shuffleStudentAttempt(problems: PublicQuizProblem[], attemptId: number): PublicQuizProblem[] {
-  return stableShuffle(problems, attemptId * 31 + 17).map((problem) => ({
-    ...problem,
-    options: stableShuffle(problem.options ?? [], attemptId * 31 + Number(problem.id)),
-  }));
 }
 
 function responsesToAnswers(responses: Array<{ problem_id: number; answer: unknown }>): Record<number, AnswerValue> {
@@ -104,7 +89,11 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   const [submissionComplete, setSubmissionComplete] = useState(false);
   const [autoSubmitted, setAutoSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [trapStrength, setTrapStrength] = useState(4);
+  const [trapDefaultStrength, setTrapDefaultStrength] = useState(4);
+  const [trapOutline, setTrapOutline] = useState(false);
   const { soundEnabled, playQuizSound, toggleQuizSounds } = useQuizSounds();
+  const userRole = useAuthStore((state) => state.user?.role);
   // Mobile: static exam surface — no space atmosphere behind the questions,
   // opacity-only transitions, no layout-property animation while answering.
   const isMobile = useIsMobile();
@@ -112,6 +101,20 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   // Ref mirror of `submitting` so the submit guard never goes stale inside
   // the long-lived polling loop (state in the useCallback closure would).
   const submittingRef = useRef(false);
+
+  // Calibration is a teacher/admin-only local preview. The server owns the
+  // default strength; this flag only enables the controls when explicitly
+  // requested with ?trapcal=1. useSyncExternalStore keeps SSR and hydration
+  // consistent without writing state from an effect.
+  const trapCalibrationRequested = useSyncExternalStore(
+    () => () => {},
+    () => new URLSearchParams(window.location.search).get("trapcal") === "1",
+    () => false,
+  );
+  const trapCalibration =
+    trapCalibrationRequested &&
+    (String(userRole ?? "").toLowerCase() === "teacher" ||
+      String(userRole ?? "").toLowerCase() === "admin");
   useEffect(() => {
     answersRef.current = answers;
     // Persist locally on every change so a refresh/resume never loses answers.
@@ -305,6 +308,20 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   }, [attemptId, submit, submitting, timeLeft]);
 
   const current = questions[index];
+  const currentTrap = current?.trap ?? null;
+  const currentTrapPlacement =
+    current && attemptId !== null ? trapPlacementFor(attemptId, current.id) : null;
+  const trapOutlineVisible = trapCalibration && trapOutline;
+  const monitoringTrap =
+    currentTrap && currentTrapPlacement === "monitoring" ? (
+      <AiTrap
+        trap={currentTrap}
+        placement="monitoring"
+        strength={trapStrength}
+        outline={trapOutlineVisible}
+        className="right-0 w-full max-w-[220px]"
+      />
+    ) : null;
   const answered = Object.keys(answers).length;
   const progress = questions.length ? ((index + 1) / questions.length) * 100 : 0;
 
@@ -320,9 +337,12 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       const started = await startQuizAttempt(String(quiz.id), registrationData);
       const id = started.attempt.id as number;
       setAttemptId(id);
-      // Shuffle only the student attempt view. A deterministic attempt-based
-      // seed preserves the same order after refresh/resume.
-      setQuestions(shuffleStudentAttempt(started.problems ?? [], id));
+      // The server returns the final per-attempt option order. The decoy label
+      // is derived from that exact order, so the client must not shuffle it.
+      setQuestions(started.problems ?? []);
+      const serverTrapStrength = Number(started.trapStrength ?? 4);
+      setTrapDefaultStrength(serverTrapStrength);
+      setTrapStrength(serverTrapStrength);
       if (started.resumed) {
         // Server responses make resume work across devices; the local draft is
         // applied last because it may contain a newer offline edit.
@@ -436,7 +456,17 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       entryError={error}
       onTerminate={handleTerminate}
       registrationFields={skipRegistration ? [] : quiz.registration_fields ?? []}
+      monitoringTrap={monitoringTrap}
     >
+      {trapCalibration && (
+        <TrapCalibrationPanel
+          value={trapStrength}
+          defaultValue={trapDefaultStrength}
+          outline={trapOutline}
+          onChange={setTrapStrength}
+          onOutlineChange={setTrapOutline}
+        />
+      )}
       {submitting && <SubmissionProgressOverlay complete={submissionComplete} soundEnabled={soundEnabled} onSound={playQuizSound} onHome={handleGoHome} />}
       {starting || (!attemptId && !error) ? (
         <div className="flex h-full items-center justify-center p-6">
@@ -486,7 +516,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
           animate={{ opacity: 1, x: 0, scale: 1 }}
           exit={isMobile ? undefined : { opacity: 0, x: -14, scale: 1 }}
           transition={isMobile ? { duration: 0 } : { duration: 0.22, ease: "easeOut" }}
-          className="relative overflow-hidden rounded-[24px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 sm:p-6"
+          className={`relative overflow-hidden rounded-[24px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 sm:p-6 ${currentTrap && currentTrapPlacement === "under-options" ? "pb-10 sm:pb-12" : ""}`}
         >
           <div className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-2xl border-2 border-[var(--qs-line)]" />
           <div className="relative flex items-center justify-between gap-3">
@@ -500,6 +530,15 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
           </div>
           <h2 className="relative mt-4 whitespace-pre-wrap text-base font-semibold leading-7 tracking-[-0.01em] text-[var(--qs-ink)] sm:text-lg">{plainText(current.problem_statement)}</h2>
           {current.problem_description && <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--qs-muted)]">{plainText(current.problem_description)}</p>}
+          {currentTrap && currentTrapPlacement === "question-gap" && (
+            <AiTrap
+              trap={currentTrap}
+              placement="question-gap"
+              strength={trapStrength}
+              outline={trapOutlineVisible}
+              className="left-4 right-4"
+            />
+          )}
 
           <div className="relative mt-5 grid gap-3 sm:grid-cols-2">
             {current.options.map((option, optionIndex) => {
@@ -536,6 +575,15 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
               );
             })}
           </div>
+          {currentTrap && currentTrapPlacement === "under-options" && (
+            <AiTrap
+              trap={currentTrap}
+              placement="under-options"
+              strength={trapStrength}
+              outline={trapOutlineVisible}
+              className="left-4 right-4 sm:left-1/2 sm:right-4"
+            />
+          )}
           {current.options.length === 0 && (
             <textarea
               value={answers[current.id]?.textAnswer ?? ""}
@@ -552,6 +600,18 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
           )}
         </motion.section>
         </AnimatePresence>
+
+        {currentTrap && currentTrapPlacement === "between-card-footer" && (
+          <div className="relative h-16" aria-hidden="true">
+            <AiTrap
+              trap={currentTrap}
+              placement="between-card-footer"
+              strength={trapStrength}
+              outline={trapOutlineVisible}
+              className="left-4 right-4 top-1"
+            />
+          </div>
+        )}
 
         {error && (
           <div className="mt-3 flex items-start gap-2 rounded-xl border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] p-3 text-xs text-[var(--qs-bad)]">

@@ -1,4 +1,5 @@
 import { SITE_URL } from "@/lib/seo/site";
+import { formatPasswordExpiry } from "@/utils/passwordExpiry";
 
 export const ROOM_CODE_LENGTH = 6;
 const ROOM_CODE_INPUT_PATTERN = /^[A-Z0-9]{6}$/;
@@ -26,6 +27,13 @@ export interface RoomShareMessageInput {
   roomCode: string;
   password: string;
   appUrl?: string;
+  /** Creator's @username, included so students know who invited them. */
+  creatorUsername?: string | null;
+  /**
+   * ISO expiry for the password. Omit to keep the short message template;
+   * pass null to state explicitly that the password never expires.
+   */
+  passwordExpiresAt?: string | null;
 }
 
 /**
@@ -71,13 +79,24 @@ export function buildRoomShareMessage({
   roomCode,
   password,
   appUrl = getAppUrl(),
+  creatorUsername,
+  passwordExpiresAt,
 }: RoomShareMessageInput): string {
   const joinLink = buildRoomJoinLink({ roomCode, password, appUrl });
-  return `📚 Join my class: ${roomName}
+  const teacherLine = creatorUsername?.trim()
+    ? `\nTeacher: @${creatorUsername.trim().replace(/^@+/, "")}`
+    : "";
+  const expiryLine =
+    passwordExpiresAt === undefined
+      ? ""
+      : passwordExpiresAt
+        ? `\n4. Password valid till: ${formatPasswordExpiry(passwordExpiresAt)}`
+        : "\n4. Password does not expire";
+  return `📚 Join my class: ${roomName}${teacherLine}
 
 1. Tap to join: ${joinLink}
 2. Room code: ${roomCode}
-3. Password: ${password}`;
+3. Password: ${password}${expiryLine}`;
 }
 
 export function buildWhatsAppHref(message: string): string {

@@ -148,8 +148,15 @@ export interface PublicQuizProblemOption extends Omit<QuizProblemOption, "iscorr
   iscorrect?: never;
 }
 
+export interface QuizTrapPayload {
+  line1: string;
+  line2: string;
+  line3: string;
+}
+
 export interface PublicQuizProblem extends Omit<QuizProblem, "options"> {
   options: PublicQuizProblemOption[];
+  trap?: QuizTrapPayload | null;
 }
 
 export interface QuizRegistration {
@@ -729,6 +736,7 @@ export interface StartQuizResponse {
   savedResponses: SavedQuizResponse[];
   remainingSeconds: number | null;
   resumed: boolean;
+  trapStrength?: number;
 }
 
 /**
@@ -1303,6 +1311,9 @@ export interface QuizResponseStudent {
   correct_answers: number | null;
   wrong_answers: number | null;
   skipped_questions: number | null;
+  decoy_hits?: number | null;
+  decoy_questions?: number | null;
+  decoy_flagged?: boolean | null;
 }
 
 export interface QuizResponsesSummary {

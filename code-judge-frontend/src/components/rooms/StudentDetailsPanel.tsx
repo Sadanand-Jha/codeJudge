@@ -137,6 +137,29 @@ export default function StudentDetailsPanel({
                 </div>
               </div>
 
+              {student.registrationData && Object.keys(student.registrationData).length > 0 ? (
+                <div>
+                  <h4 className="mb-2 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+                    Registration answers
+                  </h4>
+                  <div className="space-y-1.5">
+                    {Object.entries(student.registrationData).map(([label, value]) => (
+                      <div
+                        key={label}
+                        className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2"
+                      >
+                        <p className="text-[9px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+                          {label}
+                        </p>
+                        <p className="mt-0.5 break-words text-xs font-bold text-[var(--qs-ink)]">
+                          {value || "—"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               {/* Rooms membership */}
               <div>
                 <h4 className="mb-2 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
