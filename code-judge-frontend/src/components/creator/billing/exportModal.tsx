@@ -22,7 +22,7 @@ const FORMAT_OPTIONS = [
   { id: "pdf", label: "PDF", icon: FileText },
 ];
 
-const PRODUCT_FILTERS = ["All products", "JEE Main 2027 Mock Series", "JEE Physics Mock Test #4", "NEET Biology Full Test", "Mathematics Advanced Pack"];
+const PRODUCT_FILTERS = ["All products"];
 const STATUS_FILTERS = ["All statuses", "Completed", "Processing", "Pending", "Failed", "Refunded"];
 
 type Scope = (typeof SCOPE_OPTIONS)[number]["id"];

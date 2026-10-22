@@ -12,7 +12,6 @@ import {
   CheckCheck,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { BILLING_NOTIFICATIONS } from "./mockData";
 import type { BillingNotification } from "./types";
 import { IconButton } from "./ui";
 
@@ -26,7 +25,7 @@ const KIND_META: Record<BillingNotification["kind"], { icon: typeof Wallet; colo
 
 export function BillingNotifications() {
   const [open, setOpen] = useState(false);
-  const [items, setItems] = useState(BILLING_NOTIFICATIONS);
+  const [items, setItems] = useState<BillingNotification[]>([]);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -76,6 +75,11 @@ export function BillingNotifications() {
               )}
             </div>
             <div className="max-h-[380px] overflow-y-auto">
+              {items.length === 0 && (
+                <p className="px-4 py-8 text-center text-[12px] text-text-muted">
+                  No financial notifications yet.
+                </p>
+              )}
               {items.map((n) => {
                 const meta = KIND_META[n.kind];
                 const Icon = meta.icon;

@@ -10,7 +10,7 @@ import type { BillingPageState } from "./types";
  * would have, so every page exercises the same state machinery. Wire the
  * loader to `fetch(...)` when the backend exists.
  *
- * @param loader   returns the page's data (mock for now)
+ * @param loader   returns the page's data; wire it to a real API when available
  * @param options  `delayMs` simulates latency; `demoState` lets you preview
  *                 empty/error states via `?state=empty` / `?state=error`
  */

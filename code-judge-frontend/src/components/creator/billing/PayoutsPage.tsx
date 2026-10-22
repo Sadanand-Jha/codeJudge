@@ -19,7 +19,6 @@ import {
 } from "./ui";
 import { WithdrawDrawer } from "./withdraw";
 import { ExportModal } from "./exportModal";
-import { PAYOUTS, BANK_ACCOUNTS } from "./mockData";
 import type { Payout, PayoutStatus } from "./types";
 
 const STATUS_FILTERS = [
@@ -32,7 +31,7 @@ const STATUS_FILTERS = [
 ] as const;
 
 export function PayoutsPage({ demoState }: { demoState?: "empty" | "error" }) {
-  const { state, data, retry } = useBillingData(() => PAYOUTS as Payout[], { demoState });
+  const { state, data, retry } = useBillingData(() => [] as Payout[], { demoState });
   const [filter, setFilter] = useState<"all" | PayoutStatus>("all");
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
@@ -42,7 +41,7 @@ export function PayoutsPage({ demoState }: { demoState?: "empty" | "error" }) {
     [data, filter]
   );
 
-  const lifetime = PAYOUTS.filter((p) => p.status === "Completed").reduce((s, p) => s + p.netAmount, 0);
+  const lifetime = (data ?? []).filter((p) => p.status === "Completed").reduce((s, p) => s + p.netAmount, 0);
 
   return (
     <div className="space-y-6">
@@ -169,7 +168,7 @@ export function PayoutsPage({ demoState }: { demoState?: "empty" | "error" }) {
         </Panel>
       )}
 
-      <WithdrawDrawer open={withdrawOpen} onClose={() => setWithdrawOpen(false)} accounts={BANK_ACCOUNTS} />
+      <WithdrawDrawer open={withdrawOpen} onClose={() => setWithdrawOpen(false)} accounts={[]} available={0} />
       <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} />
     </div>
   );

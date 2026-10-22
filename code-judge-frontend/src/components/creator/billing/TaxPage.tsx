@@ -15,7 +15,6 @@ import {
   ErrorState,
   formatINR,
 } from "./ui";
-import { TAX_PROFILE, DOCUMENTS } from "./mockData";
 import type { TaxProfile, FinancialDocument } from "./types";
 
 const TAX_DOC_SLOTS = [
@@ -27,10 +26,10 @@ const TAX_DOC_SLOTS = [
 
 export function TaxPage({ demoState }: { demoState?: "empty" | "error" }) {
   const toast = useToast();
-  const { state, retry } = useBillingData(() => TAX_PROFILE as TaxProfile, { demoState });
-  const [profile] = useState<TaxProfile | null>(TAX_PROFILE);
+  const { state, retry } = useBillingData(() => null as TaxProfile | null, { demoState });
+  const [profile] = useState<TaxProfile | null>(null);
 
-  const taxDocs = DOCUMENTS.filter((d) => d.type === "tax" || d.type === "invoice");
+  const taxDocs: FinancialDocument[] = [];
 
   const download = (label: string) =>
     toast.info({ title: `Downloading ${label}`, description: "File download will be wired to the backend." });
@@ -51,6 +50,13 @@ export function TaxPage({ demoState }: { demoState?: "empty" | "error" }) {
       )}
       {state === "error" && <ErrorState onRetry={retry} />}
       {state === "empty" && (
+        <EmptyState
+          title="No compliance data yet"
+          description="Your tax profile and documents will appear once you have earnings to report."
+        />
+      )}
+
+      {state === "ready" && !profile && (
         <EmptyState
           title="No compliance data yet"
           description="Your tax profile and documents will appear once you have earnings to report."

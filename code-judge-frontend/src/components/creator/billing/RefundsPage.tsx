@@ -21,7 +21,6 @@ import {
   type StatusTone,
 } from "./ui";
 import { ExportModal } from "./exportModal";
-import { REFUNDS } from "./mockData";
 import type { RefundRecord, RefundStatus } from "./types";
 
 const STATUS_FILTERS = [
@@ -37,12 +36,12 @@ const CAN_ACT_ON: RefundStatus[] = ["Requested", "Approved"];
 
 export function RefundsPage({ demoState }: { demoState?: "empty" | "error" }) {
   const toast = useToast();
-  const { state, data, retry } = useBillingData(() => REFUNDS as RefundRecord[], { demoState });
+  const { state, data, retry } = useBillingData(() => [] as RefundRecord[], { demoState });
   const [filter, setFilter] = useState<"all" | RefundStatus>("all");
   const [exportOpen, setExportOpen] = useState(false);
   const [confirm, setConfirm] = useState<{ record: RefundRecord; action: "approve" | "reject" } | null>(null);
   const [details, setDetails] = useState<RefundRecord | null>(null);
-  const [rows, setRows] = useState<RefundRecord[]>(REFUNDS);
+  const [rows, setRows] = useState<RefundRecord[]>([]);
 
   const filtered = useMemo(
     () => rows.filter((r) => filter === "all" || r.status === filter),
