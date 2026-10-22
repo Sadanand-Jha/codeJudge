@@ -259,6 +259,8 @@ export interface GenerateFromBankOptions {
   easyCount?: number;
   mediumCount?: number;
   hardCount?: number;
+  theoryCount?: number;
+  numericalCount?: number;
   hardnessHint?: string;
   syllabus?: string;
   subjectId: number;
@@ -288,6 +290,8 @@ export const generateFromQuestionBank = async (
       easyCount: options.easyCount,
       mediumCount: options.mediumCount,
       hardCount: options.hardCount,
+      theoryCount: options.theoryCount,
+      numericalCount: options.numericalCount,
       hardnessHint: options.hardnessHint,
       syllabus: options.syllabus,
       subjectId: options.subjectId,

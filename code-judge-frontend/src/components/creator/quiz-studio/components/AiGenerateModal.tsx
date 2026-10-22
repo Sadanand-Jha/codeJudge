@@ -11,6 +11,7 @@ import {
   X,
   Check,
   CheckCircle2,
+  ChevronRight,
   AlertCircle,
   Sparkles,
   BookOpen,
@@ -28,10 +29,10 @@ import { generateQuestionsFromFiles, generateFromQuestionBank, mapRawQuestionsTo
 import { getQuestionGeneratorCatalog } from "@/services/aiGenerate";
 import type { QuestionGeneratorCatalog } from "@/services/aiGenerate";
 import { toast } from "@/lib/toast";
-import type { AIQuestionPreview } from "@/services/ai";
+import type { AIQuestionPreview, RawAIGeneratedQuestion } from "@/services/ai";
 import type { CreatorQuestion } from "../types";
 import { mapToCreatorQuestions } from "@/utils/aiToCreatorQuestion";
-import AIQuestionReviewOverlay from "@/components/quiz/creator/AIQuestionReviewOverlay";
+import AIQuestionReviewOverlay, { type PreviewQuestion } from "@/components/quiz/creator/AIQuestionReviewOverlay";
 import { AiStreamText } from "@/components/ui";
 import { QsSelect } from "@/components/creator/problems/QsSelect";
 import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
@@ -49,6 +50,35 @@ const MAX_SIZE_MB = 20;
 const MAX_BANK_QUESTIONS = 25;
 const MAX_QUIZ_QUESTIONS = 25;
 const FILE_GENERATION_COUNT = 20;
+
+function getDifficultySplit(total: number, difficulty?: string) {
+  const key = (difficulty ?? "").toLocaleLowerCase();
+  const ratios = key.includes("easy")
+    ? [0.5, 0.3, 0.2]
+    : key.includes("hard") || key.includes("expert")
+      ? [0.2, 0.3, 0.5]
+      : [0.4, 0.3, 0.3];
+  let easy = Math.round(total * ratios[0]);
+  let medium = Math.round(total * ratios[1]);
+  let hard = total - easy - medium;
+  if (hard < 0) {
+    medium = Math.max(0, medium + hard);
+    hard = 0;
+  }
+  if (total >= 3 && hard === 0) {
+    hard = 1;
+    if (easy > 1) easy -= 1;
+    else medium = Math.max(0, medium - 1);
+  }
+  return { easy, medium, hard };
+}
+
+function getCategorySplit(total: number, theory: number, numerical: number) {
+  const selected = theory + numerical;
+  const ratio = selected > 0 ? theory / selected : 0.6;
+  const nextTheory = Math.max(0, Math.min(total, Math.round(total * ratio)));
+  return { theory: nextTheory, numerical: total - nextTheory };
+}
 
 function getQuizLimitError(existingCount: number, requestedCount: number): string | null {
   const total = existingCount + requestedCount;
@@ -109,6 +139,7 @@ export function AiGenerateModal({
   onQuestionsAdded,
   defaultSubjectId = null,
   defaultSubjectName,
+  defaultDifficulty,
   quizId = null,
   currentQuestionCount = 0,
 }: {
@@ -117,6 +148,7 @@ export function AiGenerateModal({
   onQuestionsAdded: (questions: CreatorQuestion[]) => Promise<void>;
   defaultSubjectId?: number | null;
   defaultSubjectName?: string;
+  defaultDifficulty?: string;
   quizId?: string | null;
   currentQuestionCount?: number;
 }) {
@@ -141,6 +173,8 @@ export function AiGenerateModal({
   const [bankEasy, setBankEasy] = useState(4);
   const [bankMedium, setBankMedium] = useState(3);
   const [bankHard, setBankHard] = useState(3);
+  const [bankTheory, setBankTheory] = useState(6);
+  const [bankNumerical, setBankNumerical] = useState(4);
   const [bankSyllabus, setBankSyllabus] = useState("");
   // `undefined` means "not chosen yet" — the quiz's own subject is shown by
   // default without needing an effect to sync it on every open.
@@ -156,11 +190,14 @@ export function AiGenerateModal({
       : bankSubjectChoice;
   const [bankChapterIds, setBankChapterIds] = useState<number[]>([]);
   const [bankTopicIds, setBankTopicIds] = useState<number[]>([]);
-  const [bankKind, setBankKind] = useState<"any" | "theory" | "numerical">("any");
+  const [collapsedChapterIds, setCollapsedChapterIds] = useState<number[]>([]);
+  const bankKind: "any" | "theory" | "numerical" =
+    bankTheory >= bankNumber ? "theory" : bankNumerical >= bankNumber ? "numerical" : "any";
   const [catalog, setCatalog] = useState<QuestionGeneratorCatalog | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -227,10 +264,39 @@ export function AiGenerateModal({
     );
   }, [catalog, bankChapterIds, chapterOptions]);
 
+  const selectedScopeTree = useMemo(() => {
+    if (!catalog) return [];
+    const selectedTopicIds = new Set(bankTopicIds);
+    const chapterIds = new Set(bankChapterIds);
+    for (const topicId of bankTopicIds) {
+      const topic = catalog.topics.find((item) => item.id === topicId);
+      if (topic) chapterIds.add(topic.chapterId);
+    }
+    return catalog.chapters
+      .filter((chapter) => chapterIds.has(chapter.id))
+      .map((chapter) => ({
+        id: chapter.id,
+        name: chapter.name,
+        topics: catalog.topics
+          .filter((topic) => topic.chapterId === chapter.id && selectedTopicIds.has(topic.id))
+          .map((topic) => topic.name),
+      }));
+  }, [catalog, bankChapterIds, bankTopicIds]);
+
+  const toggleChapterTree = (chapterId: number) => {
+    setCollapsedChapterIds((previous) =>
+      previous.includes(chapterId)
+        ? previous.filter((id) => id !== chapterId)
+        : [...previous, chapterId]
+    );
+  };
+
   const lockedSubjectName =
     defaultSubjectName ||
     subjectOptions.find((subject) => subject.id === defaultSubjectId)?.name ||
     "Quiz subject";
+  const selectedSubjectName =
+    subjectOptions.find((subject) => subject.id === bankSubjectId)?.name || lockedSubjectName;
 
   const notifySubjectLocked = () => {
     toast.info({
@@ -252,13 +318,47 @@ export function AiGenerateModal({
   };
 
   const syncBankDistribution = (total: number) => {
-    let e = Math.round(total * 0.4);
-    let m = Math.round(total * 0.3);
-    let h = total - e - m;
-    if (total === 10) { e = 4; m = 3; h = 3; }
-    if (h < 0) h = 0;
-    setBankEasy(e); setBankMedium(m); setBankHard(h);
+    const split = getDifficultySplit(total, defaultDifficulty);
+    setBankEasy(split.easy);
+    setBankMedium(split.medium);
+    setBankHard(split.hard);
   };
+
+  const syncBankMix = (total: number) => {
+    const split = getCategorySplit(total, bankTheory, bankNumerical);
+    setBankTheory(split.theory);
+    setBankNumerical(split.numerical);
+  };
+
+  const syncBankSize = (total: number) => {
+    syncBankDistribution(total);
+    syncBankMix(total);
+  };
+
+  const setCategoryCount = (kind: "theory" | "numerical", next: number) => {
+    const clamped = Math.max(0, Math.min(bankNumber, next));
+    if (kind === "theory") {
+      setBankTheory(clamped);
+      setBankNumerical(bankNumber - clamped);
+    } else {
+      setBankNumerical(clamped);
+      setBankTheory(bankNumber - clamped);
+    }
+  };
+
+  const wasOpenRef = useRef(false);
+  useEffect(() => {
+    if (open && !wasOpenRef.current) {
+      const split = getDifficultySplit(bankNumber, defaultDifficulty);
+      setBankEasy(split.easy);
+      setBankMedium(split.medium);
+      setBankHard(split.hard);
+      const mix = getCategorySplit(bankNumber, bankTheory, bankNumerical);
+      setBankTheory(mix.theory);
+      setBankNumerical(mix.numerical);
+    }
+    wasOpenRef.current = open;
+  }, [open, defaultDifficulty, bankNumber, bankTheory, bankNumerical]);
 
   const reset = () => {
     setFiles([]);
@@ -275,6 +375,7 @@ export function AiGenerateModal({
     setBankSubjectChoice(undefined);
     setBankChapterIds([]);
     setBankTopicIds([]);
+    setCollapsedChapterIds([]);
     setReviewQuestions([]);
     setReviewOpen(false);
     setAccepting(false);
@@ -375,6 +476,17 @@ export function AiGenerateModal({
     }
   };
 
+  const getScopedChapterIds = () =>
+    bankChapterIds.length > 0
+      ? bankChapterIds
+      : [
+          ...new Set(
+            bankTopicIds
+              .map((topicId) => catalog?.topics.find((topic) => topic.id === topicId)?.chapterId)
+              .filter((chapterId): chapterId is number => typeof chapterId === "number")
+          ),
+        ];
+
   const handleGenerateFromBank = async () => {
     if (bankNumber > MAX_BANK_QUESTIONS) {
       setError(`You can generate at most ${MAX_BANK_QUESTIONS} questions at a time.`);
@@ -391,6 +503,10 @@ export function AiGenerateModal({
       setError(`Distribution must sum to ${bankNumber}: Easy ${bankEasy} + Medium ${bankMedium} + Hard ${bankHard} = ${sum}`);
       return;
     }
+    if (bankTheory + bankNumerical !== bankNumber) {
+      setError(`Category split must sum to ${bankNumber}: Theory ${bankTheory} + Numerical ${bankNumerical} = ${bankTheory + bankNumerical}`);
+      return;
+    }
     if (!bankSubjectId) {
       setError("Please select a subject.");
       return;
@@ -403,21 +519,15 @@ export function AiGenerateModal({
     setElapsedSeconds(0);
     setTipIndex(0);
     setError("");
-    const scopedChapterIds = bankChapterIds.length > 0
-      ? bankChapterIds
-      : [
-          ...new Set(
-            bankTopicIds
-              .map((topicId) => catalog?.topics.find((topic) => topic.id === topicId)?.chapterId)
-              .filter((chapterId): chapterId is number => typeof chapterId === "number")
-          ),
-        ];
+    const scopedChapterIds = getScopedChapterIds();
     try {
       const rawQuestions = await generateFromQuestionBank({
         numberOfQuestions: bankNumber,
         easyCount: bankEasy,
         mediumCount: bankMedium,
         hardCount: bankHard,
+        theoryCount: bankTheory,
+        numericalCount: bankNumerical,
         syllabus: bankSyllabus.trim() || undefined,
         subjectId: bankSubjectId,
         chapterIds: scopedChapterIds,
@@ -441,6 +551,56 @@ export function AiGenerateModal({
       setError((err as Error).message || "Question generation failed. Please try again.");
       setGenerationFailed(true);
       setGenerating(false);
+    }
+  };
+
+  const handleRegenerateQuestion = async (question: PreviewQuestion) => {
+    try {
+      let rawQuestions: RawAIGeneratedQuestion[];
+      if (mode === "bank") {
+        if (!bankSubjectId) throw new Error("Select a subject before regenerating.");
+        const difficulty = question.difficulty === "expert" ? "hard" : question.difficulty;
+        rawQuestions = await generateFromQuestionBank({
+          numberOfQuestions: 1,
+          easyCount: difficulty === "easy" ? 1 : 0,
+          mediumCount: difficulty === "medium" ? 1 : 0,
+          hardCount: difficulty === "hard" ? 1 : 0,
+          theoryCount: bankKind === "theory" ? 1 : bankKind === "numerical" ? 0 : undefined,
+          numericalCount: bankKind === "numerical" ? 1 : bankKind === "theory" ? 0 : undefined,
+          syllabus: bankSyllabus.trim() || undefined,
+          subjectId: bankSubjectId,
+          chapterIds: getScopedChapterIds(),
+          topicIds: bankTopicIds,
+          kind: bankKind,
+          quizId,
+        });
+      } else {
+        if (files.length === 0) throw new Error("Uploaded files are no longer available.");
+        rawQuestions = await generateQuestionsFromFiles(files, {
+          numberOfQuestions: 1,
+          questionTypes: ["mcq"],
+          difficulty: [question.difficulty],
+          bloomsLevel: "understand",
+          includeExplanations: true,
+          includeHints: true,
+          includeReferenceNotes: false,
+          includeTags: true,
+          subjectId: defaultSubjectId,
+          quizId,
+        });
+      }
+      const preview = mapRawQuestionsToPreview(rawQuestions)[0];
+      if (!preview) throw new Error("The AI returned no question. Please try again.");
+      setReviewQuestions((previous) =>
+        previous.map((item) => (item.id === question.id ? preview : item))
+      );
+      toast.success(`Question regenerated (${question.difficulty})`);
+    } catch (err) {
+      toast.error({
+        title: "Could not regenerate question",
+        description: (err as Error).message || "Please try again.",
+      });
+      throw err;
     }
   };
 
@@ -514,7 +674,10 @@ export function AiGenerateModal({
     setReviewQuestions((prev) => prev.map((q) => (q.id === question.id ? { ...q, ...question } : q)));
   };
 
-  const canGenerateFromBank = bankEasy + bankMedium + bankHard === bankNumber && !!bankSubjectId;
+  const canGenerateFromBank =
+    bankEasy + bankMedium + bankHard === bankNumber &&
+    bankTheory + bankNumerical === bankNumber &&
+    !!bankSubjectId;
   const canGenerateFromFiles = files.length > 0 && !error;
   const primaryDisabled = (mode === "bank" ? !canGenerateFromBank : !canGenerateFromFiles) || !!quizLimitError;
 
@@ -531,6 +694,7 @@ export function AiGenerateModal({
           onClick={handleClose}
         >
           <motion.div
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="ai-generate-title"
@@ -811,11 +975,7 @@ export function AiGenerateModal({
                           >
                             Subject
                           </label>
-                          {subjectLocked ? (
-                            <span className="shrink-0 rounded-full bg-[var(--qs-poly-2)] px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-brand)]">
-                              from this quiz
-                            </span>
-                          ) : null}
+
                         </div>
                         {subjectLocked ? (
                           <>
@@ -850,6 +1010,7 @@ export function AiGenerateModal({
                             disabled={catalogLoading}
                             ariaLabel="Subject"
                             searchable
+                            boundaryRef={dialogRef}
                             triggerClassName="mt-1.5 h-11 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-3 text-[12px] font-bold text-[var(--qs-ink)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] disabled:opacity-50"
                           />
                         )}
@@ -879,7 +1040,10 @@ export function AiGenerateModal({
                           disabled={!bankSubjectId}
                           ariaLabel="Chapters"
                           searchable
-                          triggerClassName="mt-1.5 h-11 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-3 text-[12px] font-bold text-[var(--qs-ink)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] disabled:opacity-50"
+                          wrapLabels
+                          boundaryRef={dialogRef}
+                          menuWidthScale={1.5}
+                          triggerClassName="mt-1.5 min-h-11 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-3 py-2 text-[12px] font-bold leading-5 text-[var(--qs-ink)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] disabled:opacity-50"
                         />
                       </div>
                       <div className="min-w-0">
@@ -907,7 +1071,10 @@ export function AiGenerateModal({
                           disabled={!bankSubjectId}
                           ariaLabel="Topics"
                           searchable
-                          triggerClassName="mt-1.5 h-11 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-3 text-[12px] font-bold text-[var(--qs-ink)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] disabled:opacity-50"
+                          wrapLabels
+                          boundaryRef={dialogRef}
+                          menuWidthScale={1.5}
+                          triggerClassName="mt-1.5 min-h-11 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-3 py-2 text-[12px] font-bold leading-5 text-[var(--qs-ink)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] disabled:opacity-50"
                         />
                       </div>
                     </div>
@@ -917,32 +1084,127 @@ export function AiGenerateModal({
                       </p>
                     ) : null}
                     <div className="mt-2.5">
-                      <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
-                        Question style
-                      </p>
-                      <div className="mt-1.5 grid grid-cols-3 gap-1 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+                          Theory vs numerical
+                        </p>
+                        <span className="rounded-full bg-[var(--qs-poly-2)] px-2 py-0.5 text-[9px] font-extrabold tabular-nums text-[var(--qs-brand)]">
+                          {bankTheory}T · {bankNumerical}N
+                        </span>
+                      </div>
+                      <div className="mt-1.5 grid grid-cols-2 gap-2">
                         {([
-                          { value: "any", label: "Mixed" },
-                          { value: "theory", label: "Theory" },
-                          { value: "numerical", label: "Numerical" },
-                        ] as const).map((option) => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => setBankKind(option.value)}
-                            className={cn(
-                              "h-8 rounded-[9px] text-[11px] font-bold transition-colors",
-                              bankKind === option.value
-                                ? "bg-[var(--qs-poly-2)] text-[var(--qs-ink)]"
-                                : "text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"
-                            )}
+                          { key: "theory", label: "Theory", value: bankTheory },
+                          { key: "numerical", label: "Numerical / practical", value: bankNumerical },
+                        ] as const).map((item) => (
+                          <div
+                            key={item.key}
+                            className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2 text-center"
                           >
-                            {option.label}
-                          </button>
+                            <p className="text-[10px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-ink)]">
+                              {item.label}
+                            </p>
+                            <div className="mt-1 flex items-center justify-center gap-1">
+                              <button
+                                type="button"
+                                aria-label={`Decrease ${item.label}`}
+                                onClick={() => setCategoryCount(item.key, item.value - 1)}
+                                className="grid h-6 w-6 place-items-center rounded-[7px] border-2 border-[var(--qs-line)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+                              >
+                                <Minus className="h-3 w-3" />
+                              </button>
+                              <span className="w-6 text-sm font-extrabold tabular-nums text-[var(--qs-ink)]">
+                                {item.value}
+                              </span>
+                              <button
+                                type="button"
+                                aria-label={`Increase ${item.label}`}
+                                onClick={() => setCategoryCount(item.key, item.value + 1)}
+                                className="grid h-6 w-6 place-items-center rounded-[7px] border-2 border-[var(--qs-line)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </button>
+                            </div>
+                          </div>
                         ))}
                       </div>
+                      <p className="mt-1.5 text-[10px] font-medium text-[var(--qs-muted)]">
+                        Numerical includes calculation-based and practical questions. Total stays at {bankNumber}.
+                      </p>
                     </div>
                   </div>
+
+                  {selectedScopeTree.length > 0 ? (
+                    <div className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+                          <Target className="h-3.5 w-3.5 text-[var(--qs-brand)]" /> Selected scope
+                        </p>
+                        <span className="rounded-full bg-[var(--qs-poly-2)] px-2 py-0.5 text-[8px] font-extrabold tabular-nums uppercase tracking-[0.04em] text-[var(--qs-brand)]">
+                          {selectedScopeTree.length} chapter{selectedScopeTree.length === 1 ? "" : "s"} · {bankTopicIds.length} topic{bankTopicIds.length === 1 ? "" : "s"}
+                        </span>
+                      </div>
+                      <div className="mt-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5">
+                        <div className="flex items-start gap-1.5 text-[11px] font-extrabold text-[var(--qs-ink)]">
+                          <BookOpen className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--qs-brand)]" />
+                          <span className="min-w-0 break-words">{selectedSubjectName}</span>
+                        </div>
+                        <ul className="mt-1.5 space-y-0.5 border-l-2 border-dashed border-[var(--qs-line)] pl-2">
+                          {selectedScopeTree.map((chapter) => {
+                            const collapsed = collapsedChapterIds.includes(chapter.id);
+                            return (
+                              <li key={chapter.id}>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleChapterTree(chapter.id)}
+                                  aria-expanded={!collapsed}
+                                  aria-controls={`ai-scope-chapter-${chapter.id}`}
+                                  className="flex w-full items-start gap-1.5 rounded-[8px] px-1.5 py-1 text-left transition-colors hover:bg-[var(--qs-bg)]"
+                                >
+                                  <ChevronRight
+                                    className={cn(
+                                      "mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--qs-muted)] transition-transform",
+                                      !collapsed && "rotate-90"
+                                    )}
+                                  />
+                                  <span className="min-w-0 flex-1 break-words text-[11px] font-bold leading-4 text-[var(--qs-ink)]">
+                                    {chapter.name}
+                                  </span>
+                                  <span className="shrink-0 rounded-full bg-[var(--qs-poly-2)] px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-[0.04em] text-[var(--qs-brand)]">
+                                    {chapter.topics.length > 0
+                                      ? `${chapter.topics.length} topic${chapter.topics.length === 1 ? "" : "s"}`
+                                      : "All topics"}
+                                  </span>
+                                </button>
+                                {!collapsed ? (
+                                  <ul
+                                    id={`ai-scope-chapter-${chapter.id}`}
+                                    className="ml-3 space-y-0.5 border-l-2 border-dashed border-[var(--qs-line)] py-0.5 pl-2"
+                                  >
+                                    {chapter.topics.length > 0 ? (
+                                      chapter.topics.map((topic) => (
+                                        <li
+                                          key={`${chapter.id}-${topic}`}
+                                          className="flex items-start gap-1.5 px-1.5 py-0.5 text-[10px] font-medium leading-4 text-[var(--qs-muted)]"
+                                        >
+                                          <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[var(--qs-brand)]" />
+                                          <span className="min-w-0 break-words">{topic}</span>
+                                        </li>
+                                      ))
+                                    ) : (
+                                      <li className="px-1.5 py-0.5 text-[10px] font-medium italic text-[var(--qs-muted)]">
+                                        All topics in this chapter
+                                      </li>
+                                    )}
+                                  </ul>
+                                ) : null}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    </div>
+                  ) : null}
 
                   {/* Syllabus */}
                   <div className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
@@ -983,7 +1245,7 @@ export function AiGenerateModal({
                         <button
                           type="button"
                           aria-label="Fewer questions"
-                          onClick={() => { const v = Math.max(5, bankNumber - 1); setBankNumber(v); syncBankDistribution(v); }}
+                          onClick={() => { const v = Math.max(5, bankNumber - 1); setBankNumber(v); syncBankSize(v); }}
                           className="grid h-8 w-8 place-items-center rounded-[9px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
                         >
                           <Minus className="h-3.5 w-3.5" />
@@ -994,7 +1256,7 @@ export function AiGenerateModal({
                         <button
                           type="button"
                           aria-label="More questions"
-                          onClick={() => { const v = Math.min(MAX_BANK_QUESTIONS, bankNumber + 1); setBankNumber(v); syncBankDistribution(v); }}
+                          onClick={() => { const v = Math.min(MAX_BANK_QUESTIONS, bankNumber + 1); setBankNumber(v); syncBankSize(v); }}
                           className="grid h-8 w-8 place-items-center rounded-[9px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
                         >
                           <Plus className="h-3.5 w-3.5" />
@@ -1006,7 +1268,7 @@ export function AiGenerateModal({
                       min={5}
                       max={MAX_BANK_QUESTIONS}
                       value={bankNumber}
-                      onChange={(e) => { const v = parseInt(e.target.value); setBankNumber(v); syncBankDistribution(v); }}
+                      onChange={(e) => { const v = parseInt(e.target.value); setBankNumber(v); syncBankSize(v); }}
                       className="mt-2 w-full accent-[var(--qs-brand)]"
                       aria-label="Number of questions"
                     />
@@ -1202,6 +1464,7 @@ export function AiGenerateModal({
       onReject={handleRejectAll}
       onAcceptOne={handleAcceptOne}
       onEditOne={handleEditOne}
+      onRegenerate={handleRegenerateQuestion}
     />
     {/* Loading screen while accepted questions are being added */}
     <AnimatePresence>

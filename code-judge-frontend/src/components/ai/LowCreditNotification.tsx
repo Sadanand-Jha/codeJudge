@@ -1,34 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, Sparkles, ShoppingCart, X } from "lucide-react";
+import { AlertTriangle, Sparkles, X } from "lucide-react";
 import { useAICreditsStore, checkLowCreditWarning, getRecommendedPack } from "@/store/aiCreditsStore";
-import { CREDIT_PACKS } from "@/config/aiCredits";
 
 export default function LowCreditNotification() {
   const { balance, purchasePack } = useAICreditsStore();
-  const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   const isLow = checkLowCreditWarning(balance.remaining, balance.monthlyAllowance);
   const recommended = getRecommendedPack(balance.remaining, balance.monthlyAllowance);
-
-  useEffect(() => {
-    // Show notification if low credits and not dismissed
-    if (isLow && !dismissed && balance.monthlyAllowance > 0) {
-      setVisible(true);
-    }
-  }, [isLow, dismissed, balance.monthlyAllowance]);
+  const visible = isLow && !dismissed && balance.monthlyAllowance > 0;
 
   const handleBuyCredits = async (packId: string) => {
     await purchasePack(packId);
-    setVisible(false);
     setDismissed(true);
   };
 
   const handleDismiss = () => {
-    setVisible(false);
     setDismissed(true);
   };
 

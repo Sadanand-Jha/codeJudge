@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Clock } from "lucide-react";
+import { X } from "lucide-react";
 import { useStudio } from "../../StudioProvider";
 import type { CreatorQuestion } from "../../types";
 import { StudioSelect } from "../../primitives";
@@ -61,40 +61,17 @@ export function MobileQuestionSettingsSheet({ open, onClose }: Props) {
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
-              {/* Time & Difficulty */}
+              {/* Difficulty */}
               <div className="space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-500">Timing & Difficulty</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="rounded-xl border border-zinc-200 bg-white p-3">
-                    <span className="flex items-center gap-1 text-xs font-medium text-zinc-500">
-                      <Clock className="h-3 w-3" /> Time
-                    </span>
-                    <div className="mt-1 flex items-center gap-2">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={q.expectedTime}
-                        onChange={(e) => {
-                          const v = e.target.value.replace(/[^0-9]/g, "");
-                          update({ expectedTime: v === "" ? 0 : Math.max(0, Number(v) || 0) });
-                        }}
-                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm font-semibold text-zinc-900 focus:border-pink-300 focus:outline-none"
-                      />
-                      <span className="text-xs text-zinc-500">min</span>
-                    </div>
-                  </label>
-
-                  <div className="rounded-xl border border-zinc-200 bg-white p-3">
-                    <span className="text-xs font-medium text-zinc-500">Difficulty</span>
-                    <StudioSelect
-                      className="mt-1"
-                      value={q.difficulty}
-                      options={difficultyOptions.map((opt) => ({ value: opt.heading, label: opt.heading }))}
-                      onChange={(v) => update({ difficulty: v as "Easy" | "Medium" | "Hard" | "Expert" })}
-                      loading={difficultyOptions.length === 0}
-                      buttonClassName="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm font-semibold text-zinc-900 focus:border-pink-300"
-                    />
-                  </div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-500">Difficulty</h4>
+                <div className="rounded-xl border border-zinc-200 bg-white p-3">
+                  <StudioSelect
+                    value={q.difficulty}
+                    options={difficultyOptions.filter((opt) => opt.heading.toLowerCase() !== "expert").map((opt) => ({ value: opt.heading, label: opt.heading }))}
+                    onChange={(v) => update({ difficulty: v as "Easy" | "Medium" | "Hard" | "Expert" })}
+                    loading={difficultyOptions.length === 0}
+                    buttonClassName="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm font-semibold text-zinc-900 focus:border-pink-300"
+                  />
                 </div>
               </div>
 

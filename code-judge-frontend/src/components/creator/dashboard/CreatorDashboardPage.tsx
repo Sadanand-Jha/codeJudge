@@ -20,7 +20,6 @@ import { cn } from "@/lib/helpers";
 import { formatDate, formatDateTimeIST, IST_TIMEZONE, timeAgo } from "@/lib/formatters";
 import { deriveQuizStatus, type EffectiveQuizStatus } from "@/lib/quizStatus";
 import { useData } from "@/lib/hooks/useData";
-import { MaskedCopyCode } from "@/components/creator/common/MaskedCopyCode";
 import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
 import { TimingModal } from "@/components/creator/dashboard/TimingModal";
 import { ErrorState, Skeleton } from "@/components/creator/billing/ui";
@@ -33,6 +32,8 @@ import {
   type CreatorRecentAttempt,
 } from "@/services/creatorProfile";
 import { getMyCreatedQuizzes, type Quiz } from "@/services/quiz";
+import { WHOLE_QUIZ_AI_ENABLED } from "@/config/creatorFeatures";
+import { toast } from "@/lib/toast";
 
 /* ============================================================
    Types & mapping
@@ -243,9 +244,15 @@ function StatTile({
    Quick actions
    ============================================================ */
 
-const QUICK_ACTIONS: Array<{ title: string; sub: string; href: string; icon: LucideIcon }> = [
+const QUICK_ACTIONS: Array<{ title: string; sub: string; href: string; icon: LucideIcon; comingSoon?: boolean }> = [
   { title: "New quiz", sub: "Build one by hand", href: "/creator/quizzes/create", icon: Plus },
-  { title: "Generate with AI", sub: "From files, topics or prompts", href: "/creator/quizzes/ai-generate", icon: WandSparkles },
+  {
+    title: "Generate with AI",
+    sub: WHOLE_QUIZ_AI_ENABLED ? "From files, topics or prompts" : "Coming soon",
+    href: "/creator/quizzes/ai-generate",
+    icon: WandSparkles,
+    comingSoon: !WHOLE_QUIZ_AI_ENABLED,
+  },
   { title: "Paper builder", sub: "Print-ready papers", href: "/creator/tests/create", icon: FileText },
   { title: "Question bank", sub: "Reuse your problems", href: "/creator/question-bank", icon: Database },
 ];
@@ -255,6 +262,19 @@ function QuickActions() {
     <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
       {QUICK_ACTIONS.map((action, index) => {
         const Icon = action.icon;
+        const className =
+          "flex h-full items-center gap-3.5 rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3.5 transition-colors hover:border-[var(--qs-brand)]";
+        const content = (
+          <>
+            <i className="grid h-11 w-11 shrink-0 place-items-center rounded-[13px] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+              <Icon className="h-5 w-5" />
+            </i>
+            <span className="min-w-0">
+              <b className="block truncate text-[14px] font-bold text-[var(--qs-ink)]">{action.title}</b>
+              <small className="block truncate text-[12px] text-[var(--qs-muted)]">{action.sub}</small>
+            </span>
+          </>
+        );
         return (
           <motion.div
             key={action.title}
@@ -262,18 +282,25 @@ function QuickActions() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: index * 0.04 }}
           >
-            <Link
-              href={action.href}
-              className="flex h-full items-center gap-3.5 rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3.5 transition-colors hover:border-[var(--qs-brand)]"
-            >
-              <i className="grid h-11 w-11 shrink-0 place-items-center rounded-[13px] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
-                <Icon className="h-5 w-5" />
-              </i>
-              <span className="min-w-0">
-                <b className="block truncate text-[14px] font-bold text-[var(--qs-ink)]">{action.title}</b>
-                <small className="block truncate text-[12px] text-[var(--qs-muted)]">{action.sub}</small>
-              </span>
-            </Link>
+            {action.comingSoon ? (
+              <button
+                type="button"
+                aria-disabled="true"
+                onClick={() =>
+                  toast.info({
+                    title: "Coming soon",
+                    description: "AI quiz generation is not available yet.",
+                  })
+                }
+                className={cn(className, "w-full cursor-not-allowed text-left opacity-60")}
+              >
+                {content}
+              </button>
+            ) : (
+              <Link href={action.href} className={className}>
+                {content}
+              </Link>
+            )}
           </motion.div>
         );
       })}
@@ -318,7 +345,12 @@ function OnboardingCard() {
           <Plus className="h-4 w-4" />
           Create quiz
         </Link>
-        <AiGenerateButton href="/creator/quizzes/ai-generate" size="md" label="Generate with AI" />
+        <AiGenerateButton
+          href={WHOLE_QUIZ_AI_ENABLED ? "/creator/quizzes/ai-generate" : undefined}
+          comingSoon={!WHOLE_QUIZ_AI_ENABLED}
+          size="md"
+          label="Generate with AI"
+        />
       </div>
     </article>
   );
@@ -349,22 +381,6 @@ function NoLiveCard({ draftCount }: { draftCount: number }) {
   );
 }
 
-function LiveMetric({ label, value, first }: { label: string; value: string; first?: boolean }) {
-  return (
-    <div
-      className={cn(
-        "min-w-0",
-        !first && "sm:border-l-2 sm:border-[var(--qs-line)] sm:pl-4"
-      )}
-    >
-      <small className="block text-[10px] font-black uppercase tracking-[0.1em] text-[var(--qs-muted)]">{label}</small>
-      <b className="qs-display mt-1 block truncate text-[26px] font-extrabold leading-none tracking-tight text-[var(--qs-ink)]">
-        {value}
-      </b>
-    </div>
-  );
-}
-
 function LiveQuizCard({ quiz, onChangeTiming }: { quiz: QuizRow; onChangeTiming: () => void }) {
   const completed = Math.round((quiz.attempts * quiz.completionRate) / 100);
   const pending = Math.max(quiz.attempts - completed, 0);
@@ -381,51 +397,41 @@ function LiveQuizCard({ quiz, onChangeTiming }: { quiz: QuizRow; onChangeTiming:
       : [];
 
   return (
-    <article className="relative flex h-full flex-col rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <span className={cn(PILL, "text-[var(--qs-ok)]")}>
-            <span className="h-1.5 w-1.5 rounded-full bg-current" />
-            Live now
-          </span>
-          <h2 className="qs-display mt-2.5 break-words text-[22px] font-extrabold text-[var(--qs-ink)] sm:text-[26px]">
-            {quiz.title}
-          </h2>
-          <div className="mt-2.5">
-            <MaskedCopyCode
-              quizId={quiz.id}
-              className="inline-flex items-center gap-2 rounded-[10px] border-2 border-dashed border-[var(--qs-ink)] bg-[var(--qs-sun)] px-3 py-1.5 text-[#1A1240]"
-            />
-          </div>
-          <p className="mt-2.5 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--qs-muted)]">
-            <Clock className="h-3.5 w-3.5" />
-            {quiz.endAt ? `Closes ${formatDateTimeIST(quiz.endAt)}` : "No end time — runs until you close it"}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={onChangeTiming} className={BTN}>
-            <Clock className="h-3.5 w-3.5" />
-            Change timing
-          </button>
-          <Link href={`/creator/quizzes/${quiz.id}/responses`} className={BTN}>
-            View responses
-          </Link>
-          <Link href={`/creator/quizzes/${quiz.id}/analytics`} className={BTN}>
-            Analytics
-          </Link>
-        </div>
-      </div>
+    <motion.article
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="relative flex h-full flex-col rounded-[20px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-5 transition-colors hover:border-[var(--qs-brand)]"
+    >
+      <span className={cn(PILL, "w-fit text-[var(--qs-ok)]")}>
+        <span className="h-1.5 w-1.5 rounded-full bg-current" />
+        Live now
+      </span>
 
-      <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4">
-        <LiveMetric label="Attempts" value={String(quiz.attempts)} first />
-        <LiveMetric label="Completed" value={String(completed)} />
-        <LiveMetric label="Completion" value={formatPct(quiz.completionRate)} />
-        <LiveMetric label="Questions" value={quiz.questions > 0 ? String(quiz.questions) : "—"} />
+      <h2 className="qs-display mt-4 break-words text-[20px] font-extrabold leading-[1.25] text-[var(--qs-ink)]">
+        {quiz.title}
+      </h2>
+
+      <p className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--qs-muted)]">
+        <Clock className="h-3.5 w-3.5" />
+        {quiz.endAt ? `Closes ${formatDateTimeIST(quiz.endAt)}` : "No end time — runs until you close it"}
+      </p>
+
+      <div className="my-4 flex flex-wrap items-center gap-2">
+        <span className="inline-flex shrink-0 items-center rounded-full border-2 border-[var(--qs-line)] px-3 py-[5px] text-[13px] font-bold text-[var(--qs-muted)]">
+          {quiz.questions > 0 ? `${quiz.questions} ${quiz.questions === 1 ? "question" : "questions"}` : "No questions yet"}
+        </span>
+        <span className="inline-flex shrink-0 items-center rounded-full border-2 border-[var(--qs-line)] px-3 py-[5px] text-[13px] font-bold text-[var(--qs-muted)]">
+          {quiz.attempts.toLocaleString("en-IN")} {quiz.attempts === 1 ? "attempt" : "attempts"}
+        </span>
+        <span className="inline-flex shrink-0 items-center rounded-full border-2 border-[var(--qs-line)] px-3 py-[5px] text-[13px] font-bold text-[var(--qs-muted)]">
+          {formatPct(quiz.completionRate)} completed
+        </span>
       </div>
 
       {segments.length > 0 && (
         <>
-          <div className="mt-4 flex h-3.5 overflow-hidden rounded-full border-2 border-[var(--qs-ink)]">
+          <div className="flex h-3.5 overflow-hidden rounded-full border-2 border-[var(--qs-ink)]">
             {segments.map(
               (segment) =>
                 segment.value > 0 && (
@@ -447,7 +453,29 @@ function LiveQuizCard({ quiz, onChangeTiming }: { quiz: QuizRow; onChangeTiming:
           </div>
         </>
       )}
-    </article>
+
+      <div className="mt-auto flex flex-wrap items-center gap-2 border-t-2 border-[var(--qs-line)] pt-3.5">
+        <button
+          type="button"
+          onClick={onChangeTiming}
+          className="inline-flex items-center justify-center rounded-[10px] bg-[var(--qs-brand)] px-4 py-2 text-[13px] font-bold text-[var(--qs-on-brand)] transition-all hover:brightness-110"
+        >
+          Change timing
+        </button>
+        <Link
+          href={`/creator/quizzes/${quiz.id}/analytics`}
+          className="inline-flex items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] px-3.5 py-2 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+        >
+          Analytics
+        </Link>
+        <Link
+          href={`/creator/quizzes/${quiz.id}/responses`}
+          className="inline-flex items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] px-3.5 py-2 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+        >
+          Responses
+        </Link>
+      </div>
+    </motion.article>
   );
 }
 
@@ -733,7 +761,7 @@ function RecentQuizzesPanel({ quizzes }: { quizzes: QuizRow[] }) {
       {rows.length === 0 ? (
         <EmptyHint
           text="No quizzes yet."
-          hint="Create one from scratch, or let AI turn your problem list into a review-ready quiz."
+          hint="Create one from scratch. AI quiz generation is coming soon."
           action={
             <Link href="/creator/quizzes/create" className={BTN_PRI}>
               <Plus className="h-4 w-4" />
@@ -1120,20 +1148,14 @@ export function CreatorDashboardPage() {
         <>
           {/* Live quiz + credits */}
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-            <div className="relative mb-4 mr-4 lg:col-span-2">
-              <span
-                aria-hidden="true"
-                className="absolute -bottom-4 -right-4 left-4 top-4 rounded-[30px] bg-[var(--qs-sun)]"
-              />
-              <div className="relative h-full">
-                {liveQuiz ? (
-                  <LiveQuizCard quiz={liveQuiz} onChangeTiming={() => setTimingQuiz(liveQuiz)} />
-                ) : quizzes.length === 0 ? (
-                  <OnboardingCard />
-                ) : (
-                  <NoLiveCard draftCount={draftCount} />
-                )}
-              </div>
+            <div className="lg:col-span-2">
+              {liveQuiz ? (
+                <LiveQuizCard quiz={liveQuiz} onChangeTiming={() => setTimingQuiz(liveQuiz)} />
+              ) : quizzes.length === 0 ? (
+                <OnboardingCard />
+              ) : (
+                <NoLiveCard draftCount={draftCount} />
+              )}
             </div>
             <CreditsCard />
           </div>

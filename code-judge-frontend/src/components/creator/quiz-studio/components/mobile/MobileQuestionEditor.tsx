@@ -377,33 +377,15 @@ export function MobileQuestionEditor({
               className="overflow-hidden border-t border-zinc-100"
             >
               <div className="p-4 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                    <span className="text-xs font-medium text-zinc-500">Time</span>
-                    <div className="mt-1 flex items-center gap-2">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={q.expectedTime}
-                        onChange={(e) => {
-                          const v = e.target.value.replace(/[^0-9]/g, "");
-                          update({ expectedTime: v === "" ? 0 : Math.max(0, Number(v) || 0) });
-                        }}
-                        className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold focus:border-pink-300 focus:outline-none"
-                      />
-                      <span className="text-xs text-zinc-500">min</span>
-                    </div>
-                  </label>
-                  <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                    <span className="text-xs font-medium text-zinc-500">Difficulty</span>
-                    <StudioSelect
-                      className="mt-1"
-                      value={q.difficulty}
-                      options={["Easy", "Medium", "Hard", "Expert"].map((d) => ({ value: d, label: d }))}
-                      onChange={(v) => update({ difficulty: v as "Easy" | "Medium" | "Hard" | "Expert" })}
-                      buttonClassName="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold focus:border-pink-300"
-                    />
-                  </div>
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+                  <span className="text-xs font-medium text-zinc-500">Difficulty</span>
+                  <StudioSelect
+                    className="mt-1"
+                    value={q.difficulty}
+                    options={["Easy", "Medium", "Hard"].map((d) => ({ value: d, label: d }))}
+                    onChange={(v) => update({ difficulty: v as "Easy" | "Medium" | "Hard" | "Expert" })}
+                    buttonClassName="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold focus:border-pink-300"
+                  />
                 </div>
                 {onOpenSettings && (
                   <button
@@ -420,7 +402,7 @@ export function MobileQuestionEditor({
         {!settingsOpen && (
           <div className="px-4 pb-3 -mt-1">
             <p className="text-xs text-zinc-500">
-              {q.expectedTime} min · {q.difficulty}
+              {q.difficulty}
             </p>
           </div>
         )}

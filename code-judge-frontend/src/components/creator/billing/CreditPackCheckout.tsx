@@ -5,7 +5,6 @@ import { ArrowLeft, Lock } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import {
   CREDIT_PURCHASE_PACKS,
-  formatPaperEstimates,
   type CreditPurchasePack,
 } from "@/config/aiCredits";
 
@@ -385,9 +384,6 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack }:
                   </span>
                   <span className="mt-1.5 text-xs tabular-nums text-slate-500 dark:text-slate-400">
                     {p.credits} credits · ₹{(p.price / p.credits).toFixed(2)}/credit
-                  </span>
-                  <span className="mt-1 text-[11px] tabular-nums text-slate-500 dark:text-slate-400">
-                    {formatPaperEstimates(p.credits)}
                   </span>
                 </button>
               );

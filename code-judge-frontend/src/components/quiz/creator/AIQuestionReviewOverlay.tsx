@@ -18,6 +18,7 @@ import {
   Info,
   CheckCircle2,
   Trash2,
+  RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { QuestionHtml } from "@/components/creator/questions/QuestionHtml";
@@ -44,6 +45,7 @@ interface AIQuestionReviewOverlayProps {
   onReject: () => void;
   onAcceptOne?: (question: PreviewQuestion) => void;
   onEditOne?: (question: PreviewQuestion) => void;
+  onRegenerate?: (question: PreviewQuestion) => void | Promise<void>;
 }
 
 const QUESTION_TYPE_IDS = [
@@ -88,11 +90,13 @@ export default function AIQuestionReviewOverlay({
   onReject,
   onAcceptOne,
   onEditOne,
+  onRegenerate,
 }: AIQuestionReviewOverlayProps) {
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [isEditing, setIsEditing] = useState(false);
   const [editDraft, setEditDraft] = useState<PreviewQuestion | null>(null);
+  const [regenerating, setRegenerating] = useState(false);
 
   const total = questions.length;
   const current = questions[Math.min(Math.max(index, 0), Math.max(total - 1, 0))];
@@ -124,6 +128,7 @@ export default function AIQuestionReviewOverlay({
         }
         return;
       }
+      if (regenerating) return;
       switch (e.key) {
         case "ArrowUp":
         case "ArrowLeft":
@@ -143,7 +148,7 @@ export default function AIQuestionReviewOverlay({
           break;
       }
     },
-    [open, goPrev, goNext, onClose, isEditing]
+    [open, goPrev, goNext, onClose, isEditing, regenerating]
   );
 
   useEffect(() => {
@@ -167,6 +172,18 @@ export default function AIQuestionReviewOverlay({
     if (total <= 1) {
       onClose();
     }
+  };
+
+  const handleRegenerate = async () => {
+    if (!current || !onRegenerate || regenerating) return;
+    setRegenerating(true);
+    try {
+      await onRegenerate(current);
+    } catch {
+      setRegenerating(false);
+      return;
+    }
+    setRegenerating(false);
   };
 
   const startEditing = () => {
@@ -248,6 +265,7 @@ export default function AIQuestionReviewOverlay({
               <button
                 type="button"
                 onClick={startEditing}
+                disabled={regenerating}
                 className="b b-ghost sm shrink-0 whitespace-nowrap"
               >
                 <Pencil className="h-3.5 w-3.5" />
@@ -471,7 +489,7 @@ export default function AIQuestionReviewOverlay({
             <button
               type="button"
               onClick={goPrev}
-              disabled={isEditing || index <= 0}
+              disabled={isEditing || regenerating || index <= 0}
               className="b sm flex-1 shrink-0 whitespace-nowrap sm:flex-none"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -483,7 +501,7 @@ export default function AIQuestionReviewOverlay({
             <button
               type="button"
               onClick={goNext}
-              disabled={isEditing || index >= total - 1}
+              disabled={isEditing || regenerating || index >= total - 1}
               className="b sm flex-1 shrink-0 whitespace-nowrap sm:flex-none"
             >
               Next
@@ -514,10 +532,22 @@ export default function AIQuestionReviewOverlay({
               </>
             ) : (
               <>
+                {onRegenerate && current && (
+                  <button
+                    type="button"
+                    onClick={handleRegenerate}
+                    disabled={regenerating}
+                    className="b sm shrink-0 whitespace-nowrap"
+                  >
+                    <RotateCcw className={cn("h-3.5 w-3.5 shrink-0", regenerating && "animate-spin")} />
+                    {regenerating ? "Regenerating…" : "Regenerate"}
+                  </button>
+                )}
                 {onAcceptOne && current && (
                   <button
                     type="button"
                     onClick={handleAcceptOne}
+                    disabled={regenerating}
                     className="b sm shrink-0 whitespace-nowrap"
                   >
                     <Plus className="h-3.5 w-3.5 shrink-0" />
@@ -528,6 +558,7 @@ export default function AIQuestionReviewOverlay({
                 <button
                   type="button"
                   onClick={onReject}
+                  disabled={regenerating}
                   className="b b-danger sm shrink-0 whitespace-nowrap"
                 >
                   <Trash2 className="h-3.5 w-3.5 shrink-0" />
@@ -536,6 +567,7 @@ export default function AIQuestionReviewOverlay({
                 <button
                   type="button"
                   onClick={onAccept}
+                  disabled={regenerating}
                   className="b b-pri sm shrink-0 whitespace-nowrap"
                 >
                   <Check className="h-4 w-4 shrink-0" />

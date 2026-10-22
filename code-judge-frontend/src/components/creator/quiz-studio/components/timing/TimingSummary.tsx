@@ -43,7 +43,7 @@ export function TimingSummary({ state }: { state: TimingState }) {
 
   rows.push({
     label: "Participant time",
-    value: `${participantDuration} minutes`,
+    value: mode === "schedule" ? "Until the quiz ends" : `${participantDuration} minutes`,
   });
 
   rows.push({
@@ -119,9 +119,9 @@ export function TimingSummary({ state }: { state: TimingState }) {
         <div className="mt-4 flex items-start gap-2 rounded-[12px] border-2 border-[var(--qs-ok)]/30 bg-[var(--qs-okbg)] px-3 py-2.5">
           <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--qs-ok)]" />
           <p className="text-[11px] font-medium text-[var(--qs-ok)]">
-            Everything looks good. Participants will be able to start the quiz
-            during the configured window and will receive the configured attempt
-            duration.
+            {mode === "schedule"
+              ? "Participants can join and attempt throughout the scheduled window. Responses close automatically at the end time."
+              : "Everything looks good. Participants will receive the configured attempt duration once they start."}
           </p>
         </div>
       )}

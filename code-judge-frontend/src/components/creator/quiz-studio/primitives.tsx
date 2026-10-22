@@ -13,16 +13,23 @@ export function StudioStepLayout({
   children,
   width = "default",
   className,
+  embedded = false,
 }: {
   children: React.ReactNode;
   width?: "compact" | "default" | "wide";
   className?: string;
+  /** Render only the step body so multiple steps can share one page. */
+  embedded?: boolean;
 }) {
   const widths = {
     compact: "max-w-2xl",
     default: "max-w-4xl",
     wide: "max-w-6xl",
   };
+
+  if (embedded) {
+    return <div className={cn("w-full min-w-0 space-y-4", className)}>{children}</div>;
+  }
 
   return (
     <div className={cn("mx-auto w-full min-w-0 space-y-4 py-3 sm:space-y-6 sm:px-4 sm:py-6", widths[width], className)}>

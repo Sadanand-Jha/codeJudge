@@ -39,7 +39,7 @@ export function AICreditsPage({
   initialPackId,
 }: {
   demoState?: "empty" | "error";
-  /** Deep link from /pricing — opens the checkout for this pack. */
+  /** Deep link from /pricing/credits — opens the checkout for this pack. */
   initialPackId?: string | null;
 }) {
   const toast = useToast();
@@ -128,7 +128,7 @@ export function AICreditsPage({
     <div className="space-y-5 pb-2">
       <PageHeader
         title="AI Credits"
-        subtitle="One-time credit packs for paper generation, quizzes and PDF exports."
+        subtitle="Basic and Pro include monthly credits. Add a one-time top-up when you need more."
         actions={
           <Link
             href="/creator/billing/transactions"

@@ -1,17 +1,23 @@
 "use client";
 
+import { CREDIT_PURCHASE_PACKS } from "@/config/aiCredits";
+
+const VALIDITY_MONTHS = Math.max(
+  ...CREDIT_PURCHASE_PACKS.map((pack) => pack.validityMonths)
+);
+
 const STEPS = [
   {
-    title: "Buy a pack",
-    body: "Pay once with UPI, card or net banking. No subscription.",
+    title: "Buy a top-up",
+    body: "Pay once with UPI, card or net banking. No separate AI subscription.",
   },
   {
     title: "Credits are added",
-    body: "They show up in your balance right after payment.",
+    body: "They stack on top of your monthly plan credits right after payment.",
   },
   {
     title: "Use before they expire",
-    body: "Each pack is valid for 3 months from purchase.",
+    body: `Purchased credits stay valid for ${VALIDITY_MONTHS} months. Plan credits refresh each month.`,
   },
 ];
 

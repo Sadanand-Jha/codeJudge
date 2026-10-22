@@ -1015,14 +1015,21 @@ export class QuizRepository {
       `SELECT qa.*
        FROM quiz_attempt qa
        JOIN quiz q ON q.id = qa.quiz_id
+       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
        WHERE qa.quiz_id = $1
          AND qa.status = 'in_progress'
          AND qa.deleted_at IS NULL
          AND ($2::int IS NULL OR qa.user_id = $2)
          AND (
-           (q.duration IS NOT NULL
-             AND COALESCE(qa.started_at, qa.created_at) + (q.duration * INTERVAL '1 minute') <= CURRENT_TIMESTAMP)
-           OR (q.endtime IS NOT NULL AND q.endtime <= CURRENT_TIMESTAMP)
+           (LOWER(COALESCE(qs.name, '')) = 'scheduled'
+             AND q.endtime IS NOT NULL
+             AND q.endtime <= CURRENT_TIMESTAMP)
+           OR (LOWER(COALESCE(qs.name, '')) <> 'scheduled'
+             AND (
+               (q.duration IS NOT NULL
+                 AND COALESCE(qa.started_at, qa.created_at) + (q.duration * INTERVAL '1 minute') <= CURRENT_TIMESTAMP)
+               OR (q.endtime IS NOT NULL AND q.endtime <= CURRENT_TIMESTAMP)
+             ))
          )
        ORDER BY qa.id ASC`,
       [quizId, userId ?? null]

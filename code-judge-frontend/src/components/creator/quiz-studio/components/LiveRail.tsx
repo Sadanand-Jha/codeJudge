@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, AlertTriangle, Settings2, ChevronDown, ChevronRight, Eye } from "lucide-react";
+import { AlertTriangle, Settings2, ChevronDown, ChevronRight, Eye } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import { useQuizReferenceStore } from "@/store/quizReferenceStore";
@@ -24,7 +24,7 @@ export function LiveRail({ onStudentPreview, collapsed, onToggle }: { onDownload
 
   if (collapsed) {
     return (
-      <div className="hidden lg:flex w-10 shrink-0 rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] flex-col items-center py-4" onClick={(e)=>e.stopPropagation()}>
+      <div className="flex w-full shrink-0 flex-col items-center rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-4" onClick={(e)=>e.stopPropagation()}>
         <button
           type="button"
           onClick={(e)=>{e.preventDefault(); e.stopPropagation(); onToggle?.();}}
@@ -38,7 +38,7 @@ export function LiveRail({ onStudentPreview, collapsed, onToggle }: { onDownload
 
   if (!q) {
     return (
-      <div className="hidden lg:flex w-[340px] shrink-0 flex-col rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
+      <div className="flex w-full shrink-0 flex-col rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
         <div className="p-4 text-xs font-medium text-[var(--qs-muted)]">Select a question</div>
       </div>
     );
@@ -57,9 +57,9 @@ export function LiveRail({ onStudentPreview, collapsed, onToggle }: { onDownload
   const hasMatchItems = (q.matchItems ?? []).length >= 2;
   const hasMatchMatches = (q.matchMatches ?? []).length >= 2;
 
-  const difficultyChoices = difficultyOptions.length > 0
+  const difficultyChoices = (difficultyOptions.length > 0
     ? difficultyOptions.map((option) => option.heading)
-    : ["Easy", "Medium", "Hard"];
+    : ["Easy", "Medium", "Hard"]).filter((difficulty) => difficulty.toLowerCase() !== "expert");
 
   // Preview is available when the question has a title AND the type-specific content is filled
   const canPreview = hasTitle && (
@@ -77,7 +77,7 @@ export function LiveRail({ onStudentPreview, collapsed, onToggle }: { onDownload
   if (!q.explanation.trim()) warnings.push("Explanation missing");
 
   return (
-    <div className="flex h-full w-[340px] shrink-0 flex-col rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-center" onClick={(e)=>e.stopPropagation()}>
+    <div className="flex h-full w-full shrink-0 flex-col rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-center" onClick={(e)=>e.stopPropagation()}>
       <div className="flex items-center justify-center px-4 py-3 border-b-2 border-[var(--qs-line)] shrink-0 text-center">
         <span className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)] flex items-center gap-1.5 justify-center">
           <Settings2 className="h-3.5 w-3.5" /> Properties
@@ -117,30 +117,6 @@ export function LiveRail({ onStudentPreview, collapsed, onToggle }: { onDownload
                   })}
                 </div>
               </div>
-              <div>
-                <label className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Time (min)</label>
-                <div className="mt-1 flex items-center overflow-hidden rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
-                  <button
-                    type="button"
-                    aria-label="Decrease time"
-                    onClick={() => updateQuestion(q.id, { expectedTime: Math.max(1, (q.expectedTime || 0) - 1) })}
-                    disabled={q.expectedTime <= 1}
-                    className="grid h-9 w-11 place-items-center text-base font-extrabold text-[var(--qs-ink)] transition-colors hover:text-[var(--qs-brand)] disabled:opacity-35"
-                  >
-                    −
-                  </button>
-                  <span className="flex-1 text-center text-sm font-extrabold tabular-nums text-[var(--qs-ink)]">{q.expectedTime}</span>
-                  <button
-                    type="button"
-                    aria-label="Increase time"
-                    onClick={() => updateQuestion(q.id, { expectedTime: Math.min(30, (q.expectedTime || 0) + 1) })}
-                    disabled={q.expectedTime >= 30}
-                    className="grid h-9 w-11 place-items-center text-base font-extrabold text-[var(--qs-ink)] transition-colors hover:text-[var(--qs-brand)] disabled:opacity-35"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
             </div>
           )}
         </div>
@@ -157,22 +133,18 @@ export function LiveRail({ onStudentPreview, collapsed, onToggle }: { onDownload
           </ul>
         </div>
 
-        <div className="text-center">
-          <h3 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)] text-center">Warnings</h3>
-          <div className="mt-3 space-y-2">
-            {warnings.length === 0 ? (
-              <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-[var(--qs-ok)]">
-                <CheckCircle2 className="h-3.5 w-3.5" /> No warnings
-              </div>
-            ) : (
-              warnings.map((w) => (
+        {warnings.length > 0 && (
+          <div className="text-center">
+            <h3 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)] text-center">Warnings</h3>
+            <div className="mt-3 space-y-2">
+              {warnings.map((w) => (
                 <div key={w} className="flex items-start gap-2 rounded-[12px] border-2 border-[#a85d00]/40 bg-[#fff3d6] p-2.5 text-xs font-semibold text-[#a85d00]">
                   <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" /> {w}
                 </div>
-              ))
-            )}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {q.tags.length > 0 && (
           <div className="pt-4 border-t-2 border-[var(--qs-line)]">

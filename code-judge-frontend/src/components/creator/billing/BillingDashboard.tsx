@@ -15,6 +15,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { getCreatorPlan } from "@/config/creatorPlans";
 import { useBillingData } from "./hooks";
 import { ErrorState, Skeleton, formatINR } from "./ui";
 import { checkLowCreditWarning, useAICreditsStore } from "@/store/aiCreditsStore";
@@ -142,6 +143,7 @@ function CreditsCard({
   const monthlyTotal = Math.max(balance.monthlyCredits, 0);
   const monthlyUsed = Math.min(Math.max(balance.monthlyCreditsConsumed, 0), monthlyTotal || balance.monthlyCreditsConsumed);
   const monthlyPct = monthlyTotal > 0 ? Math.min(100, (monthlyUsed / monthlyTotal) * 100) : 0;
+  const planName = getCreatorPlan(balance.planId)?.name ?? "Current";
 
   return (
     <div className="relative mb-4 mr-4">
@@ -167,10 +169,9 @@ function CreditsCard({
           <span className="ml-2.5 align-middle text-[15px] font-bold text-[var(--qs-muted)]">credits left</span>
         </p>
         <p className="mt-2 text-[13px] text-[var(--qs-muted)]">
-          {balance.planId === "free"
-            ? "Free plan"
-            : `${balance.monthlyCredits.toLocaleString("en-IN")} monthly plan`}{" "}
-          · {balance.purchasedCredits.toLocaleString("en-IN")} purchased credits
+          {balance.planId === "free" ? "Free plan" : `${planName} plan`} ·{" "}
+          {balance.monthlyCredits.toLocaleString("en-IN")} included ·{" "}
+          {balance.purchasedCredits.toLocaleString("en-IN")} purchased
         </p>
 
         <div className="mt-5">

@@ -30,7 +30,7 @@ const uid = (prefix: string) =>
 const inputCls =
   "w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 py-1.5 text-xs font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)] outline-none transition-colors focus:border-[var(--qs-brand)]";
 
-export function RegistrationStep() {
+export function RegistrationStep({ embedded = false }: { embedded?: boolean } = {}) {
   const { state, setState, saveToServer } = useStudio();
   const reg = state.registration;
   const fields = reg.fields;
@@ -109,7 +109,7 @@ export function RegistrationStep() {
   /* ── render ────────────────────────────────────────────── */
 
   return (
-    <StudioStepLayout width="wide">
+    <StudioStepLayout width="wide" embedded={embedded}>
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}

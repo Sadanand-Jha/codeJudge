@@ -84,6 +84,7 @@ const toStudentQuiz = (quiz: Record<string, any>) => {
   creator_name: quiz.creator_name ?? null,
   creator_avatar_url: quiz.creator_avatar_url ?? null,
   status: effectiveStatus,
+  scheduled: rawStatus === "scheduled",
   show_results_immediately: quiz.show_results_immediately === true,
   leaderboard: quiz.leaderboard === true,
   registration_fields: Array.isArray(quiz.registration_fields) ? quiz.registration_fields : null,
@@ -1235,7 +1236,10 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
     const buildAttemptPayload = async (attempt: any, resumed: boolean) => {
       const savedResponses = await quizService.getStudentResponses(Number(attempt.id), Number(userId));
       const startedAtMs = new Date(attempt.started_at ?? attempt.created_at).getTime();
-      const durationDeadline = quiz?.duration
+      // Scheduled quizzes run for the full quiz window. The per-attempt
+      // duration is only used by manually-started/live quizzes.
+      const scheduledQuiz = String(quiz?.status ?? "").toLowerCase() === "scheduled";
+      const durationDeadline = !scheduledQuiz && quiz?.duration
         ? startedAtMs + Number(quiz.duration) * 60_000
         : Number.POSITIVE_INFINITY;
       const quizDeadline = quiz?.endtime
@@ -1392,7 +1396,8 @@ export const saveQuizResponse = async (req: Request, res: Response) => {
 
     const attemptQuiz = await quizService.getQuizById(String(attempt.quiz_id));
     const attemptStartedAt = attempt.started_at ?? attempt.created_at;
-    const durationDeadline = attemptQuiz?.duration && attemptStartedAt
+    const scheduledQuiz = String(attemptQuiz?.status ?? "").toLowerCase() === "scheduled";
+    const durationDeadline = !scheduledQuiz && attemptQuiz?.duration && attemptStartedAt
       ? new Date(attemptStartedAt).getTime() + Number(attemptQuiz.duration) * 60_000
       : Number.POSITIVE_INFINITY;
     const quizDeadline = attemptQuiz?.endtime
@@ -1457,7 +1462,8 @@ export const heartbeatQuizAttempt = async (req: Request, res: Response) => {
 
     const quiz = await quizService.getQuizById(String(attempt.quiz_id));
     const startedAt = attempt.started_at ?? attempt.created_at;
-    const durationDeadline = quiz?.duration && startedAt
+    const scheduledQuiz = String(quiz?.status ?? "").toLowerCase() === "scheduled";
+    const durationDeadline = !scheduledQuiz && quiz?.duration && startedAt
       ? new Date(startedAt).getTime() + Number(quiz.duration) * 60_000
       : Number.POSITIVE_INFINITY;
     const quizDeadline = quiz?.endtime ? new Date(quiz.endtime).getTime() : Number.POSITIVE_INFINITY;

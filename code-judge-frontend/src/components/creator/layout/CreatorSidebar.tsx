@@ -105,7 +105,7 @@ const _FULL_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
   {
     label: "Payments",
     items: [
-      { label: "Buy Credits", href: "/creator/billing/credits", icon: Coins },
+      { label: "Pricing", href: "/creator/billing/credits", icon: Coins },
       // Selling pages disabled for now (routes commented out, components kept):
       // { label: "Earnings", href: "/creator/billing/earnings", icon: TrendingUp },
       { label: "Transactions", href: "/creator/billing/transactions", icon: ArrowLeftRight },

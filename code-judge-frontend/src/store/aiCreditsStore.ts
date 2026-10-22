@@ -16,6 +16,7 @@ import {
   creditCostMap,
   LOW_CREDIT_THRESHOLD,
   type AICreditFeatureId,
+  type CreditPurchasePack,
 } from "@/config/aiCredits";
 
 /* ============================================
@@ -339,20 +340,20 @@ export function checkLowCreditWarning(remaining: number, monthlyAllowance: numbe
   return remaining / monthlyAllowance < LOW_CREDIT_THRESHOLD;
 }
 
-export function getRecommendedPack(remaining: number, monthlyAllowance: number): typeof CREDIT_PACKS[number] | null {
+export function getRecommendedPack(remaining: number, monthlyAllowance: number): CreditPurchasePack | null {
   if (monthlyAllowance <= 0) return null;
   
   const usageRatio = 1 - remaining / monthlyAllowance;
   
-  // If less than 20% remaining, recommend starter
+  // If less than 20% remaining, recommend the smaller top-up.
   if (usageRatio > 0.8) {
-    return CREDIT_PACKS.find((p) => p.id === "starter") || null;
+    return CREDIT_PURCHASE_PACKS.find((p) => p.id === "teacher") || null;
   }
-  
-  // If less than 50% remaining, recommend standard
+
+  // If less than 50% remaining, recommend the better-value top-up.
   if (usageRatio > 0.5) {
-    return CREDIT_PACKS.find((p) => p.id === "standard") || null;
+    return CREDIT_PURCHASE_PACKS.find((p) => p.id === "master") || null;
   }
-  
+
   return null;
 }

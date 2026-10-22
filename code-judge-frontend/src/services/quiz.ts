@@ -30,6 +30,8 @@ export interface Quiz {
   negative_marking: boolean | null;
   leaderboard: boolean | null;
   status: string | null;
+  /** True when the quiz was published on a fixed start/end schedule. */
+  scheduled?: boolean;
   created_at: string | null;
   updated_at: string | null;
   creator_name: string | null;
@@ -241,6 +243,8 @@ export interface QuizBasic {
   /** Creator-defined registration field names (JSON array of strings). */
   registration_fields?: string[] | null;
   status: string | null;
+  /** True when the quiz was published on a fixed start/end schedule. */
+  scheduled?: boolean;
   created_at: string | null;
   updated_at: string | null;
   creator_name: string | null;

@@ -297,6 +297,13 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     return () => window.clearInterval(timer);
   }, [timeLeft, submitting, submit]);
 
+  // Scheduled attempts can resume with zero seconds left (the window ended
+  // between loading the quiz and starting/resuming the attempt).
+  useEffect(() => {
+    if (timeLeft !== 0 || attemptId === null || submitting) return;
+    void submit();
+  }, [attemptId, submit, submitting, timeLeft]);
+
   const current = questions[index];
   const answered = Object.keys(answers).length;
   const progress = questions.length ? ((index + 1) / questions.length) * 100 : 0;
@@ -329,7 +336,12 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         try { writeQuizAttemptAnswers(id, {}); } catch { /* storage unavailable */ }
         setAnswers({});
       }
-      setTimeLeft(started.remainingSeconds);
+      if (quiz.scheduled && quiz.endtime) {
+        const endMs = new Date(quiz.endtime).getTime();
+        setTimeLeft(Number.isFinite(endMs) ? Math.max(0, Math.ceil((endMs - Date.now()) / 1000)) : started.remainingSeconds);
+      } else {
+        setTimeLeft(started.remainingSeconds);
+      }
       return true;
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, "Quiz attempt could not be started."));

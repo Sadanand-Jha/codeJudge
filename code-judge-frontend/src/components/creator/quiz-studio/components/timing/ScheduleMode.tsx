@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown, Play } from "lucide-react";
 import { DateTimeField } from "./DateTimeField";
 import { ConfirmModal } from "./ConfirmModal";
@@ -16,14 +16,20 @@ export function ScheduleMode({
   onChange,
   manualStatus,
   validationErrors,
+  allowStartNow = true,
 }: {
   schedule: ScheduleConfig;
   onChange: (patch: Partial<ScheduleConfig>) => void;
   manualStatus: QuizLifecycle;
   validationErrors: string[];
+  allowStartNow?: boolean;
 }) {
   const [startNowOpen, setStartNowOpen] = useState(false);
   const [showEnd, setShowEnd] = useState(Boolean(schedule.endDate));
+
+  useEffect(() => {
+    if (schedule.endDate) setShowEnd(true);
+  }, [schedule.endDate]);
 
   const isScheduled = manualStatus === "scheduled";
   const isLive = manualStatus === "live";
@@ -83,7 +89,7 @@ export function ScheduleMode({
         )}
       </div>
 
-      {isScheduled && schedule.startDate && (
+      {allowStartNow && isScheduled && schedule.startDate && (
         <div className="space-y-2">
           <div className="flex gap-2">
             <button

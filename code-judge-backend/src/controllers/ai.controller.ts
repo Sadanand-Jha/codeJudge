@@ -308,6 +308,8 @@ export const generateFromQuestionBankHandler = async (req: Request, res: Respons
     const easyCount = req.body.easyCount != null ? Number(req.body.easyCount) : undefined;
     const mediumCount = req.body.mediumCount != null ? Number(req.body.mediumCount) : undefined;
     const hardCount = req.body.hardCount != null ? Number(req.body.hardCount) : undefined;
+    const theoryCount = req.body.theoryCount != null ? Number(req.body.theoryCount) : undefined;
+    const numericalCount = req.body.numericalCount != null ? Number(req.body.numericalCount) : undefined;
     const hardnessHint = req.body.hardnessHint ? String(req.body.hardnessHint) : undefined;
     const syllabus = req.body.syllabus ? String(req.body.syllabus).trim().slice(0, 4000) : undefined;
     const subjectId = Number(req.body.subjectId);
@@ -342,11 +344,34 @@ export const generateFromQuestionBankHandler = async (req: Request, res: Respons
       }
     }
 
+    if (theoryCount != null || numericalCount != null) {
+      if (
+        !Number.isInteger(theoryCount) ||
+        !Number.isInteger(numericalCount) ||
+        (theoryCount ?? 0) < 0 ||
+        (numericalCount ?? 0) < 0
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "theoryCount and numericalCount must be non-negative integers.",
+        });
+      }
+      const sum = (theoryCount ?? 0) + (numericalCount ?? 0);
+      if (sum !== numberOfQuestions) {
+        return res.status(400).json({
+          success: false,
+          message: `theoryCount+numericalCount (${sum}) must equal numberOfQuestions (${numberOfQuestions})`,
+        });
+      }
+    }
+
     const result = await generateFromQuestionBank({
       numberOfQuestions,
       easyCount: easyCount != null ? Math.max(0, Number(easyCount)) : undefined,
       mediumCount: mediumCount != null ? Math.max(0, Number(mediumCount)) : undefined,
       hardCount: hardCount != null ? Math.max(0, Number(hardCount)) : undefined,
+      theoryCount: theoryCount != null ? Math.max(0, Number(theoryCount)) : undefined,
+      numericalCount: numericalCount != null ? Math.max(0, Number(numericalCount)) : undefined,
       hardnessHint,
       syllabus,
       subjectId,
