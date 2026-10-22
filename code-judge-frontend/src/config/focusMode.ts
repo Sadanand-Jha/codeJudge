@@ -59,6 +59,7 @@ export const FOCUS_ALLOWED_PREFIXES: string[] = [
   "/contact",
   "/privacy",
   "/docs",
+  "/pricing",
 ];
 
 /**
@@ -67,9 +68,8 @@ export const FOCUS_ALLOWED_PREFIXES: string[] = [
  * focus mode is active. Legacy student modules keep the /quiz redirect.
  * Keep in sync with proxy.ts.
  */
-export const FOCUS_HOME_REDIRECT_PREFIXES: string[] = [
-  "/pricing",
-];
+export const FOCUS_HOME_REDIRECT_PREFIXES: string[] = [];
+
 
 /**
  * True when a blocked pathname should send visitors to "/" instead of "/quiz".

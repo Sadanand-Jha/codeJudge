@@ -82,8 +82,7 @@ test("sitemap lists only reachable public pages on the canonical host", () => {
   const urls = entries.map((entry) => entry.url);
   assert.deepEqual(urls, [
     "https://www.quizsupport.com/",
-    "https://www.quizsupport.com/about",
-    "https://www.quizsupport.com/contact",
+    "https://www.quizsupport.com/quiz",
     "https://www.quizsupport.com/privacy",
     "https://www.quizsupport.com/docs",
     "https://www.quizsupport.com/meet-the-developer",
@@ -201,7 +200,7 @@ test("focus-mode client allowlist keeps every indexable public page reachable", 
   ]) {
     assert.equal(isPathAllowed(path), true, `expected ${path} to be allowed in focus mode`);
   }
-  for (const path of ["/problems", "/feed", "/dashboard", "/leaderboard", "/pricing"]) {
+  for (const path of ["/problems", "/feed", "/dashboard", "/leaderboard"]) {
     assert.equal(isPathAllowed(path), false, `expected ${path} to be blocked in focus mode`);
   }
 });

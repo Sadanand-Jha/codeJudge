@@ -39,11 +39,13 @@ const FOCUS_ALLOWED_PREFIXES = [
   "/contact",
   "/privacy",
   "/docs",
+  "/pricing",
 ];
 
 // Blocked pages kept in the build that redirect to the homepage instead of
 // the quiz hub. Mirrors FOCUS_HOME_REDIRECT_PREFIXES in src/config/focusMode.ts.
-const FOCUS_HOME_REDIRECT_PREFIXES = ["/pricing"];
+const FOCUS_HOME_REDIRECT_PREFIXES: string[] = [];
+
 
 const FOCUS_ALLOWED_EXACT = ["/", "/robots.txt", "/sitemap.xml"];
 
