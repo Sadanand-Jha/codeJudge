@@ -299,18 +299,9 @@ export interface CreditPurchasePack {
 
 export const CREDIT_PURCHASE_PACKS: CreditPurchasePack[] = [
   {
-    id: "starting",
-    name: "Starting Pack",
-    credits: 100,
-    price: 49,
-    cta: "Get Started",
-    blurb: "For trying AI-powered question generation.",
-    validityMonths: 1,
-  },
-  {
     id: "teacher",
     name: "Teacher Pack",
-    credits: 240,
+    credits: 120,
     price: 99,
     cta: "Choose Teacher Pack",
     blurb: "For regular question-paper creation.",
@@ -320,7 +311,7 @@ export const CREDIT_PURCHASE_PACKS: CreditPurchasePack[] = [
   {
     id: "master",
     name: "Master Pack",
-    credits: 550,
+    credits: 250,
     price: 199,
     cta: "Get Master Pack",
     blurb: "For frequent paper generation and advanced AI workflows.",
@@ -356,7 +347,7 @@ export interface AIModelBudget {
   maxIterations: number;
   /** Max retries per failed operation. */
   maxRetries: number;
-  /** Token budget per complete paper (all calls combined). */
+  /** Output-token budget per complete paper (all calls combined). */
   perPaperTokenBudget: number;
   /** Included usage per billing period; resets monthly for plans. */
   monthlyReset: boolean;
@@ -374,7 +365,7 @@ export const AI_MODEL_BUDGETS: AIModelBudget[] = [
     outputRate: 0.4,
     maxIterations: 1,
     maxRetries: 2,
-    perPaperTokenBudget: 120_000,
+    perPaperTokenBudget: 60_000,
     monthlyReset: false,
   },
   {
@@ -388,7 +379,7 @@ export const AI_MODEL_BUDGETS: AIModelBudget[] = [
     outputRate: 1.1,
     maxIterations: 3,
     maxRetries: 3,
-    perPaperTokenBudget: 400_000,
+    perPaperTokenBudget: 150_000,
     monthlyReset: true,
   },
   {
@@ -402,7 +393,7 @@ export const AI_MODEL_BUDGETS: AIModelBudget[] = [
     outputRate: 2.19,
     maxIterations: 6,
     maxRetries: 3,
-    perPaperTokenBudget: 1_000_000,
+    perPaperTokenBudget: 300_000,
     monthlyReset: true,
   },
 ];
@@ -435,12 +426,28 @@ export const AI_EFFORT_LEVELS: AIEffortLevel[] = [
     id: "pro",
     label: "Pro",
     blurb: "More detailed syllabus alignment and validation.",
-    creditsPerPaper: 12,
+    creditsPerPaper: 15,
   },
   {
     id: "max",
     label: "Max",
     blurb: "Advanced multi-step generation, refinement and quality checks.",
-    creditsPerPaper: 25,
+    creditsPerPaper: 50,
   },
 ];
+
+/** Estimated papers a credit balance buys at each effort level (rounded down). */
+export function getPaperEstimates(credits: number): Record<AIEffortLevel["id"], number> {
+  return Object.fromEntries(
+    AI_EFFORT_LEVELS.map((level) => [
+      level.id,
+      Math.floor(credits / level.creditsPerPaper),
+    ])
+  ) as Record<AIEffortLevel["id"], number>;
+}
+
+/** Human-readable paper estimate for pack cards, e.g. "≈ 10 Plus / 3 Pro / 1 Max papers". */
+export function formatPaperEstimates(credits: number): string {
+  const estimates = getPaperEstimates(credits);
+  return `≈ ${estimates.plus} Plus / ${estimates.pro} Pro / ${estimates.max} Max papers`;
+}

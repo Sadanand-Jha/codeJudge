@@ -4,6 +4,7 @@ import { Check, Coins, Lock, Star } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import {
   CREDIT_PURCHASE_PACKS,
+  formatPaperEstimates,
   type CreditPurchasePack,
 } from "@/config/aiCredits";
 
@@ -11,20 +12,13 @@ import {
 const PACKS: CreditPurchasePack[] = CREDIT_PURCHASE_PACKS;
 
 const PACK_FEATURES: Record<string, string[]> = {
-  starting: [
-    "Generate MCQ, short & long questions",
-    "Export to PDF / Word",
-    "Valid for 1 month",
-  ],
   teacher: [
     "Generate MCQ, short & long questions",
     "Export to PDF / Word",
-    "Valid for 3 months",
   ],
   master: [
     "Generate MCQ, short & long questions",
     "Export to PDF / Word",
-    "Valid for 3 months",
   ],
 };
 
@@ -63,7 +57,7 @@ export function CreditPacksSection({ onSelectPack }: CreditPacksSectionProps) {
           Choose your credit pack
         </h2>
         <p className="mt-2 text-sm text-slate-500">
-          One-time purchase. No subscription. Credits valid up to 3 months.
+          One-time purchase. No subscription. Credits valid for 3 months.
         </p>
       </div>
 
@@ -73,7 +67,7 @@ export function CreditPacksSection({ onSelectPack }: CreditPacksSectionProps) {
           const rate = perCreditRate(pack);
           const save = savingsPct(pack, baseRate);
           const popular = pack.popular === true;
-          const features = PACK_FEATURES[pack.id] ?? PACK_FEATURES.starting;
+          const features = PACK_FEATURES[pack.id] ?? PACK_FEATURES.teacher;
 
           return (
             <article
@@ -103,7 +97,7 @@ export function CreditPacksSection({ onSelectPack }: CreditPacksSectionProps) {
                 </h3>
                 {save !== null && (
                   <span
-                    aria-label={`Save ${save}% compared to Starting Pack`}
+                    aria-label={`Save ${save}% compared to Teacher Pack`}
                     className="inline-flex shrink-0 items-center rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-bold text-green-700"
                   >
                     Save {save}%
@@ -128,6 +122,10 @@ export function CreditPacksSection({ onSelectPack }: CreditPacksSectionProps) {
                 </span>
               </p>
 
+              <p className="mt-1 text-sm font-medium tabular-nums text-slate-600">
+                {formatPaperEstimates(pack.credits)}
+              </p>
+
               {/* Description — 2-line min-height keeps CTAs aligned */}
               <p className="mt-2 min-h-[2.5rem] text-sm leading-5 text-slate-500">
                 {pack.blurb}
@@ -147,6 +145,13 @@ export function CreditPacksSection({ onSelectPack }: CreditPacksSectionProps) {
                     <span>{feature}</span>
                   </li>
                 ))}
+                <li className="flex items-start gap-2 text-sm text-slate-900">
+                  <Check
+                    className="mt-0.5 h-4 w-4 shrink-0 text-green-600"
+                    aria-hidden="true"
+                  />
+                  <span>Valid for {pack.validityMonths} months</span>
+                </li>
               </ul>
 
               {/* CTA — mt-auto aligns all buttons on one line */}

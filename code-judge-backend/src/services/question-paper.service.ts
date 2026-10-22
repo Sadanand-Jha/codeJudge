@@ -358,7 +358,9 @@ ${avoidQuestions ? `DO NOT REPEAT OR NEAR-DUPLICATE THESE EXISTING QUESTIONS:\n$
   let aiComposed: ComposedQuestion[] = [];
   let usage: LiveUsage | undefined;
   try {
-    const { content, usage: u } = await chatWithAI(prompt);
+    const { content, usage: u } = await chatWithAI(prompt, undefined, {
+      maxTokens: PAPER_MAX_OUTPUT_TOKENS,
+    });
     usage = u;
     const cleaned = content.replace(/```(?:json)?/gi, "").trim();
     const start = cleaned.indexOf("{");
@@ -553,7 +555,10 @@ const AIPaperBatchSchema = z.object({
 
 const PAPER_MAX_OUTPUT_TOKENS = (() => {
   const configured = Number(process.env.PAPER_MAX_OUTPUT_TOKENS);
-  return Number.isFinite(configured) && configured > 0 ? Math.floor(configured) : 100_000;
+  const hardCap = 60_000;
+  return Number.isFinite(configured) && configured > 0
+    ? Math.min(Math.floor(configured), hardCap)
+    : hardCap;
 })();
 const PAPER_BATCH_SIZE = 8;
 
@@ -612,6 +617,7 @@ interface PaperBatchArgs {
   batchIndex: number;
   batchCount: number;
   already: ComposedQuestion[];
+  maxOutputTokens: number;
 }
 
 const generatePaperBatch = async (
@@ -621,7 +627,7 @@ const generatePaperBatch = async (
     title, instructions, durationMinutes, budgetMarks, totalNeeded, scopeLines,
     scopeCatalog, scopeFallback, outline, overall, syllabus, legacyDifficulty,
     legacyKind, section, sectionIndex, group, groupIndex, need, batchIndex,
-    batchCount, already,
+    batchCount, already, maxOutputTokens,
   } = args;
   const mpq = Math.max(0.5, Number(group.marksPerQuestion) || 1);
   const wantKind = groupKind(String(group.type), legacyKind);
@@ -659,7 +665,7 @@ CURRENT GROUP ${groupIndex + 1}: name="${group.name || group.type}", type=${grou
 TASK: Generate EXACTLY ${need} question(s) for this group. ${batchNote}
 ${avoid ? `DO NOT REPEAT OR NEAR-DUPLICATE THESE ALREADY GENERATED QUESTIONS:\n${avoid}\n` : ""}`;
 
-  let tokenLimit = PAPER_MAX_OUTPUT_TOKENS;
+  let tokenLimit = maxOutputTokens;
   let lastErr: unknown;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
@@ -817,6 +823,10 @@ export const generateQuestionPaper = async (
         const start = batchIndex * PAPER_BATCH_SIZE;
         const count = Math.min(PAPER_BATCH_SIZE, need - start);
         try {
+          const remainingOutputTokens = PAPER_MAX_OUTPUT_TOKENS - (usage?.outputTokens ?? 0);
+          if (remainingOutputTokens <= 0) {
+            throw new Error("AI output token budget for this paper is exhausted.");
+          }
           const result = await generatePaperBatch({
             title,
             instructions,
@@ -839,6 +849,7 @@ export const generateQuestionPaper = async (
             batchIndex,
             batchCount,
             already: avoidPool.slice(-20),
+            maxOutputTokens: remainingOutputTokens,
           });
           collected.push(...result.questions);
           avoidPool.push(...result.questions);

@@ -42,21 +42,29 @@ src/
 | Plan | Credits |
 |------|---------|
 | Student Pro | 300 |
-| Creator Pro | 700 |
-| Ultimate | 1500 |
+| Creator Pro | 800 |
+| Ultimate | 1800 |
 
 ### 3. Credit Packs (One-time Purchase)
 
-| Pack | Credits | Price (₹) |
-|------|---------|-----------|
-| Starter | 250 | 99 |
-| Standard | 1000 | 299 |
-| Power User | 5000 | 999 |
-| Institution | 10000 | 1799 |
+| Pack | Credits | Price (₹) | Per credit | Validity |
+|------|---------|-----------|------------|----------|
+| Teacher | 120 | 99 | ₹0.83 | 3 months |
+| Master | 250 | 199 | ₹0.80 | 3 months |
 
-**Credits never expire while subscription is active.**
+Pack cards show paper estimates (e.g. “≈ 10 Plus / 3 Pro / 1 Max papers”) so buyers can compare value in papers, not just credits.
 
-### 4. Fair Usage Limits
+### 4. Paper Generation Charges
+
+| Effort | Credits per paper | Token budget per paper |
+|--------|-------------------|------------------------|
+| Plus | 5 | 60k |
+| Pro | 15 | 150k |
+| Max | 50 | 300k |
+
+Token budgets are hard caps per completed paper across all calls combined. Measure real cost over 20–30 papers before adjusting prices.
+
+### 5. Fair Usage Limits
 
 - Maximum 100 AI requests/hour
 - Maximum 500 AI requests/day
@@ -65,7 +73,7 @@ src/
 - Maximum response size: 200 KB
 - Large requests are queued
 
-### 5. Abuse Detection Rules
+### 6. Abuse Detection Rules
 
 | Rule | Threshold | Action |
 |------|-----------|--------|

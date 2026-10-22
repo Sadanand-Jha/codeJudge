@@ -11,7 +11,7 @@ const STEPS = [
   },
   {
     title: "Use before they expire",
-    body: "Each pack is valid for 1 to 3 months from purchase.",
+    body: "Each pack is valid for 3 months from purchase.",
   },
 ];
 

@@ -22,7 +22,7 @@ import ThemeToggle from "@/components/ui/ThemeToggle";
 import GeneratorStudio from "@/components/marketing/landing/GeneratorStudio";
 import FeatureTabs from "@/components/marketing/landing/FeatureTabs";
 import { SecureLogo } from "@/components/common/SecureLogo";
-import { CREDIT_PURCHASE_PACKS } from "@/config/aiCredits";
+import { CREDIT_PURCHASE_PACKS, formatPaperEstimates } from "@/config/aiCredits";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
 
 export const metadata: Metadata = buildPublicPageMetadata({
@@ -364,6 +364,9 @@ export default function HomePage() {
                     <div className="pr">₹{pack.price}</div>
                     <div className="cr">
                       {pack.credits} credits <span>· ₹{rate.toFixed(2)} / credit</span>
+                    </div>
+                    <div className="cr" style={{ fontWeight: 500, marginTop: 6 }}>
+                      {formatPaperEstimates(pack.credits)}
                     </div>
                     <p>
                       {pack.blurb} Valid for {pack.validityMonths}{" "}

@@ -13,7 +13,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import ScrollStory from "@/components/pricing/story/ScrollStory";
 import LightScrollStory from "@/components/pricing/story/light/LightScrollStory";
 import { useTheme } from "@/context/ThemeContext";
-import { PLAN_CREDIT_ALLOWANCES, CREDIT_PURCHASE_PACKS, AI_CREDIT_COSTS } from "@/config/aiCredits";
+import { PLAN_CREDIT_ALLOWANCES, CREDIT_PURCHASE_PACKS, AI_CREDIT_COSTS, formatPaperEstimates } from "@/config/aiCredits";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 
 /* ============================================
@@ -643,7 +643,7 @@ function PriceSummary({
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-text-primary">Your Subscription</h3>
             <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[10px] font-bold text-accent">
-              {items.length} {items.length === 1 ? "add-on" : "add-ons"}
+              {items.length === 0 ? "Free" : `${items.length} ${items.length === 1 ? "add-on" : "add-ons"}`}
             </span>
           </div>
 
@@ -1417,10 +1417,13 @@ function PricingPageContent() {
                           <span className="text-lg font-extrabold text-text-primary">{pack.credits}</span>
                           <span className="text-[10px] text-text-muted">₹{pack.price}</span>
                         </div>
+                        <div className="mt-1 text-[10px] text-text-muted">
+                          {formatPaperEstimates(pack.credits)}
+                        </div>
                       </div>
                     ))}
                   </div>
-                  <p className="mt-3 text-[10px] text-text-muted">Never expire while active</p>
+                  <p className="mt-3 text-[10px] text-text-muted">Valid for 3 months</p>
                 </motion.div>
               </div>
             </section>
@@ -1490,7 +1493,7 @@ function PricingPageContent() {
                         className="h-full rounded-full bg-success"
                       />
                     </div>
-                    <div className="mt-1 text-[10px] text-text-muted">Stay Forever</div>
+                    <div className="mt-1 text-[10px] text-text-muted">Until expiry</div>
                   </div>
                 </div>
               </motion.div>
@@ -1728,7 +1731,7 @@ function PricingPageContent() {
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#EC4899]" />
-                      <span>Purchased credits never expire while active</span>
+                      <span>Credits stay valid for 3 months from purchase</span>
                     </li>
                   </ul>
                 </motion.div>
@@ -1770,17 +1773,20 @@ function PricingPageContent() {
                      {pack.popular && (
                        <div className="mb-2 text-[9px] font-bold tracking-wider text-[#C084FC]">POPULAR</div>
                      )}
-                     <div className="text-[11px] font-medium text-text-muted mb-1">Pack</div>
-                     <div className="text-lg font-extrabold text-text-primary mb-0.5">{pack.name}</div>
-                     <div className="text-[11px] text-text-secondary mb-3">{pack.credits} credits</div>
-                     
-                     <div className="flex items-baseline gap-1 mb-4">
-                       <span className="text-2xl font-extrabold text-text-primary">₹{pack.price}</span>
-                     </div>
+                      <div className="text-[11px] font-medium text-text-muted mb-1">Pack</div>
+                      <div className="text-lg font-extrabold text-text-primary mb-0.5">{pack.name}</div>
+                      <div className="text-[11px] text-text-secondary mb-1">{pack.credits} credits</div>
+                      <div className="text-[11px] text-text-secondary mb-3">
+                        {formatPaperEstimates(pack.credits)}
+                      </div>
+                      
+                      <div className="flex items-baseline gap-1 mb-4">
+                        <span className="text-2xl font-extrabold text-text-primary">₹{pack.price}</span>
+                      </div>
 
-                     <div className="text-[10px] text-text-muted mb-4">
-                       ₹{Math.round(pack.price / pack.credits * 100) / 100}/credit
-                     </div>
+                      <div className="text-[10px] text-text-muted mb-4">
+                        ₹{Math.round(pack.price / pack.credits * 100) / 100}/credit · valid {pack.validityMonths} months
+                      </div>
 
                       <button
                         onClick={() => {
@@ -1795,7 +1801,7 @@ function PricingPageContent() {
                </div>
 
                <p className="mt-4 text-center text-[11px] text-text-muted">
-                 Credits never expire while your subscription is active.
+                 Credits stay valid for 3 months from purchase.
                </p>
              </section>
 
@@ -1921,7 +1927,7 @@ function PricingPageContent() {
           <div className="flex items-center gap-2">
             <span className="text-[12px] text-text-secondary">Your plan</span>
             <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
-              {selectedItems.length}
+              {selectedItems.length === 0 ? "Free" : selectedItems.length}
             </span>
           </div>
           <div className="flex items-center gap-2">

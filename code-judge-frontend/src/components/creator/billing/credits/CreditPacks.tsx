@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Lock } from "lucide-react";
+import { Check, Lock, Sparkles } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import type { CreditPurchasePack } from "@/services/aiCredits";
 
@@ -18,6 +18,54 @@ function savingsPercent(pack: CreditPurchasePack, base?: CreditPurchasePack): nu
   const baseRate = base.price / base.credits;
   const rate = pack.price / pack.credits;
   return Math.max(0, Math.round((1 - rate / baseRate) * 100));
+}
+
+
+function CurrentPlanCard() {
+  return (
+    <article
+      aria-current="true"
+      aria-label="Free plan — current plan"
+      className="relative flex flex-col rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-[26px] pb-7 pt-7 text-[var(--qs-ink)] max-[900px]:order-first"
+    >
+      <span className="absolute -top-4 left-1/2 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-[var(--qs-ok)] px-4 py-[5px] text-[13px] font-extrabold text-white">
+        <Sparkles className="h-3 w-3" />
+        Current plan
+      </span>
+
+      <div className="flex items-center justify-between gap-2.5">
+        <h3 className="text-[20px] font-extrabold tracking-tight">Free</h3>
+        <span className="whitespace-nowrap rounded-full bg-[var(--qs-okbg)] px-[11px] py-0.5 text-[12px] font-extrabold tracking-wide text-[var(--qs-ok)]">
+          Active
+        </span>
+      </div>
+
+      <p className="my-5 mb-2.5 text-[64px] font-black leading-none tracking-tight">₹0</p>
+      <p className="text-base font-bold">No monthly credits</p>
+      <p className="mt-3 mb-[18px] min-h-[46px] text-[var(--qs-muted)]">
+        Your current plan. Buy a credit pack only when you need AI credits.
+      </p>
+
+      <ul className="m-0 mb-[26px] flex flex-1 list-none flex-col gap-[11px] border-t-2 border-dashed border-[var(--qs-line)] pt-[18px]">
+        {["Basic platform access", "Pay only for the credits you use", "No monthly subscription"].map((feature) => (
+          <li key={feature} className="flex items-start gap-2.5">
+            <span className="mt-px grid h-5 w-5 flex-none place-items-center rounded-full bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+              <Check className="h-3 w-3" strokeWidth={3.5} />
+            </span>
+            <span className="text-sm font-medium leading-5">{feature}</span>
+          </li>
+        ))}
+      </ul>
+
+      <button
+        type="button"
+        disabled
+        className="w-full cursor-default rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] py-[15px] text-base font-extrabold text-[var(--qs-muted)]"
+      >
+        Current plan
+      </button>
+    </article>
+  );
 }
 
 export function CreditPackCard({
@@ -132,11 +180,12 @@ export function CreditPacks({
           Choose your credit pack
         </h2>
         <p className="mt-1 text-[14px] text-[var(--qs-muted)]">
-          One-time purchase, no subscription. Each pack has its own validity.
+          You&apos;re on the Free plan. Buy a one-time pack when you need more AI credits.
         </p>
       </div>
 
       <div className="grid items-stretch gap-6 lg:grid-cols-3">
+        <CurrentPlanCard />
         {packs.map((pack) => (
           <CreditPackCard key={pack.id} pack={pack} basePack={basePack} onSelect={onSelect} />
         ))}

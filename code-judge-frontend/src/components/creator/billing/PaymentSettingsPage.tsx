@@ -34,13 +34,7 @@ import {
   formatINR,
 } from "./ui";
 import { WithdrawDrawer } from "./withdraw";
-import {
-  BANK_ACCOUNTS,
-  PAYOUT_SCHEDULE,
-  NOTIFICATION_SETTINGS,
-  AUDIT_LOG,
-  WITHDRAWAL_MIN,
-} from "./mockData";
+import { WITHDRAWAL_MIN } from "@/config/payouts";
 import type {
   BankAccount,
   PaymentNotificationSetting,
@@ -73,10 +67,10 @@ interface AuditItem {
   device?: string;
 }
 
-const SUMMARY = {
-  available: 12480,
-  pending: 1950,
-  lastActivity: "20 Aug 2026, 8:14 PM",
+const EMPTY_SUMMARY = {
+  available: 0,
+  pending: 0,
+  lastActivity: "No activity yet",
 };
 
 const DAILY_LIMIT = 200000;
@@ -86,13 +80,6 @@ const WEEKDAY_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "F
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const MONDAY_FIRST = [1, 2, 3, 4, 5, 6, 0];
 const MONTHLY_DAYS = ["1", "5", "10", "15", "20", "25", "last"];
-
-const IFSC_LOOKUP: Record<string, { bank: string; branch: string }> = {
-  HDFC0001234: { bank: "HDFC Bank", branch: "Fort, Mumbai" },
-  ICIC0007710: { bank: "ICICI Bank", branch: "Andheri West, Mumbai" },
-  SBIN0060231: { bank: "State Bank of India", branch: "Connaught Place, New Delhi" },
-  UTIB0000456: { bank: "Axis Bank", branch: "Koramangala, Bengaluru" },
-};
 
 const NOTIF_GROUPS: Array<{ title: string; ids: PaymentNotificationSetting[] }> = [
   { title: "Earnings", ids: ["payment_received", "weekly_summary"] },
@@ -525,8 +512,8 @@ export interface PaymentSettingsPageProps {
 }
 
 const INITIAL_SCHED: SchedState = {
-  mode: PAYOUT_SCHEDULE.mode,
-  weeklyDay: PAYOUT_SCHEDULE.dayOfWeek,
+  mode: "manual",
+  weeklyDay: 1,
   monthlyDay: "1",
 };
 
@@ -537,39 +524,24 @@ export function PaymentSettingsPage({
   const { state, retry } = useBillingData(() => ({ ok: true }), { demoState });
   const [today] = useState(() => new Date());
 
-  const kycComplete = true;
+  const kycComplete = false;
 
-  const [accounts, setAccounts] = useState<PayoutAccount[]>(BANK_ACCOUNTS);
-  const [upi, setUpi] = useState<string | null>("sa••••@okhdfcbank");
+  const [accounts, setAccounts] = useState<PayoutAccount[]>([]);
+  const [upi, setUpi] = useState<string | null>(null);
   const [sched, setSched] = useState<SchedState>(INITIAL_SCHED);
   const [savedSched, setSavedSched] = useState<SchedState>(INITIAL_SCHED);
 
   const [events, setEvents] = useState<Record<PaymentNotificationSetting, boolean>>(() => {
-    const base = Object.fromEntries(NOTIFICATION_SETTINGS.map((n) => [n.id, n.enabled])) as Record<PaymentNotificationSetting, boolean>;
-    return { ...base, security_alerts: true };
+    const base = Object.fromEntries(
+      NOTIF_GROUPS.flatMap((group) => group.ids).map((id) => [id, false])
+    ) as Record<PaymentNotificationSetting, boolean>;
+    return base;
   });
-  const [channels, setChannels] = useState({ email: true, sms: true, whatsapp: false });
+  const [channels, setChannels] = useState({ email: false, sms: false, whatsapp: false });
   const [saveNote, setSaveNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [confirmOff, setConfirmOff] = useState<PaymentNotificationSetting | null>(null);
 
-  const [audit, setAudit] = useState<AuditItem[]>(() => {
-    const mapped: AuditItem[] = AUDIT_LOG.map((e) => ({
-      id: e.id,
-      label: e.label,
-      detail: e.detail,
-      time: e.time,
-      kind: e.kind === "login" ? "security" : e.kind,
-      device: "Chrome on Windows, New Delhi",
-    }));
-    return [
-      ...mapped.slice(0, 2),
-      { id: "aud_6", label: "Withdrawal failed", detail: "₹22,800 → HDFC Bank •••• 4821 · Incorrect IFSC", time: "9 Jul 2026, 3:20 PM", kind: "withdraw" as AuditKind, failed: true, device: "Chrome on Windows, New Delhi" },
-      ...mapped.slice(2, 4),
-      { id: "aud_7", label: "UPI ID updated", detail: "sa••••@okhdfcbank verified", time: "2 Jul 2026, 12:05 PM", kind: "account" as AuditKind, device: "Safari on iPhone, Mumbai" },
-      mapped[4],
-      { id: "aud_8", label: "Payout schedule changed", detail: "Manual → Weekly (Monday)", time: "25 Jun 2026, 10:44 AM", kind: "settings" as AuditKind, device: "Chrome on Mac, Bengaluru" },
-    ];
-  });
+  const [audit, setAudit] = useState<AuditItem[]>([]);
   const [auditFilter, setAuditFilter] = useState<AuditFilter>("all");
   const [auditShown, setAuditShown] = useState(5);
 
@@ -591,12 +563,12 @@ export function PaymentSettingsPage({
   const pushAudit = (item: Omit<AuditItem, "id" | "time">) =>
     setAudit((prev) => [{ ...item, id: `aud_${Date.now()}`, time: "Just now" }, ...prev]);
 
-  const canWithdraw = kycComplete && (accounts.length > 0 || upi !== null) && SUMMARY.available >= WITHDRAWAL_MIN;
+  const canWithdraw = kycComplete && (accounts.length > 0 || upi !== null) && EMPTY_SUMMARY.available >= WITHDRAWAL_MIN;
   const withdrawHint = !kycComplete
     ? "Complete KYC to enable withdrawals"
     : accounts.length === 0 && upi === null
       ? "Add a payout account first"
-      : SUMMARY.available < WITHDRAWAL_MIN
+      : EMPTY_SUMMARY.available < WITHDRAWAL_MIN
         ? `Minimum withdrawal is ${formatINR(WITHDRAWAL_MIN)}`
         : undefined;
 
@@ -736,7 +708,7 @@ export function PaymentSettingsPage({
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <p className="qs-display text-[26px] font-extrabold leading-none tracking-tight tabular-nums text-[var(--qs-ink)]">
-                  {formatINR(SUMMARY.available)}
+                  {formatINR(EMPTY_SUMMARY.available)}
                 </p>
                 <span title={withdrawHint} className="inline-flex">
                   <BillButton variant="primary" className="h-8 px-3 text-[11px]" disabled={!canWithdraw} onClick={doWithdraw}>
@@ -755,7 +727,7 @@ export function PaymentSettingsPage({
                 </span>
               </p>
               <p className="qs-display mt-2 text-[26px] font-extrabold leading-none tracking-tight tabular-nums text-[var(--qs-ink)]">
-                {formatINR(SUMMARY.pending)}
+                {formatINR(EMPTY_SUMMARY.pending)}
               </p>
               <p className="mt-1.5 text-[12px] text-[var(--qs-muted)]">Clears in up to 3 days</p>
             </div>
@@ -776,7 +748,7 @@ export function PaymentSettingsPage({
               </p>
               <p className="mt-2 flex items-center gap-1.5 text-[14px] font-bold tabular-nums text-[var(--qs-ink)]">
                 <Lock className="h-3.5 w-3.5 shrink-0 text-[var(--qs-muted)]" aria-hidden="true" />
-                {SUMMARY.lastActivity}
+                {EMPTY_SUMMARY.lastActivity}
               </p>
               <p className="mt-1.5 text-[12px] text-[var(--qs-muted)]">Secure account activity</p>
             </div>
@@ -1355,7 +1327,8 @@ export function PaymentSettingsPage({
         open={withdrawOpen}
         onClose={() => setWithdrawOpen(false)}
         accounts={accounts}
-        available={SUMMARY.available}
+        available={EMPTY_SUMMARY.available}
+        nextPayoutDate={nextPayout ? fmtPayout(nextPayout) : "Manual"}
       />
     </div>
   );
@@ -1380,8 +1353,6 @@ function AddBankModal({ onClose, onAdded }: {
   const [verifyOk, setVerifyOk] = useState<boolean | null>(null);
 
   const ifscValid = /^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc);
-  const bankInfo = ifscValid ? IFSC_LOOKUP[ifsc] : undefined;
-
   const validate = () => {
     const e = { holder: "", acc: "", confirm: "", ifsc: "" };
     if (holder.trim().length < 3) e.holder = "Enter the account holder name.";
@@ -1441,7 +1412,7 @@ function AddBankModal({ onClose, onAdded }: {
             {ifscValid && (
               <p className="flex items-start gap-1.5 rounded-[10px] bg-[var(--qs-okbg)] px-3 py-2.5 text-xs text-[var(--qs-ok)] " role="status">
                 <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                {bankInfo ? `${bankInfo.bank} · ${bankInfo.branch}` : "IFSC format is valid — bank will be confirmed during verification."}
+                IFSC format is valid — bank will be confirmed during verification.
               </p>
             )}
             <div className="relative">
@@ -1472,7 +1443,7 @@ function AddBankModal({ onClose, onAdded }: {
             <div className="rounded-[14px] border-2 border-[var(--qs-line)] p-4 text-sm ">
               <p className="font-semibold text-[var(--qs-ink)] ">We’ll send ₹1 to verify your account (it will be refunded).</p>
               <p className="mt-1 text-xs tabular-nums text-[var(--qs-muted)] ">
-                {bankInfo?.bank ?? "Your bank"} · {maskAcc(accNum)} · IFSC {ifsc}
+                Your bank · {maskAcc(accNum)} · IFSC {ifsc}
               </p>
             </div>
             {verifyOk === null && (
@@ -1518,7 +1489,7 @@ function AddBankModal({ onClose, onAdded }: {
             actionLabel="Confirm and add account"
             onVerified={() => onAdded({
               holderName: holder.trim(),
-              bankName: bankInfo?.bank ?? "Bank account",
+              bankName: "Bank account",
               maskedNumber: maskAcc(accNum),
               ifsc,
               type: accType,

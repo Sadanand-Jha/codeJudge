@@ -167,8 +167,10 @@ function CreditsCard({
           <span className="ml-2.5 align-middle text-[15px] font-bold text-[var(--qs-muted)]">credits left</span>
         </p>
         <p className="mt-2 text-[13px] text-[var(--qs-muted)]">
-          {balance.monthlyCredits.toLocaleString("en-IN")} monthly plan ·{" "}
-          {balance.purchasedCredits.toLocaleString("en-IN")} purchased credits
+          {balance.planId === "free"
+            ? "Free plan"
+            : `${balance.monthlyCredits.toLocaleString("en-IN")} monthly plan`}{" "}
+          · {balance.purchasedCredits.toLocaleString("en-IN")} purchased credits
         </p>
 
         <div className="mt-5">

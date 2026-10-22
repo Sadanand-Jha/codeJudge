@@ -15,6 +15,7 @@
     "migrate": "tsx src/migrate.ts",
     "migration:dry": "tsx src/migrate.ts --dry-run",
     "seed:plans": "tsx src/scripts/seedSubscriptionPlans.ts",
+    "sync:db": "tsx src/scripts/syncLocalToCloud.ts",
     "prepare-avatars": "tsx src/utils/avatarProcessor.ts",
     "test:document-export": "tsx src/scripts/testDocumentExport.ts"
   },

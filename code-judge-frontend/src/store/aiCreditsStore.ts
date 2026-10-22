@@ -1,19 +1,16 @@
 import { create } from "zustand";
 import type {
   AICreditBalance,
-  AICreditUsageEntry,
   AICreditUsageStats,
   CreatorAIUsage,
   AICreditPurchase,
+  AICreditPaymentMethod,
   FairUsageStatus,
   AbuseDetectionStatus,
 } from "@/types/aiCredits";
 import {
-  AI_CREDIT_COSTS,
   FAIR_USAGE_LIMITS,
-  PLAN_CREDIT_ALLOWANCES,
   ABUSE_RULES,
-  RATE_LIMIT_CONFIG,
   CREDIT_PACKS,
   CREDIT_PURCHASE_PACKS,
   creditCostMap,
@@ -22,92 +19,52 @@ import {
 } from "@/config/aiCredits";
 
 /* ============================================
-   Demo / Mock data — replace with real API calls.
+   Initial state — no seeded data. Real purchases
+   and usage are recorded as they happen.
    ============================================ */
-const now = Date.now();
-const HOUR = 3600 * 1000;
-const DAY = 24 * HOUR;
-
-function makeEntry(
-  id: string,
-  featureId: AICreditFeatureId,
-  ts: number,
-  status: AICreditUsageEntry["status"] = "success"
-): AICreditUsageEntry {
-  const def = AI_CREDIT_COSTS.find((c) => c.id === featureId)!;
-  return {
-    id,
-    featureId,
-    featureLabel: def.label,
-    credits: def.credits,
-    status,
-    timestamp: ts,
-    promptSizeKB: Math.round(0.5 + Math.random() * 20),
-    responseSizeKB: Math.round(0.3 + Math.random() * 8),
-  };
-}
-
-const mockEntries: AICreditUsageEntry[] = [
-  ...Array.from({ length: 8 }, (_, i) => makeEntry(`e${i}`, "ai-hint", now - i * HOUR)),
-  ...Array.from({ length: 4 }, (_, i) => makeEntry(`e${i + 8}`, "ai-debugging", now - i * HOUR - 30 * 60 * 1000)),
-  ...Array.from({ length: 3 }, (_, i) => makeEntry(`e${i + 12}`, "ai-code-review", now - i * DAY)),
-  makeEntry("e15", "ai-quiz-generation", now - 2 * DAY, "refunded"),
-  makeEntry("e16", "ai-test-cases", now - 3 * DAY),
-  makeEntry("e17", "ai-question-improvement", now - 4 * DAY),
-  makeEntry("e18", "ai-complexity", now - 5 * DAY),
-  makeEntry("e19", "ai-explanation", now - 6 * DAY),
-];
-
-const mockStats: AICreditUsageStats = {
-  remaining: 183,
-  monthlyAllowance: 300,
-  consumedToday: 27,
-  consumedThisMonth: 117,
+const EMPTY_STATS: AICreditUsageStats = {
+  remaining: 0,
+  monthlyAllowance: 0,
+  consumedToday: 0,
+  consumedThisMonth: 0,
   perFeature: {
-    "ai-hint": 45,
-    "ai-code-review": 24,
-    "ai-debugging": 18,
-    "ai-test-cases": 10,
-    "ai-quiz-generation": 8,
-    "ai-explanation": 6,
-    "ai-complexity": 4,
-    "ai-question-improvement": 2,
+    "ai-hint": 0,
+    "ai-code-review": 0,
+    "ai-debugging": 0,
+    "ai-test-cases": 0,
+    "ai-quiz-generation": 0,
+    "ai-explanation": 0,
+    "ai-complexity": 0,
+    "ai-question-improvement": 0,
     "ai-difficulty": 0,
     "ai-report-generation": 0,
   },
-  averageDailyUsage: 4.5,
-  estimatedDaysRemaining: 34,
-  recentRequests: mockEntries.slice(0, 10),
-  monthlyGraph: Array.from({ length: 30 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (29 - i));
-    return {
-      day: d.toISOString().slice(5, 10),
-      credits: Math.max(0, Math.round(2 + Math.random() * 12)),
-    };
-  }),
+  averageDailyUsage: 0,
+  estimatedDaysRemaining: 0,
+  recentRequests: [],
+  monthlyGraph: [],
 };
 
-const mockCreator: CreatorAIUsage = {
-  quizGeneration: 12,
-  questionImprovement: 8,
-  testCaseGeneration: 5,
-  difficultyAnalysis: 3,
-  reportGeneration: 2,
-  totalThisMonth: 30,
+const EMPTY_CREATOR: CreatorAIUsage = {
+  quizGeneration: 0,
+  questionImprovement: 0,
+  testCaseGeneration: 0,
+  difficultyAnalysis: 0,
+  reportGeneration: 0,
+  totalThisMonth: 0,
 };
 
-const mockFairUsage: FairUsageStatus = {
-  requestsThisHour: 8,
-  requestsThisDay: 42,
-  concurrentRequests: 1,
+const EMPTY_FAIR_USAGE: FairUsageStatus = {
+  requestsThisHour: 0,
+  requestsThisDay: 0,
+  concurrentRequests: 0,
   maxPerHour: FAIR_USAGE_LIMITS.maxRequestsPerHour,
   maxPerDay: FAIR_USAGE_LIMITS.maxRequestsPerDay,
   maxConcurrent: FAIR_USAGE_LIMITS.maxConcurrentRequests,
   isRateLimited: false,
 };
 
-const mockAbuse: AbuseDetectionStatus = {
+const EMPTY_ABUSE: AbuseDetectionStatus = {
   isFlagged: false,
   activeRules: [],
   action: "none",
@@ -141,34 +98,34 @@ interface AICreditsState {
   consumeCredits: (featureId: AICreditFeatureId, metadata?: { promptHash?: string; userAgent?: string; sessionId?: string }) => Promise<{ success: boolean; reason?: string; retryAfterMs?: number; message?: string }>;
   refundCredits: (featureId: AICreditFeatureId) => Promise<void>;
   completeRequest: () => void;
-  purchasePack: (packId: string) => Promise<void>;
+  purchasePack: (
+    packId: string,
+    meta?: { transactionId?: string; method?: AICreditPaymentMethod; status?: AICreditPurchase["status"] }
+  ) => Promise<void>;
   refresh: () => Promise<void>;
 }
 
 export const useAICreditsStore = create<AICreditsState>((set, get) => ({
   balance: {
-    planId: "student-pro",
-    hasActiveSubscription: true,
-    availableFeatures: ["ai-companion", "ai-hint", "ai-debugger", "ai-explanation", "ai-complexity"],
-    monthlyCredits: 300,
-    monthlyCreditsConsumed: 117,
-    monthlyCreditsExpiry: Date.now() + 30 * 24 * 60 * 60 * 1000,
+    planId: "free",
+    hasActiveSubscription: false,
+    availableFeatures: [],
+    monthlyCredits: 0,
+    monthlyCreditsConsumed: 0,
+    monthlyCreditsExpiry: 0,
     purchasedCredits: 0,
     purchasedCreditsConsumed: 0,
-    consumedToday: 27,
-    consumedThisHour: 4,
-    totalRemaining: 183,
-    monthlyAllowance: 300,
-    remaining: 183,
+    consumedToday: 0,
+    consumedThisHour: 0,
+    totalRemaining: 0,
+    monthlyAllowance: 0,
+    remaining: 0,
   },
-  stats: mockStats,
-  creator: mockCreator,
-  fairUsage: mockFairUsage,
-  abuse: mockAbuse,
-  purchases: [
-    { packId: "teacher", packName: "Teacher Pack", credits: 240, price: 99, timestamp: now - 21 * DAY },
-    { packId: "starting", packName: "Starting Pack", credits: 100, price: 49, timestamp: now - 6 * DAY },
-  ],
+  stats: EMPTY_STATS,
+  creator: EMPTY_CREATOR,
+  fairUsage: EMPTY_FAIR_USAGE,
+  abuse: EMPTY_ABUSE,
+  purchases: [],
 
   consumeCredits: async (featureId, metadata?: { promptHash?: string; userAgent?: string; sessionId?: string }): Promise<{ success: boolean; reason?: string; retryAfterMs?: number; message?: string }> => {
     const cost = creditCostMap[featureId];
@@ -267,7 +224,7 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
     });
   },
 
-  purchasePack: async (packId) => {
+  purchasePack: async (packId, meta) => {
     const pack =
       CREDIT_PACKS.find((p) => p.id === packId) ??
       CREDIT_PURCHASE_PACKS.find((p) => p.id === packId);
@@ -284,11 +241,14 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
       purchases: [
         ...purchases,
         {
+          transactionId: meta?.transactionId,
           packId: pack.id,
           packName: pack.name,
           credits: pack.credits,
           price: pack.price,
           timestamp: Date.now(),
+          method: meta?.method,
+          status: meta?.status ?? "completed",
         },
       ],
     });

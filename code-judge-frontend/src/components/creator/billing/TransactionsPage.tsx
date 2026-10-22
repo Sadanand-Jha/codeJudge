@@ -30,14 +30,15 @@ import {
 import { useToast } from "@/hooks/useToast";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { getPackValidityMonths } from "@/config/aiCredits";
+import type { AICreditPaymentMethod } from "@/types/aiCredits";
 import { cn } from "@/lib/helpers";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { useBillingData } from "./hooks";
 import { BillButton, EmptyState, ErrorState, PageHeader, StatCard, StatusBadge, formatINR, type StatusTone } from "./ui";
 
 /* ============================================
-   Data — store purchases enriched + samples.
-   Expiry = purchase date + 3 months.
+   Data — recorded credit purchases.
+   Expiry = purchase date + pack validity.
    ============================================ */
 
 export type CreditTxnStatus = "completed" | "pending" | "failed" | "refunded";
@@ -57,46 +58,6 @@ export interface CreditTransaction {
 }
 
 const DAY = 86_400_000;
-
-function at(daysAgo: number, h: number, m: number): number {
-  const d = new Date(Date.now() - daysAgo * DAY);
-  d.setHours(h, m, 0, 0);
-  return d.getTime();
-}
-
-const SAMPLE_TXNS: CreditTransaction[] = [
-  {
-    id: "AIC-10288", packId: "master", packName: "Master Pack", credits: 550, price: 199,
-    timestamp: at(80, 11, 24), status: "completed",
-    methodKind: "UPI", methodLabel: "UPI · PhonePe", methodRef: "UPI ref 428811903477",
-  },
-  {
-    id: "AIC-10134", packId: "starting", packName: "Starting Pack", credits: 100, price: 49,
-    timestamp: at(120, 18, 47), status: "completed",
-    methodKind: "UPI", methodLabel: "UPI · Paytm", methodRef: "UPI ref 519003276154",
-  },
-  {
-    id: "AIC-10543", packId: "teacher", packName: "Teacher Pack", credits: 240, price: 99,
-    timestamp: at(1, 19, 15), status: "pending",
-    methodKind: "UPI", methodLabel: "UPI · GPay", methodRef: "Collect request sent",
-  },
-  {
-    id: "AIC-10539", packId: "master", packName: "Master Pack", credits: 550, price: 199,
-    timestamp: at(3, 10, 2), status: "failed",
-    methodKind: "Card", methodLabel: "Visa •••• 1881", methodRef: "Card ending 1881",
-  },
-  {
-    id: "AIC-10371", packId: "starting", packName: "Starting Pack", credits: 100, price: 49,
-    timestamp: at(45, 14, 36), status: "refunded",
-    methodKind: "UPI", methodLabel: "UPI · BHIM", methodRef: "Refund to source",
-  },
-];
-
-const KNOWN_META: Record<string, Pick<CreditTransaction, "id" | "methodKind" | "methodLabel" | "methodRef">> = {
-  teacher: { id: "AIC-10492", methodKind: "UPI", methodLabel: "UPI · GPay", methodRef: "UPI ref 771204455390" },
-  starting: { id: "AIC-10517", methodKind: "Card", methodLabel: "Visa •••• 4242", methodRef: "Card ending 4242" },
-  master: { id: "AIC-10531", methodKind: "NetBanking", methodLabel: "HDFC NetBanking", methodRef: "HDFC Bank" },
-};
 
 function addMonths(ts: number, months: number): number {
   const d = new Date(ts);
@@ -118,7 +79,7 @@ function daysLeft(expiry: number, now: number): number {
   return Math.ceil((expiry - now) / DAY);
 }
 
-/** Expiry for a transaction — Starting Pack lasts 1 month, others 3. */
+/** Expiry for a transaction — based on the pack validity period. */
 function txnExpiry(txn: CreditTransaction): number {
   return addMonths(txn.timestamp, getPackValidityMonths(txn.packId));
 }
@@ -138,6 +99,19 @@ function StatusChip({ status }: { status: CreditTxnStatus }) {
   const meta = STATUS_META[status];
   return <StatusBadge label={meta.label} tone={meta.tone} dot />;
 }
+
+const PURCHASE_METHOD: Record<AICreditPaymentMethod, PayMethodKind> = {
+  upi: "UPI",
+  card: "Card",
+  netbanking: "NetBanking",
+};
+
+const METHOD_LABEL: Record<PayMethodKind, string> = {
+  UPI: "UPI",
+  Card: "Card",
+  NetBanking: "Net Banking",
+  Wallet: "Wallet",
+};
 
 const METHOD_ICON: Record<PayMethodKind, LucideIcon> = {
   UPI: Smartphone,
@@ -452,29 +426,31 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
   const [page, setPage] = useState(1);
   const [activeTxn, setActiveTxn] = useState<CreditTransaction | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [statusOverride, setStatusOverride] = useState<Record<string, CreditTxnStatus>>({});
   const [now] = useState(() => Date.now());
   const menuRef = useRef<HTMLDivElement>(null);
 
   const allTxns = useMemo<CreditTransaction[]>(() => {
-    const storeRows = (data ?? []).map((p, i) => {
-      const meta = KNOWN_META[p.packId];
-      return {
-        id: meta?.id ?? `AIC-${String(10400 + Math.floor(p.timestamp / 1000) % 899)}`,
-        packId: p.packId,
-        packName: p.packName,
-        credits: p.credits,
-        price: p.price,
-        timestamp: p.timestamp,
-        status: (statusOverride[`${p.packId}-${p.timestamp}-${i}`] ?? "completed") as CreditTxnStatus,
-        methodKind: meta?.methodKind ?? "UPI",
-        methodLabel: meta?.methodLabel ?? "UPI · GPay",
-        methodRef: meta?.methodRef ?? "UPI",
-      } satisfies CreditTransaction;
-    });
-    const samples = SAMPLE_TXNS.map((t) => ({ ...t, status: statusOverride[t.id] ?? t.status }));
-    return [...storeRows, ...samples].sort((a, b) => b.timestamp - a.timestamp);
-  }, [data, statusOverride]);
+    return (data ?? [])
+      .filter((purchase): purchase is typeof purchase & { transactionId: string; method: AICreditPaymentMethod } =>
+        Boolean(purchase.transactionId && purchase.method)
+      )
+      .map((purchase) => {
+        const methodKind = PURCHASE_METHOD[purchase.method];
+        return {
+          id: purchase.transactionId,
+          packId: purchase.packId,
+          packName: purchase.packName,
+          credits: purchase.credits,
+          price: purchase.price,
+          timestamp: purchase.timestamp,
+          status: purchase.status ?? "completed",
+          methodKind,
+          methodLabel: METHOD_LABEL[methodKind],
+          methodRef: purchase.transactionId,
+        };
+      })
+      .sort((a, b) => b.timestamp - a.timestamp);
+  }, [data]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -547,8 +523,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
 
   const handleRetry = (txn: CreditTransaction) => {
     if (onRetry) return onRetry(txn);
-    setStatusOverride((s) => ({ ...s, [txn.id]: "pending" }));
-    toast.info({ title: "Retrying payment", description: `Checking status for order ${txn.id}.` });
+    toast.info({ title: "Retry unavailable", description: `Contact support for order ${txn.id}.` });
   };
 
   const copyOrderId = async (txn: CreditTransaction) => {

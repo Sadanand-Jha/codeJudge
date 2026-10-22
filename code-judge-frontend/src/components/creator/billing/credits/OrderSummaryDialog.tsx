@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { AlertCircle, ArrowLeft, BadgeCheck, Info, Loader2, Lock, ShieldCheck, X } from "lucide-react";
+import { AlertCircle, BadgeCheck, Info, Loader2, Lock, ShieldCheck, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import type { PackOrderSummary } from "@/services/aiCredits";
-import { UpiPayment } from "../UpiPayment";
-import { QS_DIALOG_PANEL, QS_OUTLINE_BTN, QS_ROW, QS_ROW_LABEL, QS_SQ_BTN } from "./styles";
+import { QS_DIALOG_PANEL, QS_ROW, QS_ROW_LABEL, QS_SQ_BTN } from "./styles";
 
-export type PurchasePhase = "summary" | "upi" | "processing" | "success" | "failed" | "cancelled";
+export type PurchasePhase = "summary" | "processing" | "success" | "failed" | "cancelled";
 
 export interface PurchaseReceipt {
   transactionId: string;
@@ -40,7 +39,6 @@ export function OrderSummaryDialog({
   receipt,
   onClose,
   onPay,
-  onUpiSuccess,
   onBack,
 }: {
   summary: PackOrderSummary;
@@ -51,12 +49,10 @@ export function OrderSummaryDialog({
   receipt: PurchaseReceipt | null;
   onClose: () => void;
   onPay: (method: string) => void;
-  onUpiSuccess: (orderId: string) => void;
   onBack: () => void;
 }) {
   const [method, setMethod] = useState<(typeof METHODS)[number]["id"]>("upi");
-  const [upiWaiting, setUpiWaiting] = useState(false);
-  const busy = phase === "processing" || upiWaiting;
+  const busy = phase === "processing";
 
   return (
     <motion.div
@@ -80,11 +76,7 @@ export function OrderSummaryDialog({
       >
         <header className="mb-4 flex items-center justify-between gap-3">
           <h2 className="text-[26px] font-black tracking-tight">
-            {phase === "success"
-              ? "Payment successful"
-              : phase === "upi"
-                ? "Complete payment"
-                : "Order summary"}
+            {phase === "success" ? "Payment successful" : "Order summary"}
           </h2>
           <button
             type="button"
@@ -139,11 +131,9 @@ export function OrderSummaryDialog({
               ))}
             </div>
 
-            {method === "upi" && (
-              <p className="-mt-2 mb-3 text-xs font-semibold text-[var(--qs-muted)]">
-                Up next: scan a QR with any UPI app and approve the payment.
-              </p>
-            )}
+            <p className="-mt-2 mb-3 text-xs font-semibold text-[var(--qs-muted)]">
+              You&apos;ll complete the payment in the secure Razorpay window.
+            </p>
 
             <button
               type="button"
@@ -155,35 +145,6 @@ export function OrderSummaryDialog({
             <p className="mt-3.5 text-center text-xs font-medium text-[var(--qs-muted)]">
               Secure payments via UPI, Cards &amp; Net Banking
             </p>
-          </>
-        )}
-
-        {phase === "upi" && (
-          <>
-            <div className={cn(QS_ROW, "border-t-2 border-[var(--qs-line)]")}>
-              <div>
-                <b className="block text-[15px] font-extrabold">{summary.pack.name}</b>
-                <small className="text-sm text-[var(--qs-muted)]">{summary.credits} credits</small>
-              </div>
-              <strong className="text-[24px] font-black tabular-nums">₹{summary.total}</strong>
-            </div>
-            <UpiPayment
-              key={`${summary.pack.id}-${summary.total}`}
-              total={summary.total}
-              packName={summary.pack.name}
-              packCredits={summary.credits}
-              autoStart
-              onSuccess={onUpiSuccess}
-              onWaitingChange={setUpiWaiting}
-            />
-            <button
-              type="button"
-              onClick={onBack}
-              disabled={upiWaiting}
-              className={cn(QS_OUTLINE_BTN, "mt-4 w-full disabled:cursor-not-allowed disabled:opacity-50")}
-            >
-              <ArrowLeft className="h-4 w-4" /> Choose another method
-            </button>
           </>
         )}
 
