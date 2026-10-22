@@ -46,11 +46,10 @@ export function validateAICredits(params: {
   userId: string;
   featureId: AICreditFeatureId;
   remainingCredits: number;
-  hasActiveSubscription: boolean;
   isRateLimited?: boolean;
   retryAfterMs?: number;
 }): CreditValidationResult {
-  const { userId, featureId, remainingCredits, hasActiveSubscription, isRateLimited, retryAfterMs } = params;
+  const { featureId, remainingCredits, isRateLimited, retryAfterMs } = params;
   const cost = creditCostMap[featureId];
 
   // No cost defined
@@ -59,15 +58,6 @@ export function validateAICredits(params: {
       allowed: false,
       reason: "invalid_feature",
       creditsRequired: 0,
-    };
-  }
-
-  // No subscription
-  if (!hasActiveSubscription) {
-    return {
-      allowed: false,
-      reason: "no_subscription",
-      creditsRequired: cost,
     };
   }
 
@@ -144,7 +134,7 @@ export function checkAbuse(params: {
   recentRequestsPerMinute: number;
   identicalPromptCount: number;
 }): AbuseCheck {
-  const { userId, featureId, recentRequestsPerMinute, identicalPromptCount } = params;
+  const { recentRequestsPerMinute, identicalPromptCount } = params;
   const activeRules: string[] = [];
   let action: "none" | "slow" | "captcha" | "notify" | "escalate" = "none";
   let message: string | undefined;
@@ -153,21 +143,21 @@ export function checkAbuse(params: {
   const identicalRule = ABUSE_RULES.find((r) => r.id === "identical-prompts")!;
   if (identicalPromptCount >= identicalRule.threshold) {
     activeRules.push("identical-prompts");
-    if (action === "none") action = identicalRule.action as any;
+    if (action === "none") action = identicalRule.action;
   }
 
   // Check high frequency
   const highFreqRule = ABUSE_RULES.find((r) => r.id === "high-frequency")!;
   if (recentRequestsPerMinute >= highFreqRule.threshold) {
     activeRules.push("high-frequency");
-    if (action === "none") action = highFreqRule.action as any;
+    if (action === "none") action = highFreqRule.action;
   }
 
   // Check bot-like behavior
   const botRule = ABUSE_RULES.find((r) => r.id === "bot-like")!;
   if (recentRequestsPerMinute >= botRule.threshold) {
     activeRules.push("bot-like");
-    action = botRule.action as any;
+    action = botRule.action;
     message = "Please verify you're human to continue.";
   }
 

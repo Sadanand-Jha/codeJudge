@@ -133,11 +133,7 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
 
     const { balance, fairUsage } = get();
 
-    // Check subscription
-    if (!balance.hasActiveSubscription) {
-      return { success: false, reason: "no_subscription" as const };
-    }
-
+    // Free plans can spend purchased credits; paid plans also include monthly credits.
     // Check credits - use totalRemaining
     if (balance.totalRemaining < cost) {
       return { success: false, reason: "insufficient_credits" as const };

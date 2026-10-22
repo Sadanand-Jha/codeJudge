@@ -1756,7 +1756,7 @@ function PricingPageContent() {
                  </p>
                </motion.div>
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="mx-auto grid max-w-2xl gap-4 sm:grid-cols-2">
                   {CREDIT_PURCHASE_PACKS.map((pack) => (
                    <motion.div
                      key={pack.id}

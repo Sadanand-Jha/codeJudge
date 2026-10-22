@@ -284,6 +284,15 @@ function UsageChart({ graph }: { graph: Array<{ day: string; credits: number }> 
         </span>
       }
     >
+      {graph.length === 0 ? (
+        <div className="flex h-[180px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--qs-line)] px-4 text-center">
+          <p className="text-[13px] font-bold text-[var(--qs-ink)]">No usage yet</p>
+          <p className="mt-1 max-w-[210px] text-[12px] leading-5 text-[var(--qs-muted)]">
+            Credit consumption will appear here after your first AI generation.
+          </p>
+        </div>
+      ) : (
+        <>
       <div className="flex h-[180px] items-end gap-[3px] border-b-2 border-[var(--qs-ink)] pb-0.5">
         {graph.map((point) => (
           <div
@@ -313,6 +322,8 @@ function UsageChart({ graph }: { graph: Array<{ day: string; credits: number }> 
           Hover to inspect
         </span>
       </div>
+        </>
+      )}
     </DashPanel>
   );
 }

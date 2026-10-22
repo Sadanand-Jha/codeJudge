@@ -52,7 +52,7 @@ src/
 | Teacher | 120 | 99 | ₹0.83 | 3 months |
 | Master | 250 | 199 | ₹0.80 | 3 months |
 
-Pack cards show paper estimates (e.g. “≈ 10 Plus / 3 Pro / 1 Max papers”) so buyers can compare value in papers, not just credits.
+The Free plan is the default workspace with 0 monthly credits; users can buy a one-time pack when they need credits. Pack cards show paper estimates (e.g. “≈ 24 Plus / 8 Pro / 2 Max papers” for 120 credits) so buyers can compare value in papers, not just credits.
 
 ### 4. Paper Generation Charges
 

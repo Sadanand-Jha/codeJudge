@@ -68,7 +68,7 @@ export default function AIHintExample() {
 
       setHint(hints[Math.floor(Math.random() * hints.length)]);
       toast.success("Hint generated!", { description: "1 credit consumed" });
-    } catch (error) {
+    } catch {
       // Refund credits on failure
       await refund("ai-hint");
       toast.error("Failed to generate hint. Credits refunded.");
@@ -115,7 +115,7 @@ export default function AIHintExample() {
       {isLowCredit && (
         <div className="rounded-xl border border-[#EF4444]/30 bg-[#EF4444]/10 px-3 py-2">
           <p className="text-[10px] text-[#EF4444] font-medium">
-            You're running low on credits. Consider purchasing more.
+            You&apos;re running low on credits. Consider purchasing more.
           </p>
         </div>
       )}
@@ -137,7 +137,7 @@ export default function AIHintExample() {
       {/* Action button */}
       <button
         onClick={handleGetHint}
-        disabled={loading || !balance.hasActiveSubscription}
+        disabled={loading || balance.totalRemaining <= 0}
         className="w-full rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-2.5 text-[12px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] transition-all hover:shadow-[0_6px_24px_rgba(236,72,153,0.5)] disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? (

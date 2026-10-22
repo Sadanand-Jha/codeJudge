@@ -17,7 +17,6 @@ import {
   MoreHorizontal,
   Plus,
   ShieldAlert,
-  ShieldCheck,
   Smartphone,
   Wallet,
   X,
@@ -805,9 +804,13 @@ export function PaymentSettingsPage({
                               Primary
                             </span>
                           )}
-                          {acc.verified && (
+                          {acc.verified ? (
                             <span className="inline-flex items-center gap-0.5 rounded-full border border-[var(--qs-ok)]/30 bg-[var(--qs-okbg)] px-2 py-0.5 text-[11px] font-bold text-[var(--qs-ok)] ">
                               <Check className="h-3 w-3" aria-hidden="true" /> Verified
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full border border-[var(--qs-line)] px-2 py-0.5 text-[11px] font-bold text-[var(--qs-muted)] ">
+                              Pending
                             </span>
                           )}
                         </p>
@@ -1199,11 +1202,11 @@ export function PaymentSettingsPage({
                 ifsc: data.ifsc,
                 upiId: "",
                 isPrimary: accounts.length === 0,
-                verified: true,
+                verified: false,
               };
               setAccounts((prev) => [...prev, acc]);
               pushAudit({ label: "Bank account added", detail: `${data.bankName} ${data.maskedNumber}`, kind: "account", device: "Chrome on Windows, New Delhi" });
-              toast.success({ title: "Account added", description: `${data.bankName} ${data.maskedNumber} is ready for payouts.` });
+              toast.success({ title: "Account added", description: `${data.bankName} ${data.maskedNumber} is pending verification.` });
               setAddBankOpen(false);
               if (onAddAccount) onAddAccount(data);
             }}
@@ -1216,8 +1219,8 @@ export function PaymentSettingsPage({
             onClose={() => setUpiOpen(false)}
             onSaved={(masked) => {
               setUpi(masked);
-              pushAudit({ label: "UPI ID updated", detail: `${masked} verified`, kind: "account", device: "Chrome on Windows, New Delhi" });
-              toast.success({ title: "UPI ID updated", description: `${masked} is ready for payouts.` });
+              pushAudit({ label: "UPI ID updated", detail: `${masked} added`, kind: "account", device: "Chrome on Windows, New Delhi" });
+              toast.success({ title: "UPI ID updated", description: `${masked} is pending verification.` });
               setUpiOpen(false);
             }}
           />
@@ -1349,8 +1352,6 @@ function AddBankModal({ onClose, onAdded }: {
   const [ifsc, setIfsc] = useState("");
   const [accType, setAccType] = useState("Savings");
   const [errors, setErrors] = useState({ holder: "", acc: "", confirm: "", ifsc: "" });
-  const [verifying, setVerifying] = useState(false);
-  const [verifyOk, setVerifyOk] = useState<boolean | null>(null);
 
   const ifscValid = /^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc);
   const validate = () => {
@@ -1363,19 +1364,10 @@ function AddBankModal({ onClose, onAdded }: {
     return !e.holder && !e.acc && !e.confirm && !e.ifsc;
   };
 
-  const startVerify = () => {
-    setVerifying(true);
-    setVerifyOk(null);
-    window.setTimeout(() => {
-      setVerifying(false);
-      setVerifyOk(holder.trim().split(/\s+/).length >= 2);
-    }, 1500);
-  };
-
   return (
     <ModalShell label="Add bank account" onClose={onClose} wide>
-      <ModalHead title="Add bank account" sub="Verified with a ₹1 penny drop." onClose={onClose} />
-      <StepIndicator step={step} total={3} labels={["Details", "Verify", "OTP"]} />
+      <ModalHead title="Add bank account" sub="Payouts are enabled after the provider verifies this account." onClose={onClose} />
+      <StepIndicator step={step} total={2} labels={["Details", "Review"]} />
       <div className="overflow-y-auto p-5">
         {step === 1 && (
           <div className="space-y-3.5">
@@ -1429,7 +1421,6 @@ function AddBankModal({ onClose, onAdded }: {
               variant="primary" className="h-11 w-full justify-center" data-autofocus
               onClick={() => {
                 if (!validate()) return;
-                setVerifyOk(null);
                 setStep(2);
               }}
             >
@@ -1441,60 +1432,36 @@ function AddBankModal({ onClose, onAdded }: {
         {step === 2 && (
           <div>
             <div className="rounded-[14px] border-2 border-[var(--qs-line)] p-4 text-sm ">
-              <p className="font-semibold text-[var(--qs-ink)] ">We’ll send ₹1 to verify your account (it will be refunded).</p>
+              <p className="font-semibold text-[var(--qs-ink)] ">Review the account details.</p>
               <p className="mt-1 text-xs tabular-nums text-[var(--qs-muted)] ">
-                Your bank · {maskAcc(accNum)} · IFSC {ifsc}
+                {holder.trim()} · {maskAcc(accNum)} · IFSC {ifsc}
               </p>
             </div>
-            {verifyOk === null && (
-              <BillButton
-                variant="primary" className="mt-4 h-11 w-full justify-center"
-                disabled={verifying} loading={verifying} data-autofocus
-                onClick={startVerify}
-              >
-                {verifying ? "Verifying…" : "Verify with ₹1"}
+            <p className="mt-3 rounded-[14px] bg-[var(--qs-okbg)] px-3.5 py-3 text-xs text-[var(--qs-ok)] " role="status">
+              The payout provider will verify this account before withdrawals are enabled.
+            </p>
+            <div className="mt-4 flex gap-2">
+              <BillButton variant="ghost" className="h-11 flex-1 justify-center" onClick={() => setStep(1)}>
+                Back
               </BillButton>
-            )}
-            {verifyOk === true && (
-              <div className="mt-4">
-                <p className="flex items-center gap-2 rounded-[14px] bg-[var(--qs-okbg)] px-3.5 py-3 text-sm font-bold text-[var(--qs-ok)] " role="status">
-                  <ShieldCheck className="h-5 w-5 shrink-0" aria-hidden="true" /> Name matches
-                </p>
-                <div className="mt-4 flex gap-2">
-                  <BillButton variant="ghost" className="h-11 flex-1 justify-center" onClick={() => setStep(1)}>
-                    Back
-                  </BillButton>
-                  <BillButton variant="primary" className="h-11 flex-1 justify-center" data-autofocus onClick={() => setStep(3)}>
-                    Continue
-                  </BillButton>
-                </div>
-              </div>
-            )}
-            {verifyOk === false && (
-              <div className="mt-4">
-                <p className="flex items-start gap-2 rounded-[14px] bg-[var(--qs-badbg)] px-3.5 py-3 text-sm font-bold text-[var(--qs-bad)] " role="alert">
-                  <X className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                  Name does not match your KYC name. Check the holder name and try again.
-                </p>
-                <BillButton variant="ghost" className="mt-4 h-11 w-full justify-center" data-autofocus onClick={() => setStep(1)}>
-                  Back to details
-                </BillButton>
-              </div>
-            )}
+              <BillButton
+                variant="primary"
+                className="h-11 flex-1 justify-center"
+                data-autofocus
+                onClick={() =>
+                  onAdded({
+                    holderName: holder.trim(),
+                    bankName: "Bank account",
+                    maskedNumber: maskAcc(accNum),
+                    ifsc,
+                    type: accType,
+                  })
+                }
+              >
+                Add account
+              </BillButton>
+            </div>
           </div>
-        )}
-
-        {step === 3 && (
-          <OtpStep
-            actionLabel="Confirm and add account"
-            onVerified={() => onAdded({
-              holderName: holder.trim(),
-              bankName: "Bank account",
-              maskedNumber: maskAcc(accNum),
-              ifsc,
-              type: accType,
-            })}
-          />
         )}
 
         <p className="mt-4 flex items-start gap-1.5 text-xs text-[var(--qs-muted)] ">
@@ -1515,21 +1482,14 @@ function UpiModal({ current, onClose, onSaved }: {
 }) {
   const [upiId, setUpiId] = useState("");
   const [error, setError] = useState("");
-  const [checking, setChecking] = useState(false);
-  const [holder, setHolder] = useState<string | null>(null);
-  const [step, setStep] = useState(1);
 
-  const verify = () => {
+  const save = () => {
     if (!/^[\w.\-]{2,}@[a-zA-Z]{2,}$/.test(upiId.trim())) {
       setError("Enter a valid UPI ID, e.g. name@okhdfcbank.");
       return;
     }
     setError("");
-    setChecking(true);
-    window.setTimeout(() => {
-      setChecking(false);
-      setHolder("Aarav Verma");
-    }, 1000);
+    onSaved(maskedPreview(upiId.trim()));
   };
 
   const maskedPreview = (id: string) => {
@@ -1545,39 +1505,22 @@ function UpiModal({ current, onClose, onSaved }: {
         onClose={onClose}
       />
       <div className="overflow-y-auto p-5">
-        {step === 1 && (
-          <div>
-            <Field id="upi-id" label="UPI ID" error={error}>
-              <input
-                id="upi-id" value={upiId}
-                onChange={(e) => { setUpiId(e.target.value); setError(""); setHolder(null); }}
-                placeholder="name@okhdfcbank" autoComplete="off" inputMode="email" autoCapitalize="off"
-                className={cn(INPUT, error && "border-[var(--qs-bad)]", FOCUS)} data-autofocus
-              />
-            </Field>
-            {holder === null ? (
-              <BillButton
-                variant="primary" className="mt-4 h-11 w-full justify-center"
-                disabled={checking} loading={checking} onClick={verify}
-              >
-                {checking ? "Verifying…" : "Verify"}
-              </BillButton>
-            ) : (
-              <div className="mt-4">
-                <p className="flex items-center gap-2 rounded-[14px] bg-[var(--qs-okbg)] px-3.5 py-3 text-sm font-bold text-[var(--qs-ok)] " role="status">
-                  <ShieldCheck className="h-5 w-5 shrink-0" aria-hidden="true" />
-                  {holder} · {maskedPreview(upiId.trim())}
-                </p>
-                <BillButton variant="primary" className="mt-4 h-11 w-full justify-center" data-autofocus onClick={() => setStep(2)}>
-                  Confirm and continue
-                </BillButton>
-              </div>
-            )}
-          </div>
-        )}
-        {step === 2 && (
-          <OtpStep actionLabel="Confirm UPI ID" onVerified={() => onSaved(maskedPreview(upiId.trim()))} />
-        )}
+        <div>
+          <Field id="upi-id" label="UPI ID" error={error}>
+            <input
+              id="upi-id" value={upiId}
+              onChange={(e) => { setUpiId(e.target.value); setError(""); }}
+              placeholder="name@okhdfcbank" autoComplete="off" inputMode="email" autoCapitalize="off"
+              className={cn(INPUT, error && "border-[var(--qs-bad)]", FOCUS)} data-autofocus
+            />
+          </Field>
+          <p className="mt-3 rounded-[14px] bg-[var(--qs-okbg)] px-3.5 py-3 text-xs text-[var(--qs-ok)] " role="status">
+            The payout provider will verify this UPI ID before withdrawals are enabled.
+          </p>
+          <BillButton variant="primary" className="mt-4 h-11 w-full justify-center" onClick={save}>
+            Save UPI ID
+          </BillButton>
+        </div>
         <p className="mt-4 flex items-start gap-1.5 text-xs text-[var(--qs-muted)] ">
           <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           For your safety, withdrawals to a new account are held for 24 hours.
