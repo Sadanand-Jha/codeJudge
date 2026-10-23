@@ -27,6 +27,8 @@ export interface QuestionBankSelectionRequest {
   easyCount?: number;
   mediumCount?: number;
   hardCount?: number;
+  theoryCount?: number;
+  numericalCount?: number;
   /** Optional free-form hardness hint like "Hard paper" */
   hardnessHint?: string;
   /** Creator-provided syllabus/topics used to scope the generated questions. */
@@ -534,6 +536,24 @@ export const generateFromQuestionBank = async (
   }
   if (!["any", "theory", "numerical"].includes(kind)) throw new Error("Select a valid category.");
 
+  let theoryCount = request.theoryCount;
+  let numericalCount = request.numericalCount;
+  if (theoryCount == null && numericalCount == null) {
+    if (kind === "theory") {
+      theoryCount = numberOfQuestions;
+      numericalCount = 0;
+    } else if (kind === "numerical") {
+      theoryCount = 0;
+      numericalCount = numberOfQuestions;
+    }
+  } else {
+    theoryCount = Math.max(0, Math.trunc(theoryCount ?? numberOfQuestions - numericalCount!));
+    numericalCount = Math.max(0, Math.trunc(numericalCount ?? numberOfQuestions - theoryCount));
+    if (theoryCount + numericalCount !== numberOfQuestions) {
+      numericalCount = Math.max(0, numberOfQuestions - theoryCount);
+    }
+  }
+
   const scopeCatalog = await loadQuestionScope({
     subjectId,
     chapterIds,
@@ -559,13 +579,16 @@ export const generateFromQuestionBank = async (
 
   const distributionLine = `Difficulty distribution (must match exactly): Easy=${easy}, Medium=${medium}, Hard=${hard}. Total=${numberOfQuestions}.`;
   const hardnessHintLine = request.hardnessHint ? `Overall hardness hint: ${request.hardnessHint}.` : "";
-  const categoryLine = `Question category: ${
-    kind === "theory"
-      ? "conceptual / theory only"
-      : kind === "numerical"
-        ? "numerical / calculation-based only"
-        : "balanced mix of theory and numerical"
-  }.`;
+  const categoryLine =
+    theoryCount != null && numericalCount != null
+      ? `Question category distribution (must match exactly): Theory=${theoryCount}, Numerical/practical=${numericalCount}. Total=${numberOfQuestions}.`
+      : `Question category: ${
+          kind === "theory"
+            ? "conceptual / theory only"
+            : kind === "numerical"
+              ? "numerical / calculation-based only"
+              : "balanced mix of theory and numerical"
+        }.`;
   const scopeRule = syllabus
     ? "Every question must belong to the supplied syllabus. Distribute the paper across its distinct topics instead of overusing one topic."
     : "No syllabus was supplied; use the subject / chapter / topic scope and cover the most academically important concepts.";

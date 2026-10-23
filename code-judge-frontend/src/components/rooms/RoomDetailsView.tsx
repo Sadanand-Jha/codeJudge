@@ -12,6 +12,7 @@ import {
   Copy,
   Download,
   Edit3,
+  ClipboardList,
   FileSpreadsheet,
   Search,
   Trash2,
@@ -36,6 +37,9 @@ import DuplicateRoomModal from "./DuplicateRoomModal";
 import DeleteRoomModal from "./DeleteRoomModal";
 import EditStudentModal from "./EditStudentModal";
 import StudentDetailsPanel from "./StudentDetailsPanel";
+import RoomInviteModal from "./RoomInviteModal";
+import RoomRegistrationFormEditor from "./RoomRegistrationFormEditor";
+import { WhatsAppIcon } from "@/components/creator/common/ShareQuizDialog";
 
 type StudentFilter = "all" | "recent" | "issues";
 type StudentSort = "default" | "recent" | "name";
@@ -50,6 +54,9 @@ const QS_OUTLINE_BTN =
 
 const QS_TOP_BTN =
   "inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-[9px] text-sm font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]";
+
+const QS_WHATSAPP_BTN =
+  "inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[#0b3d2c] bg-[#25D366] px-3.5 py-[9px] text-sm font-extrabold text-[#052e1d] shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50";
 
 const FILTERS: Array<{ id: StudentFilter; label: string }> = [
   { id: "all", label: "All" },
@@ -98,6 +105,8 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   const [editingStudent, setEditingStudent] = useState<RoomStudent | null>(null);
   const [detailsStudent, setDetailsStudent] = useState<RoomStudent | null>(null);
   const [removingStudent, setRemovingStudent] = useState<RoomStudent | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [registrationOpen, setRegistrationOpen] = useState(false);
 
   useEffect(() => {
     hydrate();
@@ -126,13 +135,25 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                 avatarId: Number(userObj.avatarId ?? 1),
                 avatarUrl: (userObj.avatarUrl as string) ?? null,
                 addedAt: String((mm.joinedAt as string) ?? new Date().toISOString()),
+                registrationData:
+                  (mm.registrationData as Record<string, string> | null) ?? undefined,
               };
             });
             const current = useRoomStore.getState().rooms;
             const exists = current.find((r) => String(r.id) === String(roomId));
             if (exists) {
               const updated = current.map((r) =>
-                String(r.id) === String(roomId) ? { ...r, students: mappedStudents, memberCount: mappedStudents.length, updatedAt: String((data.updated_at as string) ?? r.updatedAt) } : r
+                String(r.id) === String(roomId)
+                  ? {
+                      ...r,
+                      students: mappedStudents,
+                      memberCount: mappedStudents.length,
+                      updatedAt: String((data.updated_at as string) ?? r.updatedAt),
+                      passwordExpiresAt: (data.password_expires_at as string | null) ?? r.passwordExpiresAt,
+                      registrationForm:
+                        (data.registration_form as Room["registrationForm"]) ?? r.registrationForm,
+                    }
+                  : r
               );
               setRooms(updated as Room[]);
             } else {
@@ -146,6 +167,9 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                 archived: !(data.is_active as boolean),
                 students: mappedStudents,
                 memberCount: mappedStudents.length,
+                passwordExpiresAt: (data.password_expires_at as string | null) ?? null,
+                registrationForm:
+                  (data.registration_form as Room["registrationForm"]) ?? undefined,
               };
               setRooms([...current, newRoom]);
             }
@@ -450,6 +474,20 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setInviteOpen(true)}
+              disabled={room.archived}
+              title={room.archived ? "Restore the room before inviting students" : "Create a WhatsApp invite"}
+              className={QS_WHATSAPP_BTN}
+            >
+              <WhatsAppIcon className="h-4 w-4" />
+              Invite on WhatsApp
+            </button>
+            <button type="button" onClick={() => setRegistrationOpen(true)} className={QS_TOP_BTN}>
+              <ClipboardList className="h-4 w-4" />
+              Form
+            </button>
             <button type="button" onClick={handleExport} className={QS_TOP_BTN}>
               <Download className="h-4 w-4" />
               Export
@@ -908,6 +946,31 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
           </motion.div>
         )}
       </AnimatePresence>
+
+      <RoomInviteModal
+        key={`invite-${room.id}`}
+        open={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+        roomId={room.id}
+        roomName={room.name}
+        onEditForm={() => setRegistrationOpen(true)}
+      />
+
+      <RoomRegistrationFormEditor
+        key={`registration-${room.id}`}
+        open={registrationOpen}
+        onClose={() => setRegistrationOpen(false)}
+        roomId={room.id}
+        roomName={room.name}
+        onSaved={(form) => {
+          const current = useRoomStore.getState().rooms;
+          setRooms(
+            current.map((r) =>
+              String(r.id) === String(room.id) ? { ...r, registrationForm: form } : r
+            ) as Room[]
+          );
+        }}
+      />
 
       {/* Student details slide-over */}
       <StudentDetailsPanel

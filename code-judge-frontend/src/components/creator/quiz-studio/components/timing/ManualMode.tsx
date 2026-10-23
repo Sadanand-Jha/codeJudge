@@ -18,11 +18,13 @@ export function ManualMode({
   onManualChange,
   participantDuration,
   quizId,
+  allowStart = true,
 }: {
   manual: ManualConfig;
   onManualChange: (patch: Partial<ManualConfig>) => void;
   participantDuration: number;
   quizId?: string;
+  allowStart?: boolean;
 }) {
   const [startOpen, setStartOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
@@ -58,18 +60,24 @@ export function ManualMode({
               </p>
             </div>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setModalEndBehavior(manual.endBehavior);
-                setModalSessionDuration(manual.sessionDuration);
-                setStartOpen(true);
-              }}
-              className="inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-ok)] px-4 text-sm font-extrabold text-white shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none sm:w-auto"
-            >
-              <Play className="h-4 w-4" />
-              Start Quiz
-            </button>
+            {allowStart ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setModalEndBehavior(manual.endBehavior);
+                  setModalSessionDuration(manual.sessionDuration);
+                  setStartOpen(true);
+                }}
+                className="inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-ok)] px-4 text-sm font-extrabold text-white shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none sm:w-auto"
+              >
+                <Play className="h-4 w-4" />
+                Start Quiz
+              </button>
+            ) : (
+              <p className="shrink-0 rounded-[12px] border-2 border-dashed border-[var(--qs-line)] px-3 py-2 text-center text-[11px] font-bold text-[var(--qs-muted)] sm:max-w-[170px]">
+                Use Start Quiz below when you&apos;re ready.
+              </p>
+            )}
           </motion.div>
         )}
 

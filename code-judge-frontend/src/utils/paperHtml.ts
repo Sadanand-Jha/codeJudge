@@ -47,6 +47,7 @@ export interface PaperMeta {
   negativeMarking?: string;
   /** Optional paper set label such as "A" or "B". */
   setName?: string;
+  instructions?: string;
 }
 
 export interface PaperOptions {
@@ -364,27 +365,20 @@ export function correctAnswerText(question: PaperQuestion): string {
   return value.length > 160 ? `${value.slice(0, 157)}…` : value;
 }
 
-function questionMarks(question: PaperQuestion): number {
-  const marks = Number(question.marks);
-  return Number.isFinite(marks) && marks > 0 ? marks : 1;
-}
-
 function renderQuestion(question: PaperQuestion, index: number, twoColumns: boolean): string {
   const body = renderSegments(richToSegments(question.title));
   return `<div class="q">
   <div class="qn">Q${index + 1}</div>
   <div class="qb">${body}${renderOptions(question, twoColumns)}${renderQuestionImages(question)}</div>
-  <div class="qm">[${questionMarks(question)}]</div>
 </div>`;
 }
 
-function renderMetaGrid(meta: PaperMeta, totalMarks: number): string {
+function renderMetaGrid(meta: PaperMeta): string {
   const cells: Array<[string, string]> = [];
   if (meta.subject?.trim()) cells.push(["Subject", meta.subject.trim()]);
   if (meta.course?.trim()) cells.push(["Class / Semester", meta.course.trim()]);
   if (meta.date?.trim()) cells.push(["Date", meta.date.trim()]);
   if (meta.duration?.trim()) cells.push(["Time allowed", meta.duration.trim()]);
-  cells.push(["Maximum Marks", String(totalMarks)]);
   if (meta.setName?.trim()) cells.push(["Set", meta.setName.trim()]);
   return `<div class="meta">${cells
     .map(([label, value]) => `<div class="cell"><span class="lbl">${esc(label)}:</span><span class="val">${esc(value)}</span></div>`)
@@ -401,18 +395,29 @@ function renderStudentBlock(meta: PaperMeta, options: PaperOptions, student: Pap
 </div>`;
 }
 
-function renderInstructions(meta: PaperMeta, questions: PaperQuestion[]): string {
+export function paperInstructionLines(meta: PaperMeta, questions: PaperQuestion[]): string[] {
   const negative = meta.negativeMarking && meta.negativeMarking.trim() ? meta.negativeMarking.trim() : "None";
   const total = questions.length;
   const hasChoice = questions.some((question) => !question.type || CHOICE_TYPES.has(question.type));
-  const lines = [
+  return [
     `Total questions: ${total}. Questions to attempt: ${total}.`,
     "All questions are compulsory.",
-    "Figures in square brackets on the right indicate marks.",
     ...(hasChoice ? ["Choose the most appropriate option for each multiple-choice question."] : []),
     ...(negative.toLocaleLowerCase() !== "none" ? [`Negative marking: ${negative}.`] : []),
     "Write your answers in the answer book unless instructed otherwise.",
   ].slice(0, 6);
+}
+
+export function customInstructionLines(value?: string): string[] {
+  return (value ?? "")
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s*(?:\d+\s*[.):-]\s*|[-•*]\s*)/, "").trim())
+    .filter(Boolean);
+}
+
+function renderInstructions(meta: PaperMeta, questions: PaperQuestion[]): string {
+  const custom = customInstructionLines(meta.instructions);
+  const lines = custom.length ? custom : paperInstructionLines(meta, questions);
   return `<div class="instr">
   <div class="ititle">General instructions</div>
   <ol>${lines.map((line) => `<li>${esc(line)}</li>`).join("")}</ol>
@@ -442,20 +447,15 @@ function sectionTitle(questions: PaperQuestion[]): string {
 
 function renderPaperSection(meta: PaperMeta, questions: PaperQuestion[], options: PaperOptions, student: PaperStudent | null): string {
   const twoColumns = options.layout === "two-column";
-  const totalMarks = questions.reduce((sum, question) => sum + questionMarks(question), 0);
-  const uniqueMarks = new Set(questions.map(questionMarks));
-  const sectionTotal = uniqueMarks.size === 1
-    ? `${questions.length} × ${[...uniqueMarks][0]} = ${totalMarks} marks`
-    : `${totalMarks} marks`;
   const header = `<header class="phead">
   ${meta.creatorName?.trim() ? `<div class="inst">${esc(meta.creatorName.trim())}</div>` : ""}
   <h1 class="ptitle">${esc(meta.title || "Question Paper")}</h1>
-  ${renderMetaGrid(meta, totalMarks)}
+  ${renderMetaGrid(meta)}
   ${renderStudentBlock(meta, options, student)}
   <div class="rule"></div>
 </header>
 ${renderInstructions(meta, questions)}
-<div class="banner"><span><span class="bl">Section A</span> — ${esc(sectionTitle(questions))}</span><span class="bt">${sectionTotal}</span></div>
+<div class="banner"><span><span class="bl">Section A</span> — ${esc(sectionTitle(questions))}</span></div>
 <p class="secinstr">All questions are compulsory.</p>`;
   const body = questions.map((question, index) => renderQuestion(question, index, twoColumns)).join("");
   return `<section class="paper">${header}<main class="qs${twoColumns ? " two" : ""}">${body}</main><div class="end">End of question paper</div><div class="brand"><span class="bm">Q</span><span>QuizSupport</span></div></section>`;
@@ -508,18 +508,16 @@ body {
 .instr li { margin: 0 0 0.7mm; }
 .banner { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 4mm; background: #F2F2F2; border-top: 1pt solid #000; border-bottom: 1pt solid #000; padding: 1.5mm 2.5mm; font-size: 12pt; font-weight: 700; break-after: avoid; }
 .banner .bl { text-transform: uppercase; }
-.banner .bt { font-size: 11pt; white-space: nowrap; }
 .secinstr { font-size: 10.5pt; font-style: italic; color: #555; margin: 2mm 0 1mm; break-after: avoid; }
 .qs { margin: 0; }
 .qs.two { column-count: 2; column-gap: 8mm; column-rule: 0.5pt solid #BBB; }
 @media print { .qs.two { column-fill: auto; } }
-.q { display: grid; grid-template-columns: 12mm minmax(0, 1fr) 16mm; column-gap: 2mm; margin: 4mm 0 0; break-inside: avoid; }
+.q { display: grid; grid-template-columns: 12mm minmax(0, 1fr); column-gap: 2mm; margin: 4mm 0 0; break-inside: avoid; }
 .q:first-child { margin-top: 0; }
 .q .qn { font-size: 12pt; font-weight: 700; padding-top: 0.2mm; }
 .q .qb { font-size: 12pt; font-weight: 400; min-width: 0; overflow-wrap: break-word; }
 .q .qb p { margin: 0 0 1.5mm; }
 .q .qb p:last-child { margin-bottom: 0; }
-.q .qm { font-size: 11pt; font-weight: 700; text-align: right; }
 .opts { margin: 1.5mm 0 0 6mm; display: grid; gap: 1mm; }
 .opts.four { grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 4mm; }
 .opts.two { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 6mm; }

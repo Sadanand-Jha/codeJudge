@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
+  type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, Search } from "lucide-react";
@@ -46,6 +47,9 @@ export function QsSelect<T extends string | number>({
   align = "left",
   searchable,
   searchPlaceholder = "Search…",
+  wrapLabels = false,
+  menuWidthScale = 1,
+  boundaryRef,
 }: {
   id?: string;
   value?: T | null;
@@ -63,6 +67,12 @@ export function QsSelect<T extends string | number>({
   align?: "left" | "right";
   searchable?: boolean;
   searchPlaceholder?: string;
+  /** Let long trigger/option labels wrap instead of truncating. */
+  wrapLabels?: boolean;
+  /** Scale the portaled menu wider than its trigger (e.g. 1.5). */
+  menuWidthScale?: number;
+  /** Keep the portaled menu inside this element instead of the whole viewport. */
+  boundaryRef?: RefObject<HTMLElement | null>;
 }) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -86,26 +96,48 @@ export function QsSelect<T extends string | number>({
     const trigger = triggerRef.current;
     if (!trigger) return;
     const rect = trigger.getBoundingClientRect();
-    const width = Math.min(Math.max(rect.width, MIN_MENU_WIDTH), window.innerWidth - VIEWPORT_GAP * 2);
-    const maxLeft = Math.max(VIEWPORT_GAP, window.innerWidth - width - VIEWPORT_GAP);
+    const boundary = boundaryRef?.current;
+    const boundaryRect = boundary?.getBoundingClientRect();
+    const bounds = boundaryRect
+      ? {
+          left: boundaryRect.left + VIEWPORT_GAP,
+          right: boundaryRect.right - VIEWPORT_GAP,
+          top: boundaryRect.top + VIEWPORT_GAP,
+          bottom: boundaryRect.bottom - VIEWPORT_GAP,
+        }
+      : {
+          left: VIEWPORT_GAP,
+          right: window.innerWidth - VIEWPORT_GAP,
+          top: VIEWPORT_GAP,
+          bottom: window.innerHeight - VIEWPORT_GAP,
+        };
+    const scaledWidth = rect.width * Math.max(1, menuWidthScale);
+    const availableWidth = Math.max(0, bounds.right - bounds.left);
+    const minWidth = Math.min(MIN_MENU_WIDTH, availableWidth);
+    const width = Math.min(Math.max(scaledWidth, minWidth), availableWidth);
+    const maxLeft = bounds.right - width;
     /* Prefer the requested edge ("right" = trigger's right edge). When that
        edge would push the menu off-screen, fall back to the trigger's near
        edge and clamp last — a plain clamp to the viewport gap would park the
        menu at the far left of a phone, detached from its trigger. */
     let left = align === "right" ? rect.right - width : rect.left;
-    if (left < VIEWPORT_GAP) left = rect.left;
+    if (left < bounds.left) left = rect.left;
     if (left > maxLeft) left = rect.right - width;
-    left = Math.max(VIEWPORT_GAP, Math.min(left, maxLeft));
-    const spaceBelow = window.innerHeight - rect.bottom - VIEWPORT_GAP * 2;
-    const spaceAbove = rect.top - VIEWPORT_GAP * 2;
+    left = Math.max(bounds.left, Math.min(left, maxLeft));
+    const spaceBelow = bounds.bottom - rect.bottom - 6;
+    const spaceAbove = rect.top - bounds.top - 6;
     const openUp = spaceBelow < 220 && spaceAbove > spaceBelow;
-    const maxHeight = Math.min(256, Math.max(openUp ? spaceAbove : spaceBelow, canSearch ? 150 : 96));
+    const availableHeight = Math.max(openUp ? spaceAbove : spaceBelow, 0);
+    const maxHeight = Math.min(
+      256,
+      boundaryRect ? availableHeight : Math.max(availableHeight, canSearch ? 150 : 96)
+    );
     setPosition(
       openUp
         ? { bottom: window.innerHeight - rect.top + 6, left, width, maxHeight, openUp }
         : { top: rect.bottom + 6, left, width, maxHeight, openUp }
     );
-  }, [align, canSearch]);
+  }, [align, canSearch, menuWidthScale, boundaryRef]);
 
   useEffect(() => {
     if (!open) return;
@@ -234,7 +266,13 @@ export function QsSelect<T extends string | number>({
           triggerClassName
         )}
       >
-        <span className={cn("truncate", selectedOptions.length === 0 && "text-[var(--qs-muted)]")}>
+        <span
+          className={cn(
+            "min-w-0 flex-1",
+            wrapLabels ? "break-words [overflow-wrap:anywhere]" : "truncate",
+            selectedOptions.length === 0 && "text-[var(--qs-muted)]"
+          )}
+        >
           {triggerLabel}
         </span>
         <ChevronDown
@@ -342,7 +380,12 @@ export function QsSelect<T extends string | number>({
                               : "font-medium text-[var(--qs-ink)]"
                           )}
                         >
-                          <span className="flex min-w-0 items-center gap-2">
+                          <span
+                            className={cn(
+                              "flex min-w-0 flex-1 gap-2",
+                              wrapLabels ? "items-start" : "items-center"
+                            )}
+                          >
                             {multiple ? (
                               <span
                                 aria-hidden="true"
@@ -350,13 +393,21 @@ export function QsSelect<T extends string | number>({
                                   "grid h-4 w-4 shrink-0 place-items-center rounded-[4px] border-2 transition-colors",
                                   isSelected
                                     ? "border-[var(--qs-brand)] bg-[var(--qs-brand)] text-white"
-                                    : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
+                                    : "border-[var(--qs-line)] bg-[var(--qs-surface)]",
+                                  wrapLabels && "mt-0.5"
                                 )}
                               >
                                 {isSelected && <Check className="h-3 w-3" strokeWidth={3} />}
                               </span>
                             ) : null}
-                            <span className="truncate">{option.label}</span>
+                            <span
+                              className={cn(
+                                "min-w-0 flex-1",
+                                wrapLabels ? "break-words [overflow-wrap:anywhere]" : "truncate"
+                              )}
+                            >
+                              {option.label}
+                            </span>
                           </span>
                           {!multiple && isSelected && <Check className="h-4 w-4 shrink-0" />}
                         </button>

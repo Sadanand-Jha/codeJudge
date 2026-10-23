@@ -12,13 +12,13 @@ import { toast } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiError";
 
 const STEP_HELP: Record<string, { title: string; intro: string; items: string[] }> = {
-  setup: {
-    title: "Quiz setup",
+  details: {
+    title: "Quiz details",
     intro: "Add the basic details students will see before starting the quiz.",
     items: [
-      "Enter a clear title and select the closest subject and exam.",
-      "Duration is the total attempt time and can be changed anytime.",
-      "You can start manually, import questions, duplicate a quiz, or use AI generation.",
+      "Choose how you want to create the quiz, then add a clear title and description.",
+      "Select the closest subject, exam, and difficulty level.",
+      "The live preview shows how the quiz card will look to students.",
     ],
   },
   questions: {
@@ -27,79 +27,37 @@ const STEP_HELP: Record<string, { title: string; intro: string; items: string[] 
     items: [
       "Add a question, choose its type, then enter the question and answer options.",
       "For single choice, select one correct answer. Multiple choice can have several correct answers.",
-      "Use question settings for marks, difficulty, and time. Save before leaving this step.",
+      "Use question settings for marks, difficulty, and explanation.",
       "The question list lets you reorder, duplicate, search, or remove questions.",
     ],
   },
-  gameMechanics: {
-    title: "Game mechanics",
-    intro: "Optional rules can make an attempt more interactive.",
+  access: {
+    title: "Access",
+    intro: "Decide who can join, what they share, and how they get in.",
     items: [
-      "Enable only the mechanics you want students to use.",
-      "Some mechanics require multiple-choice questions or a timed quiz.",
-      "Leave every option off for a standard quiz experience.",
-    ],
-  },
-  settings: {
-    title: "Quiz settings",
-    intro: "Control timing, question order, results, and attempt security.",
-    items: [
-      "Choose when the quiz starts and ends, or keep manual control.",
-      "Randomization changes question or option order for each student.",
-      "Security options help discourage tab switching, copying, and leaving full screen.",
-    ],
-  },
-  audience: {
-    title: "Audience and access",
-    intro: "Choose who is allowed to find and attempt the quiz.",
-    items: [
-      "Public quizzes can be discovered by anyone.",
-      "Private quizzes require the link or access code.",
+      "Public quizzes can be discovered by anyone. Private quizzes require the link or code.",
       "Rooms restrict access to students from the rooms you select.",
+      "Add only the registration fields you need for participant records.",
+      "Choose Free, or mark the quiz as paid (available soon).",
     ],
   },
-  registration: {
-    title: "Registration",
-    intro: "Choose what information participants must provide.",
+  rules: {
+    title: "Rules",
+    intro: "Control what happens during an attempt.",
     items: [
-      "Add only the fields you need and mark required fields clearly.",
-      "Reorder fields to control how the registration form appears.",
-      "Platform identity and account contact information remain protected.",
+      "Set the attempt duration, question order, and result visibility.",
+      "Security options help discourage tab switching, copying, and leaving full screen.",
+      "Advanced timing covers late joining, rejoining, and auto-submit.",
     ],
   },
-  pricing: {
-    title: "Pricing",
-    intro: "Choose whether students can join for free or must pay.",
+  reviewPublish: {
+    title: "Review & publish",
+    intro: "Check the quiz, choose when it runs, then start it.",
     items: [
-      "Free quizzes have no enrollment charge.",
-      "Paid quiz support is marked as coming soon where it is unavailable.",
-      "Any fee and earnings preview is an estimate until payment settings are configured.",
-    ],
-  },
-  branding: {
-    title: "Branding",
-    intro: "Branding controls the visual identity of the student experience.",
-    items: [
-      "Logo, colors, and certificate options will appear here when available.",
-      "Skipping this step does not prevent saving or publishing a quiz.",
-    ],
-  },
-  review: {
-    title: "Review",
-    intro: "Check the quiz before publishing or finishing your edit.",
-    items: [
-      "Errors must be fixed before publishing.",
-      "Warnings are recommendations and do not block publishing.",
-      "Use Fix beside an item to return directly to the relevant step.",
-    ],
-  },
-  publish: {
-    title: "Publish",
-    intro: "Confirm the final details and make the quiz available.",
-    items: [
-      "Review the title, question count, duration, audience, and schedule.",
+      "Errors must be fixed before publishing. Warnings are recommendations.",
+      "Choose a scheduled window or start the quiz manually.",
+      "The quiz code lets students join after the quiz is published.",
       "Starting the quiz makes it live for eligible participants.",
-      "Use the copy control to share the quiz code when needed.",
     ],
   },
 };
@@ -186,13 +144,15 @@ function StudioHelpButton() {
 
 export function StudioHeader() {
   const router = useRouter();
-  const { state, updateInfo, prevStep, nextStep, prevMobileStep, nextMobileStep, stepIndex, saveToServer, mobileSteps, mobileStepIndex, editMode, questionsDirty, savingToServer } = useStudio();
+  const { state, updateInfo, prevStep, nextStep, prevMobileStep, nextMobileStep, stepIndex, steps, saveToServer, mobileSteps, mobileStepIndex, editMode, questionsDirty, savingToServer } = useStudio();
   const { status, lastSaved } = useSaveStatus();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(state.info.title);
   const [continuing, setContinuing] = useState(false);
   const [saving, setSaving] = useState(false);
   const isMobileLast = mobileStepIndex !== -1 && mobileStepIndex === mobileSteps.length - 1;
+  const isLastStep = stepIndex === steps.length - 1;
+  const showContinue = !isLastStep || editMode;
   const saveDisabled = state.step === "questions" && !questionsDirty;
   const label = state.info.title.trim();
   const activeIdx = state.questions.findIndex((q) => q.id === state.activeQuestionId);
@@ -314,48 +274,52 @@ export function StudioHeader() {
               {saving || savingToServer ? "Saving…" : saveDisabled ? "Saved" : "Save"}
             </button>
           )}
+          {showContinue && (
+            <button
+              type="button"
+              onClick={async () => {
+                if (continuing) return;
+                setContinuing(true);
+                try {
+                  if (isMobileLast && editMode) {
+                    await saveToServer();
+                    toast.success({ title: "Saved", description: "Your quiz has been saved." });
+                    router.push("/creator/quizzes");
+                    return;
+                  }
+                  await nextMobileStep();
+                } finally {
+                  setContinuing(false);
+                }
+              }}
+              disabled={continuing}
+              aria-busy={continuing || undefined}
+              className={cn("b b-pri sm min-w-0 flex-[1.25]", continuing && "loading")}
+            >
+              {continuing ? "Saving…" : "Continue"}
+            </button>
+          )}
+        </div>
+        {/* Desktop: Continue only */}
+        {showContinue && (
           <button
             type="button"
             onClick={async () => {
               if (continuing) return;
               setContinuing(true);
               try {
-                if (isMobileLast && editMode) {
-                  await saveToServer();
-                  toast.success({ title: "Saved", description: "Your quiz has been saved." });
-                  router.push("/creator/quizzes");
-                  return;
-                }
-                await nextMobileStep();
+                await nextStep();
               } finally {
                 setContinuing(false);
               }
             }}
             disabled={continuing}
             aria-busy={continuing || undefined}
-            className={cn("b b-pri sm min-w-0 flex-[1.25]", continuing && "loading")}
+            className={cn("b b-pri sm hidden lg:inline-flex", continuing && "loading")}
           >
-            {continuing ? "Saving…" : "Continue"}
+            {continuing ? "Saving…" : <>Continue <ArrowRight className="h-3.5 w-3.5" /></>}
           </button>
-        </div>
-        {/* Desktop: Continue only */}
-        <button
-          type="button"
-          onClick={async () => {
-            if (continuing) return;
-            setContinuing(true);
-            try {
-              await nextStep();
-            } finally {
-              setContinuing(false);
-            }
-          }}
-          disabled={continuing}
-          aria-busy={continuing || undefined}
-          className={cn("b b-pri sm hidden lg:inline-flex", continuing && "loading")}
-        >
-          {continuing ? "Saving…" : <>Continue <ArrowRight className="h-3.5 w-3.5" /></>}
-        </button>
+        )}
       </div>
     </header>
   );
@@ -537,7 +501,7 @@ export function StudioFooter() {
   };
 
   const canContinue = () => {
-    if (state.step === "setup") {
+    if (state.step === "details") {
       if (state.info.title.trim().length < 3) return false;
       return true;
     }
@@ -672,7 +636,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       data-studio="true"
-      className="creator-mobile-calm flex min-h-full min-w-0 flex-1 flex-col overflow-hidden bg-[var(--qs-bg)] font-['Inter'] text-[var(--qs-ink)]"
+      className="creator-mobile-calm flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--qs-bg)] font-['Inter'] text-[var(--qs-ink)]"
     >
       <StudioHeader />
       <StudioStepper />
@@ -687,7 +651,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
           className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--qs-bg)]"
         >
           <div
-            className="mx-auto flex min-h-0 w-full max-w-[430px] min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden p-2 sm:p-3 lg:w-[96%] lg:max-w-none xl:w-[95%]"
+            className="mx-auto flex min-h-0 w-full max-w-[430px] min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden p-2 sm:p-3 min-[900px]:w-[96%] min-[900px]:max-w-none min-[1240px]:w-[95%]"
           >
             {children}
           </div>

@@ -26,7 +26,7 @@ import { PaperScopeFilters } from "./PaperScopeFilters";
 import { QuestionHtml } from "@/components/creator/questions/QuestionHtml";
 import { AiStreamText } from "@/components/ui";
 import { PaperHeaderFields } from "@/components/creator/common/PaperHeaderFields";
-import { downloadPaperPdf } from "@/utils/questionSetExport";
+import { defaultPaperInstructionLines, downloadPaperPdf } from "@/utils/questionSetExport";
 import type { PaperHeaderMeta } from "@/utils/paperHeader";
 
 interface QuestionsStepProps {
@@ -188,6 +188,30 @@ export function QuestionsStep({
       setPaper(response.paper);
       setGeneratedScope({ subjectId, chapterIds: [...chapterIds], topicIds: [...topicIds], syllabus });
       onPaperReady?.(response.paper);
+      if (!paperHeader.instructions.trim()) {
+        const hasChoice = response.paper.sections.some((s) =>
+          s.questionGroups.some((g) => g.attemptRule?.type === "ANY_N")
+        );
+        const attemptQuestions = response.paper.sections.reduce(
+          (total, s) =>
+            total +
+            s.questionGroups.reduce(
+              (sum, g) =>
+                sum +
+                (g.attemptRule?.type === "ANY_N" && g.attemptRule.count
+                  ? Math.min(g.attemptRule.count, g.questions.length)
+                  : g.questions.length),
+              0
+            ),
+          0
+        );
+        onPaperHeaderChange({
+          ...paperHeader,
+          instructions:
+            response.paper.instructions?.trim() ||
+            defaultPaperInstructionLines(response.paper.totalQuestions, attemptQuestions, hasChoice).join("\n"),
+        });
+      }
       setStatus("done");
       toast.success({
         title: "Question paper ready",
@@ -201,7 +225,7 @@ export function QuestionsStep({
       setError(errorMessage(err, "Failed to generate the question paper. Please try again."));
       setStatus("error");
     }
-  }, [sections, paperTitle, syllabus, subjectId, chapterIds, topicIds, overall, totalNeeded, durationMinutes, toast, onPaperReady]);
+  }, [sections, paperTitle, syllabus, subjectId, chapterIds, topicIds, overall, totalNeeded, durationMinutes, toast, onPaperReady, paperHeader, onPaperHeaderChange]);
 
   const paperHeading = paperTitle.trim() || paperHeader.heading.trim() || "Question Paper";
 

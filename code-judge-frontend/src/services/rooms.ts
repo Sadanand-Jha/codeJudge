@@ -1,5 +1,147 @@
 import apiClient from "@/lib/axios";
-import type { Room } from "@/types/room";
+import type { Room, RoomRegistrationForm } from "@/types/room";
+
+/** Room credentials returned once, immediately after create/reset. */
+export interface RoomCredentials {
+  id: string;
+  name: string;
+  room_code: string;
+  /** Plaintext password — never retrievable again after this response. */
+  password: string;
+  /** ISO timestamp when the password stops working; null = never. */
+  password_expires_at: string | null;
+}
+
+export interface JoinedRoom {
+  room: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface RoomJoinPreview {
+  room: {
+    id: string;
+    name: string;
+  };
+  password_expires_at: string | null;
+  registration_form: RoomRegistrationForm;
+}
+
+export interface RoomSummary {
+  id: string;
+  name: string;
+  description?: string | null;
+  room_code: string;
+  memberCount: number;
+  password_expires_at: string | null;
+  registration_form: RoomRegistrationForm;
+  is_owner?: boolean;
+  owner?: RoomOwner;
+  members?: RoomMember[];
+}
+
+export interface RoomOwner {
+  id: string;
+  username: string | null;
+  displayName: string | null;
+  avatarId: number | null;
+  avatarUrl: string | null;
+}
+
+export interface RoomMember {
+  id: string;
+  username: string;
+  displayName: string;
+  firstName: string | null;
+  lastName: string | null;
+  avatarId: number | null;
+  avatarUrl: string | null;
+  joinedAt: string | null;
+  status: string | null;
+  is_you: boolean;
+}
+
+export interface EnrolledRoom {
+  id: string;
+  name: string;
+  description: string | null;
+  room_code: string;
+  is_active: boolean;
+  member_count: number;
+  joined_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  owner: RoomOwner;
+}
+
+export interface RoomPasswordExpiryInput {
+  /** Minutes until the password expires; null = never, omitted = 24 hours. */
+  expires_in_minutes?: number | null;
+}
+
+export async function createRoomWithPassword(
+  payload: { name: string; password?: string } & RoomPasswordExpiryInput
+): Promise<RoomCredentials> {
+  const res = await apiClient.post<RoomCredentials>(`/rooms`, payload);
+  return res.data;
+}
+
+export async function resetRoomPassword(
+  roomCode: string,
+  payload: RoomPasswordExpiryInput = {}
+): Promise<RoomCredentials> {
+  const res = await apiClient.post<RoomCredentials>(
+    `/rooms/${encodeURIComponent(roomCode)}/reset-password`,
+    payload
+  );
+  return res.data;
+}
+
+export async function previewRoomJoin(payload: {
+  room_code: string;
+  password: string;
+}): Promise<RoomJoinPreview> {
+  const res = await apiClient.post<RoomJoinPreview>(`/rooms/join/form`, payload);
+  return res.data;
+}
+
+export async function joinRoom(payload: {
+  room_code: string;
+  password: string;
+  registration_data?: Record<string, string>;
+}): Promise<JoinedRoom> {
+  const res = await apiClient.post<JoinedRoom>(`/rooms/join`, payload);
+  return res.data;
+}
+
+export async function getRoomSummary(roomId: string): Promise<RoomSummary> {
+  const res = await apiClient.get<RoomSummary>(`/rooms/${encodeURIComponent(roomId)}`);
+  return res.data;
+}
+
+export async function getEnrolledRooms(): Promise<EnrolledRoom[]> {
+  const res = await apiClient.get<EnrolledRoom[]>(`/rooms/enrolled`);
+  return Array.isArray(res.data) ? res.data : [];
+}
+
+export async function getRoomRegistrationForm(roomId: string): Promise<RoomRegistrationForm> {
+  const res = await apiClient.get<RoomRegistrationForm>(
+    `/rooms/${encodeURIComponent(roomId)}/registration-form`
+  );
+  return res.data;
+}
+
+export async function updateRoomRegistrationForm(
+  roomId: string,
+  form: RoomRegistrationForm
+): Promise<RoomRegistrationForm> {
+  const res = await apiClient.put<RoomRegistrationForm>(
+    `/rooms/${encodeURIComponent(roomId)}/registration-form`,
+    form
+  );
+  return res.data;
+}
 
 export interface SearchedUser {
   id: string;

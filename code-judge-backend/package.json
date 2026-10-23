@@ -17,7 +17,8 @@
     "sync:db": "tsx src/scripts/syncLocalToCloud.ts",
     "prepare-avatars": "tsx src/utils/avatarProcessor.ts",
     "test:document-export": "tsx src/scripts/testDocumentExport.ts",
-    "migrate": "node scripts/migrate.js"
+    "test:rooms": "tsx src/__tests__/roomAccess.test.ts",
+    "test:decoy": "tsx src/__tests__/quizDecoy.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.6.0",

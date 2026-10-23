@@ -1,47 +1,43 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  BarChart3,
-  ClipboardList,
-  HelpCircle,
   MoreHorizontal,
-  Pencil,
   Plus,
   RotateCcw,
   Search,
-  Star,
-  Timer,
   Trash2,
-  Users,
   WandSparkles,
   X,
 } from "lucide-react";
 import { MaskedCopyCode } from "@/components/creator/common/MaskedCopyCode";
+import {
+  WhatsAppIcon,
+  buildShareMessage,
+} from "@/components/creator/common/ShareQuizDialog";
 import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
 import { useData } from "@/lib/hooks/useData";
 import { Skeleton } from "@/components/creator/billing/ui";
 import { cn } from "@/lib/helpers";
 import { deriveQuizStatus, type EffectiveQuizStatus } from "@/lib/quizStatus";
-import { deleteQuiz, getMyCreatedQuizzes, type Quiz } from "@/services/quiz";
+import { copyQuizCode, deleteQuiz, getMyCreatedQuizzes, type Quiz } from "@/services/quiz";
 import { toast } from "@/lib/toast";
+import { WHOLE_QUIZ_AI_ENABLED } from "@/config/creatorFeatures";
 
 type QuizStatus = EffectiveQuizStatus;
 type TabId = "all" | QuizStatus;
 
 interface QuizCard {
   id: string;
+  code: string;
   title: string;
   subject: string;
   questions: number;
-  durationMin: number;
   attempts: number;
-  completionRate: number;
   rating: number;
-  ratingCount: number;
   status: QuizStatus;
 }
 
@@ -49,7 +45,6 @@ type QuizListRecord = Quiz & {
   subject?: string | null;
   total_questions?: number | null;
   attempts?: number | null;
-  completion_rate?: number | null;
   rating?: number | null;
   rating_count?: number | null;
 };
@@ -57,14 +52,12 @@ type QuizListRecord = Quiz & {
 function mapQuizToCard(q: QuizListRecord): QuizCard {
   return {
     id: String(q.id),
+    code: q.code || "",
     title: q.name,
     subject: q.subject || "General",
     questions: Number(q.total_questions) || 0,
-    durationMin: Number(q.duration) || 0,
     attempts: Number(q.attempts) || 0,
-    completionRate: Number(q.completion_rate) || 0,
     rating: Number(q.rating) || 0,
-    ratingCount: Number(q.rating_count) || 0,
     status: deriveQuizStatus(q),
   };
 }
@@ -93,7 +86,7 @@ const BTN_SM =
 const BTN_PRI_SM =
   "inline-flex items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3.5 py-2 text-[12px] font-bold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:brightness-110 active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_var(--qs-sun)]";
 const PILL =
-  "inline-flex shrink-0 items-center gap-1.5 rounded-full border-2 border-current px-2.5 py-[3px] text-[10px] font-black uppercase tracking-[0.05em]";
+  "inline-flex shrink-0 items-center gap-1.5 rounded-full border-2 border-current px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.05em]";
 
 export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
   const router = useRouter();
@@ -131,14 +124,11 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
 
   const stats = useMemo(() => {
     const list = data ?? [];
-    const attempted = list.filter((q) => q.attempts > 0);
     const rated = list.filter((q) => q.rating > 0);
     return {
       total: list.length,
       live: list.filter((q) => q.status === "live").length,
-      completion: attempted.length
-        ? attempted.reduce((sum, q) => sum + q.completionRate, 0) / attempted.length
-        : null,
+      responses: list.reduce((sum, q) => sum + q.attempts, 0),
       rating: rated.length ? rated.reduce((sum, q) => sum + q.rating, 0) / rated.length : null,
     };
   }, [data]);
@@ -193,18 +183,26 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
             <WandSparkles className="h-5 w-5" strokeWidth={2.4} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-brand)]">
+            <p className="flex flex-wrap items-center gap-2 text-[12px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-brand)]">
               AI service
+              {!WHOLE_QUIZ_AI_ENABLED && (
+                <span className="rounded-full border-2 border-[#a85d00]/30 bg-[#fff3d6] px-2 py-0.5 text-[10px] tracking-[0.06em] text-[#a85d00]">
+                  Coming soon
+                </span>
+              )}
             </p>
             <h2 className="qs-display mt-1 text-[20px] font-extrabold text-[var(--qs-ink)]">
               Build your next quiz with AI
             </h2>
             <p className="mt-1 text-[13px] text-[var(--qs-muted)]">
-              Upload a problem list and generate a complete, review-ready quiz in minutes.
+              {WHOLE_QUIZ_AI_ENABLED
+                ? "Upload a problem list and generate a complete, review-ready quiz in minutes."
+                : "AI quiz generation from a problem list is coming soon."}
             </p>
           </div>
           <AiGenerateButton
-            href="/creator/quizzes/ai-generate"
+            href={WHOLE_QUIZ_AI_ENABLED ? "/creator/quizzes/ai-generate" : undefined}
+            comingSoon={!WHOLE_QUIZ_AI_ENABLED}
             size="md"
             label="Generate with AI"
             className="shrink-0"
@@ -241,7 +239,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
         <div className="rounded-[16px] border-2 border-dashed border-[var(--qs-line)] px-6 py-16 text-center">
           <p className="qs-display text-[20px] font-extrabold text-[var(--qs-ink)]">No quizzes yet</p>
           <p className="mx-auto mt-1.5 max-w-sm text-[13px] text-[var(--qs-muted)]">
-            Create one from scratch, or let AI turn your problem list into a review-ready quiz.
+            Create one from scratch. AI quiz generation is coming soon.
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-2">
             <Link href="/creator/quizzes/create" className={BTN_PRI_SM}>
@@ -249,7 +247,8 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
               New quiz
             </Link>
             <AiGenerateButton
-              href="/creator/quizzes/ai-generate"
+              href={WHOLE_QUIZ_AI_ENABLED ? "/creator/quizzes/ai-generate" : undefined}
+              comingSoon={!WHOLE_QUIZ_AI_ENABLED}
               size="sm"
               label="Generate with AI"
             />
@@ -277,9 +276,9 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
               index={1}
             />
             <StatTile
-              label="Completion"
-              value={stats.completion === null ? "—" : `${stats.completion.toFixed(0)}%`}
-              hint={stats.completion === null ? "No attempts yet" : "Across attempted quizzes"}
+              label="Total responses"
+              value={stats.responses.toLocaleString("en-IN")}
+              hint={stats.responses > 0 ? "Across all quizzes" : "No responses yet"}
               dot="#2457d6"
               index={2}
             />
@@ -562,13 +561,60 @@ function QuizCardItem({
   onDelete: () => void;
 }) {
   const hasAttempts = quiz.attempts > 0;
+  const [shareCode, setShareCode] = useState(quiz.code);
+  const [sharing, setSharing] = useState(false);
+
+  useEffect(() => {
+    if (shareCode) return;
+    let active = true;
+    copyQuizCode(quiz.id)
+      .then((code) => {
+        if (active && code) setShareCode(code);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [shareCode, quiz.id]);
+
+  const shareOnWhatsApp = async () => {
+    if (sharing) return;
+    let code = shareCode || quiz.code;
+    let pendingWindow: Window | null = null;
+    if (!code) {
+      pendingWindow = window.open("", "_blank");
+      if (pendingWindow) pendingWindow.opener = null;
+      setSharing(true);
+      try {
+        code = await copyQuizCode(quiz.id);
+        setShareCode(code);
+      } catch {
+        pendingWindow?.close();
+        toast.error({
+          title: "Could not load join code",
+          description: "The quiz join code could not be loaded. Please try again.",
+        });
+        return;
+      } finally {
+        setSharing(false);
+      }
+    }
+    if (!code) {
+      pendingWindow?.close();
+      toast.error({ title: "Join code unavailable", description: "Please try again in a moment." });
+      return;
+    }
+    const href = `https://wa.me/?text=${encodeURIComponent(buildShareMessage({ ...quiz, code }, "clean"))}`;
+    if (pendingWindow) pendingWindow.location.href = href;
+    else window.open(href, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <motion.article
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.025, 0.18), duration: 0.25 }}
-      className="relative flex min-h-[218px] flex-col rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 transition-colors hover:border-[var(--qs-brand)]"
+      className="relative flex flex-col rounded-[20px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-5 transition-colors hover:border-[var(--qs-brand)]"
     >
       <div className="flex items-start justify-between gap-2">
         <StatusPill status={quiz.status} />
@@ -600,19 +646,12 @@ function QuizCardItem({
         </div>
       </div>
 
-      <h3 className="qs-display mt-2.5 break-words text-[18px] font-extrabold leading-snug text-[var(--qs-ink)]" title={quiz.title}>
+      <h3 className="qs-display mt-4 break-words text-[20px] font-extrabold leading-[1.25] text-[var(--qs-ink)]" title={quiz.title}>
         {quiz.title}
       </h3>
 
-      <div className="mt-2.5">
-        <MaskedCopyCode
-          quizId={quiz.id}
-          className="inline-flex items-center gap-2 rounded-[10px] border-2 border-dashed border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2.5 py-1 font-mono text-[12px] font-bold tracking-[0.08em] text-[#1A1240]"
-        />
-      </div>
-
       {quiz.questions === 0 ? (
-        <div className="mt-3.5 flex items-center justify-between gap-3 rounded-[14px] border-2 border-dashed border-[var(--qs-brand)]/50 px-3.5 py-2.5">
+        <div className="mt-4 flex items-center justify-between gap-3 rounded-[14px] border-2 border-dashed border-[var(--qs-brand)]/50 px-3.5 py-2.5">
           <p className="min-w-0 text-[12px] font-semibold leading-5 text-[var(--qs-muted)]">
             No questions yet — finish setup before publishing.
           </p>
@@ -621,66 +660,51 @@ function QuizCardItem({
           </button>
         </div>
       ) : (
-        <div className="mt-3.5 flex flex-wrap items-center gap-1.5">
-          <MetaPill icon={HelpCircle} iconClass="text-[var(--qs-brand)]" text={`${quiz.questions} ${quiz.questions === 1 ? "question" : "questions"}`} />
-          {quiz.durationMin > 0 && <MetaPill icon={Timer} iconClass="text-[var(--qs-muted)]" text={`${quiz.durationMin} min`} />}
-          <MetaPill
-            icon={Users}
-            iconClass="text-[var(--qs-ok)]"
-            text={hasAttempts ? `${quiz.attempts.toLocaleString("en-IN")} attempts` : "No attempts yet"}
-          />
+        <div className="my-4 flex flex-wrap items-center gap-2">
+          <span className="inline-flex shrink-0 items-center rounded-full border-2 border-[var(--qs-line)] px-3 py-[5px] text-[13px] font-bold text-[var(--qs-muted)]">
+            {quiz.questions} {quiz.questions === 1 ? "question" : "questions"}
+          </span>
+          <span className="inline-flex shrink-0 items-center rounded-full border-2 border-[var(--qs-line)] px-3 py-[5px] text-[13px] font-bold text-[var(--qs-muted)]">
+            {hasAttempts ? `${quiz.attempts.toLocaleString("en-IN")} ${quiz.attempts === 1 ? "attempt" : "attempts"}` : "No attempts yet"}
+          </span>
         </div>
       )}
 
-      <div className="mt-2.5">
-        <Stars rating={quiz.rating} ratingCount={quiz.ratingCount} />
-      </div>
-
       <div className="mt-auto flex flex-wrap items-center gap-2 border-t-2 border-[var(--qs-line)] pt-3.5">
-        <button type="button" onClick={() => onGoTo("edit")} className={BTN_PRI_SM}>
-          <Pencil className="h-3.5 w-3.5" />
+        <button
+          type="button"
+          onClick={() => onGoTo("edit")}
+          className="b b-pri sm px-4 py-2"
+        >
           Edit
         </button>
-        <button type="button" onClick={() => onGoTo("analytics")} className={BTN_SM}>
-          <BarChart3 className="h-3.5 w-3.5" />
+        <button
+          type="button"
+          onClick={() => onGoTo("analytics")}
+          className="inline-flex items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] px-3.5 py-2 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-60"
+        >
           Analytics
         </button>
-        <button type="button" onClick={() => onGoTo("responses")} className={BTN_SM}>
-          <ClipboardList className="h-3.5 w-3.5" />
+        <button
+          type="button"
+          onClick={() => onGoTo("responses")}
+          className="inline-flex items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] px-3.5 py-2 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-60"
+        >
           Responses
+        </button>
+        <button
+          type="button"
+          onClick={() => void shareOnWhatsApp()}
+          disabled={sharing}
+          aria-label={`Share ${quiz.title} on WhatsApp`}
+          title="Share on WhatsApp"
+          className="inline-flex items-center justify-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-line)] px-3.5 py-2 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[#25d366] hover:bg-[#25d366]/10 disabled:cursor-wait disabled:opacity-60"
+        >
+          <WhatsAppIcon className="h-4 w-4 text-[#25d366]" />
+          Share on WhatsApp
         </button>
       </div>
     </motion.article>
-  );
-}
-
-function MetaPill({
-  icon: Icon,
-  iconClass,
-  text,
-}: {
-  icon: typeof HelpCircle;
-  iconClass?: string;
-  text: string;
-}) {
-  return (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border-2 border-[var(--qs-line)] px-2.5 py-1 text-[11px] font-bold text-[var(--qs-muted)]">
-      <Icon className={cn("h-3.5 w-3.5", iconClass ?? "text-[var(--qs-muted)]")} />
-      {text}
-    </span>
-  );
-}
-
-function Stars({ rating, ratingCount }: { rating: number; ratingCount: number }) {
-  if (rating <= 0) return <span className="text-[12px] font-semibold text-[var(--qs-muted)]">No ratings yet</span>;
-  return (
-    <span className="inline-flex items-center gap-1 text-[12px]">
-      <Star className="h-3.5 w-3.5 fill-[var(--qs-sun)] text-[var(--qs-sun)]" />
-      <span className="font-extrabold tabular-nums text-[var(--qs-ink)]">{rating.toFixed(1)}</span>
-      <span className="font-semibold text-[var(--qs-muted)]">
-        from {ratingCount.toLocaleString("en-IN")} {ratingCount === 1 ? "rating" : "ratings"}
-      </span>
-    </span>
   );
 }
 
@@ -709,18 +733,21 @@ function ToolbarSkeleton() {
 
 function QuizCardSkeleton() {
   return (
-    <div className="min-h-[218px] rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">
+    <div className="rounded-[20px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-5">
       <div className="flex items-center justify-between">
         <Skeleton className="h-6 w-20 rounded-full" />
         <Skeleton className="h-8 w-8 rounded-[10px]" />
       </div>
-      <Skeleton className="mt-3 h-4 w-3/4" />
-      <Skeleton className="mt-3 h-7 w-28 rounded-[10px]" />
-      <Skeleton className="mt-3.5 h-6 w-full rounded-full" />
+      <Skeleton className="mt-4 h-5 w-3/4" />
+      <div className="my-4 flex gap-2">
+        <Skeleton className="h-7 w-24 rounded-full" />
+        <Skeleton className="h-7 w-24 rounded-full" />
+      </div>
       <div className="mt-4 flex gap-2 border-t-2 border-[var(--qs-line)] pt-3.5">
-        <Skeleton className="h-8 w-16" />
-        <Skeleton className="h-8 w-20" />
-        <Skeleton className="h-8 w-20" />
+        <Skeleton className="h-9 w-16" />
+        <Skeleton className="h-9 w-24" />
+        <Skeleton className="h-9 w-24" />
+        <Skeleton className="h-9 w-16" />
       </div>
     </div>
   );

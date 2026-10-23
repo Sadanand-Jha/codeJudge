@@ -167,6 +167,7 @@ export default function AIStudio({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [showReviewOverlay, setShowReviewOverlay] = useState(false);
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [estimatedCredits, setEstimatedCredits] = useState(0);
   const [isDragOver, setIsDragOver] = useState(false);
   const [showSmartSuggestions, setShowSmartSuggestions] = useState(true);
@@ -369,9 +370,51 @@ export default function AIStudio({
   };
 
   const handleRegenerate = async (questionId: string) => {
-    toast.info("Regenerating question...");
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast.success("Question regenerated");
+    const question = generatedQuestions.find((item) => item.id === questionId);
+    if (!question) return;
+    setRegeneratingId(questionId);
+    try {
+      let rawQuestions: RawAIGeneratedQuestion[];
+      if (sourceMode === "bank") {
+        if (!bankSubjectId) throw new Error("Select a subject first.");
+        const difficulty = question.difficulty === "expert" ? "hard" : question.difficulty;
+        rawQuestions = await generateFromQuestionBank({
+          numberOfQuestions: 1,
+          easyCount: difficulty === "easy" ? 1 : 0,
+          mediumCount: difficulty === "medium" ? 1 : 0,
+          hardCount: difficulty === "hard" ? 1 : 0,
+          hardnessHint: bankHardnessHint || undefined,
+          subjectId: bankSubjectId,
+          chapterId: bankChapterId,
+          topicId: bankTopicId,
+          kind: bankKind,
+        });
+      } else {
+        const files = uploadedFiles.filter((item) => item.file).map((item) => item.file as File);
+        if (files.length === 0) throw new Error("Uploaded material is no longer available.");
+        rawQuestions = await generateQuestionsFromFiles(files, {
+          ...options,
+          numberOfQuestions: 1,
+          questionTypes: [question.type],
+          difficulty: [question.difficulty],
+          bloomsLevel: options.bloomsLevel[0] || "understand",
+        });
+      }
+      const preview = mapRawQuestionsToPreview(rawQuestions)[0];
+      if (!preview) throw new Error("The AI returned no question. Please try again.");
+      setGeneratedQuestions((previous) =>
+        previous.map((item) =>
+          item.id === questionId ? { ...preview, credits: item.credits } : item
+        )
+      );
+      toast.success(`Question regenerated (${question.difficulty})`);
+    } catch (error) {
+      toast.error("Could not regenerate question", {
+        description: (error as Error).message || "Please try again.",
+      });
+    } finally {
+      setRegeneratingId(null);
+    }
   };
 
   const handleDelete = (questionId: string) => {
@@ -1100,10 +1143,11 @@ export default function AIStudio({
                         </button>
                         <button
                           onClick={() => handleRegenerate(q.id)}
-                          className="flex items-center justify-center gap-1.5 rounded-lg bg-accent/10 px-3 py-1.5 text-[10px] font-bold text-accent hover:bg-accent/20 transition-colors"
+                          disabled={regeneratingId === q.id}
+                          className="flex items-center justify-center gap-1.5 rounded-lg bg-accent/10 px-3 py-1.5 text-[10px] font-bold text-accent hover:bg-accent/20 transition-colors disabled:cursor-wait disabled:opacity-60"
                         >
-                          <RotateCcw className="h-3.5 w-3.5" />
-                          Regenerate
+                          <RotateCcw className={`h-3.5 w-3.5 ${regeneratingId === q.id ? "animate-spin" : ""}`} />
+                          {regeneratingId === q.id ? "Regenerating…" : "Regenerate"}
                         </button>
                         <button
                           onClick={() => handleDelete(q.id)}
@@ -1140,6 +1184,7 @@ export default function AIStudio({
           onReject={handleRejectAll}
           onAcceptOne={handleAcceptOne}
           onEditOne={handleEditOne}
+          onRegenerate={(question) => handleRegenerate(question.id)}
         />
       )}
     </motion.div>

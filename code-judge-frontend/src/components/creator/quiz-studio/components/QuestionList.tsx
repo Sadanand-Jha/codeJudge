@@ -6,7 +6,6 @@ import { cn } from "@/lib/helpers";
 import { getQuestionStatus } from "@/components/quiz/creator/types";
 import { useStudio } from "../StudioProvider";
 import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
-import { toast } from "@/lib/toast";
 
 /**
  * Strips HTML tags and decodes common HTML entities (&nbsp;, &amp;, etc.)
@@ -28,18 +27,10 @@ function decodeHtml(html: string): string {
 export function QuestionList({
   onAiGenerate,
   onDownloadPdf,
-  onSave,
-  saving,
-  hasChanges = true,
-  saveProgress,
   onToggleSidebar,
 }: {
   onAiGenerate?: () => void;
   onDownloadPdf?: () => void;
-  onSave?: () => void;
-  saving?: boolean;
-  hasChanges?: boolean;
-  saveProgress?: { saved: number; total: number } | null;
   onToggleSidebar?: () => void;
 }) {
   const { state, reorderQuestions, duplicateQuestion, removeQuestion, setActiveQuestion, addQuestion, questionsLoading } = useStudio();
@@ -86,7 +77,7 @@ export function QuestionList({
   };
 
   return (
-    <div className="flex h-[calc(100dvh-13rem)] max-h-full min-h-0 w-70 shrink-0 flex-col overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
+    <div className="flex h-[calc(100dvh-13rem)] max-h-full min-h-0 w-full shrink-0 flex-col overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
       <div className="px-3 pt-4 pb-3 border-b-2 border-[var(--qs-line)] shrink-0">
         <div className="flex items-center justify-between">
           <h3 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Questions Bank</h3>
@@ -255,27 +246,6 @@ export function QuestionList({
             <Download className="h-3.5 w-3.5" /> PDF
           </button>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            if (!hasChanges) {
-              toast.info({ title: "Nothing to save", description: "You're already up to date." });
-              return;
-            }
-            onSave?.();
-          }}
-          disabled={saving}
-          aria-disabled={!hasChanges || undefined}
-          aria-busy={saving || undefined}
-          title={!hasChanges && !saving ? "Nothing to save" : undefined}
-          className="b b-pri b-full sm mt-2"
-        >
-          {saving
-            ? (saveProgress ? `Saving ${saveProgress.saved}/${saveProgress.total}…` : "Saving…")
-            : hasChanges
-              ? "Save changes"
-              : "Nothing to save"}
-        </button>
       </div>
     </div>
   );

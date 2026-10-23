@@ -54,6 +54,8 @@ interface ExamModeShellProps {
   /** Creator-defined field names. When non-empty, a registration form is
    * shown after "Enter Exam Mode" and the attempt starts only on submit. */
   registrationFields?: string[];
+  /** Optional current-question AI trap rendered inside the monitoring strip. */
+  monitoringTrap?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -74,6 +76,7 @@ export default function ExamModeShell({
   autoEnter = false,
   fullWidth = false,
   registrationFields = [],
+  monitoringTrap = null,
   children,
 }: ExamModeShellProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -458,6 +461,7 @@ export default function ExamModeShell({
                 <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Fullscreen is required and will be requested automatically.</li>
                 <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Switching tabs/windows may be recorded as a violation.</li>
                 <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Copying, cutting or pasting is blocked and recorded as a violation.</li>
+                <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Answers from AI tools or other outside help during a quiz may be unreliable or deliberately misleading.</li>
                 <li className="flex gap-2 sm:hidden"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)]" /> Pressing volume or other hardware buttons may be recorded as a violation.</li>
                 <li className="hidden gap-2 sm:flex"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)]" /> Leaving fullscreen (Esc) may be recorded as a violation.</li>
                 <li className="hidden gap-2 sm:flex"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)]" /> Your progress will be preserved during temporary warnings.</li>
@@ -549,9 +553,14 @@ export default function ExamModeShell({
         )}
       </AnimatePresence>
 
-      {/* Always-on monitoring notice */}
-      <div className="flex shrink-0 items-center justify-center gap-1.5 border-b-2 border-[var(--qs-line)] bg-[var(--qs-sun)]/25 px-2 py-1 text-[9px] font-bold text-[var(--qs-ink)]">
-        <ShieldCheck className="h-3 w-3" /> Tab switching &amp; window changes are monitored
+      {/* Always-on monitoring notice. The grid keeps a right-hand slot for the
+          optional AI trap without letting it overlap the real notice. */}
+      <div className="grid shrink-0 grid-cols-[auto_1fr] items-center gap-1 border-b-2 border-[var(--qs-line)] bg-[var(--qs-sun)]/25 px-2 py-1 text-[9px] font-bold text-[var(--qs-ink)] sm:grid-cols-[1fr_auto_1fr]">
+        <span aria-hidden="true" className="hidden sm:block" />
+        <span className="flex items-center justify-center gap-1.5 whitespace-nowrap">
+          <ShieldCheck className="h-3 w-3" /> Tab switching &amp; window changes are monitored
+        </span>
+        <span className="relative flex h-3 min-w-0 justify-end">{monitoringTrap}</span>
       </div>
 
       {/* Content - viewport-based on mobile, scrollable on desktop */}

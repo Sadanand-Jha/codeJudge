@@ -187,7 +187,7 @@ export function QuestionEditor() {
 
   return (
     <div className="flex flex-1 flex-col min-h-0 bg-[var(--qs-surface)]">
-      <div className="shrink-0 border-b-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3 py-4 text-[var(--qs-on-brand)] sm:px-6">
+      <div className="shrink-0 rounded-t-[22px] border-b-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3 py-4 text-[var(--qs-on-brand)] sm:px-6">
         <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] border-2 border-[#1a1240] bg-[var(--qs-sun)] text-[#1a1240]">
             <FileText className="h-5 w-5" />
@@ -245,12 +245,11 @@ export function QuestionEditor() {
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-y-3 sm:grid-cols-4">
+        <div className="mt-4 grid grid-cols-3 gap-y-3">
           {[
             { label: "Difficulty", value: q.difficulty },
             { label: "Type", value: TYPE_SHORT[q.type] },
             { label: "Options", value: isMcq ? q.options.length : "—" },
-            { label: "Time", value: `${q.expectedTime} min` },
           ].map((stat, index) => (
             <div key={stat.label} className={cn("min-w-0", index > 0 && "sm:border-l-2 sm:border-white/25 sm:pl-4")}>
               <b className="block truncate text-lg font-extrabold leading-tight sm:text-[22px]">{stat.value}</b>
@@ -268,7 +267,7 @@ export function QuestionEditor() {
               <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--qs-ink)] text-[12px] font-extrabold text-[var(--qs-bg)]">1</span>
               <div className="min-w-0">
                 <h3 className="text-[17px] font-extrabold leading-tight text-[var(--qs-ink)]">Question</h3>
-                <p className="text-[12px] font-medium text-[var(--qs-muted)]">Press a key to format the selected text.</p>
+                <p className="text-[12px] font-medium text-[var(--qs-muted)]">Select some text, then tap a button to format it.</p>
               </div>
             </div>
             <div className="overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">

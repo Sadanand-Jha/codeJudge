@@ -183,6 +183,139 @@ export const joinQuizSchema = z.object({
 }).strict();
 
 /**
+ * Schema for creating a room from the public /rooms share screen.
+ * A missing password asks the server to generate an 8-character one.
+ */
+const roomPasswordExpirySchema = z
+  .number()
+  .int("Expiry must be a whole number of minutes")
+  .min(1, "Expiry must be at least 1 minute")
+  .max(525600, "Expiry can be at most 365 days")
+  .nullable()
+  .optional();
+
+export const roomCreateSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Room name is required")
+    .max(150, "Room name must be at most 150 characters"),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .max(128, "Password must be at most 128 characters")
+    .optional(),
+  /** Minutes until the password stops working; null = never, omitted = 24h. */
+  expires_in_minutes: roomPasswordExpirySchema,
+}).strict();
+
+/** Rotating a room password accepts the same validity window. */
+export const roomPasswordResetSchema = z
+  .object({
+    expires_in_minutes: roomPasswordExpirySchema,
+  })
+  .strict()
+  .default({});
+
+/**
+ * Schema for joining a room by code and password. The code is normalized to
+ * uppercase before it reaches the controller; malformed input still receives
+ * the same generic 401 from the join handler when it is well-formed here.
+ */
+export const roomJoinSchema = z.object({
+  // Shape/length is validated here; format failures inside the handler all
+  // collapse into the same generic 401 so codes cannot be probed.
+  room_code: z
+    .string()
+    .trim()
+    .min(1, "Room code is required")
+    .max(64, "Room code is too long")
+    .transform((value) => value.toUpperCase()),
+  password: z
+    .string()
+    .min(1, "Password is required")
+    .max(128, "Password is too long"),
+  // Answers keyed by the creator-defined field label. Validation against the
+  // saved form happens in the service so field-level errors can be returned.
+  registration_data: z
+    .record(z.string().max(200), z.string().max(500))
+    .refine((data) => Object.keys(data).length <= 100, "Too many registration answers")
+    .optional(),
+}).strict();
+
+const roomRegistrationFieldSchema = z.object({
+  id: z
+    .string()
+    .trim()
+    .min(1, "Field id is required")
+    .max(64, "Field id is too long")
+    .regex(/^[A-Za-z0-9_-]+$/, "Field id contains invalid characters"),
+  label: z
+    .string()
+    .trim()
+    .min(1, "Field label is required")
+    .max(200, "Field label must be at most 200 characters"),
+  type: z.enum(["text", "email", "phone", "number", "select"]),
+  required: z.boolean(),
+  options: z
+    .array(z.string().trim().min(1, "Option cannot be empty").max(100, "Option is too long"))
+    .max(20, "At most 20 options are allowed")
+    .optional(),
+}).strict();
+
+/** Creator-defined registration form for a room. */
+export const roomRegistrationFormSchema = z
+  .object({
+    title: z
+      .string()
+      .trim()
+      .min(1, "Form title is required")
+      .max(120, "Form title must be at most 120 characters"),
+    description: z
+      .string()
+      .trim()
+      .max(500, "Description must be at most 500 characters")
+      .optional(),
+    fields: z
+      .array(roomRegistrationFieldSchema)
+      .max(30, "At most 30 registration fields are allowed"),
+  })
+  .strict()
+  .superRefine((form, ctx) => {
+    const labels = new Set<string>();
+    const ids = new Set<string>();
+
+    form.fields.forEach((field, index) => {
+      const labelKey = field.label.toLowerCase();
+      if (labels.has(labelKey)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["fields", index, "label"],
+          message: "Field labels must be unique",
+        });
+      }
+      labels.add(labelKey);
+
+      if (ids.has(field.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["fields", index, "id"],
+          message: "Field ids must be unique",
+        });
+      }
+      ids.add(field.id);
+
+      if (field.type === "select" && (!field.options || field.options.length === 0)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["fields", index, "options"],
+          message: "Select fields need at least one option",
+        });
+      }
+    });
+  });
+
+/**
  * Schema for quiz registration.
  */
 export const quizRegistrationSchema = z.object({

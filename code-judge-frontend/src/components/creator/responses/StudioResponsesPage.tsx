@@ -46,6 +46,9 @@ interface Student {
   rank: number | null;
   questionsAnswered: number | null;
   totalQuestions: number | null;
+  decoyHits: number | null;
+  decoyQuestions: number | null;
+  decoyFlagged: boolean;
 }
 
 const STATUS_CONFIG: Record<StudentStatus, { label: string; text: string }> = {
@@ -202,6 +205,9 @@ function mapStudent(row: QuizResponseStudent): Student {
     rank: row.rank,
     questionsAnswered: hasAttempt ? (correct ?? 0) + wrong : status === "NOT_STARTED" ? 0 : null,
     totalQuestions: toNumber(row.total_questions),
+    decoyHits: hasAttempt ? toNumber(row.decoy_hits) ?? 0 : null,
+    decoyQuestions: hasAttempt ? toNumber(row.decoy_questions) ?? 0 : null,
+    decoyFlagged: hasAttempt && row.decoy_flagged === true,
   };
 }
 
@@ -496,10 +502,11 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
   ]), [timeStats]);
 
   const exportCsv = useCallback(() => {
-    const header = ["Rank", "Student", "Roll no.", "Status", "Correct", "Total questions", "%", "Time taken", "Submitted at"];
+    const header = ["Rank", "Student", "Roll no.", "Status", "Correct", "Total questions", "%", "Decoy hits", "Decoy flagged", "Time taken", "Submitted at"];
     const rows = filtered.map((s) => [
       s.rank ?? "", nameWithAttempt(s.name, s.attemptNumber), s.rollNo, STATUS_CONFIG[s.status].label,
-      s.correct ?? "", s.totalQuestions ?? "", s.totalQuestions ? Math.round(((s.correct ?? 0) / s.totalQuestions) * 100) : "", s.timeTaken ?? "", s.submittedAt ?? "",
+      s.correct ?? "", s.totalQuestions ?? "", s.totalQuestions ? Math.round(((s.correct ?? 0) / s.totalQuestions) * 100) : "",
+      s.decoyHits ?? "", s.decoyFlagged ? "YES" : "NO", s.timeTaken ?? "", s.submittedAt ?? "",
     ]);
     const csv = [header, ...rows]
       .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
@@ -942,6 +949,10 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                         <p className="mt-1.5 text-[11px] text-[var(--qs-muted)]">
                           {s.timeTaken ?? "—"} · {s.submittedAt ?? "—"}
                         </p>
+                        <p className={cn("mt-1 text-[11px] font-bold", s.decoyFlagged ? "text-[var(--qs-bad)]" : "text-[var(--qs-muted)]")}>
+                          Decoy hits: {s.decoyHits !== null ? `${s.decoyHits}/${s.decoyQuestions ?? 0}` : "—"}
+                          {s.decoyFlagged ? " · Flagged" : ""}
+                        </p>
                       </div>
                       <button
                         type="button"
@@ -958,10 +969,10 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
             </div>
 
             <div className="hidden overflow-x-auto border-t-2 border-[var(--qs-line)] md:block">
-              <table className="w-full min-w-[900px] border-collapse text-left">
+              <table className="w-full min-w-[1000px] border-collapse text-left">
                 <thead>
                   <tr>
-                    {["Rank", "Student", "Roll no.", "Status", "Correct", "%", "Time taken", "Submitted at", "Actions"].map((h) => (
+                    {["Rank", "Student", "Roll no.", "Status", "Correct", "%", "Decoy hits", "Time taken", "Submitted at", "Actions"].map((h) => (
                       <th key={h} className="whitespace-nowrap px-3 py-3.5 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">{h}</th>
                     ))}
                   </tr>
@@ -970,14 +981,14 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                   {loading ? (
                     Array.from({ length: 5 }).map((_, i) => (
                       <tr key={i}>
-                        <td colSpan={9} className="border-t-2 border-[var(--qs-line)]/60 px-3 py-3">
+                        <td colSpan={10} className="border-t-2 border-[var(--qs-line)]/60 px-3 py-3">
                           <div className="app-skeleton h-8 rounded" />
                         </td>
                       </tr>
                     ))
                   ) : filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="border-t-2 border-[var(--qs-line)]/60 px-4 py-10 text-center text-sm font-medium text-[var(--qs-muted)]">
+                      <td colSpan={10} className="border-t-2 border-[var(--qs-line)]/60 px-4 py-10 text-center text-sm font-medium text-[var(--qs-muted)]">
                         {students.length === 0 ? "No responses yet — students haven't been registered or attempted this quiz." : "No records match this filter."}
                       </td>
                     </tr>
@@ -1011,6 +1022,16 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                               />
                             </span>
                           </div>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className={cn("inline-flex items-center gap-1.5 font-bold", s.decoyFlagged ? "text-[var(--qs-bad)]" : "text-[var(--qs-ink)]")}>
+                            {s.decoyHits !== null ? `${s.decoyHits}/${s.decoyQuestions ?? 0}` : "—"}
+                            {s.decoyFlagged && (
+                              <span className="rounded-full border border-current px-1.5 py-px text-[9px] font-extrabold uppercase tracking-[0.05em]">
+                                Flag
+                              </span>
+                            )}
+                          </span>
                         </td>
                         <td className="px-3 py-3 text-[var(--qs-ink)]">{s.timeTaken ?? "—"}</td>
                         <td className="px-3 py-3 text-[var(--qs-muted)]">{s.submittedAt ?? "—"}</td>

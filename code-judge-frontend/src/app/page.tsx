@@ -22,7 +22,7 @@ import ThemeToggle from "@/components/ui/ThemeToggle";
 import GeneratorStudio from "@/components/marketing/landing/GeneratorStudio";
 import FeatureTabs from "@/components/marketing/landing/FeatureTabs";
 import { SecureLogo } from "@/components/common/SecureLogo";
-import { CREDIT_PURCHASE_PACKS, formatPaperEstimates } from "@/config/aiCredits";
+import { CREDIT_PURCHASE_PACKS } from "@/config/aiCredits";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
 
 export const metadata: Metadata = buildPublicPageMetadata({
@@ -37,7 +37,8 @@ const NAV_LINKS = [
   { label: "Tools", href: "#tools" },
   { label: "Features", href: "#features" },
   { label: "How it works", href: "#how" },
-  { label: "Pricing", href: "#pricing" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "AI credits", href: "#pricing" },
 ];
 
 const EXAMS = ["JEE", "NEET", "GATE", "SSC", "UPSC", "Banking"];
@@ -160,7 +161,7 @@ const AUDIENCES = [
     title: "Papers in minutes",
     desc: "Generate questions from your syllabus, export print-ready papers, and see how every student did.",
     cta: "See AI credits",
-    href: "#pricing",
+    href: "/pricing/credits",
   },
   {
     chip: "Creators",
@@ -187,7 +188,7 @@ const FAQS = [
   },
   {
     q: "Is there a subscription?",
-    a: "No. Credit packs are a one-time purchase and the credits stay valid for up to 3 months.",
+    a: "There is a free plan with five quizzes a month. Basic and Pro add more quiz creations and include monthly AI credits; extra credits are one-time packs that work with every plan.",
   },
   {
     q: "Can I get results out of the platform?",
@@ -203,6 +204,10 @@ const BASE_RATE = CREDIT_PURCHASE_PACKS[0]
   ? CREDIT_PURCHASE_PACKS[0].price / CREDIT_PURCHASE_PACKS[0].credits
   : 0;
 
+const CREDIT_VALIDITY_MONTHS = Math.max(
+  ...CREDIT_PURCHASE_PACKS.map((pack) => pack.validityMonths)
+);
+
 export default function HomePage() {
   return (
     <div className="qs-ui qs-lp min-h-screen">
@@ -212,11 +217,17 @@ export default function HomePage() {
             <SecureLogo size={42} variant="full" rounded={false} className="logo" />
           </Link>
           <div className="nl">
-            {NAV_LINKS.map((link) => (
-              <a key={link.href} href={link.href}>
-                {link.label}
-              </a>
-            ))}
+            {NAV_LINKS.map((link) =>
+              link.href.startsWith("#") ? (
+                <a key={link.href} href={link.href}>
+                  {link.label}
+                </a>
+              ) : (
+                <Link key={link.href} href={link.href}>
+                  {link.label}
+                </Link>
+              )
+            )}
             <ThemeToggle variant="icon" />
             <Link href="/login" className="btn sm">
               Log in
@@ -345,10 +356,13 @@ export default function HomePage() {
         <section className="s" id="pricing">
           <div className="wrap">
             <p className="eb">AI credits</p>
-            <h2 className="t">Pay once. Use your credits for up to 3 months.</h2>
+            <h2 className="t">
+              Pay once. Use your credits for up to {CREDIT_VALIDITY_MONTHS} months.
+            </h2>
             <p className="d">
-              One-time purchase. No subscription. Every pack lets you generate MCQ,
-              short and long questions and export to PDF or Word.
+              Basic and Pro include monthly AI credits; extra packs are a
+              one-time purchase and work with every plan. Every pack lets you
+              generate MCQ, short and long questions and export to PDF or Word.
             </p>
             <div className="pk3">
               {CREDIT_PURCHASE_PACKS.map((pack) => {
@@ -365,9 +379,6 @@ export default function HomePage() {
                     <div className="cr">
                       {pack.credits} credits <span>· ₹{rate.toFixed(2)} / credit</span>
                     </div>
-                    <div className="cr" style={{ fontWeight: 500, marginTop: 6 }}>
-                      {formatPaperEstimates(pack.credits)}
-                    </div>
                     <p>
                       {pack.blurb} Valid for {pack.validityMonths}{" "}
                       {pack.validityMonths === 1 ? "month" : "months"}.
@@ -380,7 +391,12 @@ export default function HomePage() {
               })}
             </div>
             <p className="sub" style={{ textAlign: "center", marginTop: 30 }}>
-              Secure payments via UPI, Cards &amp; Net Banking
+              Secure payments via UPI, Cards &amp; Net Banking.{" "}
+              <Link href="/pricing/credits">See all AI credit packs</Link>.
+            </p>
+            <p className="sub" style={{ textAlign: "center", marginTop: 8 }}>
+              Need more quiz creations?{" "}
+              <Link href="/pricing">Compare monthly plans</Link>.
             </p>
           </div>
         </section>

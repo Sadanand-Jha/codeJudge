@@ -28,7 +28,7 @@ const MODE_OPTIONS: Array<{ id: "public" | "private" | "classroom"; label: strin
   { id: "classroom", label: "Rooms" },
 ];
 
-export function AudienceStep() {
+export function AudienceStep({ embedded = false }: { embedded?: boolean } = {}) {
   const { state, updateAudience, saveAudienceParticipants, audienceDirty } = useStudio();
   const a = state.audience;
 
@@ -247,7 +247,7 @@ export function AudienceStep() {
     updateAudience({ roomIds: a.roomIds.filter((id) => id !== roomId) });
 
   return (
-    <StudioStepLayout>
+    <StudioStepLayout embedded={embedded}>
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}

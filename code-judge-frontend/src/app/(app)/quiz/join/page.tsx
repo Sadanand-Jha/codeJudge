@@ -27,6 +27,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { getQuizByCode, getQuizCrowdAvatars, getQuizRating, getCreatorStats, type Quiz, type QuizRatingState, type CreatorPublicStats } from "@/services/quiz";
 import { formatQuizCode, isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
+import { formatScheduleCountdown, getQuizScheduleWindow } from "@/utils/quizSchedule";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { useQuizSounds } from "@/hooks/useQuizSounds";
 import StudentQuizShell, { QuizLoader, QuizStateScreen } from "@/components/quiz/live/StudentQuizShell";
@@ -214,27 +215,29 @@ export default function JoinQuizPage() {
   const formatDateTime = (iso: string | null) => {
     if (!iso) return "Not set";
     const d = new Date(iso);
-    return d.toLocaleString("en-IN", {
+    return `${d.toLocaleString("en-IN", {
       dateStyle: "medium",
       timeStyle: "short",
       timeZone: "Asia/Kolkata",
-    });
+    })} IST`;
   };
 
-  const getTimeRemaining = (iso: string | null) => {
-    if (!iso) return null;
-    if (clockMs === null) return "Soon";
-    const diff = new Date(iso).getTime() - clockMs;
-    if (diff <= 0) return "Started";
-    const hrs = Math.floor(diff / 3600000);
-    const mins = Math.floor((diff % 3600000) / 60000);
-    if (hrs > 0) return `${hrs}h ${mins}m`;
-    return `${mins}m`;
+  const getWindowRemaining = () => {
+    if (!quiz) return null;
+    const schedule = getQuizScheduleWindow(quiz, clockMs ?? Date.now());
+    if (schedule.state === "ended") return "Ended";
+    if (schedule.state === "upcoming") {
+      return `Starts in ${formatScheduleCountdown(schedule.remainingMs)}`;
+    }
+    if (schedule.state === "live" && schedule.target === "end") {
+      return `Ends in ${formatScheduleCountdown(schedule.remainingMs)}`;
+    }
+    return "Live";
   };
 
   const getQuizStatus = () => {
     if (!quiz) return null;
-    const now = clockMs ?? 0;
+    const now = clockMs ?? Date.now();
     const start = quiz.starttime ? new Date(quiz.starttime).getTime() : null;
     const end = quiz.endtime ? new Date(quiz.endtime).getTime() : null;
 
@@ -428,9 +431,9 @@ export default function JoinQuizPage() {
                 <div className="relative space-y-3 p-4 sm:p-5">
                   <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                     <InfoCard
-                      icon={Clock}
-                      label="Duration"
-                      value={quiz.duration ? `${quiz.duration} min` : "Not set"}
+                      icon={quiz.scheduled ? Calendar : Clock}
+                      label={quiz.scheduled ? "Attempts" : "Duration"}
+                      value={quiz.scheduled ? "Open during schedule" : quiz.duration ? `${quiz.duration} min` : "Not set"}
                     />
                     <InfoCard
                       icon={Target}
@@ -452,9 +455,9 @@ export default function JoinQuizPage() {
                         <Calendar className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
                         <h3 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--qs-muted)]">Quiz schedule</h3>
                       </div>
-                      {quiz.starttime && (
+                      {(quiz.starttime || quiz.endtime) && (
                         <span className="rounded-full border-2 border-[var(--qs-brand)] px-2.5 py-1 text-[10px] font-bold text-[var(--qs-brand)]">
-                          {getTimeRemaining(quiz.starttime)}
+                          {getWindowRemaining()}
                         </span>
                       )}
                     </div>

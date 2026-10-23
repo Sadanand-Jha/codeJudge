@@ -102,13 +102,17 @@ export function SecureLogo({
   className,
   rounded = true,
   variant = 'full',
+  theme: themeOverride,
 }: {
   size?: number;
   className?: string;
   rounded?: boolean;
   variant?: SecureLogoVariant;
+  /** Force the artwork for a specific background (e.g. always-dark pages). */
+  theme?: LogoTheme;
 }) {
-  const { theme } = useTheme();
+  const { theme: activeTheme } = useTheme();
+  const theme = themeOverride ?? activeTheme;
   const logoKey = `${variant}:${theme}`;
   const staticFallback = STATIC_LOGO_FALLBACK[theme][variant];
 

@@ -6,7 +6,7 @@ import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import { StudioStepHeader, StudioStepLayout } from "../primitives";
 
-export function PricingStep() {
+export function PricingStep({ embedded = false }: { embedded?: boolean } = {}) {
   const { state, updatePricing, updateBranding } = useStudio();
   const p = state.pricing;
 
@@ -20,7 +20,7 @@ export function PricingStep() {
   ];
 
   return (
-    <StudioStepLayout>
+    <StudioStepLayout embedded={embedded}>
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}

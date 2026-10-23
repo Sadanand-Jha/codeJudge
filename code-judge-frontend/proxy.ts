@@ -29,6 +29,7 @@ const FOCUS_BLOCKED_STUDENT_PREFIXES = [
 
 const FOCUS_ALLOWED_PREFIXES = [
   "/quiz",
+  "/rooms",
   "/platform",
   "/creator",
   "/login",
@@ -39,18 +40,20 @@ const FOCUS_ALLOWED_PREFIXES = [
   "/contact",
   "/privacy",
   "/docs",
+  "/pricing",
 ];
 
 // Blocked pages kept in the build that redirect to the homepage instead of
 // the quiz hub. Mirrors FOCUS_HOME_REDIRECT_PREFIXES in src/config/focusMode.ts.
-const FOCUS_HOME_REDIRECT_PREFIXES = ["/pricing"];
+const FOCUS_HOME_REDIRECT_PREFIXES: string[] = [];
+
 
 const FOCUS_ALLOWED_EXACT = ["/", "/robots.txt", "/sitemap.xml"];
 
 // Authenticated workspaces and account-only screens: never index, even when
 // they are reachable through the focus-mode allowlist. Mirrors the `robots`
 // metadata exported by the (auth), quiz and creator layouts.
-const NOINDEX_NOFOLLOW_PREFIXES = ["/quiz", "/creator", "/platform"];
+const NOINDEX_NOFOLLOW_PREFIXES = ["/quiz", "/rooms", "/creator", "/platform"];
 const NOINDEX_FOLLOW_PREFIXES = ["/login", "/register", "/forgot-password"];
 
 function matchesPrefix(pathname: string, prefixes: string[]): boolean {

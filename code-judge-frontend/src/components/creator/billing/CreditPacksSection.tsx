@@ -4,12 +4,12 @@ import { Check, Coins, Lock, Star } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import {
   CREDIT_PURCHASE_PACKS,
-  formatPaperEstimates,
   type CreditPurchasePack,
 } from "@/config/aiCredits";
 
 /* Pack data — exact values from billing config (single source of truth). */
 const PACKS: CreditPurchasePack[] = CREDIT_PURCHASE_PACKS;
+const VALIDITY_MONTHS = PACKS[0]?.validityMonths ?? 3;
 
 const PACK_FEATURES: Record<string, string[]> = {
   teacher: [
@@ -57,7 +57,7 @@ export function CreditPacksSection({ onSelectPack }: CreditPacksSectionProps) {
           Choose your credit pack
         </h2>
         <p className="mt-2 text-sm text-slate-500">
-          One-time purchase. No subscription. Credits valid for 3 months.
+          One-time purchase. No subscription. Credits valid for {VALIDITY_MONTHS} months.
         </p>
       </div>
 
@@ -122,9 +122,6 @@ export function CreditPacksSection({ onSelectPack }: CreditPacksSectionProps) {
                 </span>
               </p>
 
-              <p className="mt-1 text-sm font-medium tabular-nums text-slate-600">
-                {formatPaperEstimates(pack.credits)}
-              </p>
 
               {/* Description — 2-line min-height keeps CTAs aligned */}
               <p className="mt-2 min-h-[2.5rem] text-sm leading-5 text-slate-500">

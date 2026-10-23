@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/helpers";
+import { toast } from "@/lib/toast";
 
 type AiGenerateButtonSize = "sm" | "md" | "lg";
 
@@ -13,6 +14,7 @@ interface AiGenerateButtonProps {
   size?: AiGenerateButtonSize;
   fullWidth?: boolean;
   disabled?: boolean;
+  comingSoon?: boolean;
   className?: string;
   ariaLabel?: string;
 }
@@ -29,6 +31,7 @@ export function AiGenerateButton({
   size = "md",
   fullWidth = false,
   disabled = false,
+  comingSoon = false,
   className,
   ariaLabel,
 }: AiGenerateButtonProps) {
@@ -39,6 +42,25 @@ export function AiGenerateButton({
     fullWidth && "b-full",
     className
   );
+
+  if (comingSoon) {
+    return (
+      <button
+        type="button"
+        aria-disabled="true"
+        onClick={() =>
+          toast.info({
+            title: "Coming soon",
+            description: "AI quiz generation is not available yet.",
+          })
+        }
+        className={cn(classes, "cursor-not-allowed", fullWidth && "w-full")}
+        aria-label={ariaLabel ?? label}
+      >
+        <span>{label}</span>
+      </button>
+    );
+  }
 
   if (href && !disabled) {
     return (

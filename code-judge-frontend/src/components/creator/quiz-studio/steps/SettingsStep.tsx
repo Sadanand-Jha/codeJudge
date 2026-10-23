@@ -10,6 +10,7 @@ import { regenerateQuizCode } from "@/services/quiz";
 import { useStudio } from "../StudioProvider";
 import { StudioStepHeader, StudioStepLayout, SwitchField } from "../primitives";
 import { TimingSection } from "../components/timing";
+import { formatDateTimeIST } from "../components/timing/helpers";
 
 const GROUPS: Array<{ id: string; label: string; icon: LucideIcon; fields: SettingField[]; comingSoon?: boolean; alwaysOn?: boolean }> = [
   {
@@ -61,11 +62,13 @@ interface SettingField {
 export function SettingsStep() {
   return (
     <StudioStepLayout width="wide">
-      <StudioStepHeader title="Quiz Settings" />
+      <StudioStepHeader title="Rules" />
+      <p className="-mt-1 px-1 text-sm font-medium text-[var(--qs-muted)]">
+        Only the rules that apply during an attempt.
+      </p>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start">
         <div className="min-w-0 space-y-4">
-          <QuizCodeCard />
-          <TimingSection />
+          <TimingSection variant="rules" />
 
           {GROUPS.map((g, i) => (
             <motion.div
@@ -93,7 +96,7 @@ export function SettingsStep() {
   );
 }
 
-function QuizCodeCard() {
+export function QuizCodeCard() {
   const { state, updateInfo } = useStudio();
   const toast = useToast();
   const [confirming, setConfirming] = useState(false);
@@ -227,12 +230,7 @@ function SummaryAside() {
 
   const startLabel =
     lifecycle === "scheduled" && state.info.startDate
-      ? new Date(state.info.startDate).toLocaleString("en-IN", {
-          day: "numeric",
-          month: "short",
-          hour: "numeric",
-          minute: "2-digit",
-        })
+      ? formatDateTimeIST(state.info.startDate)
       : "Manual";
 
   return (

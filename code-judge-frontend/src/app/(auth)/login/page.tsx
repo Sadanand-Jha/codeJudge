@@ -12,8 +12,23 @@ import { AuthBrandMark, AuthLoader, AuthThemeControls } from "@/components/auth/
 import { getApiErrorMessage } from "@/lib/apiError";
 import type { UserProfile } from "@/store/authStore";
 
+function safeNextPath(value: string | null): string | null {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
+  // Backslashes are treated as slashes by some browsers, which would turn
+  // "/\evil.com" into an external navigation.
+  if (value.includes("\\") || /[\u0000-\u001f]/.test(value)) return null;
+  return value;
+}
+
 export default function LoginPage() {
   const router = useRouter();
+  // Read ?next= once on the client. Only same-origin paths are accepted so
+  // this cannot become an open redirect.
+  const [nextPath] = useState<string | null>(() =>
+    typeof window === "undefined"
+      ? null
+      : safeNextPath(new URLSearchParams(window.location.search).get("next"))
+  );
   const setAuth = useAuthStore((s) => s.setAuth);
   const currentUser = useAuthStore((s) => s.user);
   const hydrate = useAuthStore((s) => s.hydrate);
@@ -31,9 +46,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (hasHydrated && isAuthenticated) {
-      router.replace(currentUser?.role?.toLowerCase() === "teacher" ? "/creator" : "/quiz");
+      router.replace(nextPath || (currentUser?.role?.toLowerCase() === "teacher" ? "/creator" : "/quiz"));
     }
-  }, [currentUser?.role, hasHydrated, isAuthenticated, router]);
+  }, [currentUser?.role, hasHydrated, isAuthenticated, nextPath, router]);
 
   if (!hasHydrated) {
     return (
@@ -62,7 +77,7 @@ export default function LoginPage() {
         if (!user) throw new Error("Login response did not include a user profile");
         setAuth(token || "session", user);
         toast.success("Logged in successfully");
-        router.push(user.role?.toLowerCase() === "teacher" ? "/creator" : "/quiz");
+        router.push(nextPath || (user.role?.toLowerCase() === "teacher" ? "/creator" : "/quiz"));
       } else {
         const message = res.message || "We couldn't sign you in. Please check your details.";
         setErrorMessage(message);

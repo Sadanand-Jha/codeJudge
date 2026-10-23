@@ -133,7 +133,10 @@ export async function processQuizSubmission(data: QuizSubmissionJobData): Promis
   }
 
   const startedAt = attempt.started_at ?? attempt.created_at;
-  const durationDeadline = quizRow?.duration && startedAt
+  // Scheduled quizzes are graded against the quiz window only; their
+  // per-attempt duration is not enforced.
+  const scheduledQuiz = String(quizRow?.status ?? "").toLowerCase() === "scheduled";
+  const durationDeadline = !scheduledQuiz && quizRow?.duration && startedAt
     ? new Date(startedAt).getTime() + Number(quizRow.duration) * 60_000
     : Number.POSITIVE_INFINITY;
   const quizDeadline = quizRow?.endtime
@@ -190,9 +193,10 @@ function savedResponseToSubmission(row: any): QuizSubmissionJobData["responses"]
 }
 
 /**
- * Grades attempts whose personal duration or quiz end-time has elapsed. This
- * runs on server requests, so it also covers students who closed the browser
- * before the client-side timer could submit.
+ * Grades attempts whose quiz deadline has elapsed. Scheduled quizzes expire at
+ * their end time; manually-started quizzes also expire when their per-attempt
+ * duration runs out. This runs on server requests, so it also covers students
+ * who closed the browser before the client-side timer could submit.
  */
 export async function finalizeExpiredQuizAttempts(options: {
   quizId: number;

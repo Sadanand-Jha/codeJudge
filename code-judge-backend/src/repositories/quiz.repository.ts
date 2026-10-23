@@ -1015,14 +1015,21 @@ export class QuizRepository {
       `SELECT qa.*
        FROM quiz_attempt qa
        JOIN quiz q ON q.id = qa.quiz_id
+       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
        WHERE qa.quiz_id = $1
          AND qa.status = 'in_progress'
          AND qa.deleted_at IS NULL
          AND ($2::int IS NULL OR qa.user_id = $2)
          AND (
-           (q.duration IS NOT NULL
-             AND COALESCE(qa.started_at, qa.created_at) + (q.duration * INTERVAL '1 minute') <= CURRENT_TIMESTAMP)
-           OR (q.endtime IS NOT NULL AND q.endtime <= CURRENT_TIMESTAMP)
+           (LOWER(COALESCE(qs.name, '')) = 'scheduled'
+             AND q.endtime IS NOT NULL
+             AND q.endtime <= CURRENT_TIMESTAMP)
+           OR (LOWER(COALESCE(qs.name, '')) <> 'scheduled'
+             AND (
+               (q.duration IS NOT NULL
+                 AND COALESCE(qa.started_at, qa.created_at) + (q.duration * INTERVAL '1 minute') <= CURRENT_TIMESTAMP)
+               OR (q.endtime IS NOT NULL AND q.endtime <= CURRENT_TIMESTAMP)
+             ))
          )
        ORDER BY qa.id ASC`,
       [quizId, userId ?? null]
@@ -1091,8 +1098,8 @@ export class QuizRepository {
     const updateableFields = [
       "score", "percentage", "rank", "status", "completed_at", "time_taken",
       "total_questions", "correct_answers", "wrong_answers", "skipped_questions",
-      "violations", "flagged", "flag_reason",
-      "total_marks", "marks_obtained"
+      "violations", "flagged", "flag_reason", "total_marks", "marks_obtained",
+      "decoy_map"
     ];
 
     for (const field of updateableFields) {
@@ -2246,6 +2253,71 @@ export class QuizRepository {
     `;
     const studentsResult = await pool.query(studentsQuery, [quizId]);
     const students = studentsResult.rows;
+
+    // Decoy-hit metrics are derived from the attempt's private decoy map and
+    // the student's saved selections. The map itself never leaves the server.
+    const attemptIds = students
+      .map((student: any) => Number(student.attempt_id))
+      .filter((id: number) => Number.isInteger(id) && id > 0);
+    if (attemptIds.length > 0) {
+      const decoyResult = await pool.query(
+        `SELECT
+           qa.id AS attempt_id,
+           COALESCE(d.decoy_hits, 0)::int AS decoy_hits,
+           COALESCE(d.decoy_questions, 0)::int AS decoy_questions
+         FROM quiz_attempt qa
+         LEFT JOIN LATERAL (
+           SELECT
+             COUNT(*) FILTER (WHERE
+               qsr.answer->>'selectedOptionId' = decoy.value->>'optionId'
+               OR EXISTS (
+                 SELECT 1
+                 FROM jsonb_array_elements_text(
+                   COALESCE(qsr.answer->'selectedOptionIds', '[]'::jsonb)
+                 ) AS selected(option_id)
+                 WHERE selected.option_id = decoy.value->>'optionId'
+               )
+             )::int AS decoy_hits,
+             COUNT(*)::int AS decoy_questions
+           FROM jsonb_each(COALESCE(qa.decoy_map, '{}'::jsonb)) AS decoy(key, value)
+           LEFT JOIN quiz_student_response qsr
+             ON qsr.attempt_id = qa.id
+            AND qsr.problem_id = (decoy.key)::int
+         ) d ON TRUE
+         WHERE qa.id = ANY($1::int[]) AND qa.deleted_at IS NULL`,
+        [attemptIds]
+      );
+      const decoyByAttempt = new Map<number, { decoy_hits: number; decoy_questions: number }>();
+      for (const row of decoyResult.rows) {
+        const id = Number(row.attempt_id);
+        if (!Number.isInteger(id)) continue;
+        decoyByAttempt.set(id, {
+          decoy_hits: Number(row.decoy_hits) || 0,
+          decoy_questions: Number(row.decoy_questions) || 0,
+        });
+      }
+      for (const student of students as any[]) {
+        if (student.attempt_id === null || student.attempt_id === undefined) {
+          student.decoy_hits = null;
+          student.decoy_questions = null;
+          student.decoy_flagged = false;
+          continue;
+        }
+        const metrics = decoyByAttempt.get(Number(student.attempt_id));
+        const hits = metrics?.decoy_hits ?? 0;
+        const questions = metrics?.decoy_questions ?? 0;
+        student.decoy_hits = hits;
+        student.decoy_questions = questions;
+        student.decoy_flagged =
+          questions >= 5 && hits >= Math.ceil(questions * 0.6);
+      }
+    } else {
+      for (const student of students as any[]) {
+        student.decoy_hits = null;
+        student.decoy_questions = null;
+        student.decoy_flagged = false;
+      }
+    }
 
     const counts = await pool.query(
       `WITH response_users AS (

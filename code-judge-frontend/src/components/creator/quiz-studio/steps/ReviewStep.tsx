@@ -16,7 +16,7 @@ interface ReviewItem {
   fix?: () => void;
 }
 
-export function ReviewStep() {
+export function ReviewStep({ embedded = false }: { embedded?: boolean } = {}) {
   const { state, goToStep, summary } = useStudio();
   const items = computeItems(state, summary, goToStep);
 
@@ -25,7 +25,7 @@ export function ReviewStep() {
   const oks = items.filter((i) => i.severity === "ok");
 
   return (
-    <StudioStepLayout>
+    <StudioStepLayout embedded={embedded}>
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -132,7 +132,7 @@ function computeItems(
       severity: "error",
       label: "Quiz title is required",
       detail: "Add at least 3 characters.",
-      fix: () => goToStep("setup"),
+      fix: () => goToStep("details"),
     });
   } else {
     items.push({ id: "title", severity: "ok", label: "Quiz title is set" });
@@ -143,7 +143,7 @@ function computeItems(
       id: "desc",
       severity: "warning",
       label: "Short description is missing",
-      fix: () => goToStep("setup"),
+      fix: () => goToStep("details"),
     });
   } else {
     items.push({ id: "desc", severity: "ok", label: "Short description is set" });
@@ -154,7 +154,7 @@ function computeItems(
       id: "duration",
       severity: "error",
       label: "Duration must be greater than 0",
-      fix: () => goToStep("setup"),
+      fix: () => goToStep("rules"),
     });
   } else {
     items.push({ id: "duration", severity: "ok", label: `${state.info.duration} minutes set` });
@@ -212,7 +212,7 @@ function computeItems(
         severity: "error",
         label: "No audience selected",
         detail: "Select at least one room or manually add students.",
-        fix: () => goToStep("audience"),
+        fix: () => goToStep("access"),
       });
     } else {
       items.push({
@@ -236,7 +236,7 @@ function computeItems(
       severity: "warning",
       label: "No registration fields configured",
       detail: "Add academic fields like Roll Number or Branch for participant records.",
-      fix: () => goToStep("registration"),
+      fix: () => goToStep("access"),
     });
   } else {
     items.push({
@@ -252,7 +252,7 @@ function computeItems(
       severity: "error",
       label: "Some registration fields have no name",
       detail: "Every registration field needs a name before saving.",
-      fix: () => goToStep("registration"),
+      fix: () => goToStep("access"),
     });
   }
 
@@ -263,7 +263,7 @@ function computeItems(
       severity: "warning",
       label: "Registration deadline is in the past",
       detail: "Students will not be able to register unless the deadline is extended.",
-      fix: () => goToStep("registration"),
+      fix: () => goToStep("access"),
     });
   }
 
@@ -272,7 +272,7 @@ function computeItems(
       id: "price",
       severity: "error",
       label: "Paid quiz requires a price",
-      fix: () => goToStep("pricing"),
+      fix: () => goToStep("access"),
     });
   }
 

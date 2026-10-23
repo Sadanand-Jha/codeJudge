@@ -6,43 +6,25 @@ import { StudioProvider, useStudio } from "./StudioProvider";
 import { StudioShell } from "./StudioShell";
 import { SetupStep } from "./steps/SetupStep";
 import { QuestionsStep } from "./steps/QuestionsStep";
-// DISCONNECTED (game mechanics not included as of now):
-// import { GameMechanicsStep } from "./steps/GameMechanicsStep";
+import { AccessStep } from "./steps/AccessStep";
 import { SettingsStep } from "./steps/SettingsStep";
-import { AudienceStep } from "./steps/AudienceStep";
-import { RegistrationStep } from "./steps/RegistrationStep";
-import { PricingStep } from "./steps/PricingStep";
-import { BrandingStep } from "./steps/BrandingStep";
-import { ReviewStep } from "./steps/ReviewStep";
-import { PublishStep, SuccessStep } from "./steps/PublishStep";
+import { ReviewPublishStep } from "./steps/ReviewPublishStep";
+import { SuccessStep } from "./steps/PublishStep";
 
 export function StudioRouter() {
-  const { state, publish, editMode } = useStudio();
+  const { state, publish } = useStudio();
 
   switch (state.step) {
-    case "setup":
+    case "details":
       return <SetupStep />;
     case "questions":
       return <QuestionsStep />;
-    // DISCONNECTED (game mechanics not included as of now) — stale
-    // drafts/URLs landing here fall through to Questions instead.
-    case "gameMechanics":
-      return <QuestionsStep />;
-    case "settings":
+    case "access":
+      return <AccessStep />;
+    case "rules":
       return <SettingsStep />;
-    case "audience":
-      return <AudienceStep />;
-    case "registration":
-      return <RegistrationStep />;
-    case "pricing":
-      return <PricingStep />;
-    case "branding":
-      return <BrandingStep />;
-    case "review":
-      return <ReviewStep />;
-    case "publish":
-      if (editMode) return <ReviewStep />;
-      return <PublishStep onPublish={publish} />;
+    case "reviewPublish":
+      return <ReviewPublishStep onPublish={publish} />;
     default:
       return <SetupStep />;
   }

@@ -11,16 +11,11 @@ export type { CreatorQuestion, CreatorOption, CreatorQuestionType, BloomLevel };
 export type { GameMechanicsConfig };
 
 export type StudioStepId =
-  | "setup"
+  | "details"
   | "questions"
-  | "gameMechanics"
-  | "settings"
-  | "audience"
-  | "registration"
-  | "pricing"
-  | "branding"
-  | "review"
-  | "publish";
+  | "access"
+  | "rules"
+  | "reviewPublish";
 
 // ─────────────────────────────────────────
 // Registration — creator-defined fields.
@@ -251,32 +246,23 @@ export const DEFAULT_BRANDING: StudioBranding = {
 export const DEFAULT_GAME_MECHANICS_STATE = DEFAULT_GAME_MECHANICS;
 
 export const STEPS: Array<{ id: StudioStepId; label: string }> = [
-  { id: "setup", label: "Setup" },
+  { id: "details", label: "Details" },
   { id: "questions", label: "Questions" },
-  // DISCONNECTED (game mechanics not included as of now):
-  // { id: "gameMechanics", label: "Game Mechanics" },
-  { id: "settings", label: "Settings" },
-  { id: "audience", label: "Audience" },
-  { id: "registration", label: "Registration" },
-  { id: "pricing", label: "Pricing" },
-  // DISCONNECTED (branding removed from quiz creation):
-  // { id: "branding", label: "Branding" },
-  { id: "review", label: "Review" },
-  { id: "publish", label: "Publish" },
+  { id: "access", label: "Access" },
+  { id: "rules", label: "Rules" },
+  { id: "reviewPublish", label: "Review & publish" },
 ];
 
 /**
- * Mobile shows a focused subset of the Studio flow (the dropdown + Continue
- * only move through these). `publish` is included so create-flow stays
- * reachable on mobile; editMode filters it out, leaving exactly 5 steps.
+ * Mobile follows the same five-step flow as desktop. Kept as a separate list
+ * so mobile-specific navigation can diverge later if needed.
  */
 export const MOBILE_STEP_IDS: StudioStepId[] = [
-  "setup",
+  "details",
   "questions",
-  "settings",
-  "audience",
-  "review",
-  "publish",
+  "access",
+  "rules",
+  "reviewPublish",
 ];
 
 export const EXAMS = [

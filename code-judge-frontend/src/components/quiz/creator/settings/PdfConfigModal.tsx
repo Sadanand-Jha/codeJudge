@@ -9,6 +9,7 @@ import { getQuizResponses, type QuizResponseStudent } from "@/services/quiz";
 import {
   buildPaperPreviewDocument,
   loadPaperFontCss,
+  paperInstructionLines,
   preparePaperQuestions,
   type PaperMeta,
   type PaperOptions,
@@ -134,6 +135,7 @@ export interface PaperDownloadConfig {
   options: PaperOptions;
   mode: PaperDownloadMode;
   students: PdfStudent[];
+  instructions: string;
 }
 
 export default function PdfConfigModal({
@@ -167,8 +169,10 @@ export default function PdfConfigModal({
   const [manualMode, setManualMode] = useState<"all" | "manual">("all");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(true);
+  const [instructionsDraft, setInstructionsDraft] = useState<string | null>(null);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     content: true,
+    instructions: true,
     layout: false,
     generation: false,
   });
@@ -186,6 +190,13 @@ export default function PdfConfigModal({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+
+  const defaultInstructions = useMemo(
+    () =>
+      meta.instructions?.trim() ? meta.instructions : paperInstructionLines(meta, questions).join("\n"),
+    [meta, questions]
+  );
+  const instructions = instructionsDraft ?? defaultInstructions;
 
   useEffect(() => {
     if (!open) return;
@@ -230,13 +241,15 @@ export default function PdfConfigModal({
     [questions, options.shuffleQuestions, options.shuffleOptions]
   );
 
+  const previewMeta = useMemo(() => ({ ...meta, instructions }), [meta, instructions]);
+
   useEffect(() => {
     if (!open || !fontCss) return;
     const timer = setTimeout(() => {
       setPreviewHtml(
         buildPaperPreviewDocument(
           {
-            meta,
+            meta: previewMeta,
             questions: prepared,
             options,
             students: previewStudent ? [previewStudent] : null,
@@ -247,7 +260,7 @@ export default function PdfConfigModal({
       );
     }, 200);
     return () => clearTimeout(timer);
-  }, [open, fontCss, meta, prepared, options, previewStudent]);
+  }, [open, fontCss, previewMeta, prepared, options, previewStudent]);
 
   useEffect(() => {
     if (!open) return;
@@ -272,7 +285,7 @@ export default function PdfConfigModal({
       });
       return;
     }
-    onDownload(kind, { options, mode, students });
+    onDownload(kind, { options, mode, students, instructions });
   };
 
   const summary = [
@@ -362,6 +375,29 @@ export default function PdfConfigModal({
                       onChange={(value) => setOptions((o) => ({ ...o, shuffleOptions: value }))}
                     />
                   </div>
+                </Section>
+
+                <Section
+                  title="Instructions"
+                  summary="General instructions"
+                  open={openSections.instructions}
+                  onToggle={() => setOpenSections((s) => ({ ...s, instructions: !s.instructions }))}
+                >
+                  <label className="block">
+                    <span className="mb-1.5 block text-[11px] font-semibold text-text-primary">
+                      General instructions
+                    </span>
+                    <textarea
+                      value={instructions}
+                      onChange={(event) => setInstructionsDraft(event.target.value)}
+                      rows={5}
+                      className="w-full resize-y rounded-lg border border-border bg-card px-3 py-2 text-xs leading-relaxed text-text-primary outline-none transition placeholder:text-text-muted focus:border-accent/60"
+                    />
+                    <span className="mt-1.5 block text-[10px] text-text-muted">
+                      These instructions are already used on the paper. Edit them if you want different wording — one
+                      instruction per line. Clear the box to use the defaults.
+                    </span>
+                  </label>
                 </Section>
 
                 <Section

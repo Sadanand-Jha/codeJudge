@@ -1,9 +1,9 @@
 export function toDateString(d: Date): string {
-  return d.toISOString().split("T")[0];
+  return toISTDateTimeParts(d.toISOString()).date;
 }
 
 export function toTimeString(d: Date): string {
-  return d.toTimeString().slice(0, 5);
+  return toISTDateTimeParts(d.toISOString()).time;
 }
 
 export function formatDateTime(date: string, time: string): string {
@@ -16,6 +16,47 @@ export function formatDateTime(date: string, time: string): string {
     year: "numeric",
   });
   return time ? `${datePart} \u00b7 ${formatTime12(time)}` : datePart;
+}
+
+/** Format an ISO/server datetime in India Standard Time. */
+export function formatDateTimeIST(value: string | null | undefined, fallback = "\u2014"): string {
+  if (!value) return fallback;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return fallback;
+  const datePart = date.toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  const timePart = date.toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `${datePart} \u00b7 ${timePart} IST`;
+}
+
+/** Split an ISO/server datetime into India date (YYYY-MM-DD) and time (HH:mm). */
+export function toISTDateTimeParts(value: string | null | undefined): { date: string; time: string } {
+  if (!value) return { date: "", time: "" };
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return { date: "", time: "" };
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return {
+    date: `${get("year")}-${get("month")}-${get("day")}`,
+    time: `${get("hour")}:${get("minute")}`,
+  };
 }
 
 export function formatTime12(time24: string): string {

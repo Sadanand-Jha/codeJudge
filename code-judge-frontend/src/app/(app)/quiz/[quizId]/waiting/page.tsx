@@ -25,13 +25,14 @@ import { AvatarHoverPreview } from "@/components/quiz/live/AvatarHoverPreview";
 import { WaitingRoomThemeProvider, useWaitingRoomTheme } from "@/context/WaitingRoomThemeContext";
 import { useTheme } from "@/context/ThemeContext";
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
-import { QuizAmbientBackground, QuizLoader } from "@/components/quiz/live/StudentQuizShell";
+import { QuizAmbientBackground, QuizLoader, QuizPrimaryButton, QuizStateScreen } from "@/components/quiz/live/StudentQuizShell";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { useToast } from "@/hooks/useToast";
 import { useQuizSounds } from "@/hooks/useQuizSounds";
 import { useAvatarHover } from "@/hooks/useAvatarHover";
 import { getQuizByCode, getQuizCode, type Quiz } from "@/services/quiz";
 import { isValidQuizCode } from "@/utils/quizCode";
+import { getQuizScheduleWindow } from "@/utils/quizSchedule";
 import dynamic from "next/dynamic";
 import { Sun, Moon, Globe } from "lucide-react";
 const LiveCampus = dynamic(() => import("@/components/quiz/live/live-campus/LiveCampus"), { ssr: false });
@@ -78,7 +79,13 @@ export default function WaitingRoomPage() {
         const latestQuiz = await getQuizByCode(quizCode);
         if (cancelled) return;
         setQuiz(latestQuiz as unknown as Quiz);
-        if (String(latestQuiz.status).toLowerCase() === "live") setStarted(true);
+        const schedule = getQuizScheduleWindow(latestQuiz, Date.now());
+        if (
+          String(latestQuiz.status).toLowerCase() === "live"
+          || (latestQuiz.scheduled === true && schedule.state === "live")
+        ) {
+          setStarted(true);
+        }
       } catch {
         // Keep the last verified state during transient network failures.
       }
@@ -194,6 +201,11 @@ function WaitingRoomPageInner({
     // real keeps current theme for LiveCampus isDark — ThemeBackground hidden in real mode
   };
 
+  const scheduleWindow = useMemo(
+    () => getQuizScheduleWindow(quiz, clockMs ?? Date.now()),
+    [clockMs, quiz]
+  );
+
   const remainingTime = useMemo(() => {
     if (!quiz.starttime) return "Soon";
     if (clockMs === null) return "Soon";
@@ -203,6 +215,23 @@ function WaitingRoomPageInner({
     const secs = Math.floor((diff % 60000) / 1000);
     return `${mins}m ${secs}s`;
   }, [clockMs, quiz.starttime]);
+
+  useEffect(() => {
+    if (!quiz.scheduled || scheduleWindow.state !== "live") return;
+    playQuizSound("success");
+    router.replace(`/quiz/${quizCode}/attempt`);
+  }, [quiz.scheduled, quizCode, playQuizSound, router, scheduleWindow.state]);
+
+  if (scheduleWindow.state === "ended") {
+    return (
+      <QuizStateScreen
+        icon={<Clock className="h-7 w-7 text-[var(--qs-brand)]" />}
+        title="Quiz has ended"
+        text="This quiz is no longer accepting joins or responses."
+        action={<QuizPrimaryButton href="/quiz">Back to quizzes</QuizPrimaryButton>}
+      />
+    );
+  }
 
   const handleStarted = () => {
     if (String(quiz.status).toLowerCase() === "live") {
@@ -370,7 +399,7 @@ function WaitingRoomPageInner({
           transition={{ delay: 0.3 }}
           className="text-xs font-semibold mt-2 text-[var(--qs-brand)]"
         >
-          {"Waiting for the teacher to start the quiz..."}
+          {quiz.scheduled ? "Waiting for the scheduled start..." : "Waiting for the teacher to start the quiz..."}
         </motion.p>
       </div>
 

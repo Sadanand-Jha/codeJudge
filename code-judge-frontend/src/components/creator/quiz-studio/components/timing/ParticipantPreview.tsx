@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { ArrowRight, Clock, User, CheckCircle2 } from "lucide-react";
-import { formatTime12 } from "./helpers";
+import { formatTime12, toTimeString } from "./helpers";
 import type { TimingState } from "./types";
 
 export function ParticipantPreview({ state }: { state: TimingState }) {
@@ -12,16 +12,21 @@ export function ParticipantPreview({ state }: { state: TimingState }) {
     mode === "schedule" && schedule.startDate && schedule.startTime
       ? formatTime12(schedule.startTime)
       : manual.startedAt
-        ? formatTime12(
-            new Date(manual.startedAt).toTimeString().slice(0, 5)
-          )
+        ? formatTime12(toTimeString(new Date(manual.startedAt)))
         : null;
 
   const participantStart = quizStart ? "When they join" : null;
 
-  const attemptEnd = participantStart
-    ? `${participantDuration} min after they start`
-    : null;
+  const scheduledEnd =
+    mode === "schedule" && schedule.endDate && schedule.endTime
+      ? formatTime12(schedule.endTime)
+      : null;
+
+  const attemptEnd = mode === "schedule"
+    ? scheduledEnd || "When the quiz ends"
+    : participantStart
+      ? `${participantDuration} min after they start`
+      : null;
 
   const sessionEnd = null;
 
@@ -73,7 +78,7 @@ export function ParticipantPreview({ state }: { state: TimingState }) {
         <PreviewStep
           icon={<Clock className="h-3 w-3" />}
           label="Participant gets"
-          time={`${participantDuration} minutes`}
+          time={mode === "schedule" ? "Time until the quiz ends" : `${participantDuration} minutes`}
           active={true}
         />
         </motion.div>

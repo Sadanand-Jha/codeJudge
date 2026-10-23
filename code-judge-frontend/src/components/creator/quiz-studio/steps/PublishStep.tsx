@@ -3,29 +3,20 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import {
-  Send,
-  ListChecks,
-  Award,
-  Clock,
-  Users,
-  IndianRupee,
-  Calendar,
-  Check,
-  BarChart3,
-  Copy,
-} from "lucide-react";
+import { Send, Check, BarChart3, Copy } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
 import { useStudio } from "../StudioProvider";
 import { toast } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiError";
-import { MaskedCopyCode } from "@/components/creator/common/MaskedCopyCode";
 import { StudioStepLayout } from "../primitives";
+import { formatDateTimeIST } from "../components/timing/helpers";
 
 export function PublishStep({
   onPublish,
+  embedded = false,
 }: {
   onPublish: () => void;
+  embedded?: boolean;
 }) {
   const { state, summary, saveToServer } = useStudio();
   const [saving, setSaving] = useState(false);
@@ -53,21 +44,30 @@ export function PublishStep({
     }
   };
 
+  const isScheduled = state.info.quizLifecycle === "scheduled" && Boolean(state.info.startDate);
   const rows: Array<{ label: string; value: ReactNode }> = [
     { label: "Title", value: state.info.title || "Untitled Quiz" },
-    { label: "Questions", value: summary.questionCount + " · " + summary.totalMarks + " marks" },
-    { label: "Duration", value: state.info.duration + " min" },
+    { label: "Questions", value: String(summary.questionCount) },
+    isScheduled
+      ? { label: "Attempts", value: "Open during schedule" }
+      : { label: "Duration", value: state.info.duration + " min" },
     { label: "Audience", value: state.audience.mode },
     {
       label: "Price",
       value: state.pricing.mode === "paid" ? "₹" + state.pricing.price : "Free",
     },
-    { label: "Start", value: state.info.startDate || "Immediately" },
-    { label: "End", value: state.info.endDate || "Manual" },
+    {
+      label: "Start",
+      value: state.info.startDate ? formatDateTimeIST(state.info.startDate, "Immediately") : "Immediately",
+    },
+    {
+      label: "End",
+      value: state.info.endDate ? formatDateTimeIST(state.info.endDate, "Manual") : "Manual",
+    },
   ];
 
   return (
-    <StudioStepLayout width="compact" className="sm:py-8">
+    <StudioStepLayout width="compact" className="sm:py-8" embedded={embedded}>
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
@@ -101,16 +101,12 @@ export function PublishStep({
             {rows.map((r) => (
               <div key={r.label} className="flex items-center justify-between px-3.5 py-2.5 text-xs">
                 <dt className="font-bold text-[var(--qs-muted)]">{r.label}</dt>
-                <dd className="font-bold text-[var(--qs-ink)]">{r.value}</dd>
+                <dd className="max-w-[65%] break-words text-right font-bold text-[var(--qs-ink)]">{r.value}</dd>
               </div>
             ))}
           </dl>
 
           <div className="mt-6 flex items-center justify-end gap-2">
-            <MaskedCopyCode
-              code={state.info.code}
-              className="inline-flex h-9 items-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-xs font-bold text-[var(--qs-muted)] transition-colors duration-150 hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
-            />
             <button
               type="button"
               onClick={() => setConfirmOpen(true)}
@@ -123,7 +119,7 @@ export function PublishStep({
                 </>
               ) : (
                 <>
-                  <Send className="h-4 w-4" /> Start Quiz
+                  <Send className="h-4 w-4" /> {isScheduled ? "Schedule Quiz" : "Start Quiz"}
                 </>
               )}
             </button>
@@ -148,10 +144,13 @@ export function PublishStep({
                   <Send className="h-5 w-5" />
                 </span>
                 <div>
-                  <h3 className="text-base font-extrabold text-[var(--qs-ink)]">Start this quiz?</h3>
+                  <h3 className="text-base font-extrabold text-[var(--qs-ink)]">
+                    {isScheduled ? "Schedule this quiz?" : "Start this quiz?"}
+                  </h3>
                   <p className="mt-0.5 text-xs font-medium text-[var(--qs-muted)]">
-                    This will make the quiz live immediately. Participants can start
-                    attempting it as soon as you confirm.
+                    {isScheduled
+                      ? "Participants can join and attempt throughout the scheduled window. Responses stop automatically at the end time."
+                      : "This will make the quiz live immediately. Participants can start attempting it as soon as you confirm."}
                   </p>
                 </div>
               </div>
@@ -162,17 +161,10 @@ export function PublishStep({
               <dl className="divide-y-2 divide-[var(--qs-line)] rounded-[14px] border-2 border-[var(--qs-line)]">
                 {[
                   { label: "Quiz", value: state.info.title || "Untitled Quiz" },
-                  {
-                    label: "Code",
-                    value: (
-                      <MaskedCopyCode
-                        code={state.info.code}
-                        className="inline-flex h-7 items-center gap-2 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-[11px] font-bold text-[var(--qs-muted)] transition-colors duration-150 hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
-                      />
-                    ),
-                  },
-                  { label: "Questions", value: `${summary.questionCount} · ${summary.totalMarks} marks` },
-                  { label: "Duration", value: `${state.info.duration} min` },
+                  { label: "Questions", value: String(summary.questionCount) },
+                  isScheduled
+                    ? { label: "Attempts", value: "Open during schedule" }
+                    : { label: "Duration", value: `${state.info.duration} min` },
                   {
                     label: "Audience",
                     value:
@@ -183,7 +175,7 @@ export function PublishStep({
                 ].map((r) => (
                   <div key={r.label} className="flex items-center justify-between px-3.5 py-2.5 text-xs">
                     <dt className="font-bold text-[var(--qs-muted)]">{r.label}</dt>
-                <dd className="max-w-[65%] break-words text-right font-bold text-[var(--qs-ink)]">{r.value}</dd>
+                    <dd className="max-w-[65%] break-words text-right font-bold text-[var(--qs-ink)]">{r.value}</dd>
                   </div>
                 ))}
               </dl>
@@ -216,7 +208,7 @@ export function PublishStep({
                   </>
                 ) : (
                   <>
-                    <Check className="h-4 w-4" /> Yes, Publish
+                    <Check className="h-4 w-4" /> {isScheduled ? "Yes, Schedule" : "Yes, Publish"}
                   </>
                 )}
               </button>
@@ -231,9 +223,10 @@ export function PublishStep({
 export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
   const { state, summary, setState } = useStudio();
   const link = `${window.location.origin}/quiz/${state.info.code}/live`;
+  const isScheduled = state.info.quizLifecycle === "scheduled" && Boolean(state.info.startDate);
 
   const editQuiz = () => {
-    setState((s) => ({ ...s, published: false, step: "setup" }));
+    setState((s) => ({ ...s, published: false, step: "details" }));
   };
 
   return (
@@ -245,10 +238,10 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
           <Check className="h-6 w-6" />
         </div>
         <h2 className="mt-5 text-2xl font-extrabold text-[var(--qs-ink)]">
-          Your quiz is live.
+          {isScheduled ? "Your quiz is scheduled." : "Your quiz is live."}
         </h2>
         <p className="mt-2 text-sm font-medium text-[var(--qs-muted)]">
-          Share this link with participants:
+          {isScheduled ? "Participants can join during the scheduled window. Share this link:" : "Share this link with participants:"}
         </p>
         <div className="mx-auto my-4 flex max-w-md items-center justify-between gap-2 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2">
           <code className="truncate text-xs font-medium text-[var(--qs-ink)]">{link}</code>
@@ -267,9 +260,7 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
         <div className="mt-3 flex flex-wrap justify-center gap-2 text-xs font-medium text-[var(--qs-muted)]">
           <span>{summary.questionCount} questions</span>
           <span>·</span>
-          <span>{summary.totalMarks} marks</span>
-          <span>·</span>
-          <span>{state.info.duration} min</span>
+          <span>{isScheduled ? "Open during schedule" : `${state.info.duration} min`}</span>
         </div>
         <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center sm:flex-wrap">
           <button

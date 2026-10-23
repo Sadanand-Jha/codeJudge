@@ -26,14 +26,21 @@ import type {
   AdvancedConfig,
   TimingState,
 } from "./types";
-import { isPast, formatTime12, isStartAfterEnd } from "./helpers";
+import { isPast, formatTime12, isStartAfterEnd, toISTDateTimeParts } from "./helpers";
 
 /** Combine separate date + time fields into a datetime-local string. */
 function combineDateTime(date: string, time: string, fallbackTime: string) {
   return date ? `${date}T${time || fallbackTime}` : "";
 }
 
-export function TimingSection() {
+export function TimingSection({
+  variant = "full",
+  allowInlineStart,
+}: {
+  variant?: "full" | "rules" | "availability";
+  /** Keep the inline Start Quiz action visible (edit mode uses it). */
+  allowInlineStart?: boolean;
+}) {
   const { state, updateInfo, setHelpExtra } = useStudio();
   const quizId = state.serverQuizId ?? undefined;
 
@@ -46,6 +53,9 @@ export function TimingSection() {
   const [advanced, setAdvanced] = useState<AdvancedConfig>(DEFAULT_ADVANCED);
   const [modeLockModal, setModeLockModal] = useState(false);
   const [pendingMode, setPendingMode] = useState<TimingMode | null>(null);
+  const showLifecycle = variant !== "rules";
+  const showDuration = variant !== "availability";
+  const canStartInline = allowInlineStart ?? variant !== "availability";
 
   // Hydrate manual/schedule mode from server-loaded quiz status
   const hydratedRef = useRef(false);
@@ -67,14 +77,17 @@ export function TimingSection() {
       }));
     } else if (lc === "scheduled") {
       setMode("schedule");
-      if (state.info.startDate) {
-        const dt = new Date(state.info.startDate);
-        setSchedule((prev) => ({
+      setSchedule((prev) => {
+        const start = toISTDateTimeParts(state.info.startDate);
+        const end = toISTDateTimeParts(state.info.endDate);
+        return {
           ...prev,
-          startDate: dt.toISOString().split("T")[0],
-          startTime: dt.toTimeString().slice(0, 5),
-        }));
-      }
+          startDate: start.date || prev.startDate,
+          startTime: start.time || prev.startTime,
+          endDate: end.date || prev.endDate,
+          endTime: end.time || prev.endTime,
+        };
+      });
     }
     // "draft" → keep defaults
   }, [state.editMode, state.serverQuizId, state.info.title, state.info.quizLifecycle, state.info.startDate, state.info.endDate]);
@@ -177,6 +190,10 @@ export function TimingSection() {
   };
 
   useEffect(() => {
+    // Rules only shows attempt-level timing; the lifecycle explanation
+    // belongs to Review & publish.
+    if (variant === "rules") return;
+
     const helpState: TimingState = {
       mode,
       schedule,
@@ -192,9 +209,8 @@ export function TimingSection() {
             Quiz session
           </p>
           <p className="mt-0.5 text-[11px] font-medium leading-relaxed text-[var(--qs-muted)]">
-            The quiz session represents the period during which participants can
-            start the assessment. Participants may start during this window.
-            Their individual attempt timer is separate.
+            The quiz session is the period when participants can join and answer.
+            Scheduled quizzes close automatically at their end time.
           </p>
           {mode === "schedule" && schedule.startDate && schedule.startTime ? (
             <div className="mt-2 flex items-center gap-2 text-xs">
@@ -222,7 +238,7 @@ export function TimingSection() {
           </p>
           <p className="mt-0.5 text-[11px] font-medium leading-relaxed text-[var(--qs-muted)]">
             {mode === "schedule" && schedule.startDate
-              ? `Participants can start their attempt during the quiz window. Each participant gets ${participantDuration} minutes once they begin.`
+              ? "Participants can join and attempt throughout the scheduled window. Responses stop automatically at the end time."
               : manual.status === "live"
                 ? `The quiz is currently live. Each participant gets ${participantDuration} minutes once they begin their attempt.`
                 : `Once you start the quiz, participants will be able to begin their attempts. Each participant gets ${participantDuration} minutes.`}
@@ -230,11 +246,10 @@ export function TimingSection() {
         </div>
         <ParticipantPreview state={helpState} />
         <TimingSummary state={helpState} />
-        <AdvancedTiming advanced={advanced} onChange={handleAdvancedChange} />
       </div>
     );
     return () => setHelpExtra(null);
-  }, [mode, schedule, manual, participantDuration, advanced, validationErrors, handleAdvancedChange, setHelpExtra]);
+  }, [variant, mode, schedule, manual, participantDuration, advanced, validationErrors, handleAdvancedChange, setHelpExtra]);
 
   const isQuizActive = manual.status === "live";
 
@@ -242,6 +257,7 @@ export function TimingSection() {
     <div className="mx-auto w-full max-w-none min-w-0 overflow-x-hidden">
       <div className="min-w-0 space-y-4 sm:space-y-6 overflow-hidden">
         {/* Timing & lifecycle */}
+        {showLifecycle && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -252,7 +268,9 @@ export function TimingSection() {
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
               <Clock className="h-4 w-4" />
             </div>
-            <h3 className="min-w-0 text-sm font-black text-[var(--qs-ink)]">Timing & lifecycle</h3>
+            <h3 className="min-w-0 text-sm font-black text-[var(--qs-ink)]">
+              {variant === "availability" ? "Availability" : "Timing & lifecycle"}
+            </h3>
           </div>
 
           <p className="text-sm font-bold text-[var(--qs-ink)]">When should this quiz run?</p>
@@ -308,6 +326,7 @@ export function TimingSection() {
                     onChange={handleScheduleChange}
                     manualStatus={manual.status}
                     validationErrors={validationErrors}
+                    allowStartNow={canStartInline}
                   />
                 </motion.div>
               ) : (
@@ -323,6 +342,7 @@ export function TimingSection() {
                     onManualChange={handleManualChange}
                     participantDuration={participantDuration}
                     quizId={quizId}
+                    allowStart={canStartInline}
                   />
                 </motion.div>
               )}
@@ -339,8 +359,10 @@ export function TimingSection() {
             </div>
           )}
         </motion.div>
+        )}
 
         {/* Attempt duration */}
+        {showDuration && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -354,7 +376,7 @@ export function TimingSection() {
             <div className="min-w-0">
               <h3 className="text-sm font-black text-[var(--qs-ink)]">Attempt duration</h3>
               <p className="text-xs font-medium text-[var(--qs-muted)]">
-                Time limit for each participant&apos;s attempt.
+                Used for manually-started quizzes. Scheduled quizzes run until their end time.
               </p>
             </div>
           </div>
@@ -366,9 +388,14 @@ export function TimingSection() {
             }}
             presets={DURATION_PRESETS}
             label="Time limit"
-            max={45}
+            max={300}
           />
         </motion.div>
+        )}
+
+        {variant !== "availability" && (
+          <AdvancedTiming advanced={advanced} onChange={handleAdvancedChange} />
+        )}
       </div>
 
       {/* Mode lock modal */}

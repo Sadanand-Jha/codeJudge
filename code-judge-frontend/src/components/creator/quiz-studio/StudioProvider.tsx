@@ -374,7 +374,7 @@ function initialState(): StudioState {
     if (raw) persistedGameMechanics = JSON.parse(raw);
   } catch {}
   return {
-  step: "setup",
+  step: "details",
   info: { ...DEFAULT_QUIZ_INFO, id: code, code },
   // A new draft starts with no questions — the creator adds the first one
   // (manually or via AI) from the Questions step's empty state.
@@ -394,6 +394,35 @@ function initialState(): StudioState {
   lastSaved: null,
   published: false,
 };
+}
+
+/**
+ * Old drafts, bookmarks, and handoff URLs used the pre-5-step ids. Resolve
+ * those aliases so links such as ?step=questions and ?step=audience keep
+ * working after steps were merged.
+ */
+const STEP_ALIASES: Record<string, StudioStepId> = {
+  details: "details",
+  setup: "details",
+  questions: "questions",
+  access: "access",
+  audience: "access",
+  registration: "access",
+  pricing: "access",
+  rules: "rules",
+  settings: "rules",
+  reviewPublish: "reviewPublish",
+  "review-publish": "reviewPublish",
+  review: "reviewPublish",
+  publish: "reviewPublish",
+  // Disconnected steps fall through to the closest current step.
+  gameMechanics: "questions",
+  branding: "details",
+};
+
+function resolveStudioStep(value?: string): StudioStepId | null {
+  if (!value) return null;
+  return STEP_ALIASES[value] ?? null;
 }
 
 type QuizMetaSnapshotInput = Pick<StudioState, "info" | "settings"> & {
@@ -441,9 +470,7 @@ interface StudioProviderProps {
 }
 
 export function StudioProvider({ children, editMode = false, initialQuizId, initialStep }: StudioProviderProps) {
-  const steps = useMemo(() => {
-    return editMode ? STEPS.filter((s) => s.id !== "publish") : STEPS;
-  }, [editMode]);
+  const steps = STEPS;
 
   const mobileSteps = useMemo(() => {
     return steps.filter((s) => MOBILE_STEP_IDS.includes(s.id));
@@ -451,10 +478,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
 
   const [state, setState] = useState<StudioState>(() => {
     if (editMode && initialQuizId) {
-      // Honour a validated ?step= deep link (falls back to Setup for unknown
-      // or mode-incompatible values, e.g. "publish" in edit mode).
-      const deepLinkedStep =
-        initialStep && steps.some((s) => s.id === initialStep) ? (initialStep as StudioStepId) : "setup";
+      // Honour a validated ?step= deep link, including aliases from the old
+      // 8-step flow (e.g. ?step=questions or ?step=audience).
+      const deepLinkedStep = resolveStudioStep(initialStep) ?? "details";
       return {
         step: deepLinkedStep,
         info: { ...DEFAULT_QUIZ_INFO },
@@ -957,7 +983,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
   };
 
   const goToStep = (id: StudioState["step"]) => {
-    if (id !== state.step && state.step !== "setup" && state.step !== "publish" && !validateAllQuestions()) return;
+    if (id !== state.step && state.step !== "details" && state.step !== "reviewPublish" && !validateAllQuestions()) return;
     setState((s) => ({ ...s, step: id }));
   };
   const getReviewErrors = (): string[] => {
@@ -981,10 +1007,10 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
   };
 
   const advanceInList = async (list: Array<{ id: StudioStepId; label: string }>) => {
-    const i = list.findIndex((st) => st.id === state.step);
-
-    // Review step: block if errors exist (publishing blocked until resolved)
-    if (state.step === "review") {
+    // Review & publish is the last step. In edit mode Continue saves and
+    // exits; in create mode the Start Quiz button inside the step handles
+    // the actual publish (including its confirmation modal).
+    if (state.step === "reviewPublish") {
       const reviewErrs = getReviewErrors();
       if (reviewErrs.length > 0) {
         toast.error({
@@ -993,26 +1019,21 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         });
         return;
       }
-      // Review is last (mobile-edit, or desktop-edit with publish hidden) — treat Continue as Save & exit
-      const isLast = i === list.length - 1;
-      if (isLast) {
-        if (editMode) {
-          try {
-            await saveToServer();
-            toast.success({ title: "Saved", description: "Your quiz has been saved." });
-            window.location.href = "/creator/quizzes";
-          } catch (err) {
-            if (!isQuestionValidationError(err)) {
-              toast.error({ title: "Could not save", description: err instanceof Error ? err.message : "Something went wrong." });
-            }
+      if (editMode) {
+        try {
+          await saveToServer();
+          toast.success({ title: "Saved", description: "Your quiz has been saved." });
+          window.location.href = "/creator/quizzes";
+        } catch (err) {
+          if (!isQuestionValidationError(err)) {
+            toast.error({ title: "Could not save", description: err instanceof Error ? err.message : "Something went wrong." });
           }
-          return;
         }
-        // create-flow publish: will be handled by publish step
       }
+      return;
     }
 
-    if (state.step === "setup") {
+    if (state.step === "details") {
       try {
         const { quizId } = await saveToServer({ setupOnly: true });
         setState((s) => ({ ...s, serverQuizId: quizId }));
@@ -1047,7 +1068,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         }
         return;
       }
-    } else if (state.step !== "publish") {
+    } else if (state.step === "access" || state.step === "rules") {
       if (!validateAllQuestions()) return;
     }
 

@@ -10,13 +10,17 @@ import { SearchableDropdown, AiStreamText } from "@/components/ui";
 import { getAllSubjects, generateQuizCode as fetchQuizCode } from "@/services/quiz";
 import { useQuizReferenceStore } from "@/store/quizReferenceStore";
 import { useAuthStore } from "@/store/authStore";
+import { WHOLE_QUIZ_AI_ENABLED } from "@/config/creatorFeatures";
+import { toast } from "@/lib/toast";
 
 const CREATE_CHOICES = [
   {
     id: "ai",
     label: "AI Generate",
     icon: Sparkles,
-    desc: "Give a topic, AI will draft the questions.",
+    desc: WHOLE_QUIZ_AI_ENABLED
+      ? "Give a topic, AI will draft the questions."
+      : "Generate a complete quiz from a topic or file. Coming soon.",
   },
   {
     id: "scratch",
@@ -96,9 +100,10 @@ export function SetupStep() {
                   desc={c.desc}
                   selected={choice === c.id}
                   ai={c.id === "ai"}
+                  comingSoon={c.id === "ai" && !WHOLE_QUIZ_AI_ENABLED}
                   onClick={() => {
                     if (c.id === "ai") {
-                      router.push("/creator/quizzes/ai-generate");
+                      if (WHOLE_QUIZ_AI_ENABLED) router.push("/creator/quizzes/ai-generate");
                     } else {
                       setChoice(c.id);
                     }
@@ -344,6 +349,7 @@ function ChoiceCard({
   desc,
   selected,
   ai = false,
+  comingSoon = false,
   onClick,
 }: {
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
@@ -351,22 +357,35 @@ function ChoiceCard({
   desc: string;
   selected: boolean;
   ai?: boolean;
+  comingSoon?: boolean;
   onClick: () => void;
 }) {
+  const activeAi = ai && !comingSoon;
   return (
     <button
       type="button"
-      onClick={onClick}
+      aria-disabled={comingSoon || undefined}
+      onClick={
+        comingSoon
+          ? () =>
+              toast.info({
+                title: "Coming soon",
+                description: "AI quiz generation is not available yet.",
+              })
+          : onClick
+      }
       className={cn(
         "relative flex items-start gap-4 overflow-hidden rounded-[18px] border-2 p-5 text-left transition-colors",
-        ai
-          ? "border-[var(--qs-ink)] bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 text-white shadow-[4px_4px_0_var(--qs-sun)]"
-          : selected
-            ? "border-[var(--qs-ink)] bg-[var(--qs-poly-1)]"
-            : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-brand)]"
+        comingSoon
+          ? "cursor-not-allowed border-[var(--qs-line)] bg-[var(--qs-surface)] opacity-60"
+          : activeAi
+            ? "border-[var(--qs-ink)] bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 text-white shadow-[4px_4px_0_var(--qs-sun)]"
+            : selected
+              ? "border-[var(--qs-ink)] bg-[var(--qs-poly-1)]"
+              : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-brand)]"
       )}
     >
-      {ai && (
+      {activeAi && (
         <span
           aria-hidden="true"
           className="qs-ai-shimmer pointer-events-none absolute inset-y-0 left-0 w-14 -skew-x-12 bg-gradient-to-r from-transparent via-white/30 to-transparent"
@@ -375,7 +394,7 @@ function ChoiceCard({
       <span
         className={cn(
           "flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] border-2",
-          ai
+          activeAi
             ? "border-white/40 bg-white/15 text-white"
             : selected
               ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-white"
@@ -385,14 +404,19 @@ function ChoiceCard({
         <Icon className="h-5 w-5" />
       </span>
       <span className="flex min-w-0 flex-col gap-1">
-        <span className={cn("text-base font-extrabold", ai ? "text-white" : "text-[var(--qs-ink)]")}>
+        <span className={cn("text-base font-extrabold", activeAi ? "text-white" : "text-[var(--qs-ink)]")}>
           {label.toLowerCase().includes("ai") ? <AiStreamText text={label} /> : label}
         </span>
-        <span className={cn("text-sm font-medium leading-snug", ai ? "text-white/85" : "text-[var(--qs-muted)]")}>
+        <span className={cn("text-sm font-medium leading-snug", activeAi ? "text-white/85" : "text-[var(--qs-muted)]")}>
           {desc}
         </span>
       </span>
-      {selected && (
+      {comingSoon && (
+        <span className="absolute right-3.5 top-3.5 rounded-full border-2 border-[#a85d00]/30 bg-[#fff3d6] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em] text-[#a85d00]">
+          Coming soon
+        </span>
+      )}
+      {!comingSoon && selected && (
         <span className="absolute right-3.5 top-3.5 flex h-[22px] w-[22px] items-center justify-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-ok)]">
           <Check className="h-3 w-3 text-white" strokeWidth={3.5} />
         </span>

@@ -301,7 +301,7 @@ export const CREDIT_PURCHASE_PACKS: CreditPurchasePack[] = [
   {
     id: "teacher",
     name: "Teacher Pack",
-    credits: 120,
+    credits: 75,
     price: 99,
     cta: "Choose Teacher Pack",
     blurb: "For regular question-paper creation.",
@@ -311,7 +311,7 @@ export const CREDIT_PURCHASE_PACKS: CreditPurchasePack[] = [
   {
     id: "master",
     name: "Master Pack",
-    credits: 250,
+    credits: 180,
     price: 199,
     cta: "Get Master Pack",
     blurb: "For frequent paper generation and advanced AI workflows.",
@@ -435,19 +435,3 @@ export const AI_EFFORT_LEVELS: AIEffortLevel[] = [
     creditsPerPaper: 50,
   },
 ];
-
-/** Estimated papers a credit balance buys at each effort level (rounded down). */
-export function getPaperEstimates(credits: number): Record<AIEffortLevel["id"], number> {
-  return Object.fromEntries(
-    AI_EFFORT_LEVELS.map((level) => [
-      level.id,
-      Math.floor(credits / level.creditsPerPaper),
-    ])
-  ) as Record<AIEffortLevel["id"], number>;
-}
-
-/** Human-readable paper estimate for pack cards, e.g. "≈ 10 Plus / 3 Pro / 1 Max papers". */
-export function formatPaperEstimates(credits: number): string {
-  const estimates = getPaperEstimates(credits);
-  return `≈ ${estimates.plus} Plus / ${estimates.pro} Pro / ${estimates.max} Max papers`;
-}

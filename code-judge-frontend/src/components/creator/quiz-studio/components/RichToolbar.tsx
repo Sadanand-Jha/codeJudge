@@ -7,7 +7,7 @@ import type { LucideIcon } from "lucide-react";
 
 const FORMAT_COMMANDS = ["bold", "italic", "underline", "strikeThrough", "subscript", "superscript"] as const;
 
-function PianoKey({
+function ToolbarButton({
   children,
   title,
   active,
@@ -27,12 +27,9 @@ function PianoKey({
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       className={cn(
-        "qs-display flex h-16 w-9 shrink-0 select-none items-end justify-center rounded-t-[5px] rounded-b-[12px] border-2 border-[var(--qs-ink)] pb-2.5 text-[14px] font-extrabold leading-none transition-[transform,box-shadow,background-color,color,border-color] duration-150",
-        "sm:h-[70px] sm:w-[42px] sm:rounded-t-[6px] sm:rounded-b-[13px] sm:pb-3 sm:text-[16px]",
-        "lg:h-[76px] lg:w-[46px] lg:text-[17px]",
-        active
-          ? "translate-x-1 translate-y-1 bg-[var(--qs-brand)] text-[var(--qs-on-brand)] shadow-none"
-          : "bg-[var(--qs-surface)] text-[var(--qs-ink)] shadow-[3px_3px_0_var(--qs-sun)] hover:border-[var(--qs-brand)] active:translate-x-1 active:translate-y-1 active:shadow-none sm:shadow-[4px_4px_0_var(--qs-sun)]"
+        "grid h-10 w-10 shrink-0 select-none place-items-center rounded-[10px] border-0 bg-transparent text-[16px] font-extrabold leading-none text-[var(--qs-ink)] transition-colors duration-150",
+        "hover:bg-[var(--qs-bg)] active:bg-[var(--qs-line)]",
+        active && "bg-[var(--qs-ink)] text-[var(--qs-bg)] shadow-[inset_0_-3px_0_var(--qs-sun)] hover:bg-[var(--qs-ink)]"
       )}
     >
       {children}
@@ -40,7 +37,7 @@ function PianoKey({
   );
 }
 
-function BlackKey({
+function HistoryButton({
   icon: Icon,
   title,
   onClick,
@@ -56,9 +53,9 @@ function BlackKey({
       aria-label={title}
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
-      className="flex h-[46px] w-8 shrink-0 items-end justify-center rounded-t-[4px] rounded-b-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-ink)] pb-2 text-[var(--qs-bg)] shadow-[3px_3px_0_var(--qs-sun)] transition-[transform,box-shadow,background-color,color] duration-150 hover:bg-[var(--qs-brand)] hover:text-[var(--qs-on-brand)] active:translate-x-[3px] active:translate-y-[3px] active:bg-[var(--qs-brand)] active:text-[var(--qs-on-brand)] active:shadow-none sm:h-[50px] sm:w-9 sm:rounded-b-[12px] sm:pb-2.5"
+      className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] border-0 bg-transparent text-[var(--qs-ink)] transition-colors duration-150 hover:bg-[var(--qs-bg)] active:bg-[var(--qs-line)]"
     >
-      <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" strokeWidth={2.4} />
+      <Icon className="h-[18px] w-[18px]" strokeWidth={2.2} />
     </button>
   );
 }
@@ -129,34 +126,36 @@ export function RichToolbar({ onCommand }: { onCommand?: () => void }) {
     <div
       role="toolbar"
       aria-label="Text formatting"
-      className="flex w-full max-w-full min-w-0 flex-wrap items-start gap-2.5 rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-2.5 sm:gap-5 sm:p-3"
+      className="flex w-full max-w-full min-w-0 flex-wrap items-center gap-1.5 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-field)] p-1.5"
     >
-      <div className="flex flex-wrap gap-1.5 sm:gap-2.5">
-        <PianoKey title="Bold" active={activeCommands.has("bold")} onClick={() => exec("bold")}>
+      <div className="flex gap-1 border-r-2 border-[var(--qs-line)] pr-2">
+        <ToolbarButton title="Bold" active={activeCommands.has("bold")} onClick={() => exec("bold")}>
           B
-        </PianoKey>
-        <PianoKey title="Italic" active={activeCommands.has("italic")} onClick={() => exec("italic")}>
+        </ToolbarButton>
+        <ToolbarButton title="Italic" active={activeCommands.has("italic")} onClick={() => exec("italic")}>
           <span className="italic">I</span>
-        </PianoKey>
-        <PianoKey title="Underline" active={activeCommands.has("underline")} onClick={() => exec("underline")}>
+        </ToolbarButton>
+        <ToolbarButton title="Underline" active={activeCommands.has("underline")} onClick={() => exec("underline")}>
           <span className="underline decoration-2 underline-offset-4">U</span>
-        </PianoKey>
-        <PianoKey title="Strikethrough" active={activeCommands.has("strikeThrough")} onClick={() => exec("strikeThrough")}>
+        </ToolbarButton>
+        <ToolbarButton title="Strikethrough" active={activeCommands.has("strikeThrough")} onClick={() => exec("strikeThrough")}>
           <span className="line-through decoration-2">S</span>
-        </PianoKey>
-        <PianoKey title="Inline code" active={activeCommands.has("code")} onClick={toggleCode}>
-          <span className="text-[12px] sm:text-[14px]">&lt;/&gt;</span>
-        </PianoKey>
-        <PianoKey title="Subscript" active={activeCommands.has("subscript")} onClick={() => exec("subscript")}>
-          X<sub className="ml-px text-[9px] sm:text-[10px]">2</sub>
-        </PianoKey>
-        <PianoKey title="Superscript" active={activeCommands.has("superscript")} onClick={() => exec("superscript")}>
-          X<sup className="ml-px text-[9px] sm:text-[10px]">2</sup>
-        </PianoKey>
+        </ToolbarButton>
       </div>
-      <div className="flex gap-1.5 sm:gap-2.5">
-        <BlackKey icon={Undo2} title="Undo" onClick={() => exec("undo")} />
-        <BlackKey icon={Redo2} title="Redo" onClick={() => exec("redo")} />
+      <div className="flex gap-1 border-r-2 border-[var(--qs-line)] pr-2">
+        <ToolbarButton title="Inline code" active={activeCommands.has("code")} onClick={toggleCode}>
+          <span className="text-[15px]">&lt;/&gt;</span>
+        </ToolbarButton>
+        <ToolbarButton title="Subscript" active={activeCommands.has("subscript")} onClick={() => exec("subscript")}>
+          <span className="inline-block text-[18px] leading-none">x<sub className="text-[11px] leading-none">2</sub></span>
+        </ToolbarButton>
+        <ToolbarButton title="Superscript" active={activeCommands.has("superscript")} onClick={() => exec("superscript")}>
+          <span className="inline-block text-[18px] leading-none">x<sup className="text-[11px] leading-none">2</sup></span>
+        </ToolbarButton>
+      </div>
+      <div className="flex gap-1">
+        <HistoryButton icon={Undo2} title="Undo" onClick={() => exec("undo")} />
+        <HistoryButton icon={Redo2} title="Redo" onClick={() => exec("redo")} />
       </div>
     </div>
   );

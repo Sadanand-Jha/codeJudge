@@ -15,6 +15,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { getCreatorPlan } from "@/config/creatorPlans";
 import { useBillingData } from "./hooks";
 import { ErrorState, Skeleton, formatINR } from "./ui";
 import { checkLowCreditWarning, useAICreditsStore } from "@/store/aiCreditsStore";
@@ -142,6 +143,7 @@ function CreditsCard({
   const monthlyTotal = Math.max(balance.monthlyCredits, 0);
   const monthlyUsed = Math.min(Math.max(balance.monthlyCreditsConsumed, 0), monthlyTotal || balance.monthlyCreditsConsumed);
   const monthlyPct = monthlyTotal > 0 ? Math.min(100, (monthlyUsed / monthlyTotal) * 100) : 0;
+  const planName = getCreatorPlan(balance.planId)?.name ?? "Current";
 
   return (
     <div className="relative mb-4 mr-4">
@@ -167,10 +169,9 @@ function CreditsCard({
           <span className="ml-2.5 align-middle text-[15px] font-bold text-[var(--qs-muted)]">credits left</span>
         </p>
         <p className="mt-2 text-[13px] text-[var(--qs-muted)]">
-          {balance.planId === "free"
-            ? "Free plan"
-            : `${balance.monthlyCredits.toLocaleString("en-IN")} monthly plan`}{" "}
-          · {balance.purchasedCredits.toLocaleString("en-IN")} purchased credits
+          {balance.planId === "free" ? "Free plan" : `${planName} plan`} ·{" "}
+          {balance.monthlyCredits.toLocaleString("en-IN")} included ·{" "}
+          {balance.purchasedCredits.toLocaleString("en-IN")} purchased
         </p>
 
         <div className="mt-5">
@@ -416,6 +417,61 @@ function EmptyBilling() {
   );
 }
 
+function PlanSummaryStrip({
+  planId,
+  purchasedCredits,
+}: {
+  planId: string;
+  purchasedCredits: number;
+}) {
+  const plan = getCreatorPlan(planId) ?? getCreatorPlan("free");
+  if (!plan) return null;
+
+  return (
+    <section
+      aria-label="Monthly plan summary"
+      className="flex flex-wrap items-center justify-between gap-4 rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-5 py-4"
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]">
+          <CalendarClock className="h-5 w-5" />
+        </span>
+        <div className="min-w-0">
+          <span className={cn(PILL, "text-[var(--qs-brand)]")}>Monthly plan</span>
+          <p className="mt-1.5 truncate text-[15px] font-extrabold text-[var(--qs-ink)]">
+            {plan.name}
+            {plan.price > 0 && (
+              <span className="ml-1.5 font-semibold text-[var(--qs-muted)]">
+                · {formatINR(plan.price)} / month
+              </span>
+            )}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] font-semibold text-[var(--qs-muted)]">
+        <span className="inline-flex items-center gap-1.5">
+          <Sparkles className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
+          {plan.credits > 0
+            ? `${plan.credits.toLocaleString("en-IN")} credits / month`
+            : "No monthly credits"}
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <Coins className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
+          {purchasedCredits.toLocaleString("en-IN")} purchased credits
+        </span>
+        <Link
+          href="/creator/billing/plans"
+          className="inline-flex items-center gap-1 text-[12px] font-extrabold text-[var(--qs-brand)] hover:underline"
+        >
+          Manage plan
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+    </section>
+  );
+}
+
 export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" }) {
   const { state, data, retry } = useBillingData(
     () => {
@@ -431,15 +487,19 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
     <div className="space-y-5 pb-2">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
-          <span className={cn(PILL, "text-[#2457d6]")}>AI billing</span>
+          <span className={cn(PILL, "text-[#2457d6]")}>Billing</span>
           <h1 className="qs-display mt-2 text-[28px] font-extrabold leading-[1.08] tracking-[-0.025em] text-[var(--qs-ink)] sm:text-[34px] lg:text-[38px]">
             Billing overview
           </h1>
           <p className="mt-1.5 text-[14px] text-[var(--qs-muted)] sm:text-[15px]">
-            Track your AI credit balance, daily usage and top-ups in one place.
+            Track your monthly plan, AI credit balance, usage and top-ups in one place.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link href="/creator/billing/plans" className={BTN}>
+            <CalendarClock className="h-4 w-4" />
+            Monthly plans
+          </Link>
           <Link href="/creator/billing/transactions" className={BTN}>
             <History className="h-4 w-4" />
             Transactions
@@ -459,6 +519,8 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
 
       {state === "ready" && data && (
         <>
+          <PlanSummaryStrip planId={data.balance.planId} purchasedCredits={data.balance.purchasedCredits} />
+
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
             <div className="lg:col-span-2">
               <CreditsCard balance={data.balance} low={low} />

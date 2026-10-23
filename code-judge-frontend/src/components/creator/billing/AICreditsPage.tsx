@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { History } from "lucide-react";
+import { CalendarClock, History } from "lucide-react";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { useToast } from "@/hooks/useToast";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
@@ -39,7 +39,7 @@ export function AICreditsPage({
   initialPackId,
 }: {
   demoState?: "empty" | "error";
-  /** Deep link from /pricing — opens the checkout for this pack. */
+  /** Deep link from /pricing/credits — opens the checkout for this pack. */
   initialPackId?: string | null;
 }) {
   const toast = useToast();
@@ -128,15 +128,24 @@ export function AICreditsPage({
     <div className="space-y-5 pb-2">
       <PageHeader
         title="AI Credits"
-        subtitle="One-time credit packs for paper generation, quizzes and PDF exports."
+        subtitle="Monthly plans include credits; one-time top-up packs add more whenever you need them."
         actions={
-          <Link
-            href="/creator/billing/transactions"
-            className="inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
-          >
-            <History className="h-4 w-4" />
-            Transactions
-          </Link>
+          <>
+            <Link
+              href="/creator/billing/plans"
+              className="inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+            >
+              <CalendarClock className="h-4 w-4" />
+              Monthly plans
+            </Link>
+            <Link
+              href="/creator/billing/transactions"
+              className="inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+            >
+              <History className="h-4 w-4" />
+              Transactions
+            </Link>
+          </>
         }
       />
 

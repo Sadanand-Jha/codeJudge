@@ -11,6 +11,8 @@ import { generateResponsesReport } from "../services/responsesReport.service.ts"
 import { finalizeExpiredQuizAttempts, processQuizSubmission } from "../services/quizSubmission.service.ts";
 import { QuizCreationLimitError } from "../services/quizCreationLimits.ts";
 import { QuizQuestionLimitError } from "../services/quizQuestionLimits.ts";
+import { prepareAttemptDecoys, TRAP_STRENGTH_DEFAULT } from "../services/quizDecoy.service.ts";
+import { sanitizeAttemptForStudent } from "../services/quizDecoy.ts";
 import { sendEntitlementError } from "../services/entitlement.service.ts";
 import { isQuizCodeConflictError } from "../utils/databaseError.ts";
 import {
@@ -84,6 +86,7 @@ const toStudentQuiz = (quiz: Record<string, any>) => {
   creator_name: quiz.creator_name ?? null,
   creator_avatar_url: quiz.creator_avatar_url ?? null,
   status: effectiveStatus,
+  scheduled: rawStatus === "scheduled",
   show_results_immediately: quiz.show_results_immediately === true,
   leaderboard: quiz.leaderboard === true,
   registration_fields: Array.isArray(quiz.registration_fields) ? quiz.registration_fields : null,
@@ -1218,7 +1221,10 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
       return;
     }
 
-    const problems = await attachQuizProblemOptions(quizId, false);
+    // Fetch the authored correctness flags for server-side decoy selection.
+    // prepareAttemptDecoys whitelists the student payload before anything is
+    // returned, so iscorrect never crosses the wire.
+    const problems = await attachQuizProblemOptions(quizId, true);
     const quiz = await quizService.getQuizById(quizId);
 
     const stableShuffle = <T>(items: T[], seed: number): T[] => {
@@ -1235,7 +1241,10 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
     const buildAttemptPayload = async (attempt: any, resumed: boolean) => {
       const savedResponses = await quizService.getStudentResponses(Number(attempt.id), Number(userId));
       const startedAtMs = new Date(attempt.started_at ?? attempt.created_at).getTime();
-      const durationDeadline = quiz?.duration
+      // Scheduled quizzes run for the full quiz window. The per-attempt
+      // duration is only used by manually-started/live quizzes.
+      const scheduledQuiz = String(quiz?.status ?? "").toLowerCase() === "scheduled";
+      const durationDeadline = !scheduledQuiz && quiz?.duration
         ? startedAtMs + Number(quiz.duration) * 60_000
         : Number.POSITIVE_INFINITY;
       const quizDeadline = quiz?.endtime
@@ -1252,7 +1261,26 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
         ...problem,
         options: stableShuffle(problem.options ?? [], Number(attempt.id) + Number(problem.id)),
       }));
-      return { attempt, problems: orderedProblems, savedResponses, remainingSeconds, resumed };
+      const prepared = await prepareAttemptDecoys(orderedProblems, attempt.decoy_map);
+      if (prepared.changed) {
+        try {
+          const refreshed = await quizService.updateQuizAttempt(Number(attempt.id), {
+            decoy_map: prepared.decoyMap,
+          });
+          if (refreshed) attempt = refreshed;
+        } catch {
+          // A failed map write is non-fatal: the same deterministic option
+          // order lets the next resume regenerate and persist it.
+        }
+      }
+      return {
+        attempt: sanitizeAttemptForStudent(attempt),
+        problems: prepared.problems,
+        savedResponses,
+        remainingSeconds,
+        resumed,
+        trapStrength: TRAP_STRENGTH_DEFAULT,
+      };
     };
 
     if (access.reason === "resume") {
@@ -1392,7 +1420,8 @@ export const saveQuizResponse = async (req: Request, res: Response) => {
 
     const attemptQuiz = await quizService.getQuizById(String(attempt.quiz_id));
     const attemptStartedAt = attempt.started_at ?? attempt.created_at;
-    const durationDeadline = attemptQuiz?.duration && attemptStartedAt
+    const scheduledQuiz = String(attemptQuiz?.status ?? "").toLowerCase() === "scheduled";
+    const durationDeadline = !scheduledQuiz && attemptQuiz?.duration && attemptStartedAt
       ? new Date(attemptStartedAt).getTime() + Number(attemptQuiz.duration) * 60_000
       : Number.POSITIVE_INFINITY;
     const quizDeadline = attemptQuiz?.endtime
@@ -1457,7 +1486,8 @@ export const heartbeatQuizAttempt = async (req: Request, res: Response) => {
 
     const quiz = await quizService.getQuizById(String(attempt.quiz_id));
     const startedAt = attempt.started_at ?? attempt.created_at;
-    const durationDeadline = quiz?.duration && startedAt
+    const scheduledQuiz = String(quiz?.status ?? "").toLowerCase() === "scheduled";
+    const durationDeadline = !scheduledQuiz && quiz?.duration && startedAt
       ? new Date(startedAt).getTime() + Number(quiz.duration) * 60_000
       : Number.POSITIVE_INFINITY;
     const quizDeadline = quiz?.endtime ? new Date(quiz.endtime).getTime() : Number.POSITIVE_INFINITY;
