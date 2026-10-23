@@ -265,7 +265,6 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
     date: formatPaperDate(details.startDate || quiz?.starttime) ?? formatPaperDate(new Date()),
     totalMarks: problems.reduce((sum, q) => sum + (q.marks || 0), 0),
     totalQuestions: problems.length,
-    duration: details.timeLimit ? `${details.timeLimit} min` : undefined,
     difficulty: details.difficulty || undefined,
     negativeMarking: details.negativeMarking ? String(details.negativeMarkValue ?? 1) : "None",
   };

@@ -6,7 +6,7 @@ import { formatTime12, toTimeString } from "./helpers";
 import type { TimingState } from "./types";
 
 export function ParticipantPreview({ state }: { state: TimingState }) {
-  const { mode, schedule, manual, participantDuration } = state;
+  const { mode, schedule, manual } = state;
 
   const quizStart =
     mode === "schedule" && schedule.startDate && schedule.startTime
@@ -25,7 +25,7 @@ export function ParticipantPreview({ state }: { state: TimingState }) {
   const attemptEnd = mode === "schedule"
     ? scheduledEnd || "When the quiz ends"
     : participantStart
-      ? `${participantDuration} min after they start`
+      ? "When you end the quiz"
       : null;
 
   const sessionEnd = null;
@@ -78,7 +78,7 @@ export function ParticipantPreview({ state }: { state: TimingState }) {
         <PreviewStep
           icon={<Clock className="h-3 w-3" />}
           label="Participant gets"
-          time={mode === "schedule" ? "Time until the quiz ends" : `${participantDuration} minutes`}
+          time="Time until the quiz ends"
           active={true}
         />
         </motion.div>

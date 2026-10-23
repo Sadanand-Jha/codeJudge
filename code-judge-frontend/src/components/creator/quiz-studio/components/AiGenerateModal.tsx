@@ -979,7 +979,7 @@ export function AiGenerateModal({
                         </p>
                       </div>
 
-                      <div className="sticky bottom-0 z-10 shrink-0 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 shadow-[0_-6px_14px_rgba(26,18,64,0.06)]">
+                      <div className="shrink-0 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 lg:sticky lg:bottom-0 lg:z-10 lg:shadow-[0_-6px_14px_rgba(26,18,64,0.06)]">
                         <div className="flex items-center justify-between gap-3">
                           <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
                             <Target className="h-3.5 w-3.5 text-[var(--qs-brand)]" /> Assessment size

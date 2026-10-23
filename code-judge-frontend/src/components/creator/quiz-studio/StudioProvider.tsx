@@ -439,7 +439,6 @@ function buildQuizMetaSnapshot(state: QuizMetaSnapshotInput): string {
     subjectId: state.info.subjectId,
     examId: state.info.examId,
     difficultyId: state.info.difficultyId,
-    duration: state.info.duration,
     passingMarks: state.info.passingMarks,
     startDate: state.info.startDate,
     endDate: state.info.endDate,
@@ -992,7 +991,6 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
   const getReviewErrors = (): string[] => {
     const errs: string[] = [];
     if (state.info.title.trim().length < 3) errs.push("Quiz title is required");
-    if (state.info.duration <= 0) errs.push("Duration must be greater than 0");
     if (summary.questionCount === 0) errs.push("No questions added");
     else if (summary.incompleteQuestions > 0) errs.push(`${summary.incompleteQuestions} question(s) are incomplete`);
     if (state.questions.some((q) => (q.marks || 0) <= 0)) errs.push("Some questions have no marks");
@@ -1018,7 +1016,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
       if (reviewErrs.length > 0) {
         toast.error({
           title: reviewErrs[0],
-          description: reviewErrs.length > 1 ? `${reviewErrs.length} errors need to be fixed. Check the Review page.` : "Please fix the error using the Fix button before continuing.",
+          description: reviewErrs.length > 1 ? `${reviewErrs.length} errors need to be fixed before publishing.` : "Please fix the error before continuing.",
         });
         return;
       }
@@ -1176,7 +1174,6 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         examId: state.info.examId ? Number(state.info.examId) : undefined,
         difficulty: state.info.difficulty,
         difficultyId: state.info.difficultyId ? Number(state.info.difficultyId) : undefined,
-        timeLimit: state.info.duration || undefined,
         starttime: state.info.startDate || undefined,
         endtime: state.info.endDate || undefined,
         // Saving content must never publish a quiz. Lifecycle changes only
@@ -1210,7 +1207,6 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
             subjectId: payload.subjectId,
             examId: payload.examId,
             difficulty: payload.difficultyId,
-            duration: payload.timeLimit,
             shuffleQuestions: payload.randomizeQuestions,
             shuffleOptions: payload.randomizeOptions,
             showResultsImmediately: payload.showResultsImmediately,

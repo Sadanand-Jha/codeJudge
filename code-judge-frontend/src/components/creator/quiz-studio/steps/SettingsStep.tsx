@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Check, ChevronDown, ClipboardList, Copy, Eye, KeyRound, RefreshCw, ShieldCheck, Shuffle, SlidersHorizontal } from "lucide-react";
+import { Check, ChevronDown, ClipboardList, Copy, Eye, KeyRound, RefreshCw, ShieldCheck, Shuffle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
@@ -13,14 +13,6 @@ import { TimingSection } from "../components/timing";
 import { formatDateTimeIST } from "../components/timing/helpers";
 
 const GROUPS: Array<{ id: string; label: string; icon: LucideIcon; fields: SettingField[]; comingSoon?: boolean; alwaysOn?: boolean }> = [
-  {
-    id: "general",
-    label: "General",
-    icon: SlidersHorizontal,
-    fields: [
-      { key: "negativeMarking", label: "Enable negative marking", description: "Deduct marks for wrong answers." },
-    ],
-  },
   {
     id: "behavior",
     label: "Question Behavior",
@@ -258,8 +250,6 @@ function SummaryAside() {
             </dd>
           </div>
           <SummaryRow label="Start" value={startLabel} />
-          <SummaryRow label="Attempt time" value={`${state.info.duration || 60} min`} />
-          <SummaryRow label="Negative marking" value={state.settings.negativeMarking ? "On" : "Off"} />
         </dl>
       </div>
     </aside>

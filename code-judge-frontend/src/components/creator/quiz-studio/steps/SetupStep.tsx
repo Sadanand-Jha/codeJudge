@@ -282,7 +282,7 @@ export function SetupStep() {
               {/* Info cards, like the join screen */}
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {[
-                  { icon: Clock, label: "Duration", value: "Not set" },
+                  { icon: Clock, label: "Responses", value: "Until ended" },
                   { icon: Target, label: "Total Marks", value: "—" },
                   { icon: BookOpen, label: "Difficulty", value: info.difficulty || "Medium" },
                   { icon: FileText, label: "Questions", value: String(state.questions.length) },

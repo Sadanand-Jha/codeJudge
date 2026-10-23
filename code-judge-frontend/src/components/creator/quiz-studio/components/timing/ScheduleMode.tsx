@@ -58,6 +58,10 @@ export function ScheduleMode({
           time={schedule.startTime}
           onDateChange={(d) => onChange({ startDate: d })}
           onTimeChange={(t) => onChange({ startTime: t })}
+          onUseNow={(minutes) => {
+            const now = new Date(Date.now() + minutes * 60_000);
+            onChange({ startDate: toDateString(now), startTime: toTimeString(now) });
+          }}
           error={validationErrors.find((e) => e.includes("start"))}
           disabled={locked}
         />

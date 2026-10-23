@@ -250,7 +250,7 @@ export const STEPS: Array<{ id: StudioStepId; label: string }> = [
   { id: "questions", label: "Questions" },
   { id: "access", label: "Access" },
   { id: "rules", label: "Rules" },
-  { id: "reviewPublish", label: "Review & publish" },
+  { id: "reviewPublish", label: "Publish" },
 ];
 
 /**

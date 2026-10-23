@@ -10,6 +10,7 @@ import { isDatabaseUnavailableError, isQuizCodeConflictError } from "../utils/da
 import { QuizCreationLimitError } from "../services/quizCreationLimits.ts";
 import { MAX_QUESTIONS_PER_QUIZ, QuizQuestionLimitError } from "../services/quizQuestionLimits.ts";
 import { sendEntitlementError } from "../services/entitlement.service.ts";
+import { enqueueQuizResultCalculation } from "../services/quizSubmission.service.ts";
 
 const quizService = new AdminQuizService();
 const resultGenerationService = new ResultGenerationService();
@@ -516,6 +517,10 @@ export const updateQuizStatus = async (req: Request, res: Response) => {
 
     const updatedQuiz = await quizService.updateQuiz(Number(quizId), updateData);
 
+    if (status === "ended") {
+      await enqueueQuizResultCalculation(Number(quizId));
+    }
+
     res.status(200).json({
       success: true,
       message: `Quiz status updated to ${status}`,
@@ -917,6 +922,22 @@ export const generateQuizResults = async (req: Request, res: Response) => {
       data: result,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "RESULTS_PENDING") {
+      res.status(409).json({
+        success: false,
+        message: "Results are still being calculated. Please try again in a few seconds.",
+        code: "RESULTS_PENDING",
+      });
+      return;
+    }
+    if (error instanceof Error && error.message === "QUIZ_NOT_ENDED") {
+      res.status(409).json({
+        success: false,
+        message: "Results can only be calculated after the quiz ends.",
+        code: "QUIZ_NOT_ENDED",
+      });
+      return;
+    }
     if (error instanceof Error && error.message === "RESULTS_ALREADY_GENERATED") {
       res.status(409).json({
         success: false,

@@ -2,6 +2,7 @@
 // problems, options, attempts, responses, game config, collaborators, subjects,
 // exam categories, and more.
 import { pool } from "../config/database.ts";
+import { NO_END_ATTEMPT_DURATION_MINUTES } from "../utils/quizAttemptTiming.ts";
 
 /**
  * Maximum number of attempts a single user may start for the same quiz,
@@ -1029,20 +1030,43 @@ export class QuizRepository {
          AND qa.deleted_at IS NULL
          AND ($2::int IS NULL OR qa.user_id = $2)
          AND (
-           (LOWER(COALESCE(qs.name, '')) = 'scheduled'
-             AND q.endtime IS NOT NULL
-             AND q.endtime <= CURRENT_TIMESTAMP)
-           OR (LOWER(COALESCE(qs.name, '')) <> 'scheduled'
-             AND (
-               (q.duration IS NOT NULL
-                 AND COALESCE(qa.started_at, qa.created_at) + (q.duration * INTERVAL '1 minute') <= CURRENT_TIMESTAMP)
-               OR (q.endtime IS NOT NULL AND q.endtime <= CURRENT_TIMESTAMP)
-             ))
+           LOWER(COALESCE(qs.name, '')) = 'ended'
+           OR (q.endtime IS NOT NULL AND q.endtime <= CURRENT_TIMESTAMP)
+           OR (
+             q.endtime IS NULL
+             AND COALESCE(qa.started_at, qa.created_at)
+               + ($3::int * INTERVAL '1 minute') <= CURRENT_TIMESTAMP
+           )
          )
        ORDER BY qa.id ASC`,
-      [quizId, userId ?? null]
+      [quizId, userId ?? null, NO_END_ATTEMPT_DURATION_MINUTES]
     );
     return result.rows;
+  }
+
+  /** Quiz ids that have ended and still contain ungraded attempts. */
+  async getQuizIdsAwaitingResultCalculation(): Promise<number[]> {
+    const result = await pool.query(
+      `SELECT DISTINCT q.id
+       FROM quiz q
+       JOIN quiz_attempt qa ON qa.quiz_id = q.id
+       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
+       WHERE q.deleted_at IS NULL
+         AND qa.status = 'in_progress'
+         AND qa.deleted_at IS NULL
+         AND (
+           LOWER(COALESCE(qs.name, '')) = 'ended'
+           OR (q.endtime IS NOT NULL AND q.endtime <= CURRENT_TIMESTAMP)
+           OR (
+             q.endtime IS NULL
+             AND COALESCE(qa.started_at, qa.created_at)
+               + ($1::int * INTERVAL '1 minute') <= CURRENT_TIMESTAMP
+           )
+         )
+       ORDER BY q.id ASC`,
+      [NO_END_ATTEMPT_DURATION_MINUTES]
+    );
+    return result.rows.map((row) => Number(row.id)).filter((id) => Number.isInteger(id) && id > 0);
   }
 
   async createQuizAttempt(data: {
@@ -1104,7 +1128,7 @@ export class QuizRepository {
     let paramCount = 0;
 
     const updateableFields = [
-      "score", "percentage", "rank", "status", "completed_at", "time_taken",
+      "score", "percentage", "rank", "status", "completed_at", "submitted_at", "time_taken",
       "total_questions", "correct_answers", "wrong_answers", "skipped_questions",
       "violations", "flagged", "flag_reason", "total_marks", "marks_obtained",
       "decoy_map"
@@ -1258,7 +1282,7 @@ export class QuizRepository {
   async getQuizCrowdAvatars(quizId: number): Promise<Array<{ avatarUrl: string | null; status: "submitted" | "attempting" }>> {
     const avatars = await pool.query(
       `SELECT DISTINCT ON (qa.user_id) a.url AS avatar_url,
-              CASE WHEN LOWER(qa.status) = 'completed' THEN 'submitted' ELSE 'attempting' END AS status
+              CASE WHEN LOWER(qa.status) = 'completed' OR qa.submitted_at IS NOT NULL THEN 'submitted' ELSE 'attempting' END AS status
        FROM quiz_attempt qa
        JOIN users u ON u.id = qa.user_id
        LEFT JOIN avatar a ON a.id = u.avatar_id
@@ -1539,7 +1563,7 @@ export class QuizRepository {
     }
 
     const existingAttempt = await pool.query(
-      "SELECT * FROM quiz_attempt WHERE user_id = $1 AND quiz_id = $2 AND status = 'in_progress'",
+      "SELECT * FROM quiz_attempt WHERE user_id = $1 AND quiz_id = $2 AND status = 'in_progress' AND submitted_at IS NULL",
       [userId, quizId]
     );
     if (existingAttempt.rows.length > 0) {

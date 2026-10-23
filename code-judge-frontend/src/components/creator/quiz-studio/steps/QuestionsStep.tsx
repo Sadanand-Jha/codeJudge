@@ -76,9 +76,7 @@ export function QuestionsStep() {
     date: formatPaperDate(state.info.startDate) ?? formatPaperDate(new Date()),
     totalMarks: state.questions.reduce((sum, q) => sum + (q.marks || 0), 0),
     totalQuestions: state.questions.length,
-    duration: state.info.duration ? `${state.info.duration} min` : undefined,
     difficulty: state.info.difficulty || undefined,
-    negativeMarking: state.settings.negativeMarking ? String(state.settings.negativeMarkValue ?? 1) : "None",
   };
 
   const handleDownloadPdf = (kind: PaperDownloadKind, config: PaperDownloadConfig) => {

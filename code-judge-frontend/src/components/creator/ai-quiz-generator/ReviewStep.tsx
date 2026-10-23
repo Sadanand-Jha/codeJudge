@@ -3,7 +3,6 @@
 import { useState, useRef } from "react";
 import {
   Sparkles,
-  Clock,
   ChevronDown,
   ChevronUp,
   ArrowRight,
@@ -134,7 +133,7 @@ export function ReviewStep({
 
           <Panel
             title="Quiz Details"
-            description="Subject, difficulty, duration, and metadata"
+            description="Subject, difficulty, and metadata"
             action={<AiBadge />}
           >
             <div className="space-y-5">
@@ -174,20 +173,6 @@ export function ReviewStep({
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Duration (minutes)</label>
-                  <div className="relative">
-                    <Clock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
-                    <input
-                      type="number"
-                      min={1}
-                      max={600}
-                      value={config.duration}
-                      onChange={(e) => update({ duration: Number(e.target.value) })}
-                      className="h-10 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-10 pr-3.5 text-sm text-[var(--qs-ink)] outline-none transition focus:border-[var(--qs-brand)]"
-                    />
-                  </div>
-                </div>
                 <EditableField
                   label="Assessment Type"
                   value={config.assessmentType}
@@ -285,12 +270,6 @@ export function ReviewStep({
                     <Award className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" /> <span className="truncate">Marks</span>
                   </div>
                   <p className="text-base font-extrabold text-[var(--qs-ink)] sm:text-lg">{config.problems.length}</p>
-                </div>
-                <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-2 sm:p-3">
-                  <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-[var(--qs-muted)] sm:text-xs">
-                    <Clock className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" /> <span className="truncate">Duration</span>
-                  </div>
-                  <p className="text-base font-extrabold text-[var(--qs-ink)] sm:text-lg">{config.duration} min</p>
                 </div>
                 <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-2 sm:p-3">
                   <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-[var(--qs-muted)] sm:text-xs">

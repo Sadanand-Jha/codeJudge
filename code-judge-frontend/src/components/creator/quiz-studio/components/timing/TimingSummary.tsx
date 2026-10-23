@@ -8,7 +8,7 @@ import { LIFECYCLE_META } from "./types";
 import { Badge } from "../../primitives";
 
 export function TimingSummary({ state }: { state: TimingState }) {
-  const { mode, schedule, manual, participantDuration, advanced } = state;
+  const { mode, schedule, manual } = state;
   const meta = LIFECYCLE_META[manual.status];
 
   const rows: { label: string; value: string }[] = [
@@ -42,36 +42,27 @@ export function TimingSummary({ state }: { state: TimingState }) {
   }
 
   rows.push({
-    label: "Participant time",
-    value: mode === "schedule" ? "Until the quiz ends" : `${participantDuration} minutes`,
+    label: "Responses",
+    value: mode === "schedule" ? "Until the quiz ends" : "Until you end the quiz",
   });
 
-  rows.push({
-    label: "Late joining",
-    value: advanced.lateJoining ? "Allowed" : "Disabled",
-  });
-
-  rows.push({
-    label: "Rejoining",
-    value: advanced.rejoining ? "Allowed" : "Disabled",
-  });
-
-  rows.push({
-    label: "Auto-submit",
-    value: advanced.autoSubmit ? "Enabled" : "Disabled",
-  });
+  // Advanced timing is temporarily hidden from the studio.
+  // rows.push({
+  //   label: "Late joining",
+  //   value: advanced.lateJoining ? "Allowed" : "Disabled",
+  // });
+  //
+  // rows.push({
+  //   label: "Rejoining",
+  //   value: advanced.rejoining ? "Allowed" : "Disabled",
+  // });
+  //
+  // rows.push({
+  //   label: "Auto-submit",
+  //   value: advanced.autoSubmit ? "Enabled" : "Disabled",
+  // });
 
   const warnings: string[] = [];
-
-  if (
-    mode === "manual" &&
-    manual.endBehavior === "auto_duration" &&
-    manual.sessionDuration < participantDuration
-  ) {
-    warnings.push(
-      `The quiz session duration (${manual.sessionDuration} min) is shorter than the participant attempt time (${participantDuration} min). Participants may not get the full allotted time.`
-    );
-  }
 
   return (
     <div className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-5">
@@ -120,8 +111,8 @@ export function TimingSummary({ state }: { state: TimingState }) {
           <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--qs-ok)]" />
           <p className="text-[11px] font-medium text-[var(--qs-ok)]">
             {mode === "schedule"
-              ? "Participants can join and attempt throughout the scheduled window. Responses close automatically at the end time."
-              : "Everything looks good. Participants will receive the configured attempt duration once they start."}
+              ? "Participants can join and answer throughout the scheduled window. Responses close automatically at the end time."
+              : "Everything looks good. Responses remain open until you end the quiz."}
           </p>
         </div>
       )}

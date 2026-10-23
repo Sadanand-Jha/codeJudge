@@ -16,13 +16,11 @@ import { SESSION_DURATION_PRESETS } from "./types";
 export function ManualMode({
   manual,
   onManualChange,
-  participantDuration,
   quizId,
   allowStart = true,
 }: {
   manual: ManualConfig;
   onManualChange: (patch: Partial<ManualConfig>) => void;
-  participantDuration: number;
   quizId?: string;
   allowStart?: boolean;
 }) {
@@ -179,12 +177,6 @@ export function ManualMode({
         }}
         title="Start this quiz?"
         description="Starting the quiz will make it available to registered participants. They can begin their attempts immediately."
-        details={[
-          {
-            label: "Duration",
-            value: `${participantDuration} minutes per participant`,
-          },
-        ]}
         confirmLabel="Start Quiz"
         confirmColor="emerald"
       >

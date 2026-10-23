@@ -8,7 +8,6 @@ import {
   BarChart3,
   BookOpen,
   Calendar,
-  Clock,
   Globe,
   GraduationCap,
   Lock,
@@ -370,7 +369,6 @@ export default function QuizSettingsPage({
       if (!details.availabilityEnd) e.availabilityEnd = "End date/time is required for scheduled quizzes (or select 'No Fixed End').";
       if (availabilityEndInvalid) e.availabilityEnd = "End date/time cannot be before or equal to start.";
     }
-    if (details.timeLimit <= 0) e.timeLimit = "Duration must be greater than 0.";
     return e;
   }, [details, registrationEndInvalid, availabilityEndInvalid]);
 
@@ -381,7 +379,6 @@ export default function QuizSettingsPage({
     if (details.subject.trim()) score += 15;
     if (details.visibility) score += 10;
     if (details.tags.length > 0) score += 5;
-    if (details.timeLimit > 0) score += 10;
     if (details.availabilityMode === "scheduled") {
       if (details.availabilityStart) score += 5;
       if (details.availabilityEnd) score += 5;
@@ -450,7 +447,6 @@ export default function QuizSettingsPage({
         code: generateQuizCode(),
         difficulty: details.difficulty,
         visibility: details.visibilityId ?? undefined,
-        timeLimit: details.timeLimit,
         starttime: details.availabilityStart || undefined,
         endtime: details.availabilityEnd || undefined,
         timeZone: details.timeZone,
@@ -1120,7 +1116,7 @@ export default function QuizSettingsPage({
                           <span className="ml-2 text-[10px] font-medium text-amber-500">({details.timeZone})</span>
                         </p>
                         <p className="mt-2 text-[10px] text-text-muted">
-                          Attempt duration: {details.timeLimit} minutes. At closing: {details.availabilityEndBehavior === "auto_submit" ? "auto-submit" : details.availabilityEndBehavior === "allow_finish" ? "allow to finish" : "stop immediately"}.
+                          Responses close when the quiz window ends: {details.availabilityEndBehavior === "auto_submit" ? "auto-submit" : details.availabilityEndBehavior === "allow_finish" ? "allow to finish" : "stop immediately"}.
                         </p>
                       </div>
                     </div>
@@ -1189,25 +1185,6 @@ export default function QuizSettingsPage({
                     required
                     error={(attempted && errors.registrationEnd) || undefined}
                   />
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-text-primary">
-                      Duration <span className="ml-0.5 text-danger">*</span>
-                    </label>
-                    <div className="relative">
-                      <Clock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-                      <input
-                        type="number"
-                        min={1}
-                        value={details.timeLimit}
-                        onChange={(e) => update({ timeLimit: Number(e.target.value) })}
-                        className={cn(inputClass, "pl-10")}
-                      />
-                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-medium text-text-muted">
-                        minutes
-                      </span>
-                    </div>
-                    {attempted && errors.timeLimit && <FieldError message={errors.timeLimit} />}
-                  </div>
                 </motion.div>
               )}
 

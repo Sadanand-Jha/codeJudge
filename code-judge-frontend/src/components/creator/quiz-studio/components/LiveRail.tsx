@@ -127,9 +127,9 @@ export function LiveRail({ onStudentPreview, collapsed, onToggle }: { onDownload
 
         {q.tags.length > 0 && (
           <div className="pt-4 border-t-2 border-[var(--qs-line)]">
-            <div className="flex flex-nowrap gap-1 justify-center">
+            <div className="flex min-w-0 flex-wrap justify-center gap-1">
               {q.tags.map((t) => (
-                <span key={t} className="whitespace-nowrap rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--qs-muted)]">
+                <span key={t} className="max-w-full break-words rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-1.5 py-0.5 text-center text-[10px] font-bold leading-tight text-[var(--qs-muted)]">
                   {t}
                 </span>
               ))}

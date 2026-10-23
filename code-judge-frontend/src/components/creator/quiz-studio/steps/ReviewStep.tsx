@@ -149,17 +149,6 @@ function computeItems(
     items.push({ id: "desc", severity: "ok", label: "Short description is set" });
   }
 
-  if (state.info.duration <= 0) {
-    items.push({
-      id: "duration",
-      severity: "error",
-      label: "Duration must be greater than 0",
-      fix: () => goToStep("rules"),
-    });
-  } else {
-    items.push({ id: "duration", severity: "ok", label: `${state.info.duration} minutes set` });
-  }
-
   if (summary.questionCount === 0) {
     items.push({
       id: "qcount",

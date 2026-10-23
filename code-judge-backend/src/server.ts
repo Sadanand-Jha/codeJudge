@@ -3,6 +3,7 @@
 // api/index.js and handled as a serverless function (no listen).
 import app from './app.ts';
 import { startQuizSubmissionWorker } from './queues/quizSubmission.worker.ts';
+import { startQuizResultScheduler } from './queues/quizResult.scheduler.ts';
 
 const PORT = process.env.PORT || 8000;
 
@@ -20,8 +21,9 @@ if (process.env.NODE_ENV !== 'production') {
   // submit endpoint falls back to durable, concurrency-limited recovery.
   try {
     startQuizSubmissionWorker();
+    startQuizResultScheduler();
   } catch (err: any) {
-    console.warn('⚠️ Quiz submission worker failed to start (durable recovery queue remains available):', err.message);
+    console.warn('⚠️ Quiz result worker/scheduler failed to start (durable recovery queue remains available):', err.message);
   }
 }
 

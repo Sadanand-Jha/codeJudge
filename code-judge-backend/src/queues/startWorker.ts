@@ -3,8 +3,10 @@
 // processes. Keeps running until SIGTERM/SIGINT.
 import "dotenv/config";
 import { startQuizSubmissionWorker } from "./quizSubmission.worker.ts";
+import { startQuizResultScheduler } from "./quizResult.scheduler.ts";
 
 startQuizSubmissionWorker();
+startQuizResultScheduler();
 
 const shutdown = async (signal: string) => {
   console.log(`[bullmq] received ${signal}, shutting down worker...`);

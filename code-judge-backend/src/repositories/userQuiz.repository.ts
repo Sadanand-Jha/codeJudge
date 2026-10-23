@@ -233,7 +233,7 @@ export class UserQuizRepository {
     }
 
     const existingAttempt = await pool.query(
-      "SELECT * FROM quiz_attempt WHERE user_id = $1 AND quiz_id = $2 AND status = 'in_progress'",
+      "SELECT * FROM quiz_attempt WHERE user_id = $1 AND quiz_id = $2 AND status = 'in_progress' AND submitted_at IS NULL",
       [userId, quizId]
     );
     if (existingAttempt.rows.length > 0) return { allowed: true, reason: "resume", attemptId: existingAttempt.rows[0].id };
@@ -295,8 +295,9 @@ export class UserQuizRepository {
     const values: any[] = [];
     let paramCount = 0;
     const updateableFields = [
-      "score", "percentage", "rank", "status", "completed_at", "time_taken",
+      "score", "percentage", "rank", "status", "completed_at", "submitted_at", "time_taken",
       "total_questions", "correct_answers", "wrong_answers", "skipped_questions",
+      "violations", "flagged", "flag_reason",
     ];
     for (const field of updateableFields) {
       if (data[field] !== undefined) { paramCount++; fields.push(`${field} = $${paramCount}`); values.push(data[field]); }
