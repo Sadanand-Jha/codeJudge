@@ -11,7 +11,17 @@ import {
 } from "./quizSubmission.queue.ts";
 import { processQuizSubmission } from "../services/quizSubmission.service.ts";
 
-const WORKER_CONCURRENCY = Number(process.env.QUIZ_SUBMISSION_CONCURRENCY || 3);
+// Hard cap: end-of-quiz result calculation may use at most 5 parallel slots.
+const WORKER_CONCURRENCY = Math.min(
+  5,
+  Math.max(1, Number(process.env.QUIZ_SUBMISSION_CONCURRENCY) || 5)
+);
+
+const RESULT_CALCULATION_DELAY_MS = 5000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export function startQuizSubmissionWorker(): Worker<QuizSubmissionJobData> | null {
   if (global.__bullmqWorkerStarted) {
@@ -22,10 +32,13 @@ export function startQuizSubmissionWorker(): Worker<QuizSubmissionJobData> | nul
   const worker = new Worker<QuizSubmissionJobData>(
     QUIZ_SUBMISSION_QUEUE,
     async (job: Job<QuizSubmissionJobData>) => {
-      console.log(`[bullmq] grading submission job ${job.id} (attempt ${job.data.attemptId}, try ${job.attemptsMade + 1})`);
+      console.log(`[bullmq] result calculation started (job ${job.id}, attempt ${job.data.attemptId}, try ${job.attemptsMade + 1})`);
+      // Give the end-of-quiz write/responses window time to settle before
+      // reading the saved responses. Concurrency still allows up to 5 jobs.
+      await sleep(RESULT_CALCULATION_DELAY_MS);
       const result = await processQuizSubmission(job.data);
       await deleteFallbackQuizSubmission(job.data.attemptId);
-      console.log(`[bullmq] submission job ${job.id} completed`);
+      console.log(`[bullmq] result calculation completed for attempt ${job.data.attemptId}`);
       return result;
     },
     {
@@ -35,7 +48,7 @@ export function startQuizSubmissionWorker(): Worker<QuizSubmissionJobData> | nul
   );
 
   worker.on("failed", (job, err) => {
-    console.error(`[bullmq] submission job ${job?.id} failed after ${job?.attemptsMade} attempts:`, err.message);
+    console.error(`[bullmq] result calculation job ${job?.id} failed after ${job?.attemptsMade} attempts:`, err.message);
   });
   worker.on("error", (err) => {
     console.error("[bullmq] worker error:", err.message);

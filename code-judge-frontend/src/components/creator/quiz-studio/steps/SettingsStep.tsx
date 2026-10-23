@@ -14,14 +14,6 @@ import { formatDateTimeIST } from "../components/timing/helpers";
 
 const GROUPS: Array<{ id: string; label: string; icon: LucideIcon; fields: SettingField[]; comingSoon?: boolean; alwaysOn?: boolean }> = [
   {
-    id: "general",
-    label: "General",
-    icon: SlidersHorizontal,
-    fields: [
-      { key: "negativeMarking", label: "Enable negative marking", description: "Deduct marks for wrong answers." },
-    ],
-  },
-  {
     id: "behavior",
     label: "Question Behavior",
     icon: Shuffle,

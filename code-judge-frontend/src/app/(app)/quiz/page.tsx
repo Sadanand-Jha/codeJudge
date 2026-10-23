@@ -3,118 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, BadgeCheck, BrainCircuit, Check, FileText, ShieldCheck, Sparkles, WandSparkles } from "lucide-react";
+import { ArrowRight, BadgeCheck, BrainCircuit, Check, FileText, Minus, Plus, ShieldCheck, SlidersHorizontal, Target, WandSparkles } from "lucide-react";
 import GuestGuard from "@/components/guards/GuestGuard";
 
 import YourActivitySection from "@/components/quiz/live/YourActivitySection";
+import QuizHubBackdrop from "@/components/quiz/live/QuizHubBackdrop";
+import QuizHubHero from "@/components/quiz/live/QuizHubHero";
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
-import QuizCodeForm from "@/components/marketing/QuizCodeForm";
-import SampleQuizDemo, { type SampleQuizSet } from "@/components/marketing/SampleQuizDemo";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/helpers";
-
-const QUIZ_HUB_SAMPLE_SETS: SampleQuizSet[] = [
-  {
-    subject: "Artificial Intelligence",
-    questions: [
-      {
-        q: "Which search strategy does A* use to find the shortest path?",
-        o: ["Breadth-first search", "Best-first search with an admissible heuristic", "Depth-first search", "Random search"],
-        a: 1,
-      },
-      {
-        q: "What does the ReLU activation function output for a negative input?",
-        o: ["The input itself", "Zero", "One", "Infinity"],
-        a: 1,
-      },
-      {
-        q: "In supervised learning, what does a label represent?",
-        o: ["Input features", "The expected output", "A model weight", "A learning rate"],
-        a: 1,
-      },
-    ],
-  },
-  {
-    subject: "Operating Systems",
-    questions: [
-      {
-        q: "Which scheduling algorithm can starve long-running jobs?",
-        o: ["First Come First Serve", "Shortest Job First", "Round Robin", "FIFO"],
-        a: 1,
-      },
-      {
-        q: "What is thrashing in an operating system?",
-        o: ["High CPU utilization", "Excessive paging that slows the system", "A deadlock in the kernel", "A type of file system"],
-        a: 1,
-      },
-      {
-        q: "Which condition is NOT required for a deadlock?",
-        o: ["Mutual exclusion", "Hold and wait", "Preemption", "Circular wait"],
-        a: 2,
-      },
-    ],
-  },
-  {
-    subject: "Data Structures",
-    questions: [
-      {
-        q: "Which data structure follows Last-In-First-Out (LIFO) order?",
-        o: ["Queue", "Stack", "Linked list", "Binary tree"],
-        a: 1,
-      },
-      {
-        q: "What is the time complexity of binary search on a sorted array?",
-        o: ["O(n)", "O(n log n)", "O(log n)", "O(1)"],
-        a: 2,
-      },
-      {
-        q: "Which traversal of a binary search tree yields sorted order?",
-        o: ["Pre-order", "In-order", "Post-order", "Level-order"],
-        a: 1,
-      },
-    ],
-  },
-  {
-    subject: "Python",
-    questions: [
-      {
-        q: "Which keyword creates an anonymous function in Python?",
-        o: ["def", "lambda", "func", "anon"],
-        a: 1,
-      },
-      {
-        q: "What is the output type of len('quiz') in Python?",
-        o: ["str", "int", "float", "bool"],
-        a: 1,
-      },
-      {
-        q: "Which data type is immutable in Python?",
-        o: ["list", "dict", "set", "tuple"],
-        a: 3,
-      },
-    ],
-  },
-  {
-    subject: "Software Engineering",
-    questions: [
-      {
-        q: "Which SDLC model is best suited for changing requirements?",
-        o: ["Waterfall", "Agile", "V-Model", "Big Bang"],
-        a: 1,
-      },
-      {
-        q: "What does unit testing verify?",
-        o: ["The whole system", "A single component in isolation", "User acceptance", "Deployment scripts"],
-        a: 1,
-      },
-      {
-        q: "Which metric measures how much of the code is exercised by tests?",
-        o: ["Code coverage", "Latency", "Throughput", "Uptime"],
-        a: 0,
-      },
-    ],
-  },
-];
 
 const AI_STUDIO_MOMENTS = [
   {
@@ -227,75 +124,53 @@ const AI_STUDIO_COPY_BEATS = [
   },
 ];
 
-const THINKING_TOKENS_PER_SECOND = 120;
+const THINKING_TOKENS_PER_SECOND = 400;
+const AI_STUDIO_CYCLE_MS = 12_000;
+const AI_STUDIO_CONFIG_START_MS = 1_000;
+const AI_STUDIO_STREAM_START_MS = 5_200;
+const AI_STUDIO_DONE_START_MS = AI_STUDIO_CYCLE_MS - 1_200;
 
-function AIThinkingConsole({ thinking, result }: { thinking: string[]; result: string }) {
-  const [stream, setStream] = useState({ chars: 0, speed: THINKING_TOKENS_PER_SECOND, paused: false });
+function AIThinkingConsole({
+  thinking,
+  result,
+  tokensPerSecond = THINKING_TOKENS_PER_SECOND,
+}: {
+  thinking: string[];
+  result: string;
+  tokensPerSecond?: number;
+}) {
+  const [chars, setChars] = useState(0);
   const allLines = useMemo(() => [...thinking, result], [thinking, result]);
   const total = useMemo(() => allLines.reduce((sum, line) => sum + line.length, 0), [allLines]);
-  const pauseBoundaries = useMemo(() => {
-    let cursor = 0;
-    const boundaries: number[] = [];
-    for (const line of allLines) {
-      cursor += line.length;
-      if (/^(Hmm|Wait|Thinking|Rethinking)/.test(line)) boundaries.push(cursor);
-    }
-    return boundaries;
-  }, [allLines]);
 
   useEffect(() => {
-    let pauseIndex = 0;
-    let pauseUntil = 0;
-    let burstUntil = 0;
-    let liveSpeed = THINKING_TOKENS_PER_SECOND;
+    let cancelled = false;
+    let streamed = 0;
     let fraction = 0;
     let previousTick = performance.now();
+    let timer = 0;
 
-    const fast = window.setInterval(() => {
+    const tick = () => {
+      if (cancelled) return;
       const now = performance.now();
       const elapsed = Math.min((now - previousTick) / 1_000, 0.1);
       previousTick = now;
+      fraction += tokensPerSecond * elapsed;
+      const wholeChars = Math.floor(fraction);
+      fraction -= wholeChars;
+      streamed = Math.min(total, streamed + wholeChars);
+      setChars(streamed);
+      if (streamed < total) timer = window.setTimeout(tick, 33);
+    };
 
-      setStream((current) => {
-        if (current.chars >= total) {
-          window.clearInterval(fast);
-          return { chars: current.chars, speed: 0, paused: false };
-        }
+    timer = window.setTimeout(tick, 33);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [total, tokensPerSecond]);
 
-        const nextPause = pauseBoundaries[pauseIndex];
-        if (nextPause !== undefined && current.chars >= nextPause && pauseUntil === 0) {
-          pauseUntil = now + 650;
-          fraction = 0;
-          return { chars: nextPause, speed: 0, paused: true };
-        }
-
-        if (pauseUntil > now) {
-          return current.paused ? current : { ...current, speed: 0, paused: true };
-        }
-
-        if (pauseUntil !== 0) {
-          pauseUntil = 0;
-          pauseIndex += 1;
-          burstUntil = now + 750;
-          liveSpeed = 250;
-        }
-
-        if (now < burstUntil) liveSpeed = 250;
-        else liveSpeed = Math.max(THINKING_TOKENS_PER_SECOND, liveSpeed - 10);
-
-        fraction += liveSpeed * elapsed;
-        const wholeChars = Math.floor(fraction);
-        fraction -= wholeChars;
-        const boundary = pauseBoundaries[pauseIndex] ?? total;
-        const chars = Math.min(total, boundary, current.chars + wholeChars);
-
-        return { chars, speed: Math.round(liveSpeed), paused: false };
-      });
-    }, 50);
-    return () => window.clearInterval(fast);
-  }, [pauseBoundaries, total]);
-
-  let remaining = stream.chars;
+  let remaining = chars;
   const rows: { index: number; text: string; done: boolean; active: boolean }[] = [];
   for (const [index, line] of allLines.entries()) {
     if (remaining >= line.length) {
@@ -310,22 +185,25 @@ function AIThinkingConsole({ thinking, result }: { thinking: string[]; result: s
   }
 
   const visibleRows = rows.filter((row) => row.text).slice(-2);
-  const isStreaming = stream.chars < total;
-  const isFinished = stream.chars >= total;
+  const isFinished = chars >= total;
 
   return (
     <div className="w-full min-w-0">
       <span className="inline-flex h-5 items-center gap-1 text-[8px] font-black uppercase tracking-[0.15em] text-[var(--qs-ok)]">
-        {isFinished ? "Quiz draft ready" : stream.paused ? "AI is thinking" : "AI is building"}
-        <span className="inline-flex items-center gap-0.5" aria-hidden="true">
-          <span className="h-1 w-1 animate-bounce rounded-full bg-[var(--qs-ok)] [animation-delay:0ms]" />
-          <span className="h-1 w-1 animate-bounce rounded-full bg-[var(--qs-ok)] [animation-delay:150ms]" />
-          <span className="h-1 w-1 animate-bounce rounded-full bg-[var(--qs-ok)] [animation-delay:300ms]" />
-        </span>
+        {isFinished ? "Quiz draft ready" : "AI is building"}
+        {!isFinished && (
+          <span className="inline-flex items-center gap-0.5" aria-hidden="true">
+            <span className="h-1 w-1 animate-bounce rounded-full bg-[var(--qs-ok)] [animation-delay:0ms]" />
+            <span className="h-1 w-1 animate-bounce rounded-full bg-[var(--qs-ok)] [animation-delay:150ms]" />
+            <span className="h-1 w-1 animate-bounce rounded-full bg-[var(--qs-ok)] [animation-delay:300ms]" />
+          </span>
+        )}
       </span>
 
       <div className="mt-1 h-[52px] w-full min-w-0 max-w-full overflow-hidden rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2 font-mono text-[10px] leading-4">
-        <span className="sr-only">AI pauses to think, accelerates to 250 tokens per second, then settles back to 120. Only the latest two steps are shown.</span>
+        <span className="sr-only">
+          AI streams at {tokensPerSecond} tokens per second. Only the latest two steps are shown.
+        </span>
         <AnimatePresence initial={false} mode="popLayout">
           {visibleRows.map((row) => {
             const isResult = row.index === rows.length - 1;
@@ -353,7 +231,7 @@ function AIThinkingConsole({ thinking, result }: { thinking: string[]; result: s
                   {isResult && row.done ? "✓" : isReflection ? "∿" : "›"}
                 </span>
                 {row.text}
-                {(row.active || (stream.paused && row.index === visibleRows[visibleRows.length - 1]?.index) || (isStreaming && isResult && row.done)) && (
+                {row.active && (
                   <span className="ml-0.5 inline-block h-3 w-[2px] animate-pulse bg-[var(--qs-ok)] align-middle" />
                 )}
               </motion.p>
@@ -365,28 +243,142 @@ function AIThinkingConsole({ thinking, result }: { thinking: string[]; result: s
   );
 }
 
+const TUTORIAL_DIFFICULTIES = ["Easy", "Medium", "Hard"] as const;
+type TutorialDifficulty = (typeof TUTORIAL_DIFFICULTIES)[number];
+
+const DIFFICULTY_TONE: Record<TutorialDifficulty, string> = {
+  Easy: "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]",
+  Medium: "border-[var(--qs-warn)] bg-[var(--qs-warnbg)] text-[var(--qs-warn)]",
+  Hard: "border-[var(--qs-bad)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]",
+};
+
+function TutorialConfig({
+  questionCount,
+  difficulty,
+  pulsePlus,
+  pulseMinus,
+}: {
+  questionCount: number;
+  difficulty: TutorialDifficulty;
+  pulsePlus: boolean;
+  pulseMinus: boolean;
+}) {
+  return (
+    <div className="min-w-0">
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-1 text-[8px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]">
+          <Target className="h-3 w-3 text-[var(--qs-brand)]" />
+          Questions
+        </span>
+        <div className="flex items-center gap-1">
+          <span
+            className={cn(
+              "grid h-5 w-5 place-items-center rounded-[6px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] transition-all",
+              pulseMinus && "scale-110 border-[var(--qs-bad)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]"
+            )}
+          >
+            <Minus className="h-2.5 w-2.5" strokeWidth={3} />
+          </span>
+          <motion.span
+            key={questionCount}
+            initial={{ scale: 0.7, opacity: 0.4 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.16 }}
+            className="w-5 text-center text-[11px] font-extrabold tabular-nums text-[var(--qs-ink)]"
+          >
+            {questionCount}
+          </motion.span>
+          <span
+            className={cn(
+              "grid h-5 w-5 place-items-center rounded-[6px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] transition-all",
+              pulsePlus && "scale-110 border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]"
+            )}
+          >
+            <Plus className="h-2.5 w-2.5" strokeWidth={3} />
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-1.5 flex items-center justify-between gap-2">
+        <span className="flex items-center gap-1 text-[8px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]">
+          <SlidersHorizontal className="h-3 w-3 text-[var(--qs-brand)]" />
+          Difficulty
+        </span>
+        <div className="flex items-center gap-1">
+          {TUTORIAL_DIFFICULTIES.map((level) => (
+            <span
+              key={level}
+              className={cn(
+                "rounded-full border px-1.5 py-0.5 text-[7px] font-extrabold uppercase tracking-[0.04em] transition-all",
+                difficulty === level
+                  ? DIFFICULTY_TONE[level]
+                  : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)]"
+              )}
+            >
+              {level}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <p className="mt-1.5 truncate text-[8px] font-medium text-[var(--qs-muted)]">
+        {questionCount} questions · {difficulty} difficulty · hints + answer keys
+      </p>
+    </div>
+  );
+}
+
 function AIQuizStudioCard() {
   const [activeMoment, setActiveMoment] = useState(0);
   const [activeCopyBeat, setActiveCopyBeat] = useState(0);
-  const [, setElapsedSeconds] = useState(0);
+  const [cycleKey, setCycleKey] = useState(0);
+  const cycleId = `${activeMoment}-${cycleKey}`;
+  const [clock, setClock] = useState({ cycleId, elapsedMs: 0 });
+  const elapsedMs = clock.cycleId === cycleId ? clock.elapsedMs : 0;
   const moment = AI_STUDIO_MOMENTS[activeMoment];
   const copyBeat = AI_STUDIO_COPY_BEATS[activeCopyBeat];
 
-  const CYCLE_SECONDS = 10;
-
   useEffect(() => {
+    const startedAt = performance.now();
     const interval = window.setInterval(() => {
-      setElapsedSeconds((current) => {
-        if (current >= CYCLE_SECONDS - 1) {
-          setActiveMoment((active) => (active + 1) % AI_STUDIO_MOMENTS.length);
-          return 0;
-        }
-        return current + 1;
-      });
-    }, 1000);
+      const next = performance.now() - startedAt;
+      if (next >= AI_STUDIO_CYCLE_MS) {
+        window.clearInterval(interval);
+        setActiveMoment((active) => (active + 1) % AI_STUDIO_MOMENTS.length);
+      } else {
+        setClock({ cycleId, elapsedMs: next });
+      }
+    }, 100);
 
     return () => window.clearInterval(interval);
-  }, []);
+  }, [activeMoment, cycleKey, cycleId]);
+
+  const phase =
+    elapsedMs < AI_STUDIO_CONFIG_START_MS
+      ? "prompt"
+      : elapsedMs < AI_STUDIO_STREAM_START_MS
+        ? "config"
+        : elapsedMs < AI_STUDIO_DONE_START_MS
+          ? "stream"
+          : "done";
+
+  const questionCount =
+    elapsedMs < 1_800 ? 5 :
+    elapsedMs < 2_600 ? 7 :
+    elapsedMs < 3_400 ? 10 :
+    elapsedMs < 3_900 ? 9 :
+    10;
+
+  const difficulty: TutorialDifficulty =
+    elapsedMs < 1_200 ? "Easy" :
+    elapsedMs < 4_200 ? "Medium" :
+    "Hard";
+
+  const pulsePlus =
+    (elapsedMs >= 1_800 && elapsedMs < 2_300) ||
+    (elapsedMs >= 2_600 && elapsedMs < 3_100) ||
+    (elapsedMs >= 3_900 && elapsedMs < 4_400);
+  const pulseMinus = elapsedMs >= 3_400 && elapsedMs < 3_900;
 
   useEffect(() => {
     const copyInterval = window.setInterval(() => {
@@ -450,6 +442,9 @@ function AIQuizStudioCard() {
                 </span>
                 <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[var(--qs-muted)]">Live AI draft</span>
               </div>
+              <span className="ml-auto rounded-full border border-[var(--qs-line)] bg-[var(--qs-surface)] px-1.5 py-0.5 text-[7px] font-bold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+                400 tok/s
+              </span>
             </div>
 
             <AnimatePresence mode="wait">
@@ -465,11 +460,41 @@ function AIQuizStudioCard() {
                 </div>
                 <div className="my-1.5 ml-3.5 h-3 border-l-2 border-dashed border-[var(--qs-line)]" />
                 <div className="flex items-start gap-2.5">
-                  <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[var(--qs-okbg)] text-[var(--qs-ok)]">
-                    <Check className="h-3.5 w-3.5" />
+                  <span
+                    className={cn(
+                      "mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg",
+                      phase === "config"
+                        ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
+                        : "bg-[var(--qs-okbg)] text-[var(--qs-ok)]"
+                    )}
+                  >
+                    {phase === "config" ? <SlidersHorizontal className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
                   </span>
                   <div className="w-0 min-w-0 flex-1">
-                    <AIThinkingConsole key={activeMoment} thinking={moment.thinking} result={moment.result} />
+                    {phase === "prompt" ? (
+                      <div className="flex h-[72px] items-center rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5">
+                        <span className="inline-flex items-center gap-1.5 text-[9px] font-bold text-[var(--qs-muted)]">
+                          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--qs-ok)]" />
+                          Reading your prompt…
+                        </span>
+                      </div>
+                    ) : phase === "config" ? (
+                      <div className="min-h-[72px]">
+                        <TutorialConfig
+                          questionCount={questionCount}
+                          difficulty={difficulty}
+                          pulsePlus={pulsePlus}
+                          pulseMinus={pulseMinus}
+                        />
+                      </div>
+                    ) : (
+                      <AIThinkingConsole
+                        key={activeMoment}
+                        thinking={moment.thinking}
+                        result={moment.result}
+                        tokensPerSecond={THINKING_TOKENS_PER_SECOND}
+                      />
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -478,10 +503,10 @@ function AIQuizStudioCard() {
             <div className="mt-auto">
               <div className="qs-bar">
                 <motion.div
-                  key={`progress-${activeMoment}`}
+                  key={`progress-${activeMoment}-${cycleKey}`}
                   initial={{ width: "0%" }}
                   animate={{ width: "100%" }}
-                  transition={{ duration: CYCLE_SECONDS, ease: "linear" }}
+                  transition={{ duration: AI_STUDIO_CYCLE_MS / 1_000, ease: "linear" }}
                   className="h-full rounded-full bg-[var(--qs-brand)]"
                 />
               </div>
@@ -490,7 +515,10 @@ function AIQuizStudioCard() {
                   <button
                     key={item.source}
                     type="button"
-                    onClick={() => { setActiveMoment(index); setElapsedSeconds(0); }}
+                    onClick={() => {
+                      setActiveMoment(index);
+                      setCycleKey((key) => key + 1);
+                    }}
                     className={`h-1.5 rounded-full transition-all ${index === activeMoment ? "w-7 bg-[var(--qs-brand)]" : "w-1.5 bg-[var(--qs-line)] hover:bg-[var(--qs-brand)]/40"}`}
                     aria-label={`Show ${item.source} example`}
                   />
@@ -535,32 +563,11 @@ function QuizHome() {
 
   return (
     <div className="qs-ui relative min-h-[calc(100dvh-3.5rem)]">
+      <QuizHubBackdrop />
       <QuizPageReady>
-        <div className="qs-wrap relative pb-12 pt-4 sm:pt-6">
+        <div className="qs-wrap relative z-10 pb-12 pt-4 sm:pt-6">
           <main className="w-full space-y-8">
-            <header className="grid items-center gap-11 pt-4 lg:grid-cols-[1.05fr_.95fr] lg:gap-14">
-              <div>
-                <span className="inline-flex items-center gap-2 rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--qs-brand)]">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  QuizSupport quiz hub
-                </span>
-                <h1 className="mt-4 max-w-[13em] text-[clamp(34px,4.6vw,56px)] font-extrabold">
-                  Make a quiz in minutes.
-                  <span className="block text-[var(--qs-brand)]">Share it with a code.</span>
-                </h1>
-                <p className="mb-7 mt-4 max-w-[30em] text-[var(--qs-muted)]">
-                  Enter your quiz code to join a live quiz.
-                </p>
-                <QuizCodeForm />
-                <p className="qs-sub mt-2">
-                  Want to build your own?{" "}
-                  <Link href="/creator/quizzes/create">Create a quiz for free</Link>
-                </p>
-              </div>
-              <div className="hidden md:block">
-                <SampleQuizDemo sets={QUIZ_HUB_SAMPLE_SETS} label="Sample live quiz" />
-              </div>
-            </header>
+            <QuizHubHero />
 
             <div className="hidden md:block">
               <AIQuizStudioCard />

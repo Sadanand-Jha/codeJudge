@@ -10,6 +10,7 @@ export function DateTimeField({
   onTimeChange,
   error,
   disabled,
+  onUseNow,
 }: {
   label: string;
   date: string;
@@ -18,12 +19,34 @@ export function DateTimeField({
   onTimeChange: (v: string) => void;
   error?: string;
   disabled?: boolean;
+  onUseNow?: (offsetMinutes: number) => void;
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-xs font-bold text-[var(--qs-ink)]">
-        {label}
-      </label>
+      <div className="flex items-center justify-between gap-2">
+        <label className="block text-xs font-bold text-[var(--qs-ink)]">
+          {label}
+        </label>
+        {onUseNow && (
+          <div className="flex items-center gap-1">
+            {[1, 5].map((minutes) => (
+              <button
+                key={minutes}
+                type="button"
+                onClick={() => onUseNow(minutes)}
+                disabled={disabled}
+                aria-label={`Set start time ${minutes} minute${minutes === 1 ? "" : "s"} from now`}
+                className={cn(
+                  "rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-brand)]",
+                  disabled && "cursor-not-allowed opacity-50"
+                )}
+              >
+                +{minutes}m
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       <div className="flex gap-2">
         <input
           type="date"

@@ -16,13 +16,11 @@ import { SESSION_DURATION_PRESETS } from "./types";
 export function ManualMode({
   manual,
   onManualChange,
-  participantDuration,
   quizId,
   allowStart = true,
 }: {
   manual: ManualConfig;
   onManualChange: (patch: Partial<ManualConfig>) => void;
-  participantDuration: number;
   quizId?: string;
   allowStart?: boolean;
 }) {

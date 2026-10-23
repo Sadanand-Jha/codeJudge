@@ -75,6 +75,8 @@ const FONT_FILES = {
   mono: "/fonts/NotoSansMono-var.ttf",
 } as const;
 
+const PAPER_LOGO_FILE = "/logos/name.png";
+
 export function buildPaperFontCss(fonts: {
   sans: string;
   devanagari: string;
@@ -102,15 +104,21 @@ async function fetchAsBase64(url: string): Promise<string> {
   return btoa(binary);
 }
 
-/** Loads the bundled Noto fonts once and caches the @font-face CSS. */
+/** Loads the bundled Noto fonts and brand logo once, caching the CSS. */
 export function loadPaperFontCss(): Promise<string> {
   if (!fontCssPromise) {
     fontCssPromise = Promise.all([
       fetchAsBase64(FONT_FILES.sans),
       fetchAsBase64(FONT_FILES.devanagari),
       fetchAsBase64(FONT_FILES.mono),
+      fetchAsBase64(PAPER_LOGO_FILE).catch(() => ""),
     ])
-      .then(([sans, devanagari, mono]) => buildPaperFontCss({ sans, devanagari, mono }))
+      .then(([sans, devanagari, mono, logo]) => {
+        const brandCss = logo
+          ? `\n.brand-logo{display:block;width:22mm;height:4.5mm;background:url(data:image/png;base64,${logo}) center/contain no-repeat;}`
+          : "";
+        return `${buildPaperFontCss({ sans, devanagari, mono })}${brandCss}`;
+      })
       .catch((error) => {
         fontCssPromise = null;
         throw error;
@@ -458,7 +466,7 @@ ${renderInstructions(meta, questions)}
 <div class="banner"><span><span class="bl">Section A</span> — ${esc(sectionTitle(questions))}</span></div>
 <p class="secinstr">All questions are compulsory.</p>`;
   const body = questions.map((question, index) => renderQuestion(question, index, twoColumns)).join("");
-  return `<section class="paper">${header}<main class="qs${twoColumns ? " two" : ""}">${body}</main><div class="end">End of question paper</div><div class="brand"><span class="bm">Q</span><span>QuizSupport</span></div></section>`;
+  return `<section class="paper">${header}<main class="qs${twoColumns ? " two" : ""}">${body}</main><div class="end">End of question paper</div><div class="brand"><span class="brand-logo" role="img" aria-label="QuizSupport"></span></div></section>`;
 }
 
 export function buildPaperBody(input: PaperBuildInput): string {
@@ -537,8 +545,7 @@ table.tbl th { font-weight: 700; background: #F2F2F2; }
 .qimg img { max-width: 100%; height: auto; }
 .qimg .cap { font-size: 10.5pt; font-style: italic; color: #555; margin-top: 1mm; }
 .end { text-align: center; font-size: 10.5pt; font-style: italic; margin: 8mm 0 0; break-before: avoid; }
-.brand { display: flex; align-items: center; justify-content: center; gap: 1.5mm; margin: 4mm 0 0; font-size: 8.5pt; color: #777; letter-spacing: 0.02em; break-before: avoid; }
-.brand .bm { display: inline-flex; align-items: center; justify-content: center; width: 4mm; height: 4mm; border-radius: 1mm; background: #EC4899; color: #fff; font-size: 7pt; font-weight: 700; }
+.brand { display: flex; align-items: center; justify-content: center; margin: 4mm 0 0; break-before: avoid; }
 .pgbreak { break-before: page; }
 .keypage { break-before: page; }
 .keytitle { font-size: 14pt; font-weight: 700; text-align: center; margin: 0 0 1mm; }

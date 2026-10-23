@@ -69,7 +69,6 @@ const WHAT_AI_GENERATES = [
   "Subject / category",
   "Topics",
   "Difficulty",
-  "Duration",
   "Question count",
   "Tags",
   "Suggested audience",

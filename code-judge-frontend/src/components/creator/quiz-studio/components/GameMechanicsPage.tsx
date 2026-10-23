@@ -12,7 +12,8 @@ import { Badge, StudioStepHeader, StudioStepLayout } from "../primitives";
 export function GameMechanicsPage() {
   const { state, updateGameMechanics } = useStudio();
 
-  const hasTimer = (state.info.duration ?? 0) > 0;
+  // Quizzes are bounded by the session window, not a per-attempt timer.
+  const hasTimer = false;
   const summary = getEnabledMechanicsSummary(state.gameMechanics);
 
   const lifelineCount = [
@@ -46,8 +47,8 @@ export function GameMechanicsPage() {
     const notes: string[] = [];
     if (!hasMCQ && state.gameMechanics.fiftyFifty.enabled) notes.push("50:50 requires multiple-choice questions and will only be available on applicable questions.");
     if (hasMatchOnly && state.gameMechanics.fiftyFifty.enabled) notes.push("Current quiz contains only Match the Following — 50:50 will be disabled at runtime.");
-    if (!hasTimer && (state.gameMechanics.extraTime.enabled || state.gameMechanics.freezeTimer.enabled)) notes.push("Extra Time / Freeze Time require a timed assessment (quiz duration > 0).");
-    if (!hasTimer && (state.gameMechanics as any).decayingPoints?.enabled) notes.push("Decaying Points requires a timed assessment (quiz duration > 0) to function.");
+    if (!hasTimer && (state.gameMechanics.extraTime.enabled || state.gameMechanics.freezeTimer.enabled)) notes.push("Extra Time / Freeze Time are unavailable because quizzes use a session window, not a per-attempt timer.");
+    if (!hasTimer && (state.gameMechanics as any).decayingPoints?.enabled) notes.push("Decaying Points needs a per-attempt timer and is unavailable for session-window quizzes.");
     return notes;
   }, [hasMCQ, hasMatchOnly, hasTimer, state.gameMechanics]);
 
@@ -200,7 +201,7 @@ export function GameMechanicsPage() {
               </div>
               <div className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2.5">
                 <span className="text-sm text-text-primary flex items-center gap-1.5"><Timer className="h-4 w-4 text-text-muted" /> Timed assessment</span>
-                <span className={cn("text-xs font-bold rounded-full px-2 py-0.5", hasTimer ? "bg-emerald-500 text-white" : "bg-card border border-border text-text-muted")}>{hasTimer ? `${state.info.duration} min` : "Off"}</span>
+                <span className="rounded-full border border-border bg-card px-2 py-0.5 text-xs font-bold text-text-muted">Off</span>
               </div>
               <div className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2.5">
                 <span className="text-sm text-text-primary flex items-center gap-1.5"><Users className="h-4 w-4 text-text-muted" /> Leaderboard</span>

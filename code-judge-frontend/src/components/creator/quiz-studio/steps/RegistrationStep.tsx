@@ -120,7 +120,7 @@ export function RegistrationStep({ embedded = false }: { embedded?: boolean } = 
         <StudioStepHeader title="Registration Settings" />
       </motion.div>
 
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-[1fr_360px]">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-[1fr_360px] xl:items-stretch">
         {/* ── Left column ── */}
         <div className="space-y-5">
           {/* Form requirement */}
@@ -352,13 +352,13 @@ export function RegistrationStep({ embedded = false }: { embedded?: boolean } = 
         </div>
 
         {/* ── Live Preview ── */}
-        <aside data-sidebar="true" className="xl:sticky xl:top-4 xl:self-start">
-          <section className="overflow-hidden rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
-            <div className="flex items-center justify-between border-b-2 border-[var(--qs-line)] px-4 py-3">
+        <aside data-sidebar="true" className="h-full xl:sticky xl:top-4">
+          <section className="flex h-full flex-col overflow-hidden rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
+            <div className="flex shrink-0 items-center justify-between border-b-2 border-[var(--qs-line)] px-4 py-3">
               <h3 className="text-sm font-extrabold text-[var(--qs-ink)]">Live Preview</h3>
               <Eye className="h-4 w-4 text-[var(--qs-muted)]" />
             </div>
-            <div className="max-h-[70vh] overflow-y-auto p-5">
+            <div className="min-h-0 flex-1 overflow-y-auto p-5 max-h-[70vh] xl:max-h-none">
               {/* Mirrors the real student registration gate (ExamModeShell)
                   pixel-for-pixel so the creator sees exactly what is shown. */}
               <div className="text-center">
@@ -396,18 +396,6 @@ export function RegistrationStep({ embedded = false }: { embedded?: boolean } = 
                       />
                     </label>
                   ))}
-
-                  <div className="flex flex-col gap-2 pt-1.5 sm:flex-row">
-                    <span className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-5 text-sm font-bold text-[var(--qs-ink)] sm:h-14 sm:w-auto sm:flex-1">
-                      <ArrowLeft className="h-4 w-4" /> Back
-                    </span>
-                    <span className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-5 text-sm font-extrabold text-[#1a1240] sm:h-14 sm:w-auto sm:flex-[1.4]">
-                      <Rocket className="h-4 w-4" /> Start Exam
-                    </span>
-                  </div>
-                  <p className="text-center text-[11px] font-medium text-[var(--qs-muted)]">
-                    All fields are required to start.
-                  </p>
                 </div>
               ) : (
                 <p className="mt-5 rounded-[12px] border-2 border-dashed border-[var(--qs-line)] px-3 py-3 text-center text-xs font-medium text-[var(--qs-muted)]">
@@ -416,6 +404,21 @@ export function RegistrationStep({ embedded = false }: { embedded?: boolean } = 
                 </p>
               )}
             </div>
+            {namedFields.length > 0 ? (
+              <div className="shrink-0 border-t-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3.5 xl:px-5">
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <span className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-5 text-sm font-bold text-[var(--qs-ink)] sm:h-12 sm:w-auto sm:flex-1">
+                    <ArrowLeft className="h-4 w-4" /> Back
+                  </span>
+                  <span className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-5 text-sm font-extrabold text-[#1a1240] sm:h-12 sm:w-auto sm:flex-[1.4]">
+                    <Rocket className="h-4 w-4" /> Start Exam
+                  </span>
+                </div>
+                <p className="mt-2 text-center text-[11px] font-medium text-[var(--qs-muted)]">
+                  All fields are required to start.
+                </p>
+              </div>
+            ) : null}
           </section>
         </aside>
       </div>

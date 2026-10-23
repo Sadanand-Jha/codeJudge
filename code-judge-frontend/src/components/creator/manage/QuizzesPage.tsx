@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  MoreHorizontal,
+  // MoreHorizontal,
   Plus,
   RotateCcw,
   Search,
@@ -92,7 +92,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
   const router = useRouter();
   const [filter, setFilter] = useState<TabId>("all");
   const [search, setSearch] = useState("");
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  // const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<QuizCard | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { status, data, retry, error } = useData(async () => {
@@ -152,7 +152,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
   };
 
   const goTo = (quizId: string, page: "edit" | "analytics" | "responses") => {
-    setOpenMenuId(null);
+    // setOpenMenuId(null);
     router.push(`/creator/quizzes/${quizId}/${page}`);
   };
 
@@ -161,10 +161,10 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
       {/* Header */}
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
-          <h1 className="qs-display text-[28px] font-extrabold leading-[1.08] tracking-[-0.025em] text-[var(--qs-ink)] sm:text-[34px] lg:text-[38px]">
+          <h1 className="qs-display text-[22px] font-extrabold leading-[1.08] tracking-[-0.025em] text-[var(--qs-ink)] sm:text-[27px] lg:text-[30px]">
             Your quizzes
           </h1>
-          <p className="mt-1.5 text-[14px] text-[var(--qs-muted)] sm:text-[15px]">
+          <p className="mt-1.5 text-[11px] text-[var(--qs-muted)] sm:text-[12px]">
             Create, manage and track everything you publish.
           </p>
         </div>
@@ -360,14 +360,14 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                   key={quiz.id}
                   quiz={quiz}
                   index={index}
-                  menuOpen={openMenuId === quiz.id}
-                  onToggleMenu={() => setOpenMenuId((current) => (current === quiz.id ? null : quiz.id))}
-                  onCloseMenu={() => setOpenMenuId(null)}
+                  // menuOpen={openMenuId === quiz.id}
+                  // onToggleMenu={() => setOpenMenuId((current) => (current === quiz.id ? null : quiz.id))}
+                  // onCloseMenu={() => setOpenMenuId(null)}
                   onGoTo={(page) => goTo(quiz.id, page)}
-                  onDelete={() => {
-                    setOpenMenuId(null);
-                    setDeleteTarget(quiz);
-                  }}
+                  // onDelete={() => {
+                  //   setOpenMenuId(null);
+                  //   setDeleteTarget(quiz);
+                  // }}
                 />
               ))}
             </div>
@@ -546,19 +546,19 @@ function StatusPill({ status }: { status: QuizStatus }) {
 function QuizCardItem({
   quiz,
   index,
-  menuOpen,
-  onToggleMenu,
-  onCloseMenu,
+  // menuOpen,
+  // onToggleMenu,
+  // onCloseMenu,
   onGoTo,
-  onDelete,
+  // onDelete,
 }: {
   quiz: QuizCard;
   index: number;
-  menuOpen: boolean;
-  onToggleMenu: () => void;
-  onCloseMenu: () => void;
+  // menuOpen: boolean;
+  // onToggleMenu: () => void;
+  // onCloseMenu: () => void;
   onGoTo: (page: "edit" | "analytics" | "responses") => void;
-  onDelete: () => void;
+  // onDelete: () => void;
 }) {
   const hasAttempts = quiz.attempts > 0;
   const [shareCode, setShareCode] = useState(quiz.code);
@@ -618,6 +618,7 @@ function QuizCardItem({
     >
       <div className="flex items-start justify-between gap-2">
         <StatusPill status={quiz.status} />
+        {/* Three-dot actions menu — hidden along with delete quiz
         <div className="relative shrink-0">
           <button
             type="button"
@@ -644,6 +645,7 @@ function QuizCardItem({
             </>
           )}
         </div>
+        */}
       </div>
 
       <h3 className="qs-display mt-4 break-words text-[20px] font-extrabold leading-[1.25] text-[var(--qs-ink)]" title={quiz.title}>

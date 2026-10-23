@@ -432,8 +432,8 @@ export default function JoinQuizPage() {
                   <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                     <InfoCard
                       icon={quiz.scheduled ? Calendar : Clock}
-                      label={quiz.scheduled ? "Attempts" : "Duration"}
-                      value={quiz.scheduled ? "Open during schedule" : quiz.duration ? `${quiz.duration} min` : "Not set"}
+                      label="Responses"
+                      value={quiz.scheduled ? "Open during the scheduled window" : "Open until the quiz ends"}
                     />
                     <InfoCard
                       icon={Target}

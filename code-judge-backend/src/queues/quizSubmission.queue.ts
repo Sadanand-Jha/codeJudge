@@ -1,8 +1,8 @@
-// BullMQ queue for quiz submissions.
-// Submit flow: POST /attempt/:attemptId/submit enqueues one job per attempt
-// (jobId = quiz-submit:{attemptId}, so double-submits dedupe to one job) and
-// returns 202 immediately. A worker grades in the background; the client polls
-// GET /attempt/:attemptId/submit-status until completed/failed.
+// BullMQ queue for end-of-quiz result calculation.
+// Student submits only save answers. When the quiz ends, one job per pending
+// attempt is enqueued (jobId = quiz-submit-{attemptId}, deduped across
+// scheduler/teacher-stop/request fallbacks). A worker grades with a hard cap
+// of 5 concurrent jobs and a 5-second settle delay.
 import { Queue, type Job } from "bullmq";
 import { getBullmqConnection } from "./connection.ts";
 import crypto from "node:crypto";
@@ -20,11 +20,12 @@ export interface QuizSubmissionResponse {
 export interface QuizSubmissionJobData {
   attemptId: number;
   userId: number;
+  quizId?: number;
   responses: QuizSubmissionResponse[];
   violations: number;
   flagged: boolean;
   flagReason?: string;
-  /** Late at submit time (enqueue time = submission time). */
+  /** True when the attempt was still active (not explicitly submitted) at end. */
   isLate: boolean;
   submittedAt: string;
 }
@@ -78,7 +79,7 @@ export async function getQuizSubmissionJob(
 
 const FALLBACK_TTL_SECONDS = 24 * 60 * 60;
 const RECOVERY_LOCK_PREFIX = "quiz-submissions:recovery-lock";
-const RECOVERY_CONCURRENCY = Math.min(10, Math.max(1, Number(process.env.QUIZ_SUBMISSION_CONCURRENCY) || 3));
+const RECOVERY_CONCURRENCY = Math.min(5, Math.max(1, Number(process.env.QUIZ_SUBMISSION_CONCURRENCY) || 5));
 
 const fallbackKey = (attemptId: number | string) => `quiz-submissions:fallback:${attemptId}`;
 

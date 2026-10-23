@@ -245,7 +245,8 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   const visibleNavGroups = navGroups;
   const homeHref = isStudioRoute ? "/creator" : isQuizWorkspace ? "/creator/quizzes" : FOCUS_MODE_ENABLED ? "/quiz" : "/";
   const isBlockedRoute = FOCUS_MODE_ENABLED && !isPathAllowed(pathname);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const authModalOpen = useUIStore((s) => s.authModalOpen);
   const authModalRedirect = useUIStore((s) => s.authModalRedirect);
@@ -253,12 +254,12 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   const logoutConfirmOpen = useUIStore((s) => s.logoutConfirmOpen);
   const cancelLogout = useUIStore((s) => s.cancelLogout);
   const openAuthModal = useUIStore((s) => s.openAuthModal);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const hydrate = useAuthStore((s) => s.hydrate);
-  const savedAvatar = useSavedAvatar();
   const { isGuest } = useGuestMode();
+  const savedAvatar = useSavedAvatar();
 
   // The AI assistant is only relevant inside the quiz creator's problem
   // building section (/quiz/{code}/problems and /quiz/{code}/problems/{id}).
@@ -288,6 +289,27 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
       isHomeRedirectPath(pathname) ? "/" : `/quiz?blocked=${encodeURIComponent(pathname)}`
     );
   }, [isBlockedRoute, pathname, router]);
+
+  // Desktop keeps the student rail permanently visible and lets the topbar
+  // toggle it; on phones the same rail behaves as a slide-in drawer.
+  const isDesktopViewport = () =>
+    typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
+
+  const toggleSidebar = () => {
+    if (isDesktopViewport()) {
+      setSidebarCollapsed((collapsed) => !collapsed);
+      return;
+    }
+    setSidebarOpen((open) => !open);
+  };
+
+  const closeSidebar = () => {
+    if (isDesktopViewport()) {
+      setSidebarCollapsed(true);
+      return;
+    }
+    setSidebarOpen(false);
+  };
 
   const handleLogout = async () => {
     try {
@@ -356,135 +378,24 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   }
 
   return (
-    <div className="min-h-dvh w-full min-w-0 bg-ai-bg flex" data-ai-scope>
-      {/* Mobile overlay */}
+    <div className="flex min-h-dvh w-full min-w-0 flex-col bg-ai-bg" data-ai-scope>
+      {/* Mobile overlay (starts below the topbar so the menu toggle stays usable) */}
       <AnimatePresence>
-        {mobileMenuOpen && (
+        {sidebarOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/60 lg:hidden"
-            onClick={() => {
-              setMobileMenuOpen(false);
-              setAccountMenuOpen(false);
-            }}
+            className="fixed inset-x-0 bottom-0 top-14 z-40 bg-black/60 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
           />
         )}
       </AnimatePresence>
 
-      {/* ===== SIDEBAR (hidden inside Creator Studio — it has its own nav) ===== */}
-      {!isStudioRoute && (
-      <Sidebar
-        dataSidebar="true"
-        className={cn(
-          // `100vh` can extend behind mobile browser chrome. `100dvh` tracks
-          // the actually visible viewport, keeping the account action onscreen.
-          "app-sidebar-rail fixed left-0 top-0 z-50 flex h-dvh w-64 shrink-0 flex-col overflow-hidden border-r-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] transition-transform duration-200 ease-out lg:sticky lg:top-0 lg:translate-x-0",
-          mobileMenuOpen && "app-sidebar-mobile-open"
-        )}
-      >
-        <div className="relative z-10 flex h-full w-full flex-col">
-        {/* Brand header — mirrors Creator Studio's sidebar */}
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b-2 border-[var(--qs-line)] px-3 py-3">
-            <Link
-              href={homeHref}
-              onClick={() => {
-                setMobileMenuOpen(false);
-                setAccountMenuOpen(false);
-              }}
-              className="flex min-w-0 items-center gap-2.5"
-              aria-label="QuizSupport home"
-            >
-              <span className="min-w-0 truncate text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--qs-brand)]">
-                Student Mode
-              </span>
-            </Link>
-            <button
-              type="button"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                setAccountMenuOpen(false);
-              }}
-              className="b b-close sm shrink-0 lg:hidden"
-              aria-label="Close navigation"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-1">
-          {visibleNavGroups.map((group, groupIndex) => (
-            <div key={group.label} className="space-y-1">
-              {groupIndex > 0 && (
-                <div className="mx-1 my-2 h-0.5 shrink-0 rounded-full bg-[var(--qs-line)]" />
-              )}
-              <p className="px-3 pb-1 pt-2 text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--qs-brand)]">{group.label}</p>
-              {group.items.map((item) => (
-                <NavItem
-                  key={item.label}
-                  item={item}
-                  pathname={pathname}
-                  isGuest={isGuest}
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    setAccountMenuOpen(false);
-                  }}
-                />
-              ))}
-            </div>
-          ))}
-        </nav>
-
-        {/* Bottom: Account + Collapse */}
-        <div className="shrink-0 space-y-1 border-t-2 border-[var(--qs-line)] p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-          {!isAuthenticated && (
-            <div className="rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2">
-              <div className="mb-1 text-[10px] text-[var(--qs-muted)]">{"You're browsing as a guest"}</div>
-              <button
-                onClick={() => handleAuthRequired(pathname + window.location.search)}
-                className="text-[10px] font-bold text-[var(--qs-brand)] transition-colors hover:text-[var(--qs-ink)]"
-              >
-                Sign in to unlock all features →
-              </button>
-            </div>
-          )}
-
-          <Link
-            href="/meet-the-developer"
-            onClick={() => setMobileMenuOpen(false)}
-            aria-label="Meet the developer"
-            className="mx-1 flex items-center justify-center gap-2 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2 text-[11px] font-bold text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
-          >
-            <Sparkles className="h-3.5 w-3.5 shrink-0 text-[var(--qs-brand)]" />
-            <span>Meet the developer</span>
-          </Link>
-
-          <ProfileMenu
-            open={accountMenuOpen}
-            onOpenChange={setAccountMenuOpen}
-            isAuthenticated={isAuthenticated}
-            username={user?.username || "Guest"}
-            avatar={savedAvatar}
-            onAuthRequired={() => handleAuthRequired(pathname + window.location.search)}
-          />
-        </div>
-      </div>
-      </Sidebar>
-      )}
-
-      {/* ===== MAIN CONTENT ===== */}
-      <div
-        className={cn(
-          "flex-1 w-0 min-w-0 flex flex-col",
-          isStudioRoute ? "h-dvh overflow-hidden" : "min-h-dvh"
-        )}
-      >
-        {/* ===== TOP HEADER ===== */}
-        {header ? (
-          header
-        ) : !isEditorPath(pathname) ? (
+      {/* ===== TOP HEADER (full width so the logo never moves with the sidebar) ===== */}
+      {header ? (
+        header
+      ) : !isEditorPath(pathname) ? (
         <header
           onDragStart={(e) => e.preventDefault()}
           onContextMenu={(e) => e.preventDefault()}
@@ -494,20 +405,19 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
             "app-topbar sticky top-0 z-30 flex h-14 min-w-0 w-full select-none items-center gap-2 border-b border-ai-border bg-ai-sidebar px-3 sm:gap-4 sm:px-4"
           )}
         >
-          {/* Left: menu + brand + page title */}
-          <div className="flex items-center gap-4 min-w-0 flex-1">
-            {/* Navigation menu button */}
+          {/* Left: sidebar toggle + brand + page title */}
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            {/* Sidebar toggle button */}
             <button
-              onClick={() => setMobileMenuOpen(true)}
-              aria-label="Open navigation"
-              className="shrink-0 rounded-lg p-2 text-text-secondary hover:bg-accent/5 lg:hidden"
+              onClick={toggleSidebar}
+              aria-label="Toggle navigation"
+              aria-expanded={!sidebarCollapsed || sidebarOpen}
+              className="shrink-0 rounded-lg p-2 text-text-secondary hover:bg-accent/5"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            {/* Brand logo — sidebar no longer carries a logo, so the topbar shows it
-                on every size. Mobile shows the icon-only mark; the full wordmark is
-                too wide and overlaps the header actions on small screens. */}
+            {/* Brand logo */}
             <Link href={homeHref} className="flex shrink-0 items-center gap-2" aria-label="QuizSupport home">
               <SecureLogo size={30} variant="mark" className="sm:hidden" />
               <SecureLogo size={40} variant="full" className="hidden sm:block" />
@@ -531,11 +441,111 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
 
             {/* Right actions */}
             <NavbarRightActions />
-          </header>
-        ) : null}
+        </header>
+      ) : null}
 
-        {/* ===== PAGE CONTENT ===== */}
-        <main className={cn("min-w-0 w-full flex-1", isStudioRoute && "min-h-0 flex flex-col")}>{children}</main>
+      {/* ===== WORKSPACE (sidebar starts below the navbar) ===== */}
+      <div className="flex w-full min-w-0 flex-1">
+        {/* ===== STUDENT SIDEBAR (permanent on desktop, drawer on phones) ===== */}
+        {!isStudioRoute && (
+          <Sidebar
+            dataSidebar="true"
+            className={cn(
+              "app-sidebar-rail fixed left-0 top-14 z-50 flex h-[calc(100dvh-3.5rem)] w-64 shrink-0 flex-col overflow-hidden border-r-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] transition-transform duration-200 ease-out lg:sticky lg:top-14",
+              sidebarOpen && "app-sidebar-mobile-open",
+              sidebarCollapsed && "lg:hidden"
+            )}
+          >
+            <div className="relative z-10 flex h-full w-full flex-col">
+              {/* Brand header */}
+              <div className="flex shrink-0 items-center justify-between gap-2 border-b-2 border-[var(--qs-line)] px-3 py-3">
+                <Link
+                  href={homeHref}
+                  onClick={closeSidebar}
+                  className="flex min-w-0 items-center gap-2.5"
+                  aria-label="QuizSupport home"
+                >
+                  <span className="min-w-0 truncate text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--qs-brand)]">
+                    Student Mode
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={closeSidebar}
+                  className="shrink-0 lg:hidden"
+                  aria-label="Close navigation"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Navigation */}
+              <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-1">
+                {visibleNavGroups.map((group, groupIndex) => (
+                  <div key={group.label} className="space-y-1">
+                    {groupIndex > 0 && (
+                      <div className="mx-1 my-2 h-0.5 shrink-0 rounded-full bg-[var(--qs-line)]" />
+                    )}
+                    <p className="px-3 pb-1 pt-2 text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--qs-brand)]">{group.label}</p>
+                    {group.items.map((item) => (
+                      <NavItem
+                        key={item.label}
+                        item={item}
+                        pathname={pathname}
+                        isGuest={isGuest}
+                        onClick={() => setSidebarOpen(false)}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </nav>
+
+              {/* Bottom: developer link + account dropdown */}
+              <div className="shrink-0 space-y-1 border-t-2 border-[var(--qs-line)] p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+                {!isAuthenticated && (
+                  <div className="rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2">
+                    <div className="mb-1 text-[10px] text-[var(--qs-muted)]">{"You're browsing as a guest"}</div>
+                    <button
+                      onClick={() => handleAuthRequired(pathname + window.location.search)}
+                      className="text-[10px] font-bold text-[var(--qs-brand)] transition-colors hover:text-[var(--qs-ink)]"
+                    >
+                      Sign in to unlock all features →
+                    </button>
+                  </div>
+                )}
+
+                <Link
+                  href="/meet-the-developer"
+                  onClick={() => setSidebarOpen(false)}
+                  aria-label="Meet the developer"
+                  className="mx-1 flex items-center justify-center gap-2 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2 text-[11px] font-bold text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
+                >
+                  <Sparkles className="h-3.5 w-3.5 shrink-0 text-[var(--qs-brand)]" />
+                  <span>Meet the developer</span>
+                </Link>
+
+                <ProfileMenu
+                  open={accountMenuOpen}
+                  onOpenChange={setAccountMenuOpen}
+                  isAuthenticated={isAuthenticated}
+                  username={user?.username || "Guest"}
+                  avatar={savedAvatar}
+                  onAuthRequired={() => handleAuthRequired(pathname + window.location.search)}
+                />
+              </div>
+            </div>
+          </Sidebar>
+        )}
+
+        {/* ===== MAIN CONTENT ===== */}
+        <div
+          className={cn(
+            "flex-1 w-0 min-w-0 flex flex-col",
+            isStudioRoute ? "h-[calc(100dvh-3.5rem)] overflow-hidden" : "min-h-[calc(100dvh-3.5rem)]"
+          )}
+        >
+          <main className={cn("min-w-0 w-full flex-1", isStudioRoute && "min-h-0 flex flex-col")}>{children}</main>
+        </div>
       </div>
 
       <LogoutConfirmModal

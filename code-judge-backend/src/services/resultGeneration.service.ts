@@ -5,6 +5,7 @@ import { pool } from "../config/database.ts";
 import { generateMarksheet } from "./marksheet.service.ts";
 import { sendMarksheetEmail } from "./email.service.ts";
 import logger from "../utils/logger.ts";
+import { enqueueQuizResultCalculation } from "./quizSubmission.service.ts";
 import {
   parseStudentAnswer,
   evaluateObjectiveAnswer,
@@ -49,15 +50,40 @@ export class ResultGenerationService {
     }
 
     const quizResult = await pool.query(
-      `SELECT q.*, u.email AS creator_email, u.username AS creator_username
+      `SELECT q.*, u.email AS creator_email, u.username AS creator_username,
+              qs.name AS quiz_status_name
        FROM quiz q
        JOIN users u ON u.id = q.createdby
+       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
        WHERE q.id = $1`,
       [quizId]
     );
     const quiz = quizResult.rows[0];
     if (!quiz) {
       throw new Error("Quiz not found");
+    }
+
+    const quizEnded =
+      String(quiz.quiz_status_name ?? "").toLowerCase() === "ended"
+      || (quiz.endtime != null && new Date(quiz.endtime).getTime() <= Date.now());
+    if (!quizEnded) {
+      throw new Error("QUIZ_NOT_ENDED");
+    }
+
+    const countPendingAttempts = async () => {
+      const pendingAttempts = await pool.query(
+        `SELECT COUNT(*)::int AS count
+         FROM quiz_attempt
+         WHERE quiz_id = $1 AND status = 'in_progress' AND deleted_at IS NULL`,
+        [quizId]
+      );
+      return Number(pendingAttempts.rows[0]?.count ?? 0);
+    };
+    if (await countPendingAttempts() > 0) {
+      await enqueueQuizResultCalculation(Number(quizId));
+      if (await countPendingAttempts() > 0) {
+        throw new Error("RESULTS_PENDING");
+      }
     }
 
     const submissionsResult = await pool.query(

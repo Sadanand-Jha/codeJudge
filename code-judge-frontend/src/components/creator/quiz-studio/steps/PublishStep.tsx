@@ -11,6 +11,7 @@ import { toast } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { StudioStepLayout } from "../primitives";
 import { formatDateTimeIST } from "../components/timing/helpers";
+import { cn } from "@/lib/helpers";
 
 function buildJoinLink(code: string): string {
   const normalized = code.replace(/\s+/g, "");
@@ -21,9 +22,12 @@ function buildJoinLink(code: string): string {
 export function PublishStep({
   onPublish,
   embedded = false,
+  bare = false,
 }: {
   onPublish: () => void;
   embedded?: boolean;
+  /** Render without the outer card so it can sit inside a combined panel. */
+  bare?: boolean;
 }) {
   const { state, summary, saveToServer } = useStudio();
   const [saving, setSaving] = useState(false);
@@ -55,8 +59,10 @@ export function PublishStep({
   const rows: Array<{ label: string; value: ReactNode }> = [
     { label: "Title", value: state.info.title || "Untitled Quiz" },
     { label: "Questions", value: String(summary.questionCount) },
-    { label: "Time per student", value: state.info.duration + " min" },
-    ...(isScheduled ? [{ label: "Attempts", value: "Open during schedule" }] : []),
+    {
+      label: "Responses",
+      value: isScheduled ? "Open during the scheduled window" : "Open until you end the quiz",
+    },
     { label: "Audience", value: state.audience.mode },
     {
       label: "Price",
@@ -73,20 +79,24 @@ export function PublishStep({
   ];
 
   return (
-    <StudioStepLayout width="compact" className="sm:py-8" embedded={embedded}>
+    <StudioStepLayout width="compact" className={bare ? undefined : "sm:py-8"} embedded={embedded}>
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      className="overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]"
+      className={cn(
+        !bare && "overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]"
+      )}
     >
-        <div className="border-b-2 border-[var(--qs-line)] px-6 py-5">
-          <h2 className="text-base font-extrabold text-[var(--qs-ink)]">
-            Ready to publish?
-          </h2>
-        </div>
+        {!bare && (
+          <div className="border-b-2 border-[var(--qs-line)] px-6 py-5">
+            <h2 className="text-base font-extrabold text-[var(--qs-ink)]">
+              Ready to publish?
+            </h2>
+          </div>
+        )}
 
-        <div className="px-6 py-5">
+        <div className={cn(bare ? "min-w-0" : "px-6 py-5")}>
           <div className="flex items-center gap-4 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-4">
             {state.branding.logoUrl ? (
               <img src={state.branding.logoUrl} alt="thumb" className="h-14 w-20 rounded-[10px] border-2 border-[var(--qs-line)] object-cover" />
@@ -168,8 +178,10 @@ export function PublishStep({
                 {[
                   { label: "Quiz", value: state.info.title || "Untitled Quiz" },
                   { label: "Questions", value: String(summary.questionCount) },
-                  { label: "Time per student", value: `${state.info.duration} min` },
-                  ...(isScheduled ? [{ label: "Attempts", value: "Open during schedule" }] : []),
+                  {
+                    label: "Responses",
+                    value: isScheduled ? "Open during the scheduled window" : "Open until you end the quiz",
+                  },
                   {
                     label: "Audience",
                     value:
@@ -279,13 +291,7 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
         <div className="mt-3 flex flex-wrap justify-center gap-2 text-xs font-medium text-[var(--qs-muted)]">
           <span>{summary.questionCount} questions</span>
           <span>·</span>
-          <span>{state.info.duration} min per student</span>
-          {isScheduled && (
-            <>
-              <span>·</span>
-              <span>Open during schedule</span>
-            </>
-          )}
+          <span>{isScheduled ? "Open during the scheduled window" : "Open until ended"}</span>
         </div>
         <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center sm:flex-wrap">
           <button

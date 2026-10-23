@@ -3,7 +3,7 @@
 
 import { use, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, BrainCircuit, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Home, PartyPopper, Send, ShieldCheck, Sparkles, Target, Volume2, VolumeX } from "lucide-react";
+import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Home, PartyPopper, Send, ShieldCheck, Target, Volume2, VolumeX } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import ExamModeShell, { type ViolationSummary } from "@/components/quiz/exam/ExamModeShell";
@@ -14,7 +14,6 @@ import {
   saveQuizResponse,
   startQuizAttempt,
   submitQuizAttempt,
-  getSubmitStatus,
   type PublicQuizProblem,
   type QuizBasic,
 } from "@/services/quiz";
@@ -213,77 +212,17 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       if (remaining > 0) window.setTimeout(complete, remaining);
       else complete();
     };
-    const buildResponses = () =>
-      Object.entries(answersRef.current).map(([problemId, answer]) => ({ problemId: Number(problemId), ...answer }));
     try {
-      const result = await submitQuizAttempt(String(id), buildResponses(), proctor);
-      if (result && typeof result === "object" && "jobId" in result) {
-        // Async path (202): grading runs in a BullMQ worker — poll until done.
-        // A worker or the concurrency-limited recovery queue grades this job.
-        // Keep polling without resubmitting while the synchronized cohort
-        // drains.
-        // During a synchronized finish, grading is intentionally
-        // backpressured on the server. Keep polling long enough for a large
-        // cohort to drain instead of making students resubmit safe jobs.
-        const deadline = Date.now() + 5 * 60_000;
-        let pollCount = 0;
-        let noneCount = 0;
-        let pollErrors = 0;
-        let retriedSubmit = false;
-        for (;;) {
-          pollCount += 1;
-          const pollDelay = pollCount <= 10 ? 1500 : pollCount <= 30 ? 3000 : 5000;
-          await new Promise((resolve) => setTimeout(resolve, pollDelay));
-          let status;
-          try {
-            status = await getSubmitStatus(String(id));
-          } catch (pollErr: unknown) {
-            pollErrors += 1;
-            if (pollErrors >= 3) throw pollErr;
-            if (Date.now() > deadline) break;
-            continue;
-          }
-          pollErrors = 0;
-          if (status.status === "completed") {
-            finishSubmission();
-            return;
-          }
-          if (status.status === "failed") {
-            throw new Error(status.error || "Grading failed on the server. Your answers are saved — try again.");
-          }
-          if (status.status === "none") {
-            // No job tracked (Redis flush/eviction or split-brain Redis) while
-            // the attempt is still ungraded — re-submit once to re-enqueue
-            // instead of polling `none` after a lost queue record.
-            noneCount += 1;
-            if (!retriedSubmit && noneCount >= 2) {
-              retriedSubmit = true;
-              noneCount = 0;
-              const retry = await submitQuizAttempt(String(id), buildResponses(), proctor);
-              if (!(retry && typeof retry === "object" && "jobId" in retry)) {
-                finishSubmission();
-                return;
-              }
-              continue;
-            }
-            if (Date.now() > deadline || noneCount >= 6) {
-              throw new Error("Submission status is unclear. Your answers are saved on this device — try submitting again.");
-            }
-            continue;
-          }
-          if (Date.now() > deadline) {
-            break;
-          }
-        }
-        // Worker is slow but answers are safely queued — show the
-        // confirmation screen and let the student go home from there.
-        setSubmissionComplete(true);
-        playQuizSound("success");
-        return;
-      }
+      await submitQuizAttempt(String(id), Object.entries(answersRef.current).map(([problemId, answer]) => ({ problemId: Number(problemId), ...answer })), proctor);
       finishSubmission();
     } catch (err: unknown) {
-      // Keep the local copy so nothing is lost; the student can retry.
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 409) {
+        // The window closed before final submit. Autosaved answers remain and
+        // will be graded with the rest of the cohort after the quiz ends.
+        finishSubmission();
+        return;
+      }
       submittingRef.current = false;
       setError(getApiErrorMessage(err, "Your attempt could not be submitted. Your answers are saved on this device — try again."));
       setSubmitting(false);
@@ -345,7 +284,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
 
   // Starts the backend attempt when the student enters exam mode. The
   // registration values (when the quiz collects them) travel with the start
-  // call so the attempt — and its timer — begins only after the form submit.
+  // call so the attempt begins only after the form submit.
   const handleEnterExam = useCallback(async (registrationData?: Record<string, string>): Promise<boolean> => {
     if (blockedByBackNavigation || !quiz || starting) return false;
     if (attemptId) return true;
@@ -374,12 +313,10 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         try { writeQuizAttemptAnswers(id, {}); } catch { /* storage unavailable */ }
         setAnswers({});
       }
-      if (quiz.scheduled && quiz.endtime) {
-        const endMs = new Date(quiz.endtime).getTime();
-        setTimeLeft(Number.isFinite(endMs) ? Math.max(0, Math.ceil((endMs - Date.now()) / 1000)) : started.remainingSeconds);
-      } else {
-        setTimeLeft(started.remainingSeconds);
-      }
+      const endMs = quiz.endtime ? new Date(quiz.endtime).getTime() : Number.NaN;
+      setTimeLeft(Number.isFinite(endMs)
+        ? Math.max(0, Math.ceil((endMs - Date.now()) / 1000))
+        : started.remainingSeconds);
       return true;
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, "Quiz attempt could not be started."));
@@ -389,15 +326,27 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     }
   }, [blockedByBackNavigation, quiz, attemptId, starting]);
 
+  // The server rejects saves/heartbeats once the teacher stops the quiz or
+  // the scheduled window ends. Stop accepting local answers and submit the
+  // answers that were already saved before the window closed.
+  const handleResponseWindowClosed = useCallback((err: unknown) => {
+    const status = (err as { response?: { status?: number } })?.response?.status;
+    if (status !== 409) return false;
+    setError("The quiz has ended. Your saved answers are being submitted.");
+    setTimeLeft(0);
+    return true;
+  }, []);
+
   const persistAnswer = useCallback((problemId: number, answer: AnswerValue) => {
     setAnswers((previous) => ({ ...previous, [problemId]: answer }));
     if (attemptId !== null) {
-      void saveQuizResponse(String(attemptId), { problemId, ...answer }).catch(() => {
-        // The local draft remains authoritative while offline; final submit
-        // sends the complete answer set again.
+      void saveQuizResponse(String(attemptId), { problemId, ...answer }).catch((err: unknown) => {
+        // The local draft remains authoritative while offline; after the quiz
+        // closes the server grades only responses saved before the cutoff.
+        handleResponseWindowClosed(err);
       });
     }
-  }, [attemptId]);
+  }, [attemptId, handleResponseWindowClosed]);
 
   // A creator should only see this student as "Live" while this exam tab is
   // actually active. Hidden/closed tabs stop sending heartbeats and naturally
@@ -407,9 +356,13 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     let cancelled = false;
     const heartbeat = () => {
       if (cancelled || document.visibilityState !== "visible") return;
-      void heartbeatQuizAttempt(String(attemptId)).catch(() => {
-        // Presence is best-effort; quiz answers and final submission remain
-        // independent of this non-critical signal.
+      void heartbeatQuizAttempt(String(attemptId)).catch((err: unknown) => {
+        // Presence is best-effort, but a 409 means the response window has
+        // closed: stop the attempt and submit its saved answers.
+        if (!handleResponseWindowClosed(err)) {
+          // Other failures are non-critical; autosave and final submit remain
+          // independent of this signal.
+        }
       });
     };
     heartbeat();
@@ -423,7 +376,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [attemptId, submitting]);
+  }, [attemptId, submitting, handleResponseWindowClosed]);
 
   const handleManualSubmit = useCallback(() => {
     playQuizSound("submit");
@@ -697,10 +650,10 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
 }
 
 const SUBMISSION_STAGES = [
-  { after: 0, title: "Securing your answers", detail: "Saving every response safely…", icon: ShieldCheck },
+  { after: 0, title: "Saving your answers", detail: "Saving every response safely…", icon: ShieldCheck },
   { after: 600, title: "Checking your exam", detail: "Making sure your submission is complete…", icon: FileCheck2 },
-  { after: 1200, title: "Analyzing your responses", detail: "Reviewing your answers question by question…", icon: BrainCircuit },
-  { after: 1800, title: "Generating your result", detail: "Turning your attempt into meaningful feedback…", icon: Sparkles },
+  { after: 1200, title: "Locking your responses", detail: "Your answers are being sealed for evaluation…", icon: FileCheck2 },
+  { after: 1800, title: "Submission confirmed", detail: "Your answers are ready for result calculation…", icon: CheckCircle2 },
 ] as const;
 
 const SUBMIT_PARTY_BITS = Array.from({ length: 30 }, (_, index) => {
@@ -774,7 +727,7 @@ function SubmissionProgressOverlay({ complete, soundEnabled, onSound, onHome }: 
           </div>
           <p className="mt-5 text-[11px] font-black uppercase tracking-[0.24em] text-[var(--qs-ok)]">Submission complete</p>
           <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">You did it!</h2>
-          <p className="mt-2 text-sm leading-6 text-[var(--qs-muted)]">Your quiz responses have been submitted. You can go back now.</p>
+          <p className="mt-2 text-sm leading-6 text-[var(--qs-muted)]">Your answers are saved. Results will be calculated after the quiz ends.</p>
           <button
             type="button"
             onClick={onHome}

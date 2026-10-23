@@ -6,7 +6,7 @@ import { formatTime12, toTimeString } from "./helpers";
 import type { TimingState } from "./types";
 
 export function ParticipantPreview({ state }: { state: TimingState }) {
-  const { mode, schedule, manual, participantDuration } = state;
+  const { mode, schedule, manual } = state;
 
   const quizStart =
     mode === "schedule" && schedule.startDate && schedule.startTime
@@ -25,7 +25,7 @@ export function ParticipantPreview({ state }: { state: TimingState }) {
   const attemptEnd = mode === "schedule"
     ? scheduledEnd || "When the quiz ends"
     : participantStart
-      ? `${participantDuration} min after they start`
+      ? "When you end the quiz"
       : null;
 
   const sessionEnd = null;

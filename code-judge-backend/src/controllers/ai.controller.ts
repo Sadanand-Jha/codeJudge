@@ -365,7 +365,7 @@ export const generateFromQuestionBankHandler = async (req: Request, res: Respons
       }
     }
 
-    const result = await generateFromQuestionBank({
+    const selectionRequest = {
       numberOfQuestions,
       easyCount: easyCount != null ? Math.max(0, Number(easyCount)) : undefined,
       mediumCount: mediumCount != null ? Math.max(0, Number(mediumCount)) : undefined,
@@ -382,8 +382,52 @@ export const generateFromQuestionBankHandler = async (req: Request, res: Respons
       kind,
       quizId,
       createdBy,
-    });
+    };
 
+    const wantsStream =
+      req.query.stream === "1" ||
+      (typeof req.headers.accept === "string" && req.headers.accept.includes("text/event-stream"));
+    if (wantsStream) {
+      res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+      res.setHeader("Cache-Control", "no-cache, no-transform");
+      res.setHeader("Connection", "keep-alive");
+      res.flushHeaders?.();
+
+      const startedAt = Date.now();
+      const controller = new AbortController();
+      let closed = false;
+      const onClose = () => {
+        closed = true;
+        controller.abort();
+      };
+      req.on("close", onClose);
+      const send = (type: string, data: Record<string, unknown>) => {
+        if (closed || res.writableEnded) return;
+        res.write(`data: ${JSON.stringify({ type, ...data })}\n\n`);
+      };
+
+      try {
+        const result = await generateFromQuestionBank({
+          ...selectionRequest,
+          signal: controller.signal,
+          onReasoning: (chunk) => send("reasoning", { chunk }),
+          onContent: (chunk) => send("content", { chunk }),
+        });
+        send("questions", { questions: result.questions });
+        if (result.usage) send("usage", { usage: result.usage, time_ms: Date.now() - startedAt });
+        send("done", {});
+      } catch (error) {
+        send("error", {
+          message: error instanceof Error ? error.message : "Failed to generate questions",
+        });
+      } finally {
+        req.off("close", onClose);
+        if (!res.writableEnded) res.end();
+      }
+      return;
+    }
+
+    const result = await generateFromQuestionBank(selectionRequest);
     return res.status(200).json({ success: true, data: result });
   } catch (error) {
     console.error("Question bank selection error:", error);

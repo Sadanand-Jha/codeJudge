@@ -63,7 +63,6 @@ function deriveQuizStatus(opts: {
 function validateQuizStart(details: QuizDetails): string | null {
   if (!details.name.trim()) return "Quiz name is required.";
   if (!details.subject.trim()) return "Subject is required.";
-  if (details.timeLimit <= 0) return "Quiz duration must be greater than 0 minutes.";
   if (details.registrationEnabled) {
     if (!details.registrationStart) return "Registration start time is required.";
     if (!details.registrationEnd) return "Registration end time is required.";

@@ -1,19 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AlertTriangle, Settings2, ChevronDown, ChevronRight, Eye } from "lucide-react";
+import { Settings2, ChevronDown, ChevronRight, Eye } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import { useQuizReferenceStore } from "@/store/quizReferenceStore";
 
 /**
  * LiveRail — right sidebar in the quiz studio showing question properties,
- * status checks, warnings, and a student preview button. The preview button
+ * status checks, and a student preview button. The preview button
  * is disabled until the question has enough data to show a meaningful preview
  * (e.g., choice questions need options + correct answer, matching needs items).
  */
 export function LiveRail({ onStudentPreview, collapsed, onToggle }: { onDownloadPdf?: () => void; onStudentPreview?: () => void; collapsed?: boolean; onToggle?: () => void }) {
-  const { state, updateQuestion } = useStudio();
+  const { state, updateQuestion, setActiveQuestion } = useStudio();
   const q = state.questions.find((x) => x.id === state.activeQuestionId);
   const [propsCollapsed, setPropsCollapsed] = useState(false);
   const { difficultyOptions, fetchAll } = useQuizReferenceStore();
@@ -67,14 +67,6 @@ export function LiveRail({ onStudentPreview, collapsed, onToggle }: { onDownload
     (isMatching && hasMatchItems && hasMatchMatches) ||
     (!isChoice && !isMatching) // free-text types only need a title
   );
-
-  const warnings: string[] = [];
-  if (!hasTitle) warnings.push("Question text required");
-  if (isChoice && !hasCorrect) warnings.push("No correct answer selected");
-  if (isChoice && q.options.length < 2) warnings.push("At least 2 options required");
-  if (isMatching && !hasMatchItems) warnings.push("Add at least 2 Column A items");
-  if (isMatching && !hasMatchMatches) warnings.push("Add at least 2 Column B matches");
-  if (!q.explanation.trim()) warnings.push("Explanation missing");
 
   return (
     <div className="flex h-full w-full shrink-0 flex-col rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-center" onClick={(e)=>e.stopPropagation()}>
@@ -133,30 +125,52 @@ export function LiveRail({ onStudentPreview, collapsed, onToggle }: { onDownload
           </ul>
         </div>
 
-        {warnings.length > 0 && (
-          <div className="text-center">
-            <h3 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)] text-center">Warnings</h3>
-            <div className="mt-3 space-y-2">
-              {warnings.map((w) => (
-                <div key={w} className="flex items-start gap-2 rounded-[12px] border-2 border-[#a85d00]/40 bg-[#fff3d6] p-2.5 text-xs font-semibold text-[#a85d00]">
-                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" /> {w}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {q.tags.length > 0 && (
           <div className="pt-4 border-t-2 border-[var(--qs-line)]">
-            <div className="flex flex-wrap gap-1.5 justify-center">
+            <div className="flex min-w-0 flex-wrap justify-center gap-1">
               {q.tags.map((t) => (
-                <span key={t} className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--qs-muted)]">
+                <span key={t} className="max-w-full break-words rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-1.5 py-0.5 text-center text-[10px] font-bold leading-tight text-[var(--qs-muted)]">
                   {t}
                 </span>
               ))}
             </div>
           </div>
         )}
+
+        <div className="pt-4 border-t-2 border-[var(--qs-line)]">
+          <h3 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)] text-center">Jump to question</h3>
+          <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+            {state.questions.map((question, index) => {
+              const active = question.id === state.activeQuestionId;
+              const level = question.difficulty?.toLowerCase();
+              const tone =
+                level === "easy"
+                  ? "border-[var(--qs-ok)] bg-[var(--qs-ok)] text-[var(--qs-bg)]"
+                  : level === "medium"
+                    ? "border-[#a85d00] bg-[#f0a028] text-[#1a1240]"
+                    : level === "hard" || level === "expert"
+                      ? "border-[var(--qs-bad)] bg-[var(--qs-bad)] text-[var(--qs-bg)]"
+                      : "border-[var(--qs-line)] bg-[var(--qs-poly-1)] text-[var(--qs-ink)]";
+              return (
+                <button
+                  key={question.id}
+                  type="button"
+                  onClick={() => setActiveQuestion(question.id)}
+                  title={`Question ${index + 1} · ${question.difficulty}`}
+                  aria-label={`Jump to question ${index + 1}, ${question.difficulty}`}
+                  aria-current={active ? "true" : undefined}
+                  className={cn(
+                    "grid h-6 w-6 place-items-center rounded-[7px] border-2 text-[10px] font-extrabold tabular-nums transition-transform hover:-translate-y-px",
+                    tone,
+                    active && "ring-2 ring-[var(--qs-ink)] ring-offset-1 ring-offset-[var(--qs-surface)]"
+                  )}
+                >
+                  {index + 1}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         <div className="rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 text-left shadow-[4px_4px_0_var(--qs-sun)]">
           <p className="text-[10px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-brand)]">

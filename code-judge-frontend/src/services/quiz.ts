@@ -787,21 +787,23 @@ export async function heartbeatQuizAttempt(attemptId: string): Promise<void> {
 }
 
 /**
- * Submit a quiz attempt with batch responses
- * POST /api/v1/user/quiz/attempt/:attemptId/submit
- * proctor is the exam-cell fallback: violations counted on-device in case
- * live violation reports failed, plus the flagged state for auto-submit.
- *
- * Async flow: grading runs in a BullMQ worker. Returns the graded attempt
- * directly (200, already completed) or { attemptId, jobId, status: "queued" }
- * (202) — poll getSubmitStatus() until controlled grading completes.
+ * Save final answers for a quiz attempt. Grading is deferred until the quiz
+ * ends, so no job id is returned and the student does not poll for a result.
  */
+export interface SubmitQuizAttemptResult {
+  attemptId: number;
+  status: "submitted" | "completed" | "timed_out";
+  submittedAt?: string;
+  resultPending?: boolean;
+  attempt?: QuizAttempt;
+}
+
 export async function submitQuizAttempt(
   attemptId: string,
   responses: Array<{ problemId: number; option?: string; options?: string[]; textAnswer?: string }>,
   proctor?: { violations?: number; flagged?: boolean; flagReason?: string }
-): Promise<QuizAttempt | { attemptId: number; jobId: string; status: string }> {
-  const response = await apiClient.post<QuizAttempt | { attemptId: number; jobId: string; status: string }>(`/v1/user/quiz/attempt/${attemptId}/submit`, {
+): Promise<SubmitQuizAttemptResult> {
+  const response = await apiClient.post<SubmitQuizAttemptResult>(`/v1/user/quiz/attempt/${attemptId}/submit`, {
     responses,
     ...(proctor?.violations !== undefined ? { violations: proctor.violations } : {}),
     ...(proctor?.flagged !== undefined ? { flagged: proctor.flagged } : {}),

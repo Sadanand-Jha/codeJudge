@@ -1,12 +1,18 @@
-// Background grading for quiz submissions.
-// This is the exact grading pipeline formerly executed inline in
-// POST /attempt/:attemptId/submit (quiz.controller.ts): load problems +
-// options, grade in memory, persist answers, finalize the attempt.
-// The submit endpoint now only validates + enqueues; a BullMQ worker runs
-// this function. It is also used by concurrency-limited recovery when a
-// long-lived BullMQ worker is unavailable.
+// Background result calculation for quiz attempts.
+// Student submits only persist answers. The actual grading pipeline runs when
+// the quiz ends (teacher stop or scheduled end), never on an individual
+// submission. A BullMQ worker runs processQuizSubmission with bounded
+// concurrency; the same function is used by serverless recovery when a
+// long-lived worker is unavailable.
 import { QuizService } from "./database/quiz.service.ts";
-import type { QuizSubmissionJobData } from "../queues/quizSubmission.queue.ts";
+import {
+  enqueueQuizSubmission,
+  getQuizSubmissionJob,
+  isQuizSubmissionQueueConfigured,
+  storeFallbackQuizSubmission,
+  type QuizSubmissionJobData,
+} from "../queues/quizSubmission.queue.ts";
+import { getQuizAttemptDeadlineMs } from "../utils/quizAttemptTiming.ts";
 
 const quizService = new QuizService();
 
@@ -24,6 +30,48 @@ export async function processQuizSubmission(data: QuizSubmissionJobData): Promis
   }
 
   const quizRow = await quizService.getQuizById(String(attempt.quiz_id));
+  const quizStatus = String(quizRow?.status ?? "").toLowerCase();
+  // The quiz end time wins when configured; otherwise the attempt expires
+  // after its fixed 15-minute fallback window.
+  const attemptDeadlineMs = getQuizAttemptDeadlineMs(quizRow, attempt);
+  const quizEnded =
+    quizStatus === "ended"
+    || (attemptDeadlineMs !== null && attemptDeadlineMs <= Date.now());
+  if (!quizEnded) {
+    console.warn(`[bullmq] result calculation skipped for attempt ${attemptId}: quiz has not ended`);
+    return attempt;
+  }
+  const attemptSubmittedAtMs = attempt.submitted_at
+    ? new Date(attempt.submitted_at).getTime()
+    : Number.NaN;
+  const jobSubmittedAtMs = new Date(data.submittedAt).getTime();
+  const submittedAtMs = Number.isFinite(attemptSubmittedAtMs)
+    ? attemptSubmittedAtMs
+    : jobSubmittedAtMs;
+  const wasClosedAtSubmission = attemptDeadlineMs !== null
+    ? Number.isFinite(submittedAtMs) && submittedAtMs >= attemptDeadlineMs
+    : quizStatus === "ended";
+  // Submissions only save answers. If an attempt was explicitly submitted, or
+  // the quiz window has already closed, grade the persisted response rows.
+  // Legacy inline jobs may still carry unsaved answers, so use those only when
+  // they were created before the close.
+  const usePersistedResponses =
+    Number.isFinite(attemptSubmittedAtMs)
+    || wasClosedAtSubmission
+    || data.isLate === true;
+  const persistedResponses = usePersistedResponses
+    ? (await quizService.getStudentResponses(Number(attemptId), Number(userId)))
+        .map(savedResponseToSubmission)
+        .filter((response): response is QuizSubmissionJobData["responses"][number] => response !== null)
+    : [];
+  const gradeResponses = usePersistedResponses ? persistedResponses : responses;
+
+  // An attempt with submitted_at happened during the window. An attempt still
+  // active when the quiz closes is timed out. Legacy jobs without submitted_at
+  // fall back to their enqueue-time lateness flag.
+  const isLate = Number.isFinite(attemptSubmittedAtMs)
+    ? attemptDeadlineMs !== null && attemptSubmittedAtMs > attemptDeadlineMs
+    : data.isLate === true || wasClosedAtSubmission || !Number.isFinite(submittedAtMs);
 
   const problems = await quizService.getQuizProblems(String(attempt.quiz_id));
   const optionsMap = new Map<number, any[]>();
@@ -45,7 +93,7 @@ export async function processQuizSubmission(data: QuizSubmissionJobData): Promis
   const totalMarks = Number(quizRow?.total_marks) || 0;
   const defaultQuestionMarks = totalQuestions > 0 ? totalMarks / totalQuestions : 0;
   const uniqueResponses = new Map<number, { problemId: number; option?: string; options?: string[]; textAnswer?: string }>();
-  for (const response of responses) {
+  for (const response of gradeResponses) {
     uniqueResponses.set(Number(response.problemId), response);
   }
 
@@ -133,27 +181,15 @@ export async function processQuizSubmission(data: QuizSubmissionJobData): Promis
   }
 
   const startedAt = attempt.started_at ?? attempt.created_at;
-  // Scheduled quizzes are graded against the quiz window only; their
-  // per-attempt duration is not enforced.
-  const scheduledQuiz = String(quizRow?.status ?? "").toLowerCase() === "scheduled";
-  const durationDeadline = !scheduledQuiz && quizRow?.duration && startedAt
-    ? new Date(startedAt).getTime() + Number(quizRow.duration) * 60_000
-    : Number.POSITIVE_INFINITY;
-  const quizDeadline = quizRow?.endtime
-    ? new Date(quizRow.endtime).getTime()
-    : Number.POSITIVE_INFINITY;
-  const submittedAtMs = new Date(data.submittedAt).getTime();
-  const isLate = data.isLate || (
-    Number.isFinite(submittedAtMs)
-    && submittedAtMs > Math.min(durationDeadline, quizDeadline)
-  );
   const storedViolations = Number(attempt.violations) || 0;
   const violations = Math.max(storedViolations, Number(data.violations) || 0);
   const flagged = attempt.flagged === true || data.flagged === true;
   const flagReason = [attempt.flag_reason, data.flagReason].filter(Boolean).join("; ").slice(0, 500) || undefined;
-  const effectiveCompletionMs = isLate
-    ? Math.min(Date.now(), durationDeadline, quizDeadline)
-    : Date.now();
+  const effectiveCompletionMs = Number.isFinite(attemptSubmittedAtMs)
+    ? attemptSubmittedAtMs
+    : isLate && attemptDeadlineMs !== null
+      ? Math.min(Date.now(), attemptDeadlineMs)
+      : Date.now();
   const timeTaken = startedAt
     ? Math.max(0, Math.floor((effectiveCompletionMs - new Date(startedAt).getTime()) / 1000))
     : undefined;
@@ -161,6 +197,7 @@ export async function processQuizSubmission(data: QuizSubmissionJobData): Promis
   const updatedAttempt = await quizService.updateQuizAttempt(Number(attemptId), {
     status: isLate ? "timed_out" : "completed",
     completed_at: new Date(effectiveCompletionMs),
+    ...(attempt.submitted_at ? {} : { submitted_at: new Date(effectiveCompletionMs) }),
     score,
     percentage,
     correct_answers: correctAnswers,
@@ -192,38 +229,87 @@ function savedResponseToSubmission(row: any): QuizSubmissionJobData["responses"]
   return null;
 }
 
+function resultCalculationJobData(attempt: any): QuizSubmissionJobData {
+  return {
+    attemptId: Number(attempt.id),
+    userId: Number(attempt.user_id),
+    quizId: Number(attempt.quiz_id),
+    responses: [],
+    violations: Number(attempt.violations) || 0,
+    flagged: attempt.flagged === true,
+    ...(attempt.flag_reason ? { flagReason: String(attempt.flag_reason) } : {}),
+    // An attempt without submitted_at is still active when it is enqueued; it
+    // is timed out at the scheduled end. An explicit submitted_at is graded as
+    // a normal completion.
+    isLate: !attempt.submitted_at,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
 /**
- * Grades attempts whose quiz deadline has elapsed. Scheduled quizzes expire at
- * their end time; manually-started quizzes also expire when their per-attempt
- * duration runs out. This runs on server requests, so it also covers students
- * who closed the browser before the client-side timer could submit.
+ * Enqueue result calculation for every ungraded attempt in a quiz. This is
+ * called when a teacher ends the quiz, by the due-quiz scheduler, and before
+ * an attempt is resumed/started. Jobs dedupe on attempt id, so repeated calls
+ * are safe.
+ */
+export async function enqueueQuizResultCalculation(
+  quizId: number,
+  userId?: number
+): Promise<number> {
+  const expired = await quizService.getExpiredQuizAttempts(quizId, userId);
+  let enqueued = 0;
+
+  for (const attempt of expired) {
+    const jobData = resultCalculationJobData(attempt);
+    try {
+      if (!isQuizSubmissionQueueConfigured()) {
+        await processQuizSubmission(jobData);
+        enqueued += 1;
+        continue;
+      }
+
+      const existing = await getQuizSubmissionJob(jobData.attemptId);
+      if (existing) {
+        const state = await existing.getState();
+        if (state !== "failed") continue;
+        await existing.remove();
+      }
+
+      // Keep a durable fallback so a status poll can recover if the worker is
+      // unavailable, then add the same job to BullMQ.
+      await storeFallbackQuizSubmission(jobData).catch((error) => {
+        console.warn(`Could not store fallback for quiz attempt ${jobData.attemptId}:`, error);
+      });
+      await enqueueQuizSubmission(jobData);
+      enqueued += 1;
+    } catch (error) {
+      console.error(`Failed to enqueue result calculation for quiz attempt ${jobData.attemptId}:`, error);
+    }
+  }
+
+  if (enqueued > 0) {
+    console.log(`[bullmq] result calculation queued for quiz ${quizId} (${enqueued} attempt(s))`);
+  }
+  return enqueued;
+}
+
+/** Poll target used on deployments without a long-lived worker/cron. */
+export async function enqueueDueQuizResultCalculations(): Promise<number> {
+  const quizIds = await quizService.getQuizIdsAwaitingResultCalculation();
+  let enqueued = 0;
+  for (const quizId of quizIds) {
+    enqueued += await enqueueQuizResultCalculation(quizId);
+  }
+  return enqueued;
+}
+
+/**
+ * Kept for existing request-time callers. It now enqueues the attempts instead
+ * of grading inline, so request latency stays independent of class size.
  */
 export async function finalizeExpiredQuizAttempts(options: {
   quizId: number;
   userId?: number;
 }): Promise<number> {
-  const expired = await quizService.getExpiredQuizAttempts(options.quizId, options.userId);
-  let finalized = 0;
-  for (const attempt of expired) {
-    try {
-      const saved = await quizService.getStudentResponses(Number(attempt.id), Number(attempt.user_id));
-      const responses = saved
-        .map(savedResponseToSubmission)
-        .filter((response): response is QuizSubmissionJobData["responses"][number] => response !== null);
-      await processQuizSubmission({
-        attemptId: Number(attempt.id),
-        userId: Number(attempt.user_id),
-        responses,
-        violations: Number(attempt.violations) || 0,
-        flagged: attempt.flagged === true,
-        ...(attempt.flag_reason ? { flagReason: String(attempt.flag_reason) } : {}),
-        isLate: true,
-        submittedAt: new Date().toISOString(),
-      });
-      finalized += 1;
-    } catch (error) {
-      console.error(`Failed to auto-submit expired quiz attempt ${attempt.id}:`, error);
-    }
-  }
-  return finalized;
+  return enqueueQuizResultCalculation(options.quizId, options.userId);
 }

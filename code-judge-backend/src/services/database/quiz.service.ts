@@ -214,6 +214,10 @@ export class QuizService {
     return this.repository.getExpiredQuizAttempts(quizId, userId);
   }
 
+  async getQuizIdsAwaitingResultCalculation(): Promise<number[]> {
+    return this.repository.getQuizIdsAwaitingResultCalculation();
+  }
+
   async getQuizLeaderboard(quizId: number): Promise<any[]> {
     return this.repository.getQuizLeaderboard(quizId);
   }
