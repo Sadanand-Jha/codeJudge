@@ -1,5 +1,6 @@
 import apiClient from "@/lib/axios";
 import type { Room, RoomRegistrationForm } from "@/types/room";
+import type { CreatorPublicStats } from "@/services/quiz";
 
 /** Room credentials returned once, immediately after create/reset. */
 export interface RoomCredentials {
@@ -17,6 +18,7 @@ export interface JoinedRoom {
     id: string;
     name: string;
   };
+  teacher: CreatorPublicStats | null;
 }
 
 export interface RoomJoinPreview {
@@ -24,6 +26,8 @@ export interface RoomJoinPreview {
     id: string;
     name: string;
   };
+  ownerId: string;
+  teacher: CreatorPublicStats | null;
   password_expires_at: string | null;
   registration_form: RoomRegistrationForm;
 }

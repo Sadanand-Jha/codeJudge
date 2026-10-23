@@ -22,10 +22,6 @@
   animation-play-state: running;
 }
 
-.toggleFadeAnimated {
-  animation: rooms-fade-in 400ms var(--rooms-ease-out) 500ms both;
-}
-
 .heroCard {
   position: relative;
 }
@@ -608,7 +604,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .toggleFadeAnimated,
   .heroCardAnimated,
   .pillAnimated,
   .wordAnimated,
@@ -625,7 +620,6 @@
     animation: none;
   }
 
-  .toggleFadeAnimated,
   .heroCardAnimated,
   .tablistAnimated,
   .fadeUpAnimated,

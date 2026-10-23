@@ -145,4 +145,4 @@ Controller outcomes:
 6. Public problem endpoints never leak `iscorrect`, explanations, or hints; only the post-submit review exposes correct answers, and only to the attempt owner.
 7. Leaderboard only lists `completed` attempts and is hidden unless the quiz enables it (owner always sees it).
 
-Related docs: `QUIZ_CREATION_FLOW.md` (creator side), `REGISTRATION_FLOW.md` (auth), `QUIZ_MODULE_BACKEND.md` (module overview), `connect_fe_be.md` (frontend↔backend wiring), `database/migrations/` (`01_quiz.sql`, `04_quiz_attempt.sql`, `05_quiz_registration_unique.sql`, `06_quiz_response_is_attempted.sql`, `07_quiz_attempt_proctoring.sql`).
+Related docs: `QUIZ_CREATION_FLOW.md` (creator side), `REGISTRATION_FLOW.md` (auth), `QUIZ_MODULE_BACKEND.md` (module overview), `QUIZ_STUDENT_CALL_MAP.md` (frontend file → service → backend handler map), `connect_fe_be.md` (frontend↔backend wiring), `database/migrations/` (`01_quiz.sql`, `04_quiz_attempt.sql`, `05_quiz_registration_unique.sql`, `06_quiz_response_is_attempted.sql`, `07_quiz_attempt_proctoring.sql`).

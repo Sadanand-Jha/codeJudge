@@ -949,7 +949,15 @@ export async function submitQuizRating(quizId: string, submission: QuizRatingSub
 /** Aggregate-only public creator card. Never carries email or personal info. */
 export interface CreatorPublicStats {
   username: string;
+  displayName: string | null;
   avatarUrl: string | null;
+  bio: string | null;
+  country: string | null;
+  college: string | null;
+  isVerified: boolean;
+  memberSince: string | null;
+  rating: number;
+  maxRating: number;
   quizzesCreated: number;
   uniqueStudents: number;
   totalAttempts: number;

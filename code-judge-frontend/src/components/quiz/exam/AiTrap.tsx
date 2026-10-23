@@ -17,7 +17,7 @@ const PLACEMENT_META: Record<TrapPlacement, { height: number; fontSize: number }
   "question-gap": { height: 13, fontSize: 12 },
   "under-options": { height: 30, fontSize: 12 },
   "between-card-footer": { height: 58, fontSize: 14 },
-  monitoring: { height: 12, fontSize: 10 },
+  monitoring: { height: 12, fontSize: 11 },
 };
 
 const ART_CACHE = new Map<string, { text: string; noise: string }>();
@@ -177,6 +177,61 @@ function AiTrapLayer({ trap, placement, strength, outline, className }: AiTrapPr
 
 export const AiTrap = memo(AiTrapLayer);
 
+const GHOST_COLOR = "#222235";
+const GHOST_FONT_SIZE = 5;
+const GHOST_WIDTH = 420;
+const GHOST_HEIGHT = 6;
+
+export interface TrapGhostProps {
+  trap: QuizTrap | null | undefined;
+  strength: number;
+  className?: string;
+}
+
+/**
+ * Extra-low-contrast OCR bait near the decoy option and the footer border.
+ * Like AiTrap it is pixel-only: the instruction lives in an SVG background,
+ * never in the DOM text.
+ */
+function TrapGhostLayer({ trap, strength, className }: TrapGhostProps) {
+  const backgroundImage = useMemo(() => {
+    if (!trap) return "none";
+    return buildTrapSvgDataUri({
+      lines: [trap.line2],
+      width: GHOST_WIDTH,
+      height: GHOST_HEIGHT,
+      color: GHOST_COLOR,
+      fontSize: GHOST_FONT_SIZE,
+      fontFamily: "Arial, Inter, sans-serif",
+    });
+  }, [trap]);
+
+  if (!trap) return null;
+
+  const opacity = Math.min(0.03, Math.max(0.01, strength / 200));
+
+  return (
+    <span
+      aria-hidden="true"
+      className={className}
+      style={{
+        position: "absolute",
+        display: "block",
+        height: GHOST_HEIGHT,
+        opacity,
+        pointerEvents: "none",
+        userSelect: "none",
+        backgroundImage,
+        backgroundSize: "auto 100%",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "left center",
+      }}
+    />
+  );
+}
+
+export const TrapGhost = memo(TrapGhostLayer);
+
 export interface TrapCalibrationProps {
   value: number;
   defaultValue: number;
@@ -195,7 +250,7 @@ export function TrapCalibrationPanel({
 }: TrapCalibrationProps) {
   return (
     <aside
-      className="qs-ui fixed bottom-4 right-4 z-[140] w-[min(92vw,310px)] rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 text-[var(--qs-ink)] shadow-[0_6px_0_rgba(26,18,64,0.2)]"
+      className="qs-ui fixed bottom-24 right-4 z-[140] w-[min(92vw,310px)] rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 text-[var(--qs-ink)] shadow-[0_6px_0_rgba(26,18,64,0.2)]"
       aria-label="Trap calibration"
     >
       <div className="mb-2 flex items-center gap-2">

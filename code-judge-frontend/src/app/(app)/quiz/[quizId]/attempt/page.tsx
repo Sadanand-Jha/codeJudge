@@ -29,8 +29,8 @@ import {
 import { useQuizSounds, type QuizSound } from "@/hooks/useQuizSounds";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
-import { AiTrap, TrapCalibrationPanel } from "@/components/quiz/exam/AiTrap";
-import { trapPlacementFor } from "@/lib/aiTrap";
+import { AiTrap, TrapCalibrationPanel, TrapGhost } from "@/components/quiz/exam/AiTrap";
+import { trapDecoyLabel, trapPlacementFor } from "@/lib/aiTrap";
 import { useAuthStore } from "@/store/authStore";
 
 type AnswerValue = StoredAttemptAnswer;
@@ -309,6 +309,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
 
   const current = questions[index];
   const currentTrap = current?.trap ?? null;
+  const currentDecoyLabel = trapDecoyLabel(currentTrap);
   const currentTrapPlacement =
     current && attemptId !== null ? trapPlacementFor(attemptId, current.id) : null;
   const trapOutlineVisible = trapCalibration && trapOutline;
@@ -319,7 +320,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         placement="monitoring"
         strength={trapStrength}
         outline={trapOutlineVisible}
-        className="right-0 w-full max-w-[220px]"
+        className="right-0 left-auto w-full max-w-[240px]"
       />
     ) : null;
   const answered = Object.keys(answers).length;
@@ -547,6 +548,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
               const selected = multiple
                 ? (answers[current.id]?.options ?? []).includes(optionId)
                 : answers[current.id]?.option === optionId;
+              const optionLabel = String.fromCharCode(65 + optionIndex);
               return (
                 <button
                   key={option.id}
@@ -564,13 +566,20 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
                       persistAnswer(current.id, { option: optionId });
                     }
                   }}
-                  className={`group flex min-h-16 items-center gap-3 rounded-2xl border-2 p-3 text-left text-sm leading-5 transition-all duration-200 ${selected ? "border-[var(--qs-brand)] bg-[var(--qs-brand)]/10 text-[var(--qs-ink)]" : "border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)] hover:-translate-y-0.5 hover:border-[var(--qs-brand)]/50 hover:text-[var(--qs-ink)]"}`}
+                  className={`group relative flex min-h-16 items-center gap-3 rounded-2xl border-2 p-3 text-left text-sm leading-5 transition-all duration-200 ${selected ? "border-[var(--qs-brand)] bg-[var(--qs-brand)]/10 text-[var(--qs-ink)]" : "border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)] hover:-translate-y-0.5 hover:border-[var(--qs-brand)]/50 hover:text-[var(--qs-ink)]"}`}
                 >
                   <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl border-2 text-[11px] font-bold transition-colors ${selected ? "border-[var(--qs-brand)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] group-hover:border-[var(--qs-brand)]/50 group-hover:text-[var(--qs-brand)]"}`}>
-                    {String.fromCharCode(65 + optionIndex)}
+                    {optionLabel}
                   </span>
                   <span className="flex-1">{plainText(option.option_statement)}</span>
                   <CheckCircle2 className={`h-4 w-4 shrink-0 transition-opacity ${selected ? "text-[var(--qs-brand)] opacity-100" : "opacity-0"}`} />
+                  {currentTrap && currentDecoyLabel === optionLabel && (
+                    <TrapGhost
+                      trap={currentTrap}
+                      strength={trapStrength}
+                      className="bottom-0.5 left-2 right-2"
+                    />
+                  )}
                 </button>
               );
             })}
@@ -621,7 +630,14 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         <div className="h-1" aria-hidden="true" />
         </div>
 
-        <footer className="grid shrink-0 grid-cols-2 gap-2 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 sm:grid-cols-[auto_1fr_auto] sm:gap-3">
+        <footer className="relative grid shrink-0 grid-cols-2 gap-2 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 sm:grid-cols-[auto_1fr_auto] sm:gap-3">
+          {currentTrap && (
+            <TrapGhost
+              trap={currentTrap}
+              strength={trapStrength}
+              className="left-3 right-3 top-0.5"
+            />
+          )}
           <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.max(0, value - 1)); }} disabled={index === 0} className="b b-ghost min-h-12 gap-1 px-3 disabled:cursor-not-allowed disabled:opacity-40 sm:px-4">
             <ChevronLeft className="h-4 w-4" /> Previous
           </button>

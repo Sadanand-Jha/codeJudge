@@ -35,6 +35,7 @@ import {
 } from "@/utils/roomRegistration";
 import { formatPasswordExpiry } from "@/utils/passwordExpiry";
 import { Stagger, usePrefersReducedMotion, type CurtainPhase, Curtain } from "./roomMotion";
+import TeacherPublicCard from "./TeacherPublicCard";
 import styles from "./roomsCinematic.module.css";
 
 const DRAFT_KEY = "quizsupport_room_join_draft";
@@ -228,6 +229,8 @@ export default function RoomJoinForm({ initialCode = "", animate = false }: Room
       if (payload?.code === "REGISTRATION_INVALID" && payload.registration_form) {
         setPreview((current) => ({
           room: current?.room ?? { id: "", name: "Registration" },
+          ownerId: current?.ownerId ?? "",
+          teacher: current?.teacher ?? null,
           password_expires_at: current?.password_expires_at ?? null,
           registration_form: payload.registration_form as RoomRegistrationForm,
         }));
@@ -389,6 +392,10 @@ export default function RoomJoinForm({ initialCode = "", animate = false }: Room
                         <Sparkles className="h-3.5 w-3.5 shrink-0" />
                         Invite link detected — code and password are filled in.
                       </div>
+                    ) : null}
+
+                    {preview?.teacher ? (
+                      <TeacherPublicCard teacher={preview.teacher} className="mt-4" />
                     ) : null}
 
                     <label
@@ -571,6 +578,10 @@ export default function RoomJoinForm({ initialCode = "", animate = false }: Room
                       </div>
                     ) : null}
 
+                    {preview?.teacher ? (
+                      <TeacherPublicCard teacher={preview.teacher} className="mt-4" />
+                    ) : null}
+
                     {registrationForm ? (
                       <Stagger
                         animate={!reduced}
@@ -729,6 +740,8 @@ export default function RoomJoinForm({ initialCode = "", animate = false }: Room
               <p className="mt-2 text-sm text-[var(--qs-muted)]">
                 You&apos;re in. Your teacher can see you in the room.
               </p>
+
+              <TeacherPublicCard teacher={joined.teacher} className="mt-5 w-full" />
 
               <div className="mt-6 grid w-full gap-2.5">
                 <Link

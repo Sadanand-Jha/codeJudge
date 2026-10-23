@@ -5,11 +5,18 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Send, Check, BarChart3, Copy } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
+import { buildShareMessage, WhatsAppIcon } from "@/components/creator/common/ShareQuizDialog";
 import { useStudio } from "../StudioProvider";
 import { toast } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { StudioStepLayout } from "../primitives";
 import { formatDateTimeIST } from "../components/timing/helpers";
+
+function buildJoinLink(code: string): string {
+  const normalized = code.replace(/\s+/g, "");
+  const origin = typeof window === "undefined" ? "" : window.location.origin;
+  return `${origin}/quiz/join?code=${encodeURIComponent(normalized)}`;
+}
 
 export function PublishStep({
   onPublish,
@@ -26,12 +33,12 @@ export function PublishStep({
     if (saving) return;
     setSaving(true);
     try {
-      await saveToServer({ publish: true });
-      const link = `${window.location.origin}/quiz/${state.info.code}/live`;
+      const { code } = await saveToServer({ publish: true });
+      const link = buildJoinLink(code);
       navigator.clipboard.writeText(link);
       toast.success({
         title: state.info.title || "Quiz published",
-        description: "Quiz saved and link copied to clipboard.",
+        description: "Quiz saved and join link copied to clipboard.",
       });
       onPublish();
     } catch (err) {
@@ -222,8 +229,22 @@ export function PublishStep({
 
 export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
   const { state, summary, setState } = useStudio();
-  const link = `${window.location.origin}/quiz/${state.info.code}/live`;
+  const joinCode = state.info.code.replace(/\s+/g, "");
+  const title = state.info.title || "Untitled Quiz";
+  const link = buildJoinLink(joinCode);
   const isScheduled = state.info.quizLifecycle === "scheduled" && Boolean(state.info.startDate);
+  const whatsappHref = `https://wa.me/?text=${encodeURIComponent(
+    buildShareMessage(
+      {
+        id: state.serverQuizId ?? joinCode,
+        title,
+        code: joinCode,
+        questions: summary.questionCount,
+        status: isScheduled ? "scheduled" : "live",
+      },
+      "clean"
+    )
+  )}`;
 
   const editQuiz = () => {
     setState((s) => ({ ...s, published: false, step: "details" }));
@@ -280,6 +301,15 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
           >
             Copy Link
           </button>
+          <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-1.5 rounded-[12px] border-2 border-[#128c4a] bg-[#25d366] px-4 py-2 text-sm font-extrabold text-[#06301a] transition-colors duration-150 hover:brightness-105"
+          >
+            <WhatsAppIcon className="h-4 w-4" />
+            Share on WhatsApp
+          </a>
           <button
             type="button"
             onClick={editQuiz}
@@ -308,7 +338,7 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
           </button>
           {state.serverQuizId && (
             <a
-              href={`/creator/quizzes/${state.info.code}/responses`}
+              href={`/creator/quizzes/${state.serverQuizId}/responses`}
               className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-4 py-2 text-sm font-extrabold text-[#1a1240] transition-transform duration-150 hover:-translate-y-px active:translate-y-0"
             >
               <BarChart3 className="h-4 w-4" /> View Responses

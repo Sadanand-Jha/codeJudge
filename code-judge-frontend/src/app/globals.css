@@ -504,6 +504,15 @@ html {
   transform: translate3d(0, 0, 0);
 }
 
+/* Desktop keeps the student navigation permanently visible, matching the
+   Creator Studio layout instead of the old hover-to-expand icon rail. */
+@media (min-width: 1024px) {
+  .app-sidebar-rail {
+    position: sticky;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 body {
   min-height: 100dvh;
   height: auto;

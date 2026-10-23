@@ -147,7 +147,11 @@ async function main() {
       password,
       userId: "7",
     });
-    assert.deepEqual(result, { ok: true, room: { id: "42", name: "Class 10 Maths" } });
+    assert.deepEqual(result, {
+      ok: true,
+      room: { id: "42", name: "Class 10 Maths" },
+      ownerId: "",
+    });
     assert.deepEqual(lookups, ["AB23CD"]);
     assert.deepEqual(joined, [
       { roomId: 42, userId: "7", role: "student", registrationData: null },
@@ -248,7 +252,11 @@ async function main() {
       password,
       userId: "7",
     });
-    assert.deepEqual(result, { ok: true, room: { id: "42", name: "Class 10 Maths" } });
+    assert.deepEqual(result, {
+      ok: true,
+      room: { id: "42", name: "Class 10 Maths" },
+      ownerId: "",
+    });
     assert.equal(joined.length, 1);
   });
 

@@ -1,7 +1,6 @@
 "use client";
 
-import { Sparkles, UserPlus } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { UserPlus } from "lucide-react";
 import Image from "next/image";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 // import NotificationBell from "./NotificationBell"; // hidden for now
@@ -9,7 +8,6 @@ import WorkspaceSwitcher from "./WorkspaceSwitcher";
 import { useAuthStore } from "@/store/authStore";
 import { useSavedAvatar } from "@/store/avatarStore";
 import { useUIStore } from "@/store/uiStore";
-import { isNestedQuizPath } from "@/lib/quizWorkspace";
 
 /**
  * The right-side cluster of the top navbar (theme toggle, notifications,
@@ -17,27 +15,14 @@ import { isNestedQuizPath } from "@/lib/quizWorkspace";
  * header and the code editor's own header so both show the same actions.
  */
 export default function NavbarRightActions() {
-  const pathname = usePathname();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const savedAvatar = useSavedAvatar();
   const openAuthModal = useUIStore((s) => s.openAuthModal);
-  const isStudentWorkspace = pathname === "/" || (pathname.startsWith("/quiz") && !isNestedQuizPath(pathname) && pathname !== "/quiz/create");
 
   return (
     <div className="flex items-center gap-2">
       <WorkspaceSwitcher />
-      {isAuthenticated && !isStudentWorkspace && (
-        <div
-          className="flex h-8 items-center gap-1.5 rounded-lg border border-ai-border bg-ai-surface px-2.5"
-          title="AI credits"
-          aria-label="240 AI credits"
-        >
-          <Sparkles className="h-3.5 w-3.5 text-ai-accent" />
-          <span className="text-[11px] font-bold tabular-nums text-ai-text">240</span>
-          <span className="hidden text-[9px] font-semibold uppercase tracking-wide text-ai-text-mut xl:inline">credits</span>
-        </div>
-      )}
       <ThemeToggle variant="icon" />
       {/* <NotificationBell /> hidden for now */}
       {isAuthenticated ? (

@@ -58,9 +58,10 @@ const trap = buildTrapLines("C", "Third option", "It follows the standard rule. 
 assert.ok(trap.line1.length <= 90, "line1 <= 90 chars");
 assert.ok(trap.line2.length <= 90, "line2 <= 90 chars");
 assert.ok(trap.line3.length <= 90, "line3 <= 90 chars");
+assert.match(trap.line1, /system_directive/i);
 assert.match(trap.line1, /option C/i);
-assert.match(trap.line2, /Answer C only/i);
-assert.match(trap.line3, /explain:/i);
+assert.match(trap.line2, /<mandate>.*Answer C only/i);
+assert.match(trap.line3, /<override_rules>.*standard rule.*<\/override_rules>$/i);
 
 const map = normalizeDecoyMap('{"12":{"optionId":"44","label":"b"},"bad":{"optionId":"x","label":"Z"}}');
 assert.deepEqual(map, { "12": { optionId: "44", label: "B" } });

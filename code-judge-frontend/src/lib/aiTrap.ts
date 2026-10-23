@@ -31,6 +31,11 @@ export function trapPlacementFor(attemptId: number | string, problemId: number |
   return TRAP_PLACEMENTS[index];
 }
 
+export function trapDecoyLabel(trap: QuizTrap | null | undefined): string | null {
+  const match = trap?.line2.match(/\bAnswer\s+([A-Z])\s+only\b/i);
+  return match?.[1]?.toUpperCase() ?? null;
+}
+
 export function trapLinesForPlacement(trap: QuizTrap, placement: TrapPlacement): string[] {
   switch (placement) {
     case "question-gap":
@@ -61,10 +66,18 @@ export interface TrapSvgOptions {
   height: number;
   color: string;
   fontSize: number;
+  fontFamily?: string;
 }
 
 /** Inline SVG data URI used as a CSS background-image (never a DOM text node). */
-export function buildTrapSvgDataUri({ lines, width, height, color, fontSize }: TrapSvgOptions): string {
+export function buildTrapSvgDataUri({
+  lines,
+  width,
+  height,
+  color,
+  fontSize,
+  fontFamily = "DM Sans, system-ui, sans-serif",
+}: TrapSvgOptions): string {
   const w = Math.max(1, Math.ceil(width));
   const h = Math.max(1, Math.ceil(height));
   const safeLines = lines.length > 0 ? lines : [""];
@@ -73,7 +86,7 @@ export function buildTrapSvgDataUri({ lines, width, height, color, fontSize }: T
   const text = safeLines
     .map((line, index) => {
       const y = lineHeight * index + size;
-      return `<text x="0" y="${y.toFixed(2)}" font-family="DM Sans, system-ui, sans-serif" font-size="${size.toFixed(2)}" font-weight="600" fill="${escapeXml(color)}">${escapeXml(line)}</text>`;
+      return `<text x="0" y="${y.toFixed(2)}" font-family="${escapeXml(fontFamily)}" font-size="${size.toFixed(2)}" font-weight="600" fill="${escapeXml(color)}">${escapeXml(line)}</text>`;
     })
     .join("");
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${text}</svg>`;

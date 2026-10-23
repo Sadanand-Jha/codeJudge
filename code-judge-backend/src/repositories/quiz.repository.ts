@@ -41,7 +41,15 @@ export interface QuizRatingInput {
  */
 export interface CreatorPublicStats {
   username: string;
+  displayName: string | null;
   avatarUrl: string | null;
+  bio: string | null;
+  country: string | null;
+  college: string | null;
+  isVerified: boolean;
+  memberSince: string | null;
+  rating: number;
+  maxRating: number;
   quizzesCreated: number;
   uniqueStudents: number;
   totalAttempts: number;
@@ -1778,7 +1786,15 @@ export class QuizRepository {
     // row would multiply counts, so each aggregate is computed separately.
     const result = await pool.query(
       `SELECT u.username,
+              u.display_name,
+              u.bio,
+              u.rating,
+              u.max_rating,
+              u.is_verified,
+              u.created_at,
               a.url AS avatar_url,
+              cn.name AS country_name,
+              cl.name AS college_name,
               (SELECT COUNT(*)::int FROM quiz q
                 WHERE q.createdby = u.id AND q.deleted_at IS NULL) AS quizzes_created,
               (SELECT COUNT(DISTINCT qa.user_id)::int FROM quiz_attempt qa
@@ -1798,6 +1814,8 @@ export class QuizRepository {
                 WHERE q.createdby = u.id AND q.deleted_at IS NULL) AS teacher_rating_count
        FROM users u
        LEFT JOIN avatar a ON a.id = u.avatar_id
+       LEFT JOIN country cn ON cn.id = u.country_id
+       LEFT JOIN college cl ON cl.id = u.college_id
        WHERE u.id = $1`,
       [creatorId]
     );
@@ -1806,7 +1824,15 @@ export class QuizRepository {
     const row = result.rows[0];
     return {
       username: String(row.username ?? ""),
+      displayName: row.display_name ?? null,
       avatarUrl: row.avatar_url ?? null,
+      bio: row.bio ?? null,
+      country: row.country_name ?? null,
+      college: row.college_name ?? null,
+      isVerified: row.is_verified === true,
+      memberSince: row.created_at ? new Date(row.created_at).toISOString() : null,
+      rating: Number(row.rating) || 0,
+      maxRating: Number(row.max_rating) || 0,
       quizzesCreated: Number(row.quizzes_created) || 0,
       uniqueStudents: Number(row.unique_students) || 0,
       totalAttempts: Number(row.total_attempts) || 0,

@@ -26,6 +26,7 @@ export const DEFAULT_PASSWORD_VALIDITY_MINUTES = 24 * 60;
 
 export interface RoomAccessRecord {
   id: string | number;
+  owner_id?: string | number | null;
   name: string;
   room_code: string;
   password_hash: string;
@@ -60,6 +61,8 @@ export interface RoomJoinPreview {
     id: string;
     name: string;
   };
+  /** Teacher account that owns the room, used to load the public teacher card. */
+  ownerId: string;
   /** ISO timestamp for the password, or null when it never expires. */
   password_expires_at: string | null;
   registration_form: RoomRegistrationForm;
@@ -78,6 +81,7 @@ export type RoomJoinResult =
         id: string;
         name: string;
       };
+      ownerId: string;
     }
   | {
       ok: false;
@@ -198,6 +202,7 @@ export async function previewRoomJoinWithPassword(
     ok: true,
     preview: {
       room: { id: String(access.room.id), name: access.room.name },
+      ownerId: String(access.room.owner_id ?? ""),
       password_expires_at: roomPasswordExpiresAtIso(access.room),
       registration_form: normalizeRoomRegistrationForm(access.room.registration_form),
     },
@@ -239,6 +244,7 @@ export async function joinRoomWithPassword(
       id: String(room.id),
       name: room.name,
     },
+    ownerId: String(room.owner_id ?? ""),
   };
 }
 

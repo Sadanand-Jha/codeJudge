@@ -3,35 +3,53 @@
 ## Overview
 Complete backend implementation for the Quiz module, built following existing project architecture and conventions.
 
+> Student-side companion docs:
+> - `QUIZ_STUDENT_FLOW.md` — end-to-end student lifecycle and rules.
+> - `QUIZ_STUDENT_CALL_MAP.md` — which frontend file calls which service/API and where it lands in the backend.
+
 ## Database Schema
 
 ### Core Tables
 - `quiz` - Quiz metadata with status, visibility, difficulty, marks, leaderboard settings
 - `quiz_problems` - Questions with type, explanation, hint, difficulty
 - `quiz_problem_options` - MCQ/options with correctness flag
-- `quiz_registration` - User registrations for quizzes
-- `quiz_attempts` - Quiz attempt tracking with scoring
-- `quiz_student_response` - Individual question responses
+- `quiz_registration` - Legacy registration rows (student registration is currently disabled; see Join / Register)
+- `quiz_attempt` - Quiz attempt tracking with scoring, timing, and proctoring flags
+- `quiz_student_response` - Individual question responses (autosave + final submit)
+- `quiz_rating` - One anonymous learner rating per completed attempt (quiz/question/platform/teacher + feedback)
+
+### Supporting Tables
+- `quiz_participants` - Audience allow-list (`status = 1` means eligible)
+- `quiz_collaborator_request` - Quiz collaboration invitations
+- `quiz_game_config`, `quiz_game_mechanics`, `quiz_game_events` - Live game configuration
 
 ### Reference Tables
 - `quiz_problem_type` - Question types (single_choice, multiple_choice, true_false, text, etc.)
 - `quiz_difficulty` - Difficulty levels
 - `quiz_visibility` - Visibility settings
+- `quiz_status` - Quiz lifecycle status lookup
 
 ### Key Columns
 **quiz table:**
-- `status` - draft/published/archived
+- `status` - draft/published/archived (resolved through `quiz_status`)
 - `visibility` - FK to quiz_visibility
 - `difficulty` - FK to quiz_difficulty
 - `total_marks`, `passing_marks`
 - `shuffle_questions`, `shuffle_options`
 - `negative_marking`, `leaderboard`
 
-**quiz_attempts table:**
+**quiz_attempt table:**
 - `score`, `percentage`, `rank`
 - `status` - in_progress/completed/timed_out
 - `time_taken`, `total_questions`
 - `correct_answers`, `wrong_answers`, `skipped_questions`
+- `started_at`, `last_heartbeat_at`, `registration_data`
+- `violations`, `flagged`, `flag_reason` - exam-cell proctoring
+
+**quiz_rating table:**
+- `quiz_id`, `user_id`, `attempt_id`
+- `rating`, `question_rating`, `platform_rating`, `teacher_rating`
+- `feedback` (optional)
 
 ---
 
@@ -47,6 +65,9 @@ routes → controller → service → repository → database
 - `src/controllers/quiz.controller.ts` - Request handlers
 - `src/services/database/quiz.service.ts` - Business logic
 - `src/repositories/quiz.repository.ts` - Data access
+- `src/services/quizSubmission.service.ts` - Async grading processor
+- `src/queues/quizSubmission.queue.ts` - BullMQ/durable fallback submission queue
+- `src/queues/quizSubmission.worker.ts` - Grading worker
 - `src/middleware/validate.ts` - Zod validation schemas
 
 ---
@@ -408,6 +429,12 @@ Get all problems for a quiz
 }
 ```
 
+### GET /api/v1/user/quiz/:quizId/problems/public
+Student-safe problem list. Requires `checkQuizAccess`; drops `explaination`, `hint`, `reference_notes`, `internal_comments` from every problem and `iscorrect` from every option.
+
+- `200 { success, data: [...] }`
+- `403 Quiz access denied` when the caller is not eligible.
+
 ### POST /api/v1/user/quiz/:quizId/problems
 Add question
 
@@ -633,18 +660,52 @@ Start quiz attempt
   "success": true,
   "message": "Resuming existing quiz attempt",
   "data": {
-    "id": 1,
-    "user_id": 1,
-    "quiz_id": 1,
-    "status": "in_progress",
-    ...
+    "attempt": { "id": 1, "status": "in_progress", "...": "..." },
+    "problems": [],
+    "savedResponses": [],
+    "remainingSeconds": 1200
   }
 }
 ```
 
+Notes:
+- Starting resumes the single `in_progress` attempt (refresh-safe, timer continues).
+- Question and option order is shuffled with a stable per-attempt seed.
+- Correct-answer flags, explanations, hints, and reference notes are stripped from the student payload.
+- `quiz_participants` acts as an allow-list only when `audience_mode = 'classroom'` and the list is non-empty.
+
 **Error Responses:**
 - `400` - Quiz has no questions
-- `403` - Not registered, quiz not published, outside time window
+- `403` - Quiz not live, outside time window, audience denied, or reattempt cap reached
+  (`data.attemptsMade` / `data.maxAttempts` are returned for the cap)
+
+### GET /api/v1/user/quiz/:quizId/attempt-registration
+Returns whether the caller already has an in-progress attempt (so the registration form can be skipped on refresh/resume) and the stored `registration_data`.
+
+```json
+{
+  "success": true,
+  "data": {
+    "hasActiveAttempt": true,
+    "registrationData": { "studentName": "Asha", "rollNo": "R001" }
+  }
+}
+```
+
+### POST /api/v1/user/quiz/attempt/:attemptId/heartbeat
+Called every ~25 seconds by the exam page. Validates attempt ownership and deadlines, then updates `quiz_attempt.last_heartbeat_at` via `touchQuizAttempt` so the creator's live view only shows genuinely active students.
+
+- `200 { success: true }`
+- `404 Active quiz attempt not found`
+- `409 Quiz time has expired`
+
+### POST /api/v1/user/quiz/attempt/:attemptId/violation
+Records one exam-cell proctoring event. The client reports one event per episode: `tab_switch`, `window_blur`, `fullscreen_exit`, `copy_attempt`, `cut_attempt`, `paste_attempt`.
+
+- Body: `{ type: string }` (1–50 chars)
+- `violations = stored + 1`; `flagged = violations >= 3`; `flag_reason` appends `"<type>#<n>"`.
+- `200 { success, data: { violations, flagged, maxAllowed: 3 } }`
+- `404 Quiz attempt not found`; `400 Attempt is no longer active`
 
 ### POST /api/v1/user/quiz/attempt/:attemptId/save
 Autosave answer
@@ -709,41 +770,45 @@ Submit quiz with batch responses
   - `textAnswer`: optional string (for text/integer answers)
 
 **Important Notes:**
-- Only answered questions should be included in responses array
-- Skipped questions should NOT be included
-- Backend calculates score server-side
-- Backend determines correct/wrong/skipped counts
-- Transaction ensures data consistency
+- Only answered questions should be included in the responses array; skipped questions are omitted.
+- The body may also include `violations`, `flagged`, and `flagReason` as a fallback if live violation reports failed.
+- Grading is **asynchronous**. The intake path only validates ownership/shape, stores a durable fallback copy, and enqueues a BullMQ job (or a Redis-backed fallback when no worker is live).
+- The worker (`src/services/quizSubmission.service.ts`) re-checks ownership, deadlines, and attempt state before grading and persisting the scorecard.
+- Client flow: submit → poll `submit-status` → navigate to results when `status === "completed"`.
 
-**Success Response (200):**
+**Accepted Response (202):**
 ```json
 {
   "success": true,
-  "message": "Quiz submitted successfully",
+  "message": "Submission queued for grading",
+  "data": { "attemptId": 1, "jobId": "42", "status": "queued" }
+}
+```
+
+A repeat submit after the job completed returns `200` with the graded attempt.
+
+**Error Responses:**
+- `400` - Invalid request (responses must be an array / invalid attempt id)
+- `401` - Unauthorized
+- `500` - Internal error while queuing
+
+### GET /api/v1/user/quiz/attempt/:attemptId/submit-status
+Poll async grading status: `queued | processing | completed | failed`.
+
+```json
+{
+  "success": true,
   "data": {
-    "id": 1,
-    "user_id": 1,
-    "quiz_id": 1,
-    "score": 15,
-    "percentage": 75.5,
-    "rank": 3,
+    "attemptId": 1,
     "status": "completed",
-    "completed_at": "2025-01-01T00:30:00.000Z",
-    "time_taken": 1200,
-    "total_questions": 20,
-    "correct_answers": 15,
-    "wrong_answers": 3,
-    "skipped_questions": 2,
-    "created_at": "2025-01-01T00:00:00.000Z",
-    "updated_at": "2025-01-01T00:30:00.000Z"
+    "attempt": { "id": 1, "score": 15, "percentage": 75.5, "status": "completed" }
   }
 }
 ```
 
-**Error Responses:**
-- `400` - Invalid request / quiz already submitted
-- `401` - Unauthorized
-- `404` - Attempt not found
+- On `failed`, `data.error` carries the worker error.
+- The endpoint also runs the durable fallback/controlled recovery path when BullMQ is unavailable.
+- Ownership is enforced; a job belonging to another user returns `404`.
 
 ---
 
@@ -844,9 +909,82 @@ Get quiz leaderboard
 **Error Response:**
 - `403` - Leaderboard disabled and user is not creator/admin
 
+### GET /api/v1/user/quiz/:quizId/crowd
+Avatar-only presence list for the join/waiting background. Returns one row per student who has attempted or is attempting the quiz.
+
+```json
+{
+  "success": true,
+  "data": [
+    { "avatarUrl": "/api/v1/avatars/1", "status": "attempting" },
+    { "avatarUrl": null, "status": "submitted" }
+  ]
+}
+```
+
+No names, ranks, scores, or other user details are exposed.
+
 ---
 
-## 6. Analytics
+## 6. Ratings, Crowd & Public Creator Card
+
+### GET /api/v1/user/quiz/:quizId/rating
+Returns the caller's rating eligibility plus anonymous aggregates. `quizId` may be the numeric id or the 16-character code.
+
+```json
+{
+  "success": true,
+  "data": {
+    "averageRating": 4.6,
+    "averageQuestionRating": 4.5,
+    "averagePlatformRating": 4.8,
+    "averageTeacherRating": 4.7,
+    "ratingCount": 32,
+    "userRating": null,
+    "reason": "eligible"
+  }
+}
+```
+
+`reason` is `eligible | already_rated | no_completed_attempt`. Ratings are immutable and only students with a completed attempt can submit them.
+
+### POST /api/v1/user/quiz/:quizId/rating
+Submit one rating (1–5) for quiz/questions/platform/teacher plus optional feedback.
+
+- `201` created; `409` already rated; `403` no completed attempt; `404` quiz not found.
+- Identity and individual ratings are never exposed through the public aggregate endpoints.
+
+### GET /api/v1/user/quiz/creator/:creatorId/stats
+Public, aggregate-only creator card used on the join page and the joined-room screen.
+
+```json
+{
+  "success": true,
+  "data": {
+    "username": "asha",
+    "displayName": "Asha Verma",
+    "avatarUrl": "/api/v1/avatars/3",
+    "bio": "CS educator",
+    "country": "India",
+    "college": "ABC College",
+    "isVerified": true,
+    "memberSince": "2024-06-01T00:00:00.000Z",
+    "rating": 4.8,
+    "maxRating": 5,
+    "quizzesCreated": 12,
+    "uniqueStudents": 340,
+    "totalAttempts": 900,
+    "averageTeacherRating": 4.7,
+    "teacherRatingCount": 58
+  }
+}
+```
+
+Privacy contract: **no email, mobile, password, address, or internal user id** is ever returned. Only public profile fields, aggregate counts, and anonymous rating averages. The route still requires authentication like every `/api/v1/user/quiz` route — “public” here means non-private fields, not an anonymous endpoint.
+
+---
+
+## 7. Analytics
 
 ### GET /api/v1/user/quiz/:quizId/analytics
 Get quiz analytics (creator only)
@@ -888,7 +1026,7 @@ Get quiz analytics (creator only)
 
 ---
 
-## 7. Dashboard APIs
+## 8. Dashboard APIs
 
 ### GET /api/v1/user/quiz/my
 Get user's quiz registrations
@@ -973,7 +1111,7 @@ Get previous quizzes (attempted by student)
 ```
 
 ### POST /api/v1/user/quiz/register
-Register for quiz
+Legacy registration endpoint.
 
 **Request Body:**
 ```json
@@ -986,71 +1124,56 @@ Register for quiz
 **Validation:**
 - `quizId`: positive integer, required
 - `rollno`: max 50 chars, optional
+- `.strict()` — no extra keys
 
-**Success Response (201):**
-```json
-{
-  "success": true,
-  "message": "Successfully registered for quiz",
-  "data": {
-    "id": 1,
-    "user_id": 1,
-    "quiz_id": 1,
-    "is_registered": true,
-    "rollno": "R001",
-    "created_at": "2025-01-01T00:00:00.000Z",
-    "updated_at": "2025-01-01T00:00:00.000Z"
-  }
-}
-```
+**Current behaviour (registration temporarily disabled):**
+- Access is still validated (`checkQuizAccessForRegistration`), but no `quiz_registration` row is created.
+- `200 { success: true, message: "Registration is not required for this quiz", data: null }`
+- `403 <reason>` when the quiz is unavailable, ended, or the classroom audience excludes the caller.
+
+`DELETE /api/v1/user/quiz/register/:quizId` remains for legacy clients; it refuses while an attempt is `in_progress`.
 
 ### POST /api/v1/user/quiz/join
-Join quiz by code or ID with access validation
+Join a quiz by 16-character code with access validation.
 
 **Request Body:**
 ```json
-{
-  "code": "ABC123XYZ4567890"
-}
-```
-OR
-```json
-{
-  "quizId": 1
-}
+{ "code": "ABC123XYZ4567890" }
 ```
 
 **Validation:**
-- `code`: 16+ chars, optional
-- `quizId`: positive integer, optional
-- At least one required
+- `code`: `/^[A-Za-z]{16}$/`, normalized to uppercase, required
+- `.strict()` — no extra keys (do not send `quizId`)
 
 **Success Response (200):**
 ```json
 {
   "success": true,
-  "message": "Successfully joined quiz",
+  "message": "Quiz is ready to join",
   "data": {
     "quiz": {
       "id": 1,
-      "name": "Quiz Name",
       "code": "ABC123XYZ4567890",
-      ...
+      "name": "Quiz Name",
+      "starttime": "2025-01-01T00:00:00.000Z",
+      "endtime": "2025-01-02T00:00:00.000Z",
+      "duration": 30,
+      "total_marks": 100,
+      "passing_marks": 40,
+      "difficulty": 1,
+      "status": "live"
     },
-    "registration": {
-      "id": 1,
-      "user_id": 1,
-      "quiz_id": 1,
-      "is_registered": true,
-      ...
-    }
+    "registration": null,
+    "attempt": null
   }
 }
 ```
 
+`quiz` is the student-safe DTO (`toStudentQuiz`); owner internals and correctness data are never returned. Joining never silently registers a student — the attempt is created only when exam mode starts.
+
 **Error Responses:**
-- `400` - Neither code nor quizId provided
-- `403` - Quiz not published, outside time window, not registered
+- `400` - Invalid/missing code
+- `403` - Quiz unavailable, ended, or audience denied
 - `404` - Quiz not found
 
 ---
@@ -1175,37 +1298,63 @@ duplicateQuizProblem(problemId)
 reorderQuizProblems(quizId, problemIds)
 addQuizProblemOption(problemId, data)
 
-// Attempts
-startQuizAttempt(quizId)
+// Attempts (student)
+startQuizAttempt(quizId, registration?)
+getAttemptRegistrationState(quizId)
 saveQuizResponse(attemptId, data)
-submitQuizAttempt(attemptId)
+heartbeatQuizAttempt(attemptId)
+reportViolation(attemptId, type)
+submitQuizAttempt(attemptId, responses, proctor?)
+getSubmitStatus(attemptId)
 
-// Results
+// Results / review (student)
 getQuizResult(attemptId)
 getQuizReview(attemptId)
 
-// Analytics
+// Ratings / public creator card (student)
+getQuizRating(quizId)
+submitQuizRating(quizId, submission)
+getCreatorStats(creatorId)
+getQuizCrowdAvatars(quizId)
+
+// Dashboard / discovery (student)
+getMyQuizzes()
+getOldQuizzes(params)          // GET /old-quizzes (alias of /previous)
+getPreviousQuizzes(params)
+getQuizByCode(code)
+joinQuiz({ code })             // legacy; join page navigates straight to /waiting
+registerForQuiz(quizId, rollno) // legacy; backend currently returns data: null
+
+// Analytics (creator)
 getQuizAnalytics(quizId)
 
-// Dashboard
+// Creator CRUD / questions (not student-side)
 getAllQuizzes()
-getMyQuizzes()
-getPreviousQuizzes(params)
 getQuizById(id)
-getQuizByCode(code)
 getQuizProblems(quizId)
-registerForQuiz(quizId, rollno)
-joinQuiz(data)
+createQuiz(data)
+updateQuiz(quizId, data)
+deleteQuiz(quizId)
+cloneQuiz(quizId, data)
+updateQuizStatus(quizId, status)
+addQuizProblem(quizId, data)
+updateQuizProblem(problemId, data)
+deleteQuizProblem(problemId)
+duplicateQuizProblem(problemId)
+reorderQuizProblems(quizId, problemIds)
+addQuizProblemOption(problemId, data)
 
 // Leaderboard
 getQuizLeaderboard(quizId)
-getQuizLeaderboardSettings(quizId)
-updateQuizLeaderboardSettings(quizId, settings)
+getQuizLeaderboardSettings(quizId)   // stale frontend helper: no backend /leaderboard/settings route
+updateQuizLeaderboardSettings(quizId, settings) // stale frontend helper
 
 // Result Generation (creator only)
 generateQuizResults(quizId, options?)
 retryQuizResultsEmail(quizId)
 ```
+
+For the exact frontend-file → service → controller → repository mapping, see `QUIZ_STUDENT_CALL_MAP.md`.
 
 ---
 
@@ -1218,17 +1367,23 @@ retryQuizResultsEmail(quizId)
 - [ ] Delete quiz
 - [ ] Add/update/delete/reorder questions
 - [ ] Add options with correct answers
-- [ ] Register for quiz
-- [ ] Join quiz by code
-- [ ] Start quiz attempt
+- [ ] Legacy register returns `data: null` (registration disabled)
+- [ ] Join quiz by code returns the student-safe DTO
+- [ ] Start quiz attempt (create + resume)
+- [ ] `attempt-registration` reflects the active attempt
 - [ ] Autosave responses
-- [ ] Submit quiz
+- [ ] Heartbeat updates `last_heartbeat_at`
+- [ ] 3rd proctoring violation flags the attempt
+- [ ] Async submit returns `202 queued` and `submit-status` reaches `completed`
 - [ ] View result
 - [ ] View question-wise review
+- [ ] Submit one rating; second rating returns `409`
+- [ ] Public creator stats contain no personal info (email/mobile/password)
+- [ ] Crowd endpoint is avatar-only
 - [ ] View leaderboard
 - [ ] View analytics (creator only)
 - [ ] Filter/search/sort/paginate quizzes
-- [ ] View previous quizzes
+- [ ] View previous quizzes (`/previous` and `/old-quizzes`)
 - [ ] Test authorization (non-owner cannot edit)
 - [ ] Test validation (invalid inputs)
 
@@ -1241,6 +1396,9 @@ retryQuizResultsEmail(quizId)
 - Transactions ensure data consistency
 - Mock data should be replaced with API calls in production
 - Frontend types in `services/quiz.ts` match backend responses
+- Student payloads never include `iscorrect`, explanations, hints, reference notes, or other students' personal data
+- Creator public stats are aggregate/profile-only and must never expose email, mobile, password, address, or internal user ids
+- Submission grading is asynchronous; clients must poll `GET /attempt/:attemptId/submit-status`
 
 ---
 
@@ -1505,347 +1663,47 @@ FROM_EMAIL=your-email@gmail.com
 ## Quiz Submission Workflow
 
 ### Overview
-The quiz submission system is designed to prevent data loss and handle skipped questions correctly.
-
-### Frontend localStorage Strategy
-
-**Storage Key:** `quiz_progress_{quizId}`
-
-**Stored Data:**
-```typescript
-{
-  quizId: string;
-  attemptId?: number;
-  startedAt: string;
-  currentQuestion: number;
-  remainingTime?: number;
-  responses: {
-    [questionId]: {
-      option?: string;
-      textAnswer?: string;
-    }
-  }
-}
-```
-
-**Key Principles:**
-- Only answered questions exist in `responses` object
-- Skipped questions have NO entry in localStorage
-- Auto-save with 500ms debounce on every answer change
-- No manual save button required
-- Persistent across browser refresh/crash
-
-### Auto-Save Implementation
-
-**Debounced Save:**
-- Triggers 500ms after last answer change
-- Prevents excessive writes during rapid navigation
-- Updates both React state and localStorage
-
-**Answer Change Flow:**
-1. Student selects/changes answer
-2. Update React state immediately
-3. Update progress object
-4. Debounce save to localStorage (500ms)
-5. Allow free navigation (no data loss)
-
-### Batch Submission
-
-**Single API Request:**
-- All responses submitted at once via `POST /api/v1/user/quiz/attempt/:attemptId/submit`
-- Request body: `{ responses: Array<{ problemId, option?, textAnswer? }> }`
-- Backend calculates score server-side
-- Backend determines correct/wrong/skipped counts
-- Transaction ensures atomicity
-
-**Skipped Questions Handling:**
-- Only answered questions included in `responses` array
-- Backend infers skipped questions by comparing total questions vs responses count
-- No empty/null response rows inserted into database
-
-### Timer Auto-Submission
-
-**On Timer Expiry:**
-1. Frontend automatically calls `handleSubmit()`
-2. Reads all responses from localStorage
-3. Submits batch to backend
-4. Clears localStorage on success
-5. Redirects to results page
-
-**Behavior:**
-- Identical to manual submit button
-- No data loss due to timeout
-- Student cannot prevent submission after expiry
-
-### Crash Recovery
-
-**On Page Load:**
-1. Check localStorage for existing progress
-2. If found with responses, resume from saved state
-3. Restore:
-   - Current question index
-   - All answered questions
-   - Remaining timer (if applicable)
-4. Continue attempt seamlessly
-
-**No Data Loss:**
-- Progress saved before every state change
-- Debounced saves prevent race conditions
-- Failed submissions keep localStorage intact
-- Retry allowed without losing answers
-
-### Backend Batch Processing
-
-**Validation:**
-- Verify attempt ownership
-- Check attempt not already completed
-- Validate all problemIds belong to quiz
-
-**Scoring:**
-- Server-side calculation only
-- Compare responses against correct options
-- Count correct, wrong, and skipped
-- Calculate percentage and rank
-
-**Transaction:**
-- Update quiz_attempts with final score
-- Insert only non-skipped responses into quiz_student_response
-- Commit on success, rollback on failure
-
-### Frontend Implementation
-
-**Key Files:**
-- `src/utils/quizProgressStorage.ts` - localStorage utilities
-- `src/app/(app)/quiz/[quizId]/attempt/page.tsx` - Quiz attempt page
-
-**Key Functions:**
-```typescript
-// Initialize progress
-initializeQuizProgress(quizId, attemptId)
-
-// Save/Load/Clear
-saveQuizProgress(progress)
-loadQuizProgress(quizId)
-clearQuizProgress(quizId)
-
-// Update responses
-updateResponse(progress, questionId, response)
-removeResponse(progress, questionId) // for skips
-
-// Batch submission
-getResponsesArray(progress)
-
-// Utilities
-createDebouncedSave(500)
-hasUnsavedProgress(quizId)
-```
-
-### Error Handling
-
-**Submission Failures:**
-- Keep localStorage intact
-- Show error message
-- Allow retry without data loss
-
-**Network Errors:**
-- Debounced saves queue automatically
-- Progress preserved in localStorage
-- Next load resumes from last save
-
-**Duplicate Prevention:**
-- Backend checks attempt status
-- Reject if already completed
-- Frontend disables submit button after attempt
-
-### Performance
-
-**Optimizations:**
-- Debounced saves (500ms)
-- Batch submission (single API call)
-- No per-question API requests
-- Minimal re-renders with React state
-
-**Benefits:**
-- Reduced network overhead
-- Faster question navigation
-- Reliable crash recovery
-- No duplicate submissions
-
-## Notes
-
-- All timestamps use ISO 8601 format
-- Database uses PostgreSQL with parameterized queries
-- Transactions ensure data consistency
-- Mock data should be replaced with API calls in production
-- Frontend types in `services/quiz.ts` match backend responses
-
----
-
-## Quiz Submission Workflow
-
-### Overview
-The quiz submission system is designed to prevent data loss and handle skipped questions correctly.
-
-### Frontend localStorage Strategy
-
-**Storage Key:** `quiz_progress_{quizId}`
-
-**Stored Data:**
-```typescript
-{
-  quizId: string;
-  attemptId?: number;
-  startedAt: string;
-  currentQuestion: number;
-  remainingTime?: number;
-  responses: {
-    [questionId]: {
-      option?: string;
-      textAnswer?: string;
-    }
-  }
-}
-```
-
-**Key Principles:**
-- Only answered questions exist in `responses` object
-- Skipped questions have NO entry in localStorage
-- Auto-save with 500ms debounce on every answer change
-- No manual save button required
-- Persistent across browser refresh/crash
-
-### Auto-Save Implementation
-
-**Debounced Save:**
-- Triggers 500ms after last answer change
-- Prevents excessive writes during rapid navigation
-- Updates both React state and localStorage
-
-**Answer Change Flow:**
-1. Student selects/changes answer
-2. Update React state immediately
-3. Update progress object
-4. Debounce save to localStorage (500ms)
-5. Allow free navigation (no data loss)
-
-### Batch Submission
-
-**Single API Request:**
-- All responses submitted at once via `POST /api/v1/user/quiz/attempt/:attemptId/submit`
-- Request body: `{ responses: Array<{ problemId, option?, textAnswer? }> }`
-- Backend calculates score server-side
-- Backend determines correct/wrong/skipped counts
-- Transaction ensures atomicity
-
-**Skipped Questions Handling:**
-- Only answered questions included in `responses` array
-- Backend infers skipped questions by comparing total questions vs responses count
-- No empty/null response rows inserted into database
-
-### Timer Auto-Submission
-
-**On Timer Expiry:**
-1. Frontend automatically calls `handleSubmit()`
-2. Reads all responses from localStorage
-3. Submits batch to backend
-4. Clears localStorage on success
-5. Redirects to results page
-
-**Behavior:**
-- Identical to manual submit button
-- No data loss due to timeout
-- Student cannot prevent submission after expiry
-
-### Crash Recovery
-
-**On Page Load:**
-1. Check localStorage for existing progress
-2. If found with responses, resume from saved state
-3. Restore:
-   - Current question index
-   - All answered questions
-   - Remaining timer (if applicable)
-4. Continue attempt seamlessly
-
-**No Data Loss:**
-- Progress saved before every state change
-- Debounced saves prevent race conditions
-- Failed submissions keep localStorage intact
-- Retry allowed without losing answers
-
-### Backend Batch Processing
-
-**Validation:**
-- Verify attempt ownership
-- Check attempt not already completed
-- Validate all problemIds belong to quiz
-
-**Scoring:**
-- Server-side calculation only
-- Compare responses against correct options
-- Count correct, wrong, and skipped
-- Calculate percentage and rank
-
-**Transaction:**
-- Update quiz_attempts with final score
-- Insert only non-skipped responses into quiz_student_response
-- Commit on success, rollback on failure
-
-### Frontend Implementation
-
-**Key Files:**
-- `src/utils/quizProgressStorage.ts` - localStorage utilities
-- `src/app/(app)/quiz/[quizId]/attempt/page.tsx` - Quiz attempt page
-
-**Key Functions:**
-```typescript
-// Initialize progress
-initializeQuizProgress(quizId, attemptId)
-
-// Save/Load/Clear
-saveQuizProgress(progress)
-loadQuizProgress(quizId)
-clearQuizProgress(quizId)
-
-// Update responses
-updateResponse(progress, questionId, response)
-removeResponse(progress, questionId) // for skips
-
-// Batch submission
-getResponsesArray(progress)
-
-// Utilities
-createDebouncedSave(500)
-hasUnsavedProgress(quizId)
-```
-
-### Error Handling
-
-**Submission Failures:**
-- Keep localStorage intact
-- Show error message
-- Allow retry without data loss
-
-**Network Errors:**
-- Debounced saves queue automatically
-- Progress preserved in localStorage
-- Next load resumes from last save
-
-**Duplicate Prevention:**
-- Backend checks attempt status
-- Reject if already completed
-- Frontend disables submit button after attempt
-
-### Performance
-
-**Optimizations:**
-- Debounced saves (500ms)
-- Batch submission (single API call)
-- No per-question API requests
-- Minimal re-renders with React state
-
-**Benefits:**
-- Reduced network overhead
-- Faster question navigation
-- Reliable crash recovery
-- No duplicate submissions
+The student attempt flow combines server-side autosave, a visible-page heartbeat, asynchronous grading, and a localStorage fallback. The database is authoritative; localStorage only bridges reloads/offline gaps.
+
+### Client storage (fallback)
+**File:** `src/lib/quizAttemptStorage.ts`
+
+- `readQuizAttemptAnswers`, `writeQuizAttemptAnswers`, `clearQuizAttemptAnswers` keep per-attempt answers on the device.
+- Stored answers are restored when the attempt page reloads before the server response arrives.
+- Cleared after a successful submission/result handoff.
+
+### Autosave (server first)
+- MCQ selection triggers `POST /attempt/:attemptId/save` immediately.
+- Text answers save on blur.
+- The backend upserts one `quiz_student_response` row per `(attempt_id, problem_id)`, including `time_spent_seconds`.
+- Clearing an answer sets `is_attempted = false`.
+- Saves are rejected after the deadline; localStorage remains the offline fallback.
+
+### Heartbeat and proctoring
+- The attempt page calls `POST /attempt/:attemptId/heartbeat` every ~25 seconds while the document is visible.
+- `touchQuizAttempt` updates `last_heartbeat_at`, so the creator's live view does not show closed tabs as active.
+- Exam-cell violations are reported one per episode via `POST /attempt/:attemptId/violation` (`tab_switch`, `window_blur`, `fullscreen_exit`, `copy_attempt`, `cut_attempt`, `paste_attempt`).
+- At 3 violations the attempt is flagged and the client auto-submits with the flag.
+
+### Submit (async)
+1. Student submits (button or timer expiry); the client sends the full answer set plus proctor fallback fields.
+2. `POST /attempt/:attemptId/submit` validates ownership/shape and stores a durable fallback copy.
+3. The job is enqueued in BullMQ; when no worker is live, a Redis-backed fallback is used.
+4. The API responds `202 { status: "queued" }`.
+5. The client polls `GET /attempt/:attemptId/submit-status` until `completed` or `failed`.
+6. On completion the client navigates to `/quiz/{code}/results/{attemptId}`.
+
+### Grading (worker)
+**Files:** `src/services/quizSubmission.service.ts`, `src/queues/quizSubmission.worker.ts`
+
+- Re-validates ownership, attempt state, and deadlines.
+- Grades MCQs with configured per-question marks (or an equal share of `total_marks`); negative marking applies when enabled.
+- Subjective answers are stored for manual grading.
+- Persists every valid response (upsert), merges proctoring flags, computes `time_taken`, and writes the scorecard to `quiz_attempt`.
+- Late submissions become `timed_out`.
+- Duplicate submissions are prevented by checking the attempt status inside the worker.
+
+### Failure handling
+- Submission failures keep localStorage intact so the student can retry.
+- Network drops are covered by server autosave plus the durable queued job.
+- `submit-status` reports `failed` with an error message instead of silently losing the submission.
