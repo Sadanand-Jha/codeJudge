@@ -483,6 +483,42 @@ const consumeSSEResponse = async (
   }
 };
 
+/**
+ * Stream topic-scoped question generation over SSE. The backend emits
+ * `reasoning` chunks while the model thinks, then `questions`, `usage` and
+ * `done`. Falls back to the same wire protocol consumed by chat.
+ */
+export const generateFromQuestionBankStream = async (
+  options: GenerateFromBankOptions,
+  callbacks: StreamCallbacks,
+  signal?: AbortSignal
+): Promise<void> => {
+  const response = await fetch(`${API_BASE}/v1/user/ai/generate-from-bank?stream=1`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify({
+      numberOfQuestions: options.numberOfQuestions,
+      easyCount: options.easyCount,
+      mediumCount: options.mediumCount,
+      hardCount: options.hardCount,
+      theoryCount: options.theoryCount,
+      numericalCount: options.numericalCount,
+      hardnessHint: options.hardnessHint,
+      syllabus: options.syllabus,
+      subjectId: options.subjectId,
+      chapterId: options.chapterId ?? options.chapterIds?.[0] ?? null,
+      topicId: options.topicId ?? options.topicIds?.[0] ?? null,
+      chapterIds: options.chapterIds,
+      topicIds: options.topicIds,
+      kind: options.kind,
+      quizId: options.quizId,
+    }),
+    credentials: "include",
+    signal,
+  });
+  return consumeSSEResponse(response, callbacks);
+};
+
 export interface UserBankQuestion {
   id: number;
   quiz_id: number | null;

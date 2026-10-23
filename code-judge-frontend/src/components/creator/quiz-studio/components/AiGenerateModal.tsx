@@ -21,7 +21,12 @@ import {
   Lock,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { generateQuestionsFromFiles, generateFromQuestionBank, mapRawQuestionsToPreview } from "@/services/ai";
+import {
+  generateQuestionsFromFiles,
+  generateFromQuestionBank,
+  generateFromQuestionBankStream,
+  mapRawQuestionsToPreview,
+} from "@/services/ai";
 import { getQuestionGeneratorCatalog } from "@/services/aiGenerate";
 import type { QuestionGeneratorCatalog } from "@/services/aiGenerate";
 import { toast } from "@/lib/toast";
@@ -29,6 +34,7 @@ import type { AIQuestionPreview, LiveUsage, RawAIGeneratedQuestion } from "@/ser
 import type { CreatorQuestion } from "../types";
 import { mapToCreatorQuestions } from "@/utils/aiToCreatorQuestion";
 import AIQuestionReviewOverlay, { type PreviewQuestion } from "@/components/quiz/creator/AIQuestionReviewOverlay";
+import MarkdownRenderer from "@/components/ai/MarkdownRenderer";
 import { AiStreamText } from "@/components/ui";
 import { QsSelect } from "@/components/creator/problems/QsSelect";
 import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
@@ -177,6 +183,8 @@ export function AiGenerateModal({
     catalogState?.subjectId !== defaultSubjectId &&
     catalogErrorState?.subjectId !== defaultSubjectId;
   const [tokenRate, setTokenRate] = useState<number | null>(null);
+  const [thinking, setThinking] = useState("");
+  const [liveUsage, setLiveUsage] = useState<LiveUsage | undefined>(undefined);
   const generationStartedAtRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -327,6 +335,8 @@ export function AiGenerateModal({
     setDone(false);
     setAddedCount(0);
     setTokenRate(null);
+    setThinking("");
+    setLiveUsage(undefined);
     setBankSyllabus("");
     setBankChapterIds([]);
     setBankTopicIds([]);
@@ -393,6 +403,8 @@ export function AiGenerateModal({
     setGenerationFailed(false);
     setProgress(6);
     setTokenRate(null);
+    setThinking("");
+    setLiveUsage(undefined);
     generationStartedAtRef.current = Date.now();
     setError("");
 
@@ -473,29 +485,43 @@ export function AiGenerateModal({
     setTokenRate(null);
     generationStartedAtRef.current = Date.now();
     setError("");
+    setThinking("");
+    setLiveUsage(undefined);
     const scopedChapterIds = getScopedChapterIds();
+    let streamedQuestions: RawAIGeneratedQuestion[] = [];
     try {
-      const rawQuestions = await generateFromQuestionBank({
-        numberOfQuestions: bankNumber,
-        easyCount: bankEasy,
-        mediumCount: bankMedium,
-        hardCount: bankHard,
-        theoryCount: bankTheory,
-        numericalCount: bankNumerical,
-        syllabus: bankSyllabus.trim() || undefined,
-        subjectId: bankSubjectId,
-        chapterIds: scopedChapterIds,
-        topicIds: bankTopicIds,
-        kind: bankKind,
-        quizId,
-        onUsage: (usage: LiveUsage) => {
-          const tokens = usage.outputTokens ?? usage.totalTokens;
-          if (!tokens) return;
-          const seconds = Math.max(0.3, (Date.now() - generationStartedAtRef.current) / 1000);
-          setTokenRate(Math.round(tokens / seconds));
+      await generateFromQuestionBankStream(
+        {
+          numberOfQuestions: bankNumber,
+          easyCount: bankEasy,
+          mediumCount: bankMedium,
+          hardCount: bankHard,
+          theoryCount: bankTheory,
+          numericalCount: bankNumerical,
+          syllabus: bankSyllabus.trim() || undefined,
+          subjectId: bankSubjectId,
+          chapterIds: scopedChapterIds,
+          topicIds: bankTopicIds,
+          kind: bankKind,
+          quizId,
         },
-      });
-      const previews = mapRawQuestionsToPreview(rawQuestions);
+        {
+          onReasoning: (chunk) => setThinking((prev) => prev + chunk),
+          onQuestions: (questions) => {
+            streamedQuestions = questions;
+          },
+          onUsage: ({ usage }) => {
+            if (!usage) return;
+            setLiveUsage(usage);
+            const tokens = usage.outputTokens ?? usage.totalTokens;
+            if (!tokens) return;
+            const seconds = Math.max(0.3, (Date.now() - generationStartedAtRef.current) / 1000);
+            setTokenRate(Math.round(tokens / seconds));
+          },
+          onError: (message) => setError(message),
+        }
+      );
+      const previews = mapRawQuestionsToPreview(streamedQuestions);
       if (previews.length === 0) {
         setError("The AI returned no questions. Try again or widen the chapter/topic scope.");
         setGenerationFailed(true);
@@ -587,6 +613,8 @@ export function AiGenerateModal({
     setReviewOpen(false);
     setProgress(0);
     setTokenRate(null);
+    setThinking("");
+    setLiveUsage(undefined);
     toast.info("AI-generated questions discarded");
   };
 
@@ -814,7 +842,7 @@ export function AiGenerateModal({
                               </p>
                             ) : null}
                           </div>
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-1 gap-2">
                             <div className="min-w-0">
                               <div className="flex h-4 items-center gap-1.5 overflow-hidden">
                                 <label
@@ -1206,7 +1234,39 @@ export function AiGenerateModal({
                       />
                     </div>
                     <div className="relative min-h-0 flex-1 overflow-hidden [mask-image:linear-gradient(to_bottom,transparent_0,#000_35%)]">
-                      {generationFailed ? (
+                      {thinking ? (
+                        <div className="absolute inset-0 flex flex-col">
+                          <div className="flex shrink-0 items-center gap-2 border-b border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2">
+                            <Sparkles className={cn("h-3.5 w-3.5 text-[var(--qs-brand)]", generating && "animate-pulse")} />
+                            <span className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ink)]">
+                              {generating ? "Thinking…" : "Thinking · completed"}
+                            </span>
+                            <span className="ml-auto text-[9px] font-semibold tabular-nums text-[var(--qs-muted)]">
+                              {liveUsage?.reasoningTokens != null
+                                ? `${liveUsage.reasoningTokens} thinking tokens`
+                                : `${Math.round(thinking.length / 4)} thinking tokens`}
+                            </span>
+                          </div>
+                          <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
+                            <MarkdownRenderer content={thinking} />
+                          </div>
+                          {reviewReady && !done ? (
+                            <div className="shrink-0 border-t border-[var(--qs-line)] p-2">
+                              <button
+                                type="button"
+                                onClick={() => setReviewOpen(true)}
+                                className="w-full rounded-[8px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-2.5 py-1.5 text-[10px] font-extrabold text-[var(--qs-on-brand)]"
+                              >
+                                Review questions
+                              </button>
+                            </div>
+                          ) : done ? (
+                            <div className="shrink-0 border-t border-[var(--qs-line)] p-2 text-center text-[10px] font-semibold text-[var(--qs-ok)]">
+                              ✓ Questions added to the quiz
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : generationFailed ? (
                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
                           <AlertCircle className="h-6 w-6 text-[var(--qs-bad)]" />
                           <p className="text-[11px] font-bold">Generation failed</p>
@@ -1226,7 +1286,7 @@ export function AiGenerateModal({
                           <CheckCircle2 className="h-7 w-7 text-[var(--qs-ok)]" />
                           <p className="text-[12px] font-bold">✓ Ready — review and add</p>
                           <p className="text-[10px] text-[var(--qs-muted)]">
-                            {addedCount} question{addedCount === 1 ? "" : "s"} added to the quiz.
+                            Questions added to the quiz.
                           </p>
                         </div>
                       ) : reviewReady ? (
@@ -1234,7 +1294,7 @@ export function AiGenerateModal({
                           <CheckCircle2 className="h-7 w-7 text-[var(--qs-ok)]" />
                           <p className="text-[12px] font-bold">✓ Ready — review and add</p>
                           <p className="text-[10px] text-[var(--qs-muted)]">
-                            {reviewQuestions.length} question{reviewQuestions.length === 1 ? "" : "s"} waiting for review.
+                            Questions are ready for review.
                           </p>
                           <button
                             type="button"

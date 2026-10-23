@@ -127,34 +127,15 @@ export function LiveRail({ onStudentPreview, collapsed, onToggle }: { onDownload
 
         {q.tags.length > 0 && (
           <div className="pt-4 border-t-2 border-[var(--qs-line)]">
-            <div className="flex flex-wrap gap-1.5 justify-center">
+            <div className="flex flex-nowrap gap-1 justify-center">
               {q.tags.map((t) => (
-                <span key={t} className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--qs-muted)]">
+                <span key={t} className="whitespace-nowrap rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--qs-muted)]">
                   {t}
                 </span>
               ))}
             </div>
           </div>
         )}
-
-        <div className="rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 text-left shadow-[4px_4px_0_var(--qs-sun)]">
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-brand)]">
-            Preview as student
-          </p>
-          <p className="mt-1.5 text-xs font-medium leading-relaxed text-[var(--qs-muted)]">
-            {canPreview
-              ? "This is how the question will appear to students."
-              : "Fill in the question details before previewing."}
-          </p>
-          <button
-            type="button"
-            onClick={(e)=>{e.preventDefault(); e.stopPropagation(); onStudentPreview?.();}}
-            disabled={!canPreview}
-            className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3 py-2 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <Eye className="h-3.5 w-3.5" /> Preview
-          </button>
-        </div>
 
         <div className="pt-4 border-t-2 border-[var(--qs-line)]">
           <h3 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)] text-center">Jump to question</h3>
@@ -189,6 +170,25 @@ export function LiveRail({ onStudentPreview, collapsed, onToggle }: { onDownload
               );
             })}
           </div>
+        </div>
+
+        <div className="rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 text-left shadow-[4px_4px_0_var(--qs-sun)]">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-brand)]">
+            Preview as student
+          </p>
+          <p className="mt-1.5 text-xs font-medium leading-relaxed text-[var(--qs-muted)]">
+            {canPreview
+              ? "This is how the question will appear to students."
+              : "Fill in the question details before previewing."}
+          </p>
+          <button
+            type="button"
+            onClick={(e)=>{e.preventDefault(); e.stopPropagation(); onStudentPreview?.();}}
+            disabled={!canPreview}
+            className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3 py-2 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Eye className="h-3.5 w-3.5" /> Preview
+          </button>
         </div>
       </div>
     </div>
