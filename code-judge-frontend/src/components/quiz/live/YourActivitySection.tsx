@@ -23,16 +23,18 @@ type RecentQuiz = {
   code?: string;
   total_marks: number;
   passing_marks: number;
-  score: number;
-  percentage: number;
+  score: number | null;
+  percentage: number | null;
   rank: number | null;
   status: string;
   completed_at: string | null;
   time_taken: number | null;
   total_questions: number;
-  correct_answers: number;
-  wrong_answers: number;
-  skipped_questions: number;
+  correct_answers: number | null;
+  wrong_answers: number | null;
+  skipped_questions: number | null;
+  /** False while the result is hidden until quiz end + 1 hour. */
+  result_available?: boolean;
 };
 
 const STATUS_OPTIONS = ["All", "Completed", "Submitted", "Timed Out", "Left Early"] as const;
@@ -226,13 +228,17 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
   }, [quiz.completed_at]);
 
   const subject = getSubjectInfo(quiz.name);
-  const pct = Math.round(Number(quiz.percentage) || 0);
+  const resultHidden = quiz.result_available === false;
+  const pct = resultHidden ? 0 : Math.round(Number(quiz.percentage) || 0);
+  const correctAnswers = Number(quiz.correct_answers) || 0;
+  const wrongAnswers = Number(quiz.wrong_answers) || 0;
+  const skippedAnswers = Number(quiz.skipped_questions) || 0;
   const breakdownTotal = Math.max(
     1,
-    quiz.total_questions || quiz.correct_answers + quiz.wrong_answers + quiz.skipped_questions || 1
+    quiz.total_questions || correctAnswers + wrongAnswers + skippedAnswers || 1
   );
-  const correctPct = (quiz.correct_answers / breakdownTotal) * 100;
-  const wrongPct = (quiz.wrong_answers / breakdownTotal) * 100;
+  const correctPct = (correctAnswers / breakdownTotal) * 100;
+  const wrongPct = (wrongAnswers / breakdownTotal) * 100;
   const skippedPct = Math.max(0, 100 - correctPct - wrongPct);
 
   return (
@@ -261,10 +267,18 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
             </span>
           )}
         </div>
-        {/* Line 3: score */}
+        {/* Line 3: score (hidden until end + 1h) */}
         <div className="flex flex-wrap items-baseline gap-x-1.5">
-          <span className={cn("text-lg font-extrabold tabular-nums", scoreColor(pct))}>{pct}%</span>
-          <span className="text-[11px] text-[var(--qs-muted)] tabular-nums">{quiz.score}/{quiz.total_marks} marks</span>
+          {resultHidden ? (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--qs-muted)]">
+              <Timer className="h-3.5 w-3.5" /> Result after quiz end + 1h
+            </span>
+          ) : (
+            <>
+              <span className={cn("text-lg font-extrabold tabular-nums", scoreColor(pct))}>{pct}%</span>
+              <span className="text-[11px] text-[var(--qs-muted)] tabular-nums">{quiz.score}/{quiz.total_marks} marks</span>
+            </>
+          )}
         </div>
         {/* Line 4: time + date */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--qs-muted)]">
@@ -286,12 +300,16 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
           >
             {expanded ? "Less" : "Details"}
           </button>
-          <Link
-            href={`/quiz/${quiz.quiz_id}/results/${quiz.attempt_id}`}
-            className="b b-pri sm flex-1 gap-1"
-          >
-            View <ArrowUpRight className="h-3 w-3" />
-          </Link>
+          {resultHidden ? (
+            <span className="b sm flex-1 justify-center opacity-60">Result soon</span>
+          ) : (
+            <Link
+              href={`/quiz/${quiz.quiz_id}/results/${quiz.attempt_id}`}
+              className="b b-pri sm flex-1 gap-1"
+            >
+              View <ArrowUpRight className="h-3 w-3" />
+            </Link>
+          )}
         </div>
       </div>
 
@@ -322,8 +340,14 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
 
         {/* Score */}
         <div className="min-w-0">
-          <span className={cn("text-sm font-extrabold tabular-nums", scoreColor(pct))}>{pct}%</span>
-          <span className="text-[11px] text-[var(--qs-muted)] tabular-nums"> · {quiz.score}/{quiz.total_marks}</span>
+          {resultHidden ? (
+            <span className="text-[11px] font-semibold text-[var(--qs-muted)]">Result soon</span>
+          ) : (
+            <>
+              <span className={cn("text-sm font-extrabold tabular-nums", scoreColor(pct))}>{pct}%</span>
+              <span className="text-[11px] text-[var(--qs-muted)] tabular-nums"> · {quiz.score}/{quiz.total_marks}</span>
+            </>
+          )}
         </div>
 
         {/* Time */}
@@ -349,24 +373,33 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
           >
             {expanded ? "Less" : "Details"}
           </button>
-          <Link
-            href={`/quiz/${quiz.quiz_id}/results/${quiz.attempt_id}`}
-            className="b b-pri sm gap-1"
-          >
-            View <ArrowUpRight className="h-3 w-3" />
-          </Link>
+          {resultHidden ? (
+            <span className="b sm opacity-60">Result soon</span>
+          ) : (
+            <Link
+              href={`/quiz/${quiz.quiz_id}/results/${quiz.attempt_id}`}
+              className="b b-pri sm gap-1"
+            >
+              View <ArrowUpRight className="h-3 w-3" />
+            </Link>
+          )}
         </div>
       </div>
 
       {/* Score bar (visual density, same data) */}
       <div className="px-4 pb-2 sm:px-5 lg:pl-[76px] lg:pr-[210px]">
         <div className="h-1.5 overflow-hidden rounded-full bg-[var(--qs-line)]">
-          <div className={cn("h-full rounded-full transition-[width] duration-500", scoreBar(pct))} style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} />
+          <div className={cn("h-full rounded-full transition-[width] duration-500", scoreBar(pct))} style={{ width: `${resultHidden ? 0 : Math.min(100, Math.max(0, pct))}%` }} />
         </div>
       </div>
 
-      {/* Expanded detail — answer breakdown */}
-      {expanded && (
+      {/* Expanded detail — answer breakdown (hidden until result visibility) */}
+      {expanded && resultHidden && (
+        <div className="mx-4 mb-3.5 mt-1.5 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3.5 py-3 text-xs font-semibold text-[var(--qs-muted)] sm:mx-5">
+          Answer breakdown will be available 1 hour after the quiz ends.
+        </div>
+      )}
+      {expanded && !resultHidden && (
         <div className="mx-4 mb-3.5 mt-1.5 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3.5 py-3 sm:mx-5">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--qs-muted)]">Answer breakdown</span>
@@ -510,7 +543,10 @@ export default function YourActivitySection({
   const overview = useMemo(() => {
     const list = recentQuizzes || [];
     const completed = list.filter((q) => q.status.trim().toLowerCase() === "completed").length;
-    const scores = list.map((q) => Number(q.percentage)).filter((v) => Number.isFinite(v));
+    const scores = list
+      .filter((q) => q.result_available !== false)
+      .map((q) => Number(q.percentage))
+      .filter((v) => Number.isFinite(v));
     const avgScore = scores.length ? Math.round(scores.reduce((s, v) => s + v, 0) / scores.length) : null;
     const bestScore = scores.length ? Math.round(Math.max(...scores)) : null;
     return { totalAttempts: recentTotal, completed, avgScore, bestScore };

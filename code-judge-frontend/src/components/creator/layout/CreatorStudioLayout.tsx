@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { CreatorSidebar } from "./CreatorSidebar";
 import CreatorNavbar from "./CreatorNavbar";
+import CreatorRoomsNavbar from "@/components/rooms/CreatorRoomsNavbar";
 import AppLayout from "@/components/layout/AppLayout";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { useAuthStore } from "@/store/authStore";
@@ -51,6 +52,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
   }
 
   const isPreview = pathname.includes("/preview");
+  const isRoomsWorkspace = pathname === "/creator/rooms" || pathname.startsWith("/creator/rooms/");
 
   // Quiz Studio create/edit routes render their own full-bleed StudioHeader +
   // StudioStepper, so the shared content padding (py-4) would leave an empty
@@ -105,7 +107,8 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
         </aside>
 
         {/* Main content */}
-        <div data-studio="true" className="flex-1 flex min-h-0 min-w-0">
+        <div data-studio="true" className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {isRoomsWorkspace ? <CreatorRoomsNavbar /> : null}
           <main
             className={
               isFullBleedStudio

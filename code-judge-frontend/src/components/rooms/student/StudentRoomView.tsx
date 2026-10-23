@@ -220,7 +220,7 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
       <div className="mx-auto w-full max-w-[1280px] px-4 py-6 pb-20 sm:px-6">
         <Link
           href="/rooms/my"
-          className="inline-flex items-center gap-1.5 text-sm font-bold text-[var(--qs-muted)] transition-colors hover:text-[var(--qs-ink)]"
+          className="hidden items-center gap-1.5 text-sm font-bold text-[var(--qs-muted)] transition-colors hover:text-[var(--qs-ink)] sm:inline-flex"
         >
           <ArrowLeft className="h-4 w-4" />
           My Rooms

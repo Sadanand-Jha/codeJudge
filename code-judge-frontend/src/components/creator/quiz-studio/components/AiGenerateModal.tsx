@@ -204,6 +204,13 @@ export function AiGenerateModal({
   const generationStartedAtRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
+  const streamScrollRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = streamScrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [thinking, streamContent, open]);
 
   useEffect(() => {
     if (!open || defaultSubjectId == null) return;
@@ -1228,8 +1235,8 @@ export function AiGenerateModal({
                   </div>
                 )}
 
-                {/* Column 3 — live preview */}
-                <div className="flex min-h-[240px] min-w-0 flex-col lg:min-h-0">
+                {/* Column 3 — live preview (desktop/tablet only; hidden on mobile) */}
+                <div className="hidden min-h-0 min-w-0 flex-col lg:flex">
                   <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)]">
                     <div className="flex shrink-0 items-center gap-2 border-b border-[var(--qs-line)] px-3 py-2">
                       <span
@@ -1274,13 +1281,15 @@ export function AiGenerateModal({
                                 : `${Math.round((thinking || streamContent).length / 4)} tokens`}
                             </span>
                           </div>
-                          <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
+                          <div ref={streamScrollRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
                             {thinking ? (
-                              <MarkdownRenderer content={thinking} />
+                              <div className="[&_.markdown-body]:text-[7px] [&_.markdown-body]:leading-[1.4]">
+                                <MarkdownRenderer content={thinking} />
+                              </div>
                             ) : (
-                              <pre className="whitespace-pre-wrap break-words font-sans text-[10px] leading-5 text-[var(--qs-muted)]">
+                              <pre className="whitespace-pre-wrap break-words font-sans text-[7px] leading-[1.4] text-[var(--qs-muted)]">
                                 {readableStreamText(streamContent)}
-                                {generating ? <span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-[var(--qs-brand)] align-text-bottom" /> : null}
+                                {generating ? <span className="ml-0.5 inline-block h-2 w-1 animate-pulse bg-[var(--qs-brand)] align-text-bottom" /> : null}
                               </pre>
                             )}
                           </div>

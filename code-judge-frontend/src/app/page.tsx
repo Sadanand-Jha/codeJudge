@@ -1,18 +1,26 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  BarChart3,
   CalendarDays,
+  Check,
   FileText,
   HelpCircle,
+  KeyRound,
+  Lock,
   Mail,
   Moon,
   PenLine,
   Plus,
   Radio,
+  ShieldCheck,
   Smartphone,
   Sparkles,
   Timer,
   Trophy,
+  Users,
+  X,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import QuizCodeForm from "@/components/marketing/QuizCodeForm";
@@ -28,7 +36,7 @@ import { buildPublicPageMetadata } from "@/lib/seo/site";
 export const metadata: Metadata = buildPublicPageMetadata({
   title: "QuizSupport – Create quizzes with AI. Share them with a code.",
   description:
-    "Turn a topic into a ready paper, send students one access code, and watch scores, ranks and question insights arrive live. Generate questions with AI, or practice for JEE, NEET, GATE, SSC, UPSC and Banking.",
+    "Turn a topic into a ready paper, send students one access code, and watch scores, ranks and question insights arrive live. Exam mode, student rooms, AI question generation and instant results for creators, teachers and teams.",
   path: "/",
   absoluteTitle: true,
 });
@@ -36,12 +44,11 @@ export const metadata: Metadata = buildPublicPageMetadata({
 const NAV_LINKS = [
   { label: "Tools", href: "#tools" },
   { label: "Features", href: "#features" },
+  { label: "Rooms", href: "#rooms" },
+  { label: "Why us", href: "#why" },
   { label: "How it works", href: "#how" },
   { label: "Pricing", href: "/pricing" },
-  { label: "AI credits", href: "#pricing" },
 ];
-
-const EXAMS = ["JEE", "NEET", "GATE", "SSC", "UPSC", "Banking"];
 
 interface ToolCard {
   icon: LucideIcon;
@@ -83,7 +90,7 @@ const TOOLS: ToolCard[] = [
   {
     icon: PenLine,
     title: "Practice sets",
-    desc: "Ready-made sets for JEE, NEET, GATE, SSC, UPSC and Banking.",
+    desc: "Ready-made sets for your subject and syllabus.",
     cta: "Browse sets →",
     href: "/quiz",
   },
@@ -120,6 +127,79 @@ const FEATURE_CARDS: FeatureCard[] = [
   { icon: Moon, title: "Light and dark", desc: "Easy on the eyes, day or night." },
 ];
 
+const STATS = [
+  { value: "1,000+", label: "learners every month" },
+  { value: "20+", label: "teachers and creators" },
+  { value: "0", label: "installs needed" },
+  { value: "1", label: "code to join" },
+];
+
+const WHY_CARDS: FeatureCard[] = [
+  {
+    icon: ShieldCheck,
+    title: "Exam mode that means business",
+    desc: "Fullscreen attempts, tab-switch and fullscreen-exit detection, copy/paste blocking, and auto-submit after repeated violations.",
+  },
+  {
+    icon: Users,
+    title: "Rooms for every batch",
+    desc: "Group students once, share a six-character room code, and reuse the same batch across every quiz you run.",
+  },
+  {
+    icon: Zap,
+    title: "Results before the bell",
+    desc: "Every submission is graded instantly. See ranks, time taken and question-level accuracy without touching a spreadsheet.",
+  },
+  {
+    icon: Lock,
+    title: "Teacher-first privacy",
+    desc: "You and your collaborators see results immediately. Students see theirs one hour after the quiz ends.",
+  },
+  {
+    icon: BarChart3,
+    title: "Analytics you can act on",
+    desc: "Find the hardest question, the slowest topic and the students who need help, then plan the next session with context.",
+  },
+  {
+    icon: Sparkles,
+    title: "AI that removes the busywork",
+    desc: "Generate a full paper from a topic or syllabus, then edit any question. You stay in control of the final paper.",
+  },
+];
+
+const COMPARISON_ROWS = [
+  {
+    need: "Students join",
+    us: "One 16-character access code",
+    them: "Long links, reminders and manual lists",
+  },
+  {
+    need: "Exam integrity",
+    us: "Fullscreen mode, violation tracking and auto-submit",
+    them: "No exam controls",
+  },
+  {
+    need: "Batch management",
+    us: "Rooms with join codes and reusable student groups",
+    them: "Spreadsheets stitched together by hand",
+  },
+  {
+    need: "Results",
+    us: "Instant ranks, timing and question analytics",
+    them: "Manual marking after the quiz",
+  },
+  {
+    need: "Result privacy",
+    us: "Teacher sees first; students after the quiz window",
+    them: "Everyone sees everything at once",
+  },
+  {
+    need: "Exports",
+    us: "CSV, email, PDF and Word",
+    them: "Copy-paste from a browser",
+  },
+];
+
 interface Step {
   number: string;
   title: string;
@@ -136,7 +216,7 @@ const STEPS: Step[] = [
   {
     number: "2",
     title: "Share the code",
-    desc: "Every quiz gets its own access code. Send it on WhatsApp, email or a class group.",
+    desc: "Every quiz gets its own access code. Send it on WhatsApp, email or a group chat.",
     code: "VQBA-MIDJ-ETTW-EFRT",
   },
   {
@@ -180,7 +260,19 @@ const FAQS = [
   },
   {
     q: "How does the access code work?",
-    a: "Each quiz has its own code. Students enter it on the home page to join, answer the questions and see their result right away.",
+    a: "Each quiz has its own code. Students enter it on the home page to join and answer the questions. Results open one hour after the quiz ends, while teachers see them immediately.",
+  },
+  {
+    q: "What is exam mode?",
+    a: "Exam mode runs an attempt in fullscreen, records tab switches, fullscreen exits and copy/paste attempts, and can auto-submit after repeated violations.",
+  },
+  {
+    q: "What are rooms?",
+    a: "Rooms are reusable student groups. Create a room, share its six-character code, and assign quizzes to the whole batch without rebuilding the list every time.",
+  },
+  {
+    q: "Who can see results?",
+    a: "The quiz owner and accepted collaborators see results as soon as attempts are graded. Students see their own result and review one hour after the quiz ends.",
   },
   {
     q: "What kinds of questions can AI generate?",
@@ -251,19 +343,29 @@ export default function HomePage() {
                 watch scores, ranks and question insights arrive live.
               </p>
               <QuizCodeForm />
+              <p className="trust-line">
+                <span className="tdot" aria-hidden />
+                <b>1,000+ learners</b> every month · <b>20+ teachers</b> creating quizzes
+              </p>
               <p className="sub">
                 Want to host one?{" "}
                 <Link href="/creator/quizzes/create">Create a quiz for free</Link>
               </p>
-              <div className="exs">
-                {EXAMS.map((exam) => (
-                  <span key={exam}>{exam}</span>
-                ))}
-              </div>
             </div>
             <SampleQuizDemo />
           </header>
         </div>
+
+        <section className="lp-stats" aria-label="QuizSupport by the numbers">
+          <div className="wrap">
+            {STATS.map((stat) => (
+              <div className="lp-stat" key={stat.label}>
+                <b>{stat.value}</b>
+                <span>{stat.label}</span>
+              </div>
+            ))}
+          </div>
+        </section>
 
         <section className="s" id="tools">
           <div className="wrap">
@@ -324,6 +426,122 @@ export default function HomePage() {
           </div>
         </section>
 
+        <section className="s" id="why">
+          <div className="wrap">
+            <p className="eb">Why choose QuizSupport</p>
+            <h2 className="t">Built for real exams, not just online surveys.</h2>
+            <p className="d">
+              Most quiz tools stop at a form and a score. QuizSupport handles the
+              parts that make an exam feel like an exam, and the parts that save
+              you a Sunday of marking.
+            </p>
+            <div className="wg">
+              {WHY_CARDS.map((card) => {
+                const Icon = card.icon;
+                return (
+                  <div className="wc" key={card.title}>
+                    <i>
+                      <Icon size={22} />
+                    </i>
+                    <h3>{card.title}</h3>
+                    <p>{card.desc}</p>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="cmp-wrap">
+              <table className="cmp">
+                <thead>
+                  <tr>
+                    <th>What you need</th>
+                    <th>
+                      <span className="cmp-us">QuizSupport</span>
+                    </th>
+                    <th>The usual stack</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {COMPARISON_ROWS.map((row) => (
+                    <tr key={row.need}>
+                      <th scope="row">{row.need}</th>
+                      <td className="yes">
+                        <Check size={16} aria-hidden />
+                        {row.us}
+                      </td>
+                      <td className="no">
+                        <X size={16} aria-hidden />
+                        {row.them}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="cmp-note">
+              One platform instead of a form, a spreadsheet, a timer and a group
+              chat.
+            </p>
+          </div>
+        </section>
+
+        <section className="s" id="rooms">
+          <div className="wrap rooms-split">
+            <div>
+              <p className="eb">Rooms</p>
+              <h2 className="t">Your batch. Your quizzes. One room.</h2>
+              <p className="d">
+                Stop rebuilding student lists for every quiz. Create a room once,
+                share its code, and run every quiz for that batch from one place.
+              </p>
+              <ul className="ck">
+                <li>Six-character room code students can join in seconds</li>
+                <li>Reuse the same room across quizzes, terms and subjects</li>
+                <li>See who joined, who attempted and who needs a nudge</li>
+                <li>Works for batches, clubs and study groups</li>
+              </ul>
+              <div className="rooms-actions">
+                <Link className="btn pri" href="/rooms">
+                  Explore rooms
+                </Link>
+                <Link className="btn" href="/creator/rooms">
+                  Create a room
+                </Link>
+              </div>
+            </div>
+            <div className="room-flow">
+              <div className="room-flow-step">
+                <i>
+                  <Users size={24} />
+                </i>
+                <div>
+                  <b>Create a room</b>
+                  <small>Add your students once, not for every quiz.</small>
+                </div>
+              </div>
+              <span className="room-flow-line" aria-hidden />
+              <div className="room-flow-step">
+                <i>
+                  <KeyRound size={24} />
+                </i>
+                <div>
+                  <b>Share the room code</b>
+                  <small>Students join with a six-character code.</small>
+                </div>
+              </div>
+              <span className="room-flow-line" aria-hidden />
+              <div className="room-flow-step">
+                <i>
+                  <Radio size={24} />
+                </i>
+                <div>
+                  <b>Run every quiz</b>
+                  <small>Reuse the batch and track each attempt.</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="s" id="how">
           <div className="wrap">
             <p className="eb">How it works</p>
@@ -364,6 +582,22 @@ export default function HomePage() {
               one-time purchase and work with every plan. Every pack lets you
               generate MCQ, short and long questions and export to PDF or Word.
             </p>
+            <div className="pay-ad">
+              <div>
+                <span className="pay-tag">One-time payment</span>
+                <b>No auto-renew. No surprise charges.</b>
+                <small>
+                  Buy AI credits once and use them for up to{" "}
+                  {CREDIT_VALIDITY_MONTHS} months. Pay securely with UPI, Cards
+                  or Net Banking.
+                </small>
+              </div>
+              <div className="pay-pills" aria-label="Payment methods">
+                <span>UPI</span>
+                <span>Cards</span>
+                <span>Net Banking</span>
+              </div>
+            </div>
             <div className="pk3">
               {CREDIT_PURCHASE_PACKS.map((pack) => {
                 const rate = pack.price / pack.credits;
@@ -391,7 +625,6 @@ export default function HomePage() {
               })}
             </div>
             <p className="sub" style={{ textAlign: "center", marginTop: 30 }}>
-              Secure payments via UPI, Cards &amp; Net Banking.{" "}
               <Link href="/pricing/credits">See all AI credit packs</Link>.
             </p>
             <p className="sub" style={{ textAlign: "center", marginTop: 8 }}>
@@ -447,6 +680,7 @@ export default function HomePage() {
             <Link href="/contact">Contact</Link>
             <Link href="/privacy">Privacy Policy</Link>
             <Link href="/quiz">Quizzes</Link>
+            <Link href="/rooms">Rooms</Link>
           </div>
         </div>
       </footer>

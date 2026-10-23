@@ -373,38 +373,7 @@ export function TimingSection({
         </motion.div>
         )}
 
-        {/* Attempt duration */}
-        {showDuration && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-          className="min-w-0 overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 sm:p-5"
-        >
-          <div className="mb-3 flex min-w-0 items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1a1240]">
-              <Timer className="h-4 w-4" />
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-sm font-black text-[var(--qs-ink)]">Time per student</h3>
-              <p className="text-xs font-medium text-[var(--qs-muted)]">
-                How long each participant gets after starting. Scheduled quizzes run until their end time.
-              </p>
-            </div>
-          </div>
-          <DurationPicker
-            value={participantDuration}
-            onChange={(v) => {
-              setParticipantDuration(v);
-              updateInfo({ duration: v });
-            }}
-            presets={DURATION_PRESETS}
-            label="Minutes per student"
-            max={300}
-          />
-        </motion.div>
-        )}
-
+        {/* Advanced timing temporarily hidden from the studio.
         {variant !== "availability" && (
           <AdvancedTiming advanced={advanced} onChange={handleAdvancedChange} />
         )}

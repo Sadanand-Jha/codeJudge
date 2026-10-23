@@ -8,7 +8,8 @@ import { ResultGenerationService } from "../services/resultGeneration.service.ts
 import { sendCollaboratorInviteEmail } from "../services/email.ts";
 import { sendResponsesReportEmail } from "../services/email.service.ts";
 import { generateResponsesReport } from "../services/responsesReport.service.ts";
-import { enqueueQuizResultCalculation, finalizeExpiredQuizAttempts, processQuizSubmission } from "../services/quizSubmission.service.ts";
+import { reserveResponseEmailQuota } from "../services/responseEmailRateLimit.ts";
+import { enqueueQuizResultCalculation, enqueueSubmittedQuizAttempt, finalizeExpiredQuizAttempts, processQuizSubmission } from "../services/quizSubmission.service.ts";
 import { QuizCreationLimitError } from "../services/quizCreationLimits.ts";
 import { QuizQuestionLimitError } from "../services/quizQuestionLimits.ts";
 import { prepareAttemptDecoys, TRAP_STRENGTH_DEFAULT } from "../services/quizDecoy.service.ts";
@@ -1685,9 +1686,22 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
       ...(flagReason !== undefined ? { flag_reason: flagReason } : {}),
     });
 
+    // Grade this attempt right away. The attempt is already marked submitted,
+    // so the worker treats it as a normal completion even while the quiz is
+    // still open. Teacher-facing results are available immediately; students
+    // see them only after the visibility window (quiz end + 1 hour).
+    const submittedAttempt = await quizService.getQuizAttemptById(numericAttemptId);
+    if (submittedAttempt) {
+      try {
+        await enqueueSubmittedQuizAttempt(submittedAttempt);
+      } catch (error) {
+        console.error(`Could not enqueue result calculation for attempt ${numericAttemptId}:`, error);
+      }
+    }
+
     res.status(200).json({
       success: true,
-      message: "Answers saved. Results will be calculated when the quiz ends.",
+      message: "Answers saved. Results are being calculated.",
       data: {
         attemptId: numericAttemptId,
         status: "submitted",
@@ -1934,6 +1948,14 @@ export const unregisterFromQuiz = async (req: Request, res: Response) => {
 
 // ==================== PREVIOUS QUIZZES ====================
 
+const ATTEMPT_RESULT_VISIBILITY_DELAY_MS = 60 * 60 * 1000;
+
+/** Hide scores in the student's attempt history until end time + 1 hour. */
+function isAttemptResultVisible(row: any): boolean {
+  if (!row?.endtime) return false;
+  return new Date(row.endtime).getTime() + ATTEMPT_RESULT_VISIBILITY_DELAY_MS <= Date.now();
+}
+
 /**
  * GET /api/v1/user/quiz/previous
  * Get previous quizzes (attempted by logged-in student)
@@ -1967,9 +1989,23 @@ export const getPreviousQuizzes = async (req: Request, res: Response) => {
       sortOrder: sortOrder as string,
     });
 
+    const data = result.quizzes.map((row) => {
+      if (isAttemptResultVisible(row)) return { ...row, result_available: true };
+      return {
+        ...row,
+        result_available: false,
+        score: null,
+        percentage: null,
+        rank: null,
+        correct_answers: null,
+        wrong_answers: null,
+        skipped_questions: null,
+      };
+    });
+
     res.status(200).json({
       success: true,
-      data: result.quizzes,
+      data,
       pagination: {
         page: Number(page),
         limit: Number(limit),
@@ -2093,6 +2129,8 @@ export const submitQuizRating = async (req: Request, res: Response) => {
   }
 };
 
+const RESULT_VISIBILITY_DELAY_MS = 60 * 60 * 1000;
+
 function areStudentResultsAvailable(result: any): boolean {
   // Never expose an attempt (or its review) while it is still being taken,
   // even if immediate results are enabled. This also blocks opening it via a
@@ -2102,10 +2140,21 @@ function areStudentResultsAvailable(result: any): boolean {
     .toLowerCase()
     .replace(/[\s-]+/g, "_");
   if (attemptStatus === "in_progress") return false;
-  if (result?.show_results_immediately === true) return true;
-  if (String(result?.quiz_status_name ?? "").toLowerCase() === "ended") return true;
+  // Students can see their result one hour after the quiz end time. The quiz
+  // status alone is not enough — an early end still respects the same delay.
   if (!result?.endtime) return false;
-  return new Date(result.endtime).getTime() <= Date.now();
+  return new Date(result.endtime).getTime() + RESULT_VISIBILITY_DELAY_MS <= Date.now();
+}
+
+/** Owners and accepted collaborators can always view results immediately. */
+async function canViewerSeeResult(result: any, viewerId: number): Promise<boolean> {
+  if (Number(result?.createdby) === Number(viewerId)) return true;
+  const quizId = Number(result?.quiz_id);
+  if (Number.isInteger(quizId) && quizId > 0) {
+    const isCollaborator = await quizService.isAcceptedCollaborator(Number(viewerId), quizId);
+    if (isCollaborator) return true;
+  }
+  return areStudentResultsAvailable(result);
 }
 
 /**
@@ -2135,10 +2184,10 @@ export const getQuizResult = async (req: Request, res: Response) => {
       return;
     }
 
-    if (!areStudentResultsAvailable(result)) {
+    if (!(await canViewerSeeResult(result, Number(userId)))) {
       res.status(403).json({
         success: false,
-        message: "Results will be available after the quiz ends",
+        message: "Results will be available 1 hour after the quiz ends",
       });
       return;
     }
@@ -2178,10 +2227,10 @@ export const getQuizReview = async (req: Request, res: Response) => {
       res.status(404).json({ success: false, message: "Quiz result not found" });
       return;
     }
-    if (!areStudentResultsAvailable(result)) {
+    if (!(await canViewerSeeResult(result, Number(userId)))) {
       res.status(403).json({
         success: false,
-        message: "Answer review will be available after the quiz ends",
+        message: "Answer review will be available 1 hour after the quiz ends",
       });
       return;
     }
@@ -3035,15 +3084,31 @@ export const sendQuizResponsesEmail = async (req: Request, res: Response) => {
       return;
     }
 
-    const { buffer, stats, registrationFields } = await generateResponsesReport(numericQuizId);
-    await sendResponsesReportEmail({
-      to: email,
-      quizName: quiz.name,
-      quizCode: quiz.code,
-      responsesBuffer: buffer,
-      registrationFields,
-      stats,
-    });
+    const quota = await reserveResponseEmailQuota(Number(userId), numericQuizId);
+    if (!quota.allowed) {
+      res.setHeader("Retry-After", String(quota.retryAfterSeconds));
+      res.status(429).json({
+        success: false,
+        message: quota.message,
+        data: { reason: quota.reason, retryAfterSeconds: quota.retryAfterSeconds },
+      });
+      return;
+    }
+
+    try {
+      const { buffer, stats, registrationFields } = await generateResponsesReport(numericQuizId);
+      await sendResponsesReportEmail({
+        to: email,
+        quizName: quiz.name,
+        quizCode: quiz.code,
+        responsesBuffer: buffer,
+        registrationFields,
+        stats,
+      });
+    } catch (error) {
+      await quota.release();
+      throw error;
+    }
 
     res.status(200).json({ success: true, data: { sent: true, to: email } });
   } catch (error) {

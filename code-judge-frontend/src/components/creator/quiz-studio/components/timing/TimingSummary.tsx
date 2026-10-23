@@ -61,36 +61,8 @@ export function TimingSummary({ state }: { state: TimingState }) {
   //   label: "Auto-submit",
   //   value: advanced.autoSubmit ? "Enabled" : "Disabled",
   // });
-    label: "Time per student",
-    value: mode === "schedule" ? "Until the quiz ends" : `${participantDuration} minutes`,
-  });
-
-  rows.push({
-    label: "Late joining",
-    value: advanced.lateJoining ? "Allowed" : "Disabled",
-  });
-
-  rows.push({
-    label: "Rejoining",
-    value: advanced.rejoining ? "Allowed" : "Disabled",
-  });
-
-  rows.push({
-    label: "Auto-submit",
-    value: advanced.autoSubmit ? "Enabled" : "Disabled",
-  });
 
   const warnings: string[] = [];
-
-  if (
-    mode === "manual" &&
-    manual.endBehavior === "auto_duration" &&
-    manual.sessionDuration < participantDuration
-  ) {
-    warnings.push(
-      `The quiz session duration (${manual.sessionDuration} min) is shorter than the time per student (${participantDuration} min). Participants may not get the full allotted time.`
-    );
-  }
 
   return (
     <div className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-5">

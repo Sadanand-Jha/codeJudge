@@ -496,7 +496,7 @@ export default function AttemptReviewExperience({
     return (
       <QuizStateScreen
         title="Results are being prepared"
-        text="Your answers are saved. Results will be available after the quiz ends and calculation finishes."
+        text="Your answers are saved. Results will be available 1 hour after the quiz ends."
         action={
           <Link href="/quiz" className="b b-pri gap-2">
             <ArrowLeft className="h-4 w-4" /> Back to quiz home

@@ -4,9 +4,13 @@
 import "dotenv/config";
 import { startQuizSubmissionWorker } from "./quizSubmission.worker.ts";
 import { startQuizResultScheduler } from "./quizResult.scheduler.ts";
+import { startEmailWorker } from "./email.worker.ts";
+import { startPdfWorker } from "./pdf.worker.ts";
 
 startQuizSubmissionWorker();
 startQuizResultScheduler();
+startEmailWorker();
+startPdfWorker();
 
 const shutdown = async (signal: string) => {
   console.log(`[bullmq] received ${signal}, shutting down worker...`);

@@ -77,8 +77,8 @@ export function ParticipantPreview({ state }: { state: TimingState }) {
         >
         <PreviewStep
           icon={<Clock className="h-3 w-3" />}
-          label="Time per student"
-          time={mode === "schedule" ? "Until the quiz ends" : `${participantDuration} minutes`}
+          label="Participant gets"
+          time="Time until the quiz ends"
           active={true}
         />
         </motion.div>

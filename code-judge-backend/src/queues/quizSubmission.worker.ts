@@ -17,12 +17,6 @@ const WORKER_CONCURRENCY = Math.min(
   Math.max(1, Number(process.env.QUIZ_SUBMISSION_CONCURRENCY) || 5)
 );
 
-const RESULT_CALCULATION_DELAY_MS = 5000;
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export function startQuizSubmissionWorker(): Worker<QuizSubmissionJobData> | null {
   if (global.__bullmqWorkerStarted) {
     return null;
@@ -33,9 +27,8 @@ export function startQuizSubmissionWorker(): Worker<QuizSubmissionJobData> | nul
     QUIZ_SUBMISSION_QUEUE,
     async (job: Job<QuizSubmissionJobData>) => {
       console.log(`[bullmq] result calculation started (job ${job.id}, attempt ${job.data.attemptId}, try ${job.attemptsMade + 1})`);
-      // Give the end-of-quiz write/responses window time to settle before
-      // reading the saved responses. Concurrency still allows up to 5 jobs.
-      await sleep(RESULT_CALCULATION_DELAY_MS);
+      // Answers are persisted before the job is enqueued, so grading can start
+      // immediately. Concurrency still allows up to 5 parallel jobs.
       const result = await processQuizSubmission(job.data);
       await deleteFallbackQuizSubmission(job.data.attemptId);
       console.log(`[bullmq] result calculation completed for attempt ${job.data.attemptId}`);

@@ -23,7 +23,9 @@ export function StudioHeader() {
   const saveDisabled = state.step === "questions" && !questionsDirty;
   const label = state.info.title.trim();
 
-  useEffect(() => setDraft(state.info.title), [state.info.title]);
+  useEffect(() => {
+    queueMicrotask(() => setDraft(state.info.title));
+  }, [state.info.title]);
 
   const commit = () => {
     setEditing(false);
@@ -250,23 +252,8 @@ export function StudioStepper() {
 export function StudioFooter() {
   const router = useRouter();
   const { state, prevStep, nextStep, stepIndex, steps, publish, saveToServer, setActiveQuestion, editMode } = useStudio();
-  const [savingDraft, setSavingDraft] = useState(false);
   const [continuing, setContinuing] = useState(false);
   const isLast = stepIndex === steps.length - 1;
-
-  const handleSaveDraft = async () => {
-    if (savingDraft) return;
-    setSavingDraft(true);
-    try {
-      await saveToServer();
-      toast.success({ title: "Saved to server", description: "Your quiz draft and questions are saved." });
-    } catch (err) {
-      if (isQuestionValidationError(err)) return;
-      toast.error({ title: "Could not save draft", description: err instanceof Error ? err.message : "Something went wrong." });
-    } finally {
-      setSavingDraft(false);
-    }
-  };
 
   const handleContinue = async () => {
     if (continuing) return;
@@ -296,16 +283,25 @@ export function StudioFooter() {
   const activeIdx = state.questions.findIndex((q) => q.id === state.activeQuestionId) + 1;
   const [confirmPublish, setConfirmPublish] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const isScheduledPublish = Boolean(state.info.startDate);
 
   const handleConfirmPublish = async () => {
     if (publishing) return;
     setPublishing(true);
     try {
       await saveToServer({ publish: true });
-      toast.success({ title: state.info.title || "Quiz published", description: "Your quiz is now live." });
+      toast.success({
+        title: state.info.title || "Quiz published",
+        description: isScheduledPublish ? "Your quiz has been scheduled." : "Your quiz is now live.",
+      });
       publish();
     } catch (err) {
-      if (!isQuestionValidationError(err)) toast.error({ title: "Could not start quiz", description: err instanceof Error ? err.message : "Something went wrong." });
+      if (!isQuestionValidationError(err)) {
+        toast.error({
+          title: isScheduledPublish ? "Could not schedule quiz" : "Could not start quiz",
+          description: err instanceof Error ? err.message : "Something went wrong.",
+        });
+      }
     } finally {
       setPublishing(false);
     }
@@ -369,13 +365,19 @@ export function StudioFooter() {
               disabled={publishing}
               className="b b-pri sm"
             >
-              <Rocket className="h-3.5 w-3.5" /> Start quiz
+              <Rocket className="h-3.5 w-3.5" /> {isScheduledPublish ? "Schedule quiz" : "Start quiz"}
             </button>
             {confirmPublish && (
               <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#1A1240]/60 p-4" onClick={() => !publishing && setConfirmPublish(false)}>
                 <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-6 shadow-[6px_6px_0_var(--qs-sun)]">
-                  <h3 className="text-base font-black text-[var(--qs-ink)]">Start this quiz?</h3>
-                  <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">It will go live immediately for eligible students.</p>
+                  <h3 className="text-base font-black text-[var(--qs-ink)]">
+                    {isScheduledPublish ? "Schedule this quiz?" : "Start this quiz?"}
+                  </h3>
+                  <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">
+                    {isScheduledPublish
+                      ? "It will open automatically at the scheduled start time for eligible students."
+                      : "It will go live immediately for eligible students."}
+                  </p>
                   <div className="mt-4 flex justify-end gap-2">
                     <button type="button" onClick={() => setConfirmPublish(false)} className="b sm">Cancel</button>
                     <button
@@ -385,7 +387,7 @@ export function StudioFooter() {
                       aria-busy={publishing || undefined}
                       className={cn("b b-pri sm", publishing && "loading")}
                     >
-                      {publishing ? "Starting…" : "Start quiz"}
+                      {publishing ? "Saving…" : isScheduledPublish ? "Schedule quiz" : "Start quiz"}
                     </button>
                   </div>
                 </div>

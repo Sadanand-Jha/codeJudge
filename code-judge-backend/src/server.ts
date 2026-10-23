@@ -4,6 +4,8 @@
 import app from './app.ts';
 import { startQuizSubmissionWorker } from './queues/quizSubmission.worker.ts';
 import { startQuizResultScheduler } from './queues/quizResult.scheduler.ts';
+import { startEmailWorker } from './queues/email.worker.ts';
+import { startPdfWorker } from './queues/pdf.worker.ts';
 
 const PORT = process.env.PORT || 8000;
 
@@ -22,6 +24,8 @@ if (process.env.NODE_ENV !== 'production') {
   try {
     startQuizSubmissionWorker();
     startQuizResultScheduler();
+    startEmailWorker();
+    startPdfWorker();
   } catch (err: any) {
     console.warn('⚠️ Quiz result worker/scheduler failed to start (durable recovery queue remains available):', err.message);
   }

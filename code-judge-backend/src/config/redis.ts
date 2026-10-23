@@ -80,6 +80,14 @@ class MemoryRedis {
     return next;
   }
 
+  async decr(key: string): Promise<number> {
+    const e = this.getEntry(key);
+    const cur = e ? parseInt(e.value, 10) || 0 : 0;
+    const next = cur - 1;
+    this.kv.set(key, { value: String(next), expireAt: e?.expireAt });
+    return next;
+  }
+
   async ttl(key: string): Promise<number> {
     const e = this.kv.get(key);
     if (!e) return -2;
@@ -250,6 +258,15 @@ class RedisCompatWrapper {
       return await this.client.incr(key);
     } catch (e: any) {
       console.warn("Redis INCR failed:", e.message);
+      return 0;
+    }
+  }
+
+  async decr(key: string): Promise<number> {
+    try {
+      return await this.client.decr(key);
+    } catch (e: any) {
+      console.warn("Redis DECR failed:", e.message);
       return 0;
     }
   }

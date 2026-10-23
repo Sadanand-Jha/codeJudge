@@ -44,6 +44,7 @@ export function QuestionsStep() {
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [generatedPdfCode, setGeneratedPdfCode] = useState("");
   const pdfCode = state.info.code || generatedPdfCode;
+  const [pdfOpening, setPdfOpening] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [studentPreviewOpen, setStudentPreviewOpen] = useState(false);
   // Mobile sheets
@@ -55,12 +56,18 @@ export function QuestionsStep() {
       setPdfModalOpen(true);
       return;
     }
+    // Open the preview immediately so the loading state is visible while the
+    // quiz code (and therefore the registered-student list) is fetched.
+    setPdfModalOpen(true);
+    setPdfOpening(true);
     try {
       const newCode = await generateQuizCode();
       setGeneratedPdfCode(newCode);
-      setPdfModalOpen(true);
     } catch {
+      setPdfModalOpen(false);
       toast.error({ title: "Could not load PDF preview", description: "Failed to generate quiz code. Please try again." });
+    } finally {
+      setPdfOpening(false);
     }
   }, [pdfCode]);
 
@@ -144,12 +151,17 @@ export function QuestionsStep() {
             />
             <button
               onClick={() => void openPdfModal()}
-              disabled={state.questions.length === 0}
+              disabled={state.questions.length === 0 || pdfOpening}
               aria-label="Download PDF"
+              aria-busy={pdfOpening || undefined}
               title={state.questions.length === 0 ? "Add a question to download a PDF" : "Download PDF"}
               className="flex shrink-0 items-center gap-1 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 sm:px-3 py-2 text-xs font-bold text-[var(--qs-ink)] disabled:opacity-40"
             >
-              <Download className="h-3.5 w-3.5 shrink-0" />
+              {pdfOpening ? (
+                <span className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-[var(--qs-line)] border-t-[var(--qs-brand)]" />
+              ) : (
+                <Download className="h-3.5 w-3.5 shrink-0" />
+              )}
               PDF
             </button>
             <button
