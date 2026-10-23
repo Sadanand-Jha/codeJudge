@@ -53,6 +53,21 @@ const MAX_BANK_QUESTIONS = 25;
 const MAX_QUIZ_QUESTIONS = 25;
 const FILE_GENERATION_COUNT = 20;
 
+/** Turn the model's raw JSON stream into readable text while it is writing. */
+function readableStreamText(raw: string): string {
+  return raw
+    .replace(/```(?:json)?/gi, "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\\n/g, "\n")
+    .replace(/\\"/g, '"')
+    .replace(/[{}\[\]]/g, "\n")
+    .replace(/"[a-zA-Z]+"\s*:/g, "")
+    .replace(/"/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .slice(-4000);
+}
+
 function getDifficultySplit(total: number, difficulty?: string) {
   const key = (difficulty ?? "").toLocaleLowerCase();
   const ratios = key.includes("easy")
@@ -184,6 +199,7 @@ export function AiGenerateModal({
     catalogErrorState?.subjectId !== defaultSubjectId;
   const [tokenRate, setTokenRate] = useState<number | null>(null);
   const [thinking, setThinking] = useState("");
+  const [streamContent, setStreamContent] = useState("");
   const [liveUsage, setLiveUsage] = useState<LiveUsage | undefined>(undefined);
   const generationStartedAtRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -336,6 +352,7 @@ export function AiGenerateModal({
     setAddedCount(0);
     setTokenRate(null);
     setThinking("");
+    setStreamContent("");
     setLiveUsage(undefined);
     setBankSyllabus("");
     setBankChapterIds([]);
@@ -404,6 +421,7 @@ export function AiGenerateModal({
     setProgress(6);
     setTokenRate(null);
     setThinking("");
+    setStreamContent("");
     setLiveUsage(undefined);
     generationStartedAtRef.current = Date.now();
     setError("");
@@ -486,6 +504,7 @@ export function AiGenerateModal({
     generationStartedAtRef.current = Date.now();
     setError("");
     setThinking("");
+    setStreamContent("");
     setLiveUsage(undefined);
     const scopedChapterIds = getScopedChapterIds();
     let streamedQuestions: RawAIGeneratedQuestion[] = [];
@@ -507,6 +526,7 @@ export function AiGenerateModal({
         },
         {
           onReasoning: (chunk) => setThinking((prev) => prev + chunk),
+          onContent: (chunk) => setStreamContent((prev) => prev + chunk),
           onQuestions: (questions) => {
             streamedQuestions = questions;
           },
@@ -614,6 +634,7 @@ export function AiGenerateModal({
     setProgress(0);
     setTokenRate(null);
     setThinking("");
+    setStreamContent("");
     setLiveUsage(undefined);
     toast.info("AI-generated questions discarded");
   };
@@ -958,7 +979,7 @@ export function AiGenerateModal({
                         </p>
                       </div>
 
-                      <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
+                      <div className="sticky bottom-0 z-10 shrink-0 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 shadow-[0_-6px_14px_rgba(26,18,64,0.06)]">
                         <div className="flex items-center justify-between gap-3">
                           <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
                             <Target className="h-3.5 w-3.5 text-[var(--qs-brand)]" /> Assessment size
@@ -1234,21 +1255,34 @@ export function AiGenerateModal({
                       />
                     </div>
                     <div className="relative min-h-0 flex-1 overflow-hidden [mask-image:linear-gradient(to_bottom,transparent_0,#000_35%)]">
-                      {thinking ? (
+                      {thinking || streamContent ? (
                         <div className="absolute inset-0 flex flex-col">
                           <div className="flex shrink-0 items-center gap-2 border-b border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2">
                             <Sparkles className={cn("h-3.5 w-3.5 text-[var(--qs-brand)]", generating && "animate-pulse")} />
                             <span className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ink)]">
-                              {generating ? "Thinking…" : "Thinking · completed"}
+                              {thinking
+                                ? generating
+                                  ? "Thinking…"
+                                  : "Thinking · completed"
+                                : generating
+                                  ? "Writing questions…"
+                                  : "AI stream · completed"}
                             </span>
                             <span className="ml-auto text-[9px] font-semibold tabular-nums text-[var(--qs-muted)]">
                               {liveUsage?.reasoningTokens != null
                                 ? `${liveUsage.reasoningTokens} thinking tokens`
-                                : `${Math.round(thinking.length / 4)} thinking tokens`}
+                                : `${Math.round((thinking || streamContent).length / 4)} tokens`}
                             </span>
                           </div>
                           <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
-                            <MarkdownRenderer content={thinking} />
+                            {thinking ? (
+                              <MarkdownRenderer content={thinking} />
+                            ) : (
+                              <pre className="whitespace-pre-wrap break-words font-sans text-[10px] leading-5 text-[var(--qs-muted)]">
+                                {readableStreamText(streamContent)}
+                                {generating ? <span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-[var(--qs-brand)] align-text-bottom" /> : null}
+                              </pre>
+                            )}
                           </div>
                           {reviewReady && !done ? (
                             <div className="shrink-0 border-t border-[var(--qs-line)] p-2">
