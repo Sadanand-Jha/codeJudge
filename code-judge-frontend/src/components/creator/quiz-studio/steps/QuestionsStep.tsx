@@ -30,6 +30,7 @@ import { formatPaperDate, type PaperMeta } from "@/utils/paperHtml";
 import PdfConfigModal, { type PaperDownloadConfig } from "@/components/quiz/creator/settings/PdfConfigModal";
 import { generateQuizCode } from "@/services/quiz";
 import { toast } from "@/lib/toast";
+import { cn } from "@/lib/helpers";
 import { MobileQuestionBankSheet } from "../components/mobile/MobileQuestionBankSheet";
 import { MobileQuestionSettingsSheet } from "../components/mobile/MobileQuestionSettingsSheet";
 import { AiStreamText } from "@/components/ui";
@@ -268,16 +269,19 @@ export function QuestionsStep() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="hidden min-h-0 min-w-0 shrink-0 flex-col gap-3 min-[900px]:flex min-[1240px]:flex-row"
+        className="hidden min-h-0 min-w-0 shrink-0 flex-col gap-3 min-[900px]:flex min-[900px]:flex-row min-[1240px]:h-[calc(100dvh-13rem)]"
       >
         <aside className="min-h-0 shrink-0 min-[1024px]:sticky min-[1024px]:top-3 min-[900px]:w-[280px] min-[900px]:self-start min-[1240px]:w-[290px]">
           <QuestionList onAiGenerate={() => setAiOpen(true)} onDownloadPdf={openPdfModal} />
         </aside>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-          <main className={`flex min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden rounded-[22px] border-x-2 border-b-2 border-[var(--qs-line)] bg-[var(--qs-surface)] min-[900px]:h-[calc(100dvh-13rem)]${
-            state.activeQuestionId && !questionsLoading ? " border-t-0" : " border-t-2"
-          }`}>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 min-[1240px]:h-full">
+          <main
+            className={cn(
+              "flex min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden rounded-[22px] border-x-2 border-b-2 border-[var(--qs-line)] bg-[var(--qs-surface)] min-[900px]:h-[calc(100dvh-13rem)] min-[1240px]:h-auto min-[1240px]:flex-1",
+              state.activeQuestionId && !questionsLoading ? "border-t-0" : "border-t-2"
+            )}
+          >
             {questionsLoading && state.questions.length === 0 ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-10 text-center">
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--qs-line)] border-t-[var(--qs-brand)]" />

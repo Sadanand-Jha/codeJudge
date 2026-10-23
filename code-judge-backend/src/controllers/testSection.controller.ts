@@ -462,9 +462,20 @@ export const generateQuestions = async (req: Request, res: Response) => {
   }
 };
 
-export const questionGeneratorCatalog = async (_req: Request, res: Response) => {
+export const questionGeneratorCatalog = async (req: Request, res: Response) => {
   try {
-    res.status(200).json({ success: true, data: await getQuestionGeneratorCatalog() });
+    const rawSubjectId = req.query.subjectId;
+    const subjectId =
+      typeof rawSubjectId === "string" && rawSubjectId.trim() !== ""
+        ? Number(rawSubjectId)
+        : undefined;
+    if (subjectId !== undefined && (!Number.isInteger(subjectId) || subjectId <= 0)) {
+      return res.status(400).json({ success: false, message: "Select a valid subject." });
+    }
+    res.status(200).json({
+      success: true,
+      data: await getQuestionGeneratorCatalog(subjectId),
+    });
   } catch (error) {
     console.error("Question generator catalog error:", error);
     res.status(500).json({ success: false, message: "Unable to load question curriculum." });

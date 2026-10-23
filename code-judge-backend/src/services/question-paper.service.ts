@@ -426,7 +426,10 @@ ${avoidQuestions ? `DO NOT REPEAT OR NEAR-DUPLICATE THESE EXISTING QUESTIONS:\n$
   return { questions: numbered, usage };
 };
 
-export async function getQuestionGeneratorCatalog() {
+export async function getQuestionGeneratorCatalog(subjectId?: number) {
+  const subjectFilter = subjectId != null ? "AND s.id = $1" : "";
+  const chapterFilter = subjectId != null ? "AND sc.subject_id = $1" : "";
+  const params = subjectId != null ? [subjectId] : [];
   const [subjects, chapters, topics, difficulties, categories] = await Promise.all([
     db.query(
       `SELECT DISTINCT s.id, s.subject_name AS name
@@ -437,18 +440,29 @@ export async function getQuestionGeneratorCatalog() {
            JOIN subject_chapters sc ON sc.id = ct.chapter_id
            WHERE sc.subject_id = s.id
          )
-       ORDER BY name`
+         ${subjectFilter}
+       ORDER BY name`,
+      params
     ).then((r) => r.rows),
     db.query(
       `SELECT DISTINCT sc.id, sc.subject_id AS "subjectId", sc.chapter_name AS name
        FROM subject_chapters sc
        WHERE EXISTS (SELECT 1 FROM chapter_topics ct WHERE ct.chapter_id = sc.id)
-       ORDER BY name`
+         ${chapterFilter}
+       ORDER BY name`,
+      params
     ).then((r) => r.rows),
     db.query(
-      `SELECT DISTINCT ct.id, ct.chapter_id AS "chapterId", ct.topic_name AS name
-       FROM chapter_topics ct
-       ORDER BY name`
+      subjectId != null
+        ? `SELECT DISTINCT ct.id, ct.chapter_id AS "chapterId", ct.topic_name AS name
+           FROM chapter_topics ct
+           JOIN subject_chapters sc ON sc.id = ct.chapter_id
+           WHERE sc.subject_id = $1
+           ORDER BY name`
+        : `SELECT DISTINCT ct.id, ct.chapter_id AS "chapterId", ct.topic_name AS name
+           FROM chapter_topics ct
+           ORDER BY name`,
+      params
     ).then((r) => r.rows),
     db.query(`SELECT id, name FROM question_difficulty ORDER BY id`).then((r) => r.rows),
     db.query(`SELECT id, name FROM question_category ORDER BY id`).then((r) => r.rows),

@@ -356,6 +356,7 @@ interface StudioContextValue {
     validQuestions: number;
     incompleteQuestions: number;
   };
+  questionsValid: boolean;
   saveAudienceParticipants: () => Promise<void>;
   audienceDirty: boolean;
   /** Rich content rendered inside the header Help panel, set by the active step. */
@@ -927,6 +928,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
       return null;
     }
     if (isMcqType(q.type)) {
+      if (q.options.length < 2) return "needs at least 2 options";
       const emptyIdx = q.options.findIndex((o) => !o.content.trim());
       if (emptyIdx !== -1) {
         const label = q.options[emptyIdx].label || String(emptyIdx + 1);
@@ -951,7 +953,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
       if (!opts?.silent) {
         toast.error({
           title: "Add at least one question",
-          description: "A quiz needs at least one question before you can continue.",
+          description: "A quiz needs at least one question before you can save or publish.",
         });
       }
       return false;
@@ -963,7 +965,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         if (!opts?.silent) {
           toast.error({
             title: `Question ${i + 1} is incomplete`,
-            description: `${reason.charAt(0).toUpperCase()}${reason.slice(1)}. Complete it or delete it before continuing.`,
+            description: `${reason.charAt(0).toUpperCase()}${reason.slice(1)}. Complete it or delete it before saving or publishing.`,
           });
         }
         return false;
@@ -982,8 +984,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     return true;
   };
 
+  const questionsValid = validateAllQuestions({ silent: true });
+
   const goToStep = (id: StudioState["step"]) => {
-    if (id !== state.step && state.step !== "details" && state.step !== "reviewPublish" && !validateAllQuestions()) return;
     setState((s) => ({ ...s, step: id }));
   };
   const getReviewErrors = (): string[] => {
@@ -1053,23 +1056,19 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         return;
       }
     } else if (state.step === "questions") {
-      // Validate the problems, then persist the quiz + all problems to the
-      // server before moving on. saveToServer runs validation internally, so an
-      // incomplete question blocks the save and we stay on this step.
-      if (!validateAllQuestions()) return;
-      try {
-        await saveToServer({ skipParticipants: true });
-      } catch (err) {
-        if (!isQuestionValidationError(err)) {
-          toast.error({
-            title: "Could not save questions",
-            description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
-          });
+      if (validateAllQuestions({ silent: true })) {
+        try {
+          await saveToServer({ skipParticipants: true });
+        } catch (err) {
+          if (!isQuestionValidationError(err)) {
+            toast.error({
+              title: "Could not save questions",
+              description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
+            });
+            return;
+          }
         }
-        return;
       }
-    } else if (state.step === "access" || state.step === "rules") {
-      if (!validateAllQuestions()) return;
     }
 
     // Unknown current step for this list (e.g. a desktop-only step while on
@@ -1094,9 +1093,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
   };
 
   const retreatInList = async (list: Array<{ id: StudioStepId; label: string }>) => {
-    if (state.step === "questions") {
-      // Validate and save the problems to the server before going back.
-      if (!validateAllQuestions()) return;
+    if (state.step === "questions" && validateAllQuestions({ silent: true })) {
       try {
         await saveToServer();
       } catch (err) {
@@ -1105,8 +1102,8 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
             title: "Could not save questions",
             description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
           });
+          return;
         }
-        return;
       }
     }
     setState((s) => {
@@ -1510,12 +1507,13 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
       questionsLoading,
       editMode,
       summary,
+      questionsValid,
       saveAudienceParticipants,
       audienceDirty,
       helpExtra,
       setHelpExtra,
     }),
-    [state, stepIndex, mobileStepIndex, summary, savingToServer, questionsDirty, saveProgress, loading, loadError, questionsLoading, editMode, steps, mobileSteps, saveAudienceParticipants, audienceDirty, helpExtra]
+    [state, stepIndex, mobileStepIndex, summary, questionsValid, savingToServer, questionsDirty, saveProgress, loading, loadError, questionsLoading, editMode, steps, mobileSteps, saveAudienceParticipants, audienceDirty, helpExtra]
   );
 
   return <StudioContext.Provider value={value}>{children}</StudioContext.Provider>;

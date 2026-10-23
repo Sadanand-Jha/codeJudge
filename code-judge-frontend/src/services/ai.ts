@@ -271,6 +271,8 @@ export interface GenerateFromBankOptions {
   kind?: "any" | "theory" | "numerical";
   /** Quiz being authored — lets the backend store generated questions in the bank. */
   quizId?: string | number | null;
+  /** Optional live metrics from the provider response (used by the studio preview). */
+  onUsage?: (usage: LiveUsage) => void;
 }
 
 export interface GenerateFromBankResponse {
@@ -308,6 +310,7 @@ export const generateFromQuestionBank = async (
   if (!response.ok || !payload.success) {
     throw new Error(payload.message || `Request failed with status ${response.status}`);
   }
+  if (payload.data?.usage) options.onUsage?.(payload.data.usage);
   return payload.data?.questions ?? [];
 };
 

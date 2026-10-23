@@ -507,8 +507,8 @@ body {
 html {
   min-height: 100%;
   height: auto;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow-x: clip;
+  overflow-y: visible;
 }
 
 /* The sidebar is a fixed-width compositor layer. Keep all three positions in
@@ -534,8 +534,8 @@ html {
 body {
   min-height: 100dvh;
   height: auto;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow-x: clip;
+  overflow-y: visible;
 }
 
 /* Mobile toast banners sit above the page and push the content down by
@@ -5026,6 +5026,7 @@ textarea {
   --qs-badbg: #fde4e6;
   --qs-sun: #ffd23f;
   --qs-warn: #a85d00;
+  --qs-warnbg: #fff1d6;
   --qs-blue: #2457d6;
   --qs-field: #ffffff;
   --qs-poly-0: #f6f3ff;
@@ -5061,6 +5062,7 @@ textarea {
   --qs-poly-4: #2a1e73;
   --qs-poly-5: #4b2a7b;
   --qs-warn: #ffb454;
+  --qs-warnbg: #3d2508;
   --qs-blue: #7aa7ff;
   --qs-field: #241c52;
 }
@@ -9304,6 +9306,7 @@ textarea {
   --qs-bad: #ff7a85;
   --qs-badbg: #3a1219;
   --qs-warn: #ffb454;
+  --qs-warnbg: #3d2508;
   --qs-blue: #7aa7ff;
   --qs-field: #1b1440;
   --qs-poly-0: #0a0618;
@@ -9606,4 +9609,73 @@ textarea {
   .qs-lp.qp-page .qp-pack:hover {
     transform: none;
   }
+}
+
+/* ============================================================
+   Quiz hub — full-viewport low-poly backdrop
+   Copied from the quiz-home mockup: a fixed 1600×900 triangular
+   mosaic that sits behind the whole hub (no fade / no mask).
+   ============================================================ */
+
+.quiz-hub-bg {
+  --qzb-0: #f6f3ff;
+  --qzb-1: #f0ebff;
+  --qzb-2: #e8e0ff;
+  --qzb-3: #ddd2ff;
+  --qzb-4: #d0c2ff;
+  --qzb-a: #ffe9a3;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--qs-bg, #f6f3ff);
+}
+
+[data-theme="dark"] .quiz-hub-bg {
+  --qzb-0: #150f33;
+  --qzb-1: #1a1240;
+  --qzb-2: #21175a;
+  --qzb-3: #2a1e73;
+  --qzb-4: #34268a;
+  --qzb-a: #4b2a7b;
+}
+
+.quiz-hub-bg svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.quiz-hub-bg polygon {
+  stroke-width: 1.2;
+}
+
+.quiz-hub-bg .qzb0 {
+  fill: var(--qzb-0);
+  stroke: var(--qzb-0);
+}
+
+.quiz-hub-bg .qzb1 {
+  fill: var(--qzb-1);
+  stroke: var(--qzb-1);
+}
+
+.quiz-hub-bg .qzb2 {
+  fill: var(--qzb-2);
+  stroke: var(--qzb-2);
+}
+
+.quiz-hub-bg .qzb3 {
+  fill: var(--qzb-3);
+  stroke: var(--qzb-3);
+}
+
+.quiz-hub-bg .qzb4 {
+  fill: var(--qzb-4);
+  stroke: var(--qzb-4);
+}
+
+.quiz-hub-bg .qzba {
+  fill: var(--qzb-a);
+  stroke: var(--qzb-a);
 }

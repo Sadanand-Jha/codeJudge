@@ -1521,17 +1521,21 @@ export class QuizRepository {
     // Audience constraint: once the creator configures a participant list
     // (quiz edit → rooms / invites), only students present in it (status = 1
     // = allowed) may attempt the quiz. An empty list means open access.
-    const audience = await pool.query(
-      `SELECT
-         COUNT(*)::int AS configured,
-         COUNT(*) FILTER (WHERE user_id = $2 AND status = 1)::int AS allowed
-       FROM quiz_participants
-       WHERE quiz_id = $1`,
-      [quizId, userId]
-    );
-    const { configured, allowed } = audience.rows[0] ?? { configured: 0, allowed: 0 };
-    if (q.audience_mode === 'classroom' && Number(configured) > 0 && Number(allowed) === 0) {
-      return { allowed: false, reason: "You are not invited to this quiz" };
+    // The creator is always allowed to attempt their own quiz (owner bypass).
+    const isOwner = Number(q.createdby) === Number(userId);
+    if (!isOwner) {
+      const audience = await pool.query(
+        `SELECT
+           COUNT(*)::int AS configured,
+           COUNT(*) FILTER (WHERE user_id = $2 AND status = 1)::int AS allowed
+         FROM quiz_participants
+         WHERE quiz_id = $1`,
+        [quizId, userId]
+      );
+      const { configured, allowed } = audience.rows[0] ?? { configured: 0, allowed: 0 };
+      if (q.audience_mode === 'classroom' && Number(configured) > 0 && Number(allowed) === 0) {
+        return { allowed: false, reason: "You are not invited to this quiz" };
+      }
     }
 
     const existingAttempt = await pool.query(
@@ -1570,8 +1574,9 @@ export class QuizRepository {
     if (q.endtime && new Date(q.endtime) < now) return { allowed: false, reason: "Quiz has ended" };
 
     // An empty participant list means open access. Once a creator configures
-    // an audience, only explicitly allowed users may register.
-    if (userId) {
+    // an audience, only explicitly allowed users may register. The creator is
+    // always allowed (owner bypass).
+    if (userId && Number(q.createdby) !== Number(userId)) {
       const audience = await pool.query(
         `SELECT
            COUNT(*)::int AS configured,

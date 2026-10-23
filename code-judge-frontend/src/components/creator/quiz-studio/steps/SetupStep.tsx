@@ -80,9 +80,9 @@ export function SetupStep() {
         </p>
       </motion.div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-stretch">
         {/* ── Left column: creation mode + basic info ── */}
-        <div className="flex min-w-0 flex-col gap-6">
+        <div className="flex h-full min-w-0 flex-col gap-6">
           {/* Creation method choice — only on create, not edit */}
           {!editMode && (
             <motion.section
@@ -119,7 +119,7 @@ export function SetupStep() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: editMode ? 0 : 0.12 }}
-            className="rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-6 sm:p-8"
+            className="flex flex-1 flex-col rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-6 sm:p-8"
           >
             <h2 className="text-lg font-extrabold text-[var(--qs-ink)]">
               Basic information
@@ -229,19 +229,20 @@ export function SetupStep() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.18 }}
-          className="flex flex-col gap-4"
+          className="flex h-full min-h-0 flex-col"
         >
-          <span className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
-            Live preview
-          </span>
-
           {/* Miniature model of the student join view */}
           <div
-            className="relative overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]"
+            className="relative flex flex-1 flex-col overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]"
             aria-label="Miniature preview of the student join screen"
           >
+            <div className="shrink-0 border-b-2 border-[var(--qs-line)] px-4 py-2.5 text-center">
+              <span className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+                Live preview
+              </span>
+            </div>
             {/* Header band with rating + avatar, like the join screen */}
-            <div className="relative border-b-2 border-[var(--qs-line)] bg-[var(--qs-poly-1)] px-4 py-3">
+            <div className="relative border-b-2 border-[var(--qs-line)] bg-[var(--qs-brand)] px-4 py-3">
               <div className="mb-2.5 flex justify-center">
                 <span className="inline-flex items-center gap-0.5" role="img" aria-label="Rated 4.8 out of 5">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -250,7 +251,7 @@ export function SetupStep() {
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="relative grid aspect-square w-14 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-lg font-extrabold uppercase text-white">
+                <div className="relative grid aspect-square w-14 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-white/30 bg-[var(--qs-brand)] text-lg font-extrabold uppercase text-white">
                   {teacherAvatar ? (
                     // eslint-disable-next-line @next/next/no-img-element -- avatar URLs may be remote/user-configured
                     <img src={teacherAvatar} alt={`${teacherName || "Quiz creator"} avatar`} className="h-full w-full object-cover" />
@@ -260,10 +261,10 @@ export function SetupStep() {
                   <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[var(--qs-surface)] bg-[var(--qs-ok)]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className={cn("break-words text-[15px] font-extrabold leading-snug tracking-[-0.02em]", info.title ? "text-[var(--qs-ink)]" : "text-[var(--qs-muted)]")}>
+                  <h3 className={cn("break-words text-[15px] font-extrabold leading-snug tracking-[-0.02em]", info.title ? "text-white" : "text-white/60")}>
                     {info.title || "Your quiz title"}
                   </h3>
-                  <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] font-semibold text-[var(--qs-muted)]">
+                  <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] font-semibold text-white/70">
                     {teacherName || "You"} · {info.subject || "Subject"}
                     <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full border-2 border-[#a85d00]/30 bg-[#fff3d6] px-1.5 py-px text-[10px] font-extrabold tabular-nums text-[#a85d00]">
                       <Star className="h-2.5 w-2.5 fill-current" aria-hidden="true" /> 4.8
@@ -273,7 +274,7 @@ export function SetupStep() {
               </div>
             </div>
 
-            <div className="relative p-4">
+            <div className="relative flex flex-1 flex-col p-4">
               <p className={cn("line-clamp-2 text-xs font-medium leading-relaxed", info.shortDescription ? "text-[var(--qs-muted)]" : "text-[var(--qs-muted)]/70")}>
                 {info.shortDescription || "Your description will appear here as you type."}
               </p>
@@ -323,7 +324,7 @@ export function SetupStep() {
               </div>
 
               {/* Join button replica (preview only, non-interactive) */}
-              <div className="mt-3" aria-hidden="true">
+              <div className="mt-auto pt-3" aria-hidden="true">
                 <div className="pointer-events-none flex h-12 w-full select-none items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-sm font-extrabold text-[#1a1240]">
                   Join Quiz
                   <ArrowRight className="h-3.5 w-3.5" />

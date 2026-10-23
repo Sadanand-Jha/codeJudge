@@ -104,7 +104,7 @@ export function QuestionList({
         <button
           type="button"
           onClick={() => addQuestion()}
-          className="b b-ghost b-full sm mt-3"
+          className="b b-full sm mt-3"
         >
           <Plus className="h-3.5 w-3.5" /> Add question
         </button>
