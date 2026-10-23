@@ -398,18 +398,17 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
   const openDetail = useCallback((s: Student) => {
     setDetailPanel(s);
     setDetailReview(null);
+    // In-progress attempts must not expose a question-wise review.
+    setDetailLoading(s.attemptId !== null && s.status !== "IN_PROGRESS");
   }, []);
 
   useEffect(() => {
     if (!detailPanel) return;
-    // In-progress attempts must not expose a question-wise review.
     if (detailPanel.attemptId === null || detailPanel.status === "IN_PROGRESS") {
-      setDetailLoading(false);
       return;
     }
 
     let cancelled = false;
-    setDetailLoading(true);
     void (async () => {
       try {
         const numericId = /^\d+$/.test(quizId) ? quizId : String((await getQuizByCode(quizId)).id);

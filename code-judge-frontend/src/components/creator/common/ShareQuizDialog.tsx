@@ -63,41 +63,52 @@ export function buildShareMessage(quiz: ShareQuizInfo, style: ShareStyleId): str
   const questions = `${quiz.questions} ${quiz.questions === 1 ? "question" : "questions"}`;
 
   if (style === "ticket") {
-    return `🎯 *QUIZ TIME!*
-┈┈┈┈┈┈┈┈┈┈┈┈
-*${quiz.title}*
+    return `🎟️🔥 *QUIZ PASS* 🔥🎟️
+╔════════════════════╗
+   🎯 *${quiz.title}*
+╚════════════════════╝
 
-🔑 Join code
+📚 ${questions}  •  ${statusLine(quiz.status)}
+
+🎫 *YOUR ENTRY CODE*
 \`\`\`${show}\`\`\`
 
-👇 Tap to join
+👇 *One-tap entry*
 ${link}
-┈┈┈┈┈┈┈┈┈┈┈┈
-⏳ _Sab best of luck!_`;
+
+🍀 _Best of luck!_ 🚀`;
   }
 
   if (style === "desi") {
     const intro = quiz.status === "live" ? "shuru ho gaya hai! 🚀" : "join ke liye ready hai! 🚀";
-    return `Hello class 👋
+    return `🚀✨ *QUIZ TIME!* ✨🚀
+┏━━━━━━━━━━━━━━━━━━┓
+   🎯 *${quiz.title}*
+┗━━━━━━━━━━━━━━━━━━┛
 
-*${quiz.title}* ${intro}
+${intro}
 
-> Link pe click karo, seedha join ho jaoge.
+👇 *Seedha join karo*
 ${link}
 
-Link na khule to site kholo aur code daalo: *${show}*`;
+🔑 Link na khule to code daalo: *${show}*
+
+🏆 _All the best!_ 💪`;
   }
 
-  return `🎯 *${quiz.title}*
+  return `🎉✨ *QUIZ ALERT* ✨🎉
+┏━━━━━━━━━━━━━━━━━━┓
+   🎯 *${quiz.title}*
+┗━━━━━━━━━━━━━━━━━━┛
 
 📚 ${questions}  •  ${statusLine(quiz.status)}
 
 🔑 *Join code:* \`\`\`${show}\`\`\`
 
-👉 *Join here:*
+👇 *Tap to join instantly*
 ${link}
 
-_Good luck!_ ✨`;
+🏆 _Good luck — you've got this!_ ✨`;
 }
 
 export async function copyText(value: string): Promise<void> {

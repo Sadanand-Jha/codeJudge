@@ -67,11 +67,11 @@ const FEATURE_TABS: FeatureTab[] = [
   {
     tab: "Live quizzes",
     heading: "Share one code. Go live.",
-    body: "Publish a quiz and every student joins with its access code. You see attempts, who is taking it right now and how it is going.",
+    body: "Publish. Students join with one code. Watch attempts land as they happen.",
     bullets: [
-      "A unique access code for every quiz",
-      "Auto-submit when the timer runs out",
-      "End the quiz whenever you like",
+      "One code per quiz",
+      "Auto-submit when time runs out",
+      "End it whenever you like",
     ],
     preview: (
       <>
@@ -109,11 +109,11 @@ const FEATURE_TABS: FeatureTab[] = [
   {
     tab: "Responses",
     heading: "Every student, in real time.",
-    body: "See submitted, in-progress and auto-submitted attempts with marks, percentage and time taken. Search, filter, sort, export or email the results.",
+    body: "Submitted, in progress, auto-submitted — with marks, time and rank. Search, filter, export or email.",
     bullets: [
-      "Rank by marks, then by time",
-      "Filter by status and search by name or roll number",
-      "Download CSV or send results on email",
+      "Rank by marks, then time",
+      "Search by name or roll number",
+      "CSV or email",
     ],
     preview: (
       <>
@@ -141,11 +141,11 @@ const FEATURE_TABS: FeatureTab[] = [
   {
     tab: "Analytics",
     heading: "Know which questions work.",
-    body: "Score distribution, completion funnel, hardest and easiest questions, time per question and plain-language insights, so you know what to teach again.",
+    body: "Score spread, completion, hardest and slowest questions — and what to reteach.",
     bullets: [
-      "Question intelligence: hardest, easiest, slowest",
-      "Drill into any student, question by question",
-      "Insights generated from real data",
+      "Hardest, easiest, slowest",
+      "Drill into any student",
+      "Insights from real data",
     ],
     preview: (
       <>
@@ -178,12 +178,12 @@ const FEATURE_TABS: FeatureTab[] = [
   },
   {
     tab: "Game mode",
-    heading: "Make quizzes fun to play.",
-    body: "Add lives, lifelines and a timer. Students can use 50-50, hints, skips or extra time, and you see which power-ups they reached for.",
+    heading: "Make it a game.",
+    body: "Lives, lifelines and a timer. They play. You see which power-ups they reach for.",
     bullets: [
-      "Lives, 50-50, hints, skip and extra time",
-      "Timer for every question",
-      "Power-up and lives analytics",
+      "Lives, 50-50, hints, skip, extra time",
+      "Timer per question",
+      "Power-up analytics",
     ],
     preview: (
       <>

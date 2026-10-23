@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { PricingFooter, PricingNav } from "@/components/pricing/PricingChrome";
 import { CREDIT_VALIDITY_MONTHS } from "@/config/aiCredits";
-import { CREATOR_PLANS } from "@/config/creatorPlans";
+import { CREATOR_PLANS, getCreatorPlanDiscount } from "@/config/creatorPlans";
 
 const PLAN_INCLUDES: Array<{ title: string; icon: LucideIcon }> = [
   { title: "Access codes", icon: LockKeyhole },
@@ -39,7 +39,7 @@ const FAQS = [
   },
   {
     q: "Is there a free plan?",
-    a: "Yes. Free gives you five quiz creations a month with access codes, instant results and leaderboards.",
+    a: "Yes. Free is a 7-day trial with 2 quiz creations, 1 room, access codes, instant results and leaderboards.",
   },
   {
     q: "Are prices inclusive of taxes?",
@@ -59,11 +59,12 @@ export default function PricingPage() {
       <main id="top">
         <header className="wrap qp-hero">
           <p className="eb">Monthly plans</p>
-          <h1>Plans that grow with your classroom</h1>
+          <h1>Plans that grow with your quiz load</h1>
           <p className="lead">
-            Start with five quizzes a month, free. Move up when your class
-            grows. Every plan includes the full quiz builder, access codes and
-            instant results. Paid plans also include monthly AI credits.
+            Start with a 7-day free trial: 2 quizzes and 1 room. Move up when
+            your quiz load grows. Every plan includes the full quiz builder,
+            access codes and instant results. Paid plans also include monthly AI
+            credits at the limited 2026 offer price.
           </p>
           <div className="qp-actions">
             <Link href="/register" className="btn pri">
@@ -75,7 +76,8 @@ export default function PricingPage() {
           </div>
           <div className="qp-meta" aria-label="Pricing highlights">
             <span>No card required</span>
-            <span>5 free quizzes</span>
+            <span>7-day free trial · 2 quizzes · 1 room</span>
+            <span>Limited 2026 offer</span>
             <span>GST included</span>
           </div>
         </header>
@@ -93,50 +95,63 @@ export default function PricingPage() {
             </div>
 
             <div className="qp-grid">
-              {CREATOR_PLANS.map((plan) => (
-                <article
-                  key={plan.id}
-                  className={`qp-plan${plan.featured ? " is-hot" : ""}`}
-                  aria-labelledby={`plan-${plan.id}`}
-                >
-                  {plan.featured && <span className="qp-badge">Most popular</span>}
-
-                  <div className="qp-plan-top">
-                    <h3 id={`plan-${plan.id}`}>{plan.name}</h3>
-                    {plan.price === 0 && <span className="qp-pill">Free forever</span>}
-                  </div>
-                  <p className="qp-plan-desc">{plan.tagline}</p>
-
-                  <div className="qp-price">
-                    <b>{inr(plan.price)}</b>
-                    <span>{plan.price === 0 ? "to start" : "/ month"}</span>
-                  </div>
-
-                  <p
-                    className={`qp-plan-credits${plan.credits === 0 ? " is-muted" : ""}`}
+              {CREATOR_PLANS.map((plan) => {
+                const discount = getCreatorPlanDiscount(plan);
+                return (
+                  <article
+                    key={plan.id}
+                    className={`qp-plan${plan.featured ? " is-hot" : ""}`}
+                    aria-labelledby={`plan-${plan.id}`}
                   >
-                    <Sparkles size={14} aria-hidden="true" />
-                    {plan.credits > 0
-                      ? `Includes ${plan.credits} AI credits / month`
-                      : "AI credits sold separately"}
-                  </p>
+                    {plan.featured && <span className="qp-badge">Most popular</span>}
 
-                  <ul className="qp-features">
-                    {plan.features.map((feature) => (
-                      <li key={feature}>
-                        <span className="qp-tick" aria-hidden="true">
-                          <Check size={12} strokeWidth={3.5} />
-                        </span>
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
+                    <div className="qp-plan-top">
+                      <h3 id={`plan-${plan.id}`}>{plan.name}</h3>
+                      {plan.trialDays ? (
+                        <span className="qp-pill">{plan.trialDays}-day trial</span>
+                      ) : discount > 0 ? (
+                        <span className="qp-pill">{discount}% off</span>
+                      ) : plan.price === 0 ? (
+                        <span className="qp-pill">Free forever</span>
+                      ) : null}
+                    </div>
+                    {plan.offer && <p className="qp-offer">{plan.offer}</p>}
+                    <p className="qp-plan-desc">{plan.tagline}</p>
 
-                  <Link href="/register" className="btn qp-plan-cta">
-                    {plan.cta}
-                  </Link>
-                </article>
-              ))}
+                    <div className="qp-price">
+                      <b>{inr(plan.price)}</b>
+                      {discount > 0 && plan.originalPrice ? (
+                        <s>{inr(plan.originalPrice)}</s>
+                      ) : null}
+                      <span>{plan.price === 0 ? "to start" : "/ month"}</span>
+                    </div>
+
+                    <p
+                      className={`qp-plan-credits${plan.credits === 0 ? " is-muted" : ""}`}
+                    >
+                      <Sparkles size={14} aria-hidden="true" />
+                      {plan.credits > 0
+                        ? `Includes ${plan.credits} AI credits / month`
+                        : "AI credits sold separately"}
+                    </p>
+
+                    <ul className="qp-features">
+                      {plan.features.map((feature) => (
+                        <li key={feature}>
+                          <span className="qp-tick" aria-hidden="true">
+                            <Check size={12} strokeWidth={3.5} />
+                          </span>
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+
+                    <Link href="/register" className="btn qp-plan-cta">
+                      {plan.cta}
+                    </Link>
+                  </article>
+                );
+              })}
             </div>
 
             <p className="qp-after">
@@ -195,7 +210,7 @@ export default function PricingPage() {
             <div className="cta">
               <div>
                 <p className="eb">Start today</p>
-                <h2>Your first five quizzes are free.</h2>
+                <h2>Your first 2 quizzes and 1 room are free for 7 days.</h2>
               </div>
               <div className="qp-cta-actions">
                 <Link href="/register" className="btn">
