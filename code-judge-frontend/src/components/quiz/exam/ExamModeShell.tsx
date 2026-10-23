@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, AlertTriangle, ArrowLeft, ClipboardList, Clock, Maximize2, Radio, Rocket, ShieldAlert, ShieldCheck, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
+import { useTheme } from "@/context/ThemeContext";
 import { reportViolation } from "@/services/quiz";
 
 export const MAX_EXAM_VIOLATIONS = 3;
@@ -99,6 +100,28 @@ export default function ExamModeShell({
     attemptIdRef.current = attemptId;
   }, [attemptId]);
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { lockTheme, unlockTheme } = useTheme();
+  const themeLockRef = useRef(false);
+
+  const acquireThemeLock = useCallback(() => {
+    if (themeLockRef.current) return;
+    themeLockRef.current = true;
+    lockTheme("dark");
+  }, [lockTheme]);
+
+  const releaseThemeLock = useCallback(() => {
+    if (!themeLockRef.current) return;
+    themeLockRef.current = false;
+    unlockTheme();
+  }, [unlockTheme]);
+
+  useEffect(() => {
+    return () => {
+      if (!themeLockRef.current) return;
+      themeLockRef.current = false;
+      unlockTheme();
+    };
+  }, [unlockTheme]);
 
   const formatTime = (s: number | null) => {
     if (s === null) return "No limit";
@@ -152,12 +175,16 @@ export default function ExamModeShell({
   const enterExamMode = useCallback(async (registrationData?: Record<string, string>): Promise<boolean> => {
     if (entering) return false;
     setEntering(true);
+    acquireThemeLock();
 
     try {
       // Access and attempt-limit checks must finish before the protected exam
       // UI is activated. Returning false keeps the student on this screen.
       const canEnter = await onEnterExam?.(registrationData);
-      if (canEnter === false) return false;
+      if (canEnter === false) {
+        releaseThemeLock();
+        return false;
+      }
 
       setShowRegistration(false);
       setExamActive(true);
@@ -181,10 +208,13 @@ export default function ExamModeShell({
         }
       }
       return true;
+    } catch (error) {
+      releaseThemeLock();
+      throw error;
     } finally {
       setEntering(false);
     }
-  }, [entering, onEnterExam]);
+  }, [entering, onEnterExam, acquireThemeLock, releaseThemeLock]);
 
   const submitRegistration = useCallback(async () => {
     if (!registrationComplete) return;
@@ -197,13 +227,14 @@ export default function ExamModeShell({
     setShowQuitConfirm(false);
     setExamActive(false);
     setActiveViolation(null);
+    releaseThemeLock();
     if (document.fullscreenElement) {
       try {
         await document.exitFullscreen();
       } catch {}
     }
     onExitPreview();
-  }, [onExitPreview]);
+  }, [onExitPreview, releaseThemeLock]);
 
   /** Cross (X) button: live attempts must confirm first — quitting submits the
    * attempt and locks it. Previews exit immediately as before. */
@@ -401,7 +432,10 @@ export default function ExamModeShell({
               <div className="flex flex-col gap-2 pt-1.5 sm:flex-row">
                 <button
                   type="button"
-                  onClick={() => setShowRegistration(false)}
+                  onClick={() => {
+                    releaseThemeLock();
+                    setShowRegistration(false);
+                  }}
                   disabled={entering}
                   className="b w-full gap-2 sm:w-auto sm:flex-1"
                 >
@@ -474,6 +508,7 @@ export default function ExamModeShell({
               <button
                 onClick={() => {
                   if (registrationFields.length > 0) {
+                    acquireThemeLock();
                     setShowRegistration(true);
                     return;
                   }

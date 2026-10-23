@@ -262,8 +262,8 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
         </header>
 
         <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="space-y-5">
-            <section className="relative mb-4 mr-4">
+          <div className="min-w-0 space-y-5">
+            <section className="relative mb-4 mr-4 min-w-0">
               <div aria-hidden className="absolute left-4 top-4 -bottom-4 -right-4 rounded-[30px] bg-[var(--qs-sun)]" />
               <div className="relative overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
                 <header className="flex flex-wrap items-start justify-between gap-3 px-4 pb-4 pt-5 sm:px-[26px]">
@@ -344,7 +344,7 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
               </div>
             </section>
 
-            <section className="relative mb-4 mr-4">
+            <section className="relative mb-4 mr-4 min-w-0">
               <div aria-hidden className="absolute left-4 top-4 -bottom-4 -right-4 rounded-[30px] bg-[var(--qs-sun)]" />
               <div className="relative overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
                 <header className="flex flex-wrap items-start justify-between gap-3 px-4 pb-4 pt-5 sm:px-[26px]">
@@ -450,7 +450,7 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
             </section>
           </div>
 
-          <aside className="space-y-5">
+          <aside className="min-w-0 space-y-5">
             <TeacherPublicCard teacher={teacher} />
 
             <section className="rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">

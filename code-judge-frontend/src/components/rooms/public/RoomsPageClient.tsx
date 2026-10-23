@@ -163,7 +163,10 @@ export default function RoomsPageClient() {
           <RoomJoinForm initialCode={initialCode} animate={animate} />
         </div>
 
-        <Reveal as="p" className="mt-8 text-center text-xs text-[var(--qs-muted)]">
+        <Reveal
+          as="p"
+          className="mx-auto mt-8 w-fit max-w-full rounded-full border border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2 text-center text-xs font-semibold text-[var(--qs-ink)] shadow-[0_2px_0_var(--qs-line)]"
+        >
           Need help? Ask your teacher for the code and password again — passwords are never
           shown on this page.
         </Reveal>

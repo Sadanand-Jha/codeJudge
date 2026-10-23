@@ -7,10 +7,11 @@ import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/helpers";
 
 export default function ThemeToggle({ className, variant = "pill" }: { className?: string; variant?: "pill" | "icon" }) {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, themeLocked } = useTheme();
   const isDark = theme === "dark";
 
   const handleThemeChange = () => {
+    if (themeLocked) return;
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const viewTransitionDocument = document as Document & {
       startViewTransition?: (update: () => void) => { finished: Promise<void> };
@@ -31,12 +32,14 @@ export default function ThemeToggle({ className, variant = "pill" }: { className
       <button
         type="button"
         onClick={handleThemeChange}
+        disabled={themeLocked}
         className={cn(
           "grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-ai-border bg-ai-surface text-ai-text-sec transition-colors hover:bg-ai-hover hover:text-ai-text",
+          themeLocked && "cursor-not-allowed opacity-40",
           className
         )}
-        aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
-        title={`Switch to ${isDark ? "light" : "dark"} theme`}
+        aria-label={themeLocked ? "Theme is locked during the exam" : `Switch to ${isDark ? "light" : "dark"} theme`}
+        title={themeLocked ? "Theme is locked during the exam" : `Switch to ${isDark ? "light" : "dark"} theme`}
       >
         {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
       </button>
@@ -45,13 +48,16 @@ export default function ThemeToggle({ className, variant = "pill" }: { className
 
   return (
     <button
+      type="button"
       onClick={handleThemeChange}
+      disabled={themeLocked}
       className={cn(
         "relative inline-flex h-8 w-14 items-center rounded-full border border-border bg-card transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
+        themeLocked && "cursor-not-allowed opacity-40",
         className
       )}
-      aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
-      title={`Switch to ${isDark ? "light" : "dark"} theme`}
+      aria-label={themeLocked ? "Theme is locked during the exam" : `Switch to ${isDark ? "light" : "dark"} theme`}
+      title={themeLocked ? "Theme is locked during the exam" : `Switch to ${isDark ? "light" : "dark"} theme`}
       role="switch"
       aria-checked={isDark ? "false" : "true"}
     >

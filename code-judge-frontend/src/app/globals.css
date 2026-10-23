@@ -147,6 +147,24 @@
    Text Secondary: #9CA3AF (dark) / #6B7280 (light)
  */
 
+
+:root {
+  /* == Rooms cinematic timing == */
+  --rooms-dur-instant: 120ms;
+  --rooms-dur-swift: 150ms;
+  --rooms-dur-base: 250ms;
+  --rooms-dur-med: 300ms;
+  --rooms-dur-slow: 500ms;
+  --rooms-dur-title: 600ms;
+  --rooms-dur-tab-out: 200ms;
+  --rooms-dur-tab-in: 300ms;
+  --rooms-dur-curtain: 400ms;
+  --rooms-dur-shake: 350ms;
+  --rooms-dur-pulse: 450ms;
+  --rooms-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --rooms-ease-soft: ease-out;
+}
+
 :root {
   /* == Core surfaces == */
   --background: #09090B;

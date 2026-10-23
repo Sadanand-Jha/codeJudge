@@ -6,6 +6,7 @@ import {
   useEffect,
   useSyncExternalStore,
   useCallback,
+  useState,
 } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { updatePreferences } from "@/services/auth";
@@ -16,6 +17,9 @@ interface ThemeContextValue {
   theme: Theme;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
+  themeLocked: boolean;
+  lockTheme: (theme?: Theme) => void;
+  unlockTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
@@ -27,9 +31,10 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 // localStorage and the UI updates to the user's actual preference.
 const themeStore = {
   _listeners: new Set<() => void>(),
+  forced: null as Theme | null,
 
   getSnapshot(): Theme {
-    return getInitialTheme();
+    return this.forced ?? getInitialTheme();
   },
 
   getServerSnapshot(): Theme {
@@ -53,6 +58,18 @@ const themeStore = {
     this._emit();
   },
 
+  force(theme: Theme) {
+    this.forced = theme;
+    applyThemeToDOM(theme);
+    this._emit();
+  },
+
+  release() {
+    this.forced = null;
+    applyThemeToDOM(getInitialTheme());
+    this._emit();
+  },
+
   toggle(current: Theme): Theme {
     const next = current === "dark" ? "light" : "dark";
     this.set(next);
@@ -67,6 +84,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     themeStore.getServerSnapshot.bind(themeStore)
   );
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const [themeLocked, setThemeLocked] = useState(false);
 
   // After mount, notify subscribers so getSnapshot re-reads the theme from
   // localStorage (or system preference) and the UI reflects the user's choice.
@@ -84,6 +102,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = useCallback(
     (newTheme: Theme) => {
+      if (themeLocked) return;
       themeStore.set(newTheme);
       if (isAuthenticated) {
         updatePreferences({ theme: newTheme }).catch(() => {
@@ -91,10 +110,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         });
       }
     },
-    [isAuthenticated]
+    [isAuthenticated, themeLocked]
   );
 
   const toggleTheme = useCallback(() => {
+    if (themeLocked) return;
     themeStore.toggle(theme);
     if (isAuthenticated) {
       const next = theme === "dark" ? "light" : "dark";
@@ -102,10 +122,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         // Silent fail for theme sync
       });
     }
-  }, [theme, isAuthenticated]);
+  }, [theme, isAuthenticated, themeLocked]);
+
+  const lockTheme = useCallback((newTheme: Theme = "dark") => {
+    themeStore.force(newTheme);
+    setThemeLocked(true);
+  }, []);
+
+  const unlockTheme = useCallback(() => {
+    themeStore.release();
+    setThemeLocked(false);
+  }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
+    <ThemeContext.Provider
+      value={{ theme, setTheme, toggleTheme, themeLocked, lockTheme, unlockTheme }}
+    >
       {children}
     </ThemeContext.Provider>
   );

@@ -33,7 +33,7 @@ import { useUIStore } from "@/store/uiStore";
 import { useSavedAvatar } from "@/store/avatarStore";
 import { logout } from "@/services/auth";
 import { toast } from "@/lib/toast";
-import { isQuizProblemsPath, isNestedQuizPath } from "@/lib/quizWorkspace";
+import { isQuizProblemsPath, isNestedQuizPath, isStudentQuizFlowPath } from "@/lib/quizWorkspace";
 import { cn } from "@/lib/helpers";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { Sidebar } from "@/components/ui/Sidebar";
@@ -222,7 +222,7 @@ function isEditorPath(pathname: string): boolean {
 
 // Routes that should be fullscreen (no sidebar/navbar)
 function isFullscreenRoute(pathname: string): boolean {
-  return pathname.includes("/waiting") || pathname.startsWith("/tests/attempt");
+  return isStudentQuizFlowPath(pathname) || pathname.startsWith("/tests/attempt");
 }
 
 // Public pages whose children are fully static (server-rendered). Rendering
@@ -376,7 +376,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
         )}
       >
         <div className="relative z-10 flex h-full w-full flex-col">
-        {/* Brand */}
+        {/* Brand header — mirrors Creator Studio's sidebar */}
         <div className="flex shrink-0 items-center justify-between gap-2 border-b-2 border-[var(--qs-line)] px-3 py-3">
             <Link
               href={homeHref}
@@ -387,9 +387,8 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
               className="flex min-w-0 items-center gap-2.5"
               aria-label="QuizSupport home"
             >
-              <SecureLogo size={36} variant="mark" />
-              <span className="truncate text-sm font-extrabold tracking-tight text-[var(--qs-ink)]">
-                QuizSupport
+              <span className="min-w-0 truncate text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--qs-brand)]">
+                Student Mode
               </span>
             </Link>
             <button
@@ -501,8 +500,8 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
                 on every size. Mobile shows the icon-only mark; the full wordmark is
                 too wide and overlaps the header actions on small screens. */}
             <Link href={homeHref} className="flex shrink-0 items-center gap-2" aria-label="QuizSupport home">
-              <SecureLogo size={36} variant="mark" className="sm:hidden" />
-              <SecureLogo size={48} variant="full" className="hidden sm:block" />
+              <SecureLogo size={30} variant="mark" className="sm:hidden" />
+              <SecureLogo size={40} variant="full" className="hidden sm:block" />
             </Link>
           </div>
 

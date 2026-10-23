@@ -180,7 +180,7 @@ export const AiTrap = memo(AiTrapLayer);
 const GHOST_COLOR = "#222235";
 const GHOST_FONT_SIZE = 5;
 const GHOST_WIDTH = 420;
-const GHOST_HEIGHT = 6;
+const GHOST_HEIGHT = 7;
 
 export interface TrapGhostProps {
   trap: QuizTrap | null | undefined;
