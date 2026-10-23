@@ -5796,6 +5796,12 @@ textarea {
   .qs-lp section.s {
     padding: 84px 0;
     border-top: 2px solid var(--line);
+    scroll-margin-top: 88px;
+  }
+
+  .qs-lp .lp-stats,
+  .qs-lp #top {
+    scroll-margin-top: 88px;
   }
 
   .qs-lp .eb {
@@ -7050,9 +7056,15 @@ textarea {
     width: 39%;
   }
 
+  .qs-lp .cmp td > span {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
   .qs-lp .cmp td svg {
-    vertical-align: -3px;
-    margin-right: 8px;
+    flex: none;
+    margin-top: 3px;
   }
 
   .qs-lp .cmp td.yes svg {
@@ -7336,6 +7348,69 @@ textarea {
 
     .qs-lp .wg {
       grid-template-columns: 1fr;
+    }
+
+    .qs-lp .cmp-wrap {
+      overflow: visible;
+    }
+
+    .qs-lp .cmp {
+      min-width: 0;
+    }
+
+    .qs-lp .cmp thead {
+      display: none;
+    }
+
+    .qs-lp .cmp tbody,
+    .qs-lp .cmp tr,
+    .qs-lp .cmp th,
+    .qs-lp .cmp td {
+      display: block;
+      width: auto;
+    }
+
+    .qs-lp .cmp tr {
+      padding: 14px 16px;
+      border-bottom: 1.5px solid var(--line);
+    }
+
+    .qs-lp .cmp tbody tr:last-child {
+      border-bottom: 0;
+    }
+
+    .qs-lp .cmp tbody th {
+      padding: 0 0 6px;
+      border: 0;
+      font-size: 14px;
+    }
+
+    .qs-lp .cmp td {
+      display: flex;
+      gap: 6px;
+      padding: 3px 0;
+      border: 0;
+      font-size: 13px;
+    }
+
+    .qs-lp .cmp td > span {
+      flex: 1;
+    }
+
+    .qs-lp .cmp td.yes::before,
+    .qs-lp .cmp td.no::before {
+      flex: none;
+      font-weight: 800;
+    }
+
+    .qs-lp .cmp td.yes::before {
+      content: "QuizSupport";
+      color: var(--ok);
+    }
+
+    .qs-lp .cmp td.no::before {
+      content: "Usual stack";
+      color: var(--bad);
     }
 
     .qs-lp .room-flow {

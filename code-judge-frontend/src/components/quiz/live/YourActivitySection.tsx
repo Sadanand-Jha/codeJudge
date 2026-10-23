@@ -435,7 +435,7 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
           <div className="mt-3 flex items-center justify-between gap-2 border-t-2 border-[var(--qs-line)] pt-2.5">
             <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--qs-muted)]">
               <Milestone className="h-3.5 w-3.5" />
-              {quiz.correct_answers + quiz.wrong_answers + quiz.skipped_questions}/{quiz.total_questions} answered
+              {(quiz.correct_answers ?? 0) + (quiz.wrong_answers ?? 0) + (quiz.skipped_questions ?? 0)}/{quiz.total_questions} answered
             </span>
             <Link
               href={`/quiz/${quiz.quiz_id}`}

@@ -2131,15 +2131,19 @@ export const submitQuizRating = async (req: Request, res: Response) => {
 
 const RESULT_VISIBILITY_DELAY_MS = 60 * 60 * 1000;
 
+function isAttemptInProgress(attempt: any): boolean {
+  const status = String(attempt?.status ?? attempt?.attempt_status ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+  return status === "in_progress";
+}
+
 function areStudentResultsAvailable(result: any): boolean {
   // Never expose an attempt (or its review) while it is still being taken,
   // even if immediate results are enabled. This also blocks opening it via a
   // result URL/history after navigating back.
-  const attemptStatus = String(result?.status ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/[\s-]+/g, "_");
-  if (attemptStatus === "in_progress") return false;
+  if (isAttemptInProgress(result)) return false;
   // Students can see their result one hour after the quiz end time. The quiz
   // status alone is not enough — an early end still respects the same delay.
   if (!result?.endtime) return false;
@@ -2148,6 +2152,7 @@ function areStudentResultsAvailable(result: any): boolean {
 
 /** Owners and accepted collaborators can always view results immediately. */
 async function canViewerSeeResult(result: any, viewerId: number): Promise<boolean> {
+  if (isAttemptInProgress(result)) return false;
   if (Number(result?.createdby) === Number(viewerId)) return true;
   const quizId = Number(result?.quiz_id);
   if (Number.isInteger(quizId) && quizId > 0) {
@@ -2180,6 +2185,14 @@ export const getQuizResult = async (req: Request, res: Response) => {
       res.status(404).json({
         success: false,
         message: "Quiz result not found",
+      });
+      return;
+    }
+
+    if (isAttemptInProgress(result)) {
+      res.status(403).json({
+        success: false,
+        message: "This attempt is still in progress. Finish and submit the quiz to see your result.",
       });
       return;
     }
@@ -2225,6 +2238,13 @@ export const getQuizReview = async (req: Request, res: Response) => {
     const result = await quizService.getQuizResult(Number(attemptId), Number(userId));
     if (!result) {
       res.status(404).json({ success: false, message: "Quiz result not found" });
+      return;
+    }
+    if (isAttemptInProgress(result)) {
+      res.status(403).json({
+        success: false,
+        message: "This attempt is still in progress. Finish and submit the quiz to see the review.",
+      });
       return;
     }
     if (!(await canViewerSeeResult(result, Number(userId)))) {
@@ -3160,8 +3180,13 @@ export const getStudentResponseDetail = async (req: Request, res: Response) => {
       return;
     }
 
-    const review = await quizService.getStudentQuestionReview(attempt.attempt_id);
-    res.status(200).json({ success: true, data: { attempt, review } });
+    // An in-flight attempt has no final review. Never expose partial answers
+    // to the creator while the student is still taking the quiz.
+    const reviewAvailable = !isAttemptInProgress(attempt);
+    const review = reviewAvailable
+      ? await quizService.getStudentQuestionReview(attempt.attempt_id)
+      : [];
+    res.status(200).json({ success: true, data: { attempt, review, review_available: reviewAvailable } });
   } catch (error) {
     console.error("Error fetching student response detail:", error);
     res.status(500).json({

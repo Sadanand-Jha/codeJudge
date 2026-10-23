@@ -48,6 +48,7 @@ interface RoomJoinDraft {
 interface RoomJoinFormProps {
   initialCode?: string;
   animate?: boolean;
+  compact?: boolean;
 }
 
 interface JoinErrorPayload {
@@ -77,7 +78,11 @@ function joinErrorPayload(error: unknown): JoinErrorPayload | null {
 const detailsInputCls =
   "mt-1.5 w-full rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-3.5 py-3 text-sm font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] aria-[invalid=true]:border-[var(--qs-bad)]";
 
-export default function RoomJoinForm({ initialCode = "", animate = false }: RoomJoinFormProps) {
+export default function RoomJoinForm({
+  initialCode = "",
+  animate = false,
+  compact = false,
+}: RoomJoinFormProps) {
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
@@ -95,6 +100,7 @@ export default function RoomJoinForm({ initialCode = "", animate = false }: Room
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
   const [inviteReady, setInviteReady] = useState(false);
+  const [autoJoinReady, setAutoJoinReady] = useState(false);
   const [pulse, setPulse] = useState(false);
   const [shaking, setShaking] = useState(false);
   const [joined, setJoined] = useState<JoinedRoom | null>(null);
@@ -105,7 +111,9 @@ export default function RoomJoinForm({ initialCode = "", animate = false }: Room
 
   const didRestore = useRef(false);
   const codeInputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const joinedRef = useRef<HTMLDivElement>(null);
+  const autoSubmitRef = useRef(false);
   const timers = useRef<number[]>([]);
 
   const registrationForm = preview?.registration_form ?? null;
@@ -143,6 +151,7 @@ export default function RoomJoinForm({ initialCode = "", animate = false }: Room
         sessionStorage.removeItem(DRAFT_KEY);
         setPassword(invitePassword);
         setInviteReady(true);
+        setAutoJoinReady(true);
         window.history.replaceState(
           null,
           "",
@@ -156,6 +165,7 @@ export default function RoomJoinForm({ initialCode = "", animate = false }: Room
       sessionStorage.removeItem(DRAFT_KEY);
       if (draft.code) setCode(draft.code);
       if (draft.password) setPassword(draft.password);
+      setAutoJoinReady(Boolean(draft.code && draft.password));
     });
   }, []);
 
@@ -188,6 +198,14 @@ export default function RoomJoinForm({ initialCode = "", animate = false }: Room
         ? "Enter the password from your teacher's message."
         : null);
 
+  useEffect(() => {
+    if (!autoJoinReady || autoSubmitRef.current || animate) return;
+    if (!hasHydrated || joined || submitting || step !== "credentials" || !valid) return;
+
+    autoSubmitRef.current = true;
+    formRef.current?.requestSubmit();
+  }, [animate, autoJoinReady, hasHydrated, joined, submitting, step, valid]);
+
   function triggerShake() {
     if (reduced) return;
     setShaking(true);
@@ -195,7 +213,7 @@ export default function RoomJoinForm({ initialCode = "", animate = false }: Room
   }
 
   function showJoinSuccess(result: JoinedRoom) {
-    if (reduced) {
+    if (reduced || compact) {
       setFormFading(true);
       setJoined(result);
       setJoinedRevealed(true);
@@ -347,6 +365,8 @@ export default function RoomJoinForm({ initialCode = "", animate = false }: Room
     setRegistrationValues({});
     setFieldErrors({});
     setInviteReady(false);
+    setAutoJoinReady(false);
+    autoSubmitRef.current = false;
     queueMicrotask(() => codeInputRef.current?.focus());
   }
 
@@ -378,6 +398,7 @@ export default function RoomJoinForm({ initialCode = "", animate = false }: Room
             aria-hidden={joined ? true : undefined}
           >
             <form
+              ref={formRef}
               onSubmit={step === "details" ? handleDetailsSubmit : handleCredentialsSubmit}
               noValidate
               autoComplete="off"
@@ -746,7 +767,12 @@ export default function RoomJoinForm({ initialCode = "", animate = false }: Room
               <span className="mt-4 inline-block rounded-full border-2 border-[var(--qs-ok)] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ok)]">
                 {alreadyJoined ? "Already joined" : "Joined"}
               </span>
-              <h2 className={cn("qs-display mt-3 text-3xl text-[var(--qs-ink)]", styles.joinedName)}>
+              <h2
+                className={cn(
+                  "qs-display mt-3 max-w-full break-words text-3xl text-[var(--qs-ink)]",
+                  styles.joinedName
+                )}
+              >
                 {joined.room.name}
               </h2>
               <p className="mt-2 text-sm text-[var(--qs-muted)]">

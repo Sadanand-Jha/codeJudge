@@ -4,6 +4,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import { BookOpen, KeyRound, MessageSquareText } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import RoomJoinForm from "./RoomJoinForm";
 import { Reveal, RevealWords, Stagger, usePrefersReducedMotion } from "./roomMotion";
 import styles from "./roomsCinematic.module.css";
@@ -32,6 +33,7 @@ export default function RoomsPageClient() {
   const [ambientPaused, setAmbientPaused] = useState(false);
   const [initialCode, setInitialCode] = useState("");
   const reduced = usePrefersReducedMotion();
+  const isCompact = useMediaQuery("(max-width: 1023px)");
   const animate = sequence === "running" && !reduced;
 
   useEffect(() => {
@@ -57,7 +59,7 @@ export default function RoomsPageClient() {
       finish();
     }
 
-    timer = window.setTimeout(finish, 2900);
+    timer = window.setTimeout(finish, isCompact ? 420 : 2900);
     document.addEventListener("pointerdown", skip, true);
     document.addEventListener("keydown", skip, true);
 
@@ -65,7 +67,7 @@ export default function RoomsPageClient() {
       finished = true;
       cleanup();
     };
-  }, [reduced]);
+  }, [isCompact, reduced]);
 
   useEffect(() => {
     const update = () => setAmbientPaused(document.visibilityState === "hidden");
@@ -86,7 +88,7 @@ export default function RoomsPageClient() {
     <div
       className={cn(
         styles.root,
-        "isolate min-h-dvh overflow-hidden bg-[var(--qs-bg)] px-4 pb-12 pt-5 sm:px-6"
+        "isolate min-h-[calc(100dvh-3.5rem)] overflow-x-hidden bg-[var(--qs-bg)] px-4 pb-12 pt-5 sm:px-6"
       )}
       data-ambient={ambientPaused ? "paused" : "running"}
     >
@@ -109,7 +111,7 @@ export default function RoomsPageClient() {
         <div className="grid items-start gap-6 lg:grid-cols-2">
           <section
             className={cn(
-              "rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-6 sm:p-7",
+              "hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-6 sm:p-7 lg:block",
               styles.heroCard,
               animate && styles.heroCardAnimated
             )}
@@ -160,7 +162,7 @@ export default function RoomsPageClient() {
             </Stagger>
           </section>
 
-          <RoomJoinForm initialCode={initialCode} animate={animate} />
+          <RoomJoinForm initialCode={initialCode} animate={animate} compact={isCompact} />
         </div>
 
         <Reveal

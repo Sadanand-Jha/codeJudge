@@ -1392,6 +1392,7 @@ export interface StudentResponseDetail {
     answered_at: string | null;
     status: "correct" | "wrong" | "unanswered";
   }>;
+  review_available?: boolean;
 }
 
 /**

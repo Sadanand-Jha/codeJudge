@@ -465,12 +465,16 @@ export default function HomePage() {
                     <tr key={row.need}>
                       <th scope="row">{row.need}</th>
                       <td className="yes">
-                        <Check size={16} aria-hidden />
-                        {row.us}
+                        <span>
+                          <Check size={16} aria-hidden />
+                          {row.us}
+                        </span>
                       </td>
                       <td className="no">
-                        <X size={16} aria-hidden />
-                        {row.them}
+                        <span>
+                          <X size={16} aria-hidden />
+                          {row.them}
+                        </span>
                       </td>
                     </tr>
                   ))}

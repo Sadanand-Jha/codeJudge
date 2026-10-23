@@ -395,21 +395,37 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
     }
   }, [load, toast]);
 
-  const openDetail = useCallback(async (s: Student) => {
+  const openDetail = useCallback((s: Student) => {
     setDetailPanel(s);
     setDetailReview(null);
-    if (s.attemptId === null) return;
-    setDetailLoading(true);
-    try {
-      const numericId = /^\d+$/.test(quizId) ? quizId : String((await getQuizByCode(quizId)).id);
-      const detail = await getStudentResponseDetail(numericId, s.userId, s.attemptId ?? undefined);
-      setDetailReview(detail);
-    } catch {
-      setDetailReview(null);
-    } finally {
+  }, []);
+
+  useEffect(() => {
+    if (!detailPanel) return;
+    // In-progress attempts must not expose a question-wise review.
+    if (detailPanel.attemptId === null || detailPanel.status === "IN_PROGRESS") {
       setDetailLoading(false);
+      return;
     }
-  }, [quizId]);
+
+    let cancelled = false;
+    setDetailLoading(true);
+    void (async () => {
+      try {
+        const numericId = /^\d+$/.test(quizId) ? quizId : String((await getQuizByCode(quizId)).id);
+        const detail = await getStudentResponseDetail(numericId, detailPanel.userId, detailPanel.attemptId ?? undefined);
+        if (!cancelled) setDetailReview(detail);
+      } catch {
+        if (!cancelled) setDetailReview(null);
+      } finally {
+        if (!cancelled) setDetailLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [detailPanel, quizId]);
 
   const openActionMenu = useCallback((e: React.MouseEvent, student: Student) => {
     e.stopPropagation();
@@ -1111,13 +1127,19 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
           style={{ top: actionMenu.top, right: actionMenu.right }}
           className="fixed z-50 min-w-[170px] rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-1.5 shadow-[4px_4px_0_var(--qs-sun)]"
         >
-          <button
-            type="button"
-            onClick={() => { setActionMenu(null); void openDetail(actionMenu.student); }}
-            className="block w-full rounded-[8px] px-2.5 py-2 text-left text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-bg)]"
-          >
-            View attempt
-          </button>
+          {actionMenu.student.status === "IN_PROGRESS" ? (
+            <span className="block w-full rounded-[8px] px-2.5 py-2 text-left text-[13px] font-bold text-[var(--qs-muted)]">
+              Attempt in progress
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => { setActionMenu(null); void openDetail(actionMenu.student); }}
+              className="block w-full rounded-[8px] px-2.5 py-2 text-left text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-bg)]"
+            >
+              View attempt
+            </button>
+          )}
           {/* <button
             type="button"
             onClick={() => { setActionMenu(null); toast.info({ title: "Coming soon", description: "Re-opening attempts is not available yet." }); }}
@@ -1207,6 +1229,10 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                   ) : detailPanel.attemptId === null ? (
                     <p className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-3 text-xs font-medium text-[var(--qs-muted)]">
                       {detailPanel.status === "NOT_STARTED" ? "This student hasn't started the quiz yet." : "Attempt details not available."}
+                    </p>
+                  ) : detailPanel.status === "IN_PROGRESS" ? (
+                    <p className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-3 text-xs font-medium text-[var(--qs-muted)]">
+                      This attempt is still in progress. Question-wise review will be available after submission.
                     </p>
                   ) : !detailReview ? (
                     <p className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-3 text-xs font-medium text-[var(--qs-muted)]">

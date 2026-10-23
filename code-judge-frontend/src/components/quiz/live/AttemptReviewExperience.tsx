@@ -380,6 +380,7 @@ export default function AttemptReviewExperience({
   const [data, setData] = useState<AttemptReviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ratingState, setRatingState] = useState<QuizRatingState | null>(null);
   const [selectedRatings, setSelectedRatings] = useState<RatingSelection>(EMPTY_RATINGS);
@@ -399,6 +400,7 @@ export default function AttemptReviewExperience({
     async function load() {
       setLoading(true);
       setPending(false);
+      setPendingMessage(null);
       setError(null);
       try {
         const [result, review] = await Promise.all([
@@ -419,6 +421,7 @@ export default function AttemptReviewExperience({
           const status = (err as { response?: { status?: number } })?.response?.status;
           if (status === 403) {
             setPending(true);
+            setPendingMessage(getApiErrorMessage(err, "Results are being prepared."));
           } else {
             setError(getApiErrorMessage(err, "Could not load attempt review."));
             playQuizSound("error");
@@ -496,7 +499,7 @@ export default function AttemptReviewExperience({
     return (
       <QuizStateScreen
         title="Results are being prepared"
-        text="Your answers are saved. Results will be available 1 hour after the quiz ends."
+        text={pendingMessage ?? "Your answers are saved. Results will be available 1 hour after the quiz ends."}
         action={
           <Link href="/quiz" className="b b-pri gap-2">
             <ArrowLeft className="h-4 w-4" /> Back to quiz home
