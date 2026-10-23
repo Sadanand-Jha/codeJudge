@@ -256,94 +256,13 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
               </p>
             </div>
           </div>
-          <Link href="/rooms" className={QS_OUTLINE_BTN}>
+          <Link href="/rooms" className={cn(QS_OUTLINE_BTN, "w-full sm:w-auto")}>
             Join another room
           </Link>
         </header>
 
         <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="min-w-0 space-y-5">
-            <section className="relative mb-4 mr-4 min-w-0">
-              <div aria-hidden className="absolute left-4 top-4 -bottom-4 -right-4 rounded-[30px] bg-[var(--qs-sun)]" />
-              <div className="relative overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
-                <header className="flex flex-wrap items-start justify-between gap-3 px-4 pb-4 pt-5 sm:px-[26px]">
-                  <div>
-                    <h2 className="text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-2xl">
-                      Classmates
-                    </h2>
-                    <p className="mt-0.5 text-sm text-[var(--qs-muted)]">
-                      Everyone learning with you in this room.
-                    </p>
-                  </div>
-                  <p className="text-sm font-medium text-[var(--qs-muted)]">
-                    {classmates.length} total
-                  </p>
-                </header>
-
-                <div className="border-t-2 border-[var(--qs-line)] p-4 sm:p-5">
-                  <div className="relative mb-4 w-full sm:max-w-xs">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
-                    <input
-                      value={query}
-                      onChange={(event) => setQuery(event.target.value)}
-                      placeholder="Search classmates…"
-                      aria-label="Search classmates"
-                      className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] py-2.5 pl-9 pr-3.5 text-sm text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
-                    />
-                  </div>
-
-                  {filteredClassmates.length === 0 ? (
-                    <div className="rounded-[16px] border-2 border-dashed border-[var(--qs-line)] px-4 py-10 text-center">
-                      <Users className="mx-auto h-7 w-7 text-[var(--qs-muted)]" />
-                      <p className="mt-2 text-sm font-bold text-[var(--qs-ink)]">
-                        {query.trim() ? "No classmates match your search." : "No classmates yet."}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                      {filteredClassmates.map((member) => (
-                        <div
-                          key={member.id}
-                          className={cn(
-                            "flex items-center gap-3 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3.5",
-                            member.is_you && "border-[var(--qs-brand)] bg-[var(--qs-poly-1)]"
-                          )}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element -- member avatars may be remote */}
-                          <img
-                            src={memberAvatar(member)}
-                            alt=""
-                            className="h-10 w-10 shrink-0 rounded-full border-2 border-[var(--qs-ink)] object-cover"
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <p className="truncate text-sm font-extrabold text-[var(--qs-ink)]">
-                                {memberName(member)}
-                              </p>
-                              {member.is_you ? (
-                                <span className="shrink-0 rounded-full bg-[var(--qs-brand)] px-1.5 py-px text-[9px] font-extrabold uppercase tracking-[0.05em] text-[var(--qs-on-brand)]">
-                                  You
-                                </span>
-                              ) : null}
-                            </div>
-                            <p className="truncate text-[11px] font-semibold text-[var(--qs-muted)]">
-                              @{member.username}
-                            </p>
-                            {member.joinedAt ? (
-                              <p className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold text-[var(--qs-muted)]">
-                                <Clock className="h-3 w-3" />
-                                Joined {timeAgo(member.joinedAt)}
-                              </p>
-                            ) : null}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </section>
-
             <section className="relative mb-4 mr-4 min-w-0">
               <div aria-hidden className="absolute left-4 top-4 -bottom-4 -right-4 rounded-[30px] bg-[var(--qs-sun)]" />
               <div className="relative overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
@@ -445,6 +364,87 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
                       ))}
                     </div>
                   </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="relative mb-4 mr-4 min-w-0">
+              <div aria-hidden className="absolute left-4 top-4 -bottom-4 -right-4 rounded-[30px] bg-[var(--qs-sun)]" />
+              <div className="relative overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
+                <header className="flex flex-wrap items-start justify-between gap-3 px-4 pb-4 pt-5 sm:px-[26px]">
+                  <div>
+                    <h2 className="text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-2xl">
+                      Classmates
+                    </h2>
+                    <p className="mt-0.5 text-sm text-[var(--qs-muted)]">
+                      Everyone learning with you in this room.
+                    </p>
+                  </div>
+                  <p className="text-sm font-medium text-[var(--qs-muted)]">
+                    {classmates.length} total
+                  </p>
+                </header>
+
+                <div className="border-t-2 border-[var(--qs-line)] p-4 sm:p-5">
+                  <div className="relative mb-4 w-full sm:max-w-xs">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
+                    <input
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Search classmates…"
+                      aria-label="Search classmates"
+                      className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] py-2.5 pl-9 pr-3.5 text-sm text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
+                    />
+                  </div>
+
+                  {filteredClassmates.length === 0 ? (
+                    <div className="rounded-[16px] border-2 border-dashed border-[var(--qs-line)] px-4 py-10 text-center">
+                      <Users className="mx-auto h-7 w-7 text-[var(--qs-muted)]" />
+                      <p className="mt-2 text-sm font-bold text-[var(--qs-ink)]">
+                        {query.trim() ? "No classmates match your search." : "No classmates yet."}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      {filteredClassmates.map((member) => (
+                        <div
+                          key={member.id}
+                          className={cn(
+                            "flex items-center gap-3 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3.5",
+                            member.is_you && "border-[var(--qs-brand)] bg-[var(--qs-poly-1)]"
+                          )}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element -- member avatars may be remote */}
+                          <img
+                            src={memberAvatar(member)}
+                            alt=""
+                            className="h-10 w-10 shrink-0 rounded-full border-2 border-[var(--qs-ink)] object-cover"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <p className="truncate text-sm font-extrabold text-[var(--qs-ink)]">
+                                {memberName(member)}
+                              </p>
+                              {member.is_you ? (
+                                <span className="shrink-0 rounded-full bg-[var(--qs-brand)] px-1.5 py-px text-[9px] font-extrabold uppercase tracking-[0.05em] text-[var(--qs-on-brand)]">
+                                  You
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="truncate text-[11px] font-semibold text-[var(--qs-muted)]">
+                              @{member.username}
+                            </p>
+                            {member.joinedAt ? (
+                              <p className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold text-[var(--qs-muted)]">
+                                <Clock className="h-3 w-3" />
+                                Joined {timeAgo(member.joinedAt)}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </section>

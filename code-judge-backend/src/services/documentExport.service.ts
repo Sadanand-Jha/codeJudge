@@ -439,12 +439,12 @@ export function buildDocumentHtml(input: unknown): string {
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #e9e8ee; color: #111; }
-  body { font-family: 'Times New Roman', 'Liberation Serif', serif; }
+  body { font-family: 'Times New Roman', 'Liberation Serif', serif; text-align: justify; }
   .qs-page { position: relative; overflow: hidden; background: #fff; page-break-after: always; break-after: page; }
   .qs-page:last-child { page-break-after: auto; break-after: auto; }
   .qs-page + .qs-page { margin-top: 8mm; }
   .qs-background { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; pointer-events: none; }
-  .qs-header { position: absolute; border-bottom: 0.5pt solid #d8d2ef; padding-bottom: 1.5mm; font-size: 9pt; color: #4b465f; }
+  .qs-header { position: absolute; border-bottom: 0.5pt solid #d8d2ef; padding-bottom: 1.5mm; font-size: 9pt; color: #4b465f; text-align: left; }
   .qs-content { position: absolute; overflow: hidden; }
   .qs-flow { display: flex; flex-direction: column; gap: 3.2mm; }
   .qs-block { position: relative; min-width: 0; }
@@ -459,20 +459,20 @@ export function buildDocumentHtml(input: unknown): string {
   .qs-question-marks { flex: 0 0 auto; margin-top: 0.2em; font-size: 9pt; font-weight: 700; color: #1a1240; }
   .qs-instructions { border: 1.3pt solid #1a1240; background: #fbfaff; padding: 3.4mm 5mm; box-shadow: 1.5mm 1.5mm 0 rgba(255,210,63,.45); }
   .qs-table table { width: 100%; border-collapse: collapse; }
-  .qs-table th, .qs-table td { border: 0.75pt solid #1a1240; padding: 1.6mm 2mm; vertical-align: top; }
+  .qs-table th, .qs-table td { border: 0.75pt solid #1a1240; padding: 1.6mm 2mm; text-align: left; vertical-align: top; }
   .qs-table th { background: #faf9ff; font-weight: 700; }
   .qs-divider hr { border: 0; border-top: 1.2pt solid #1a1240; margin: 2mm 0; }
   .qs-image, .qs-image-placeholder { width: 100%; min-height: 20mm; }
   .qs-image img { display: block; width: 100%; height: auto; max-height: 110mm; object-fit: contain; }
   .qs-image-placeholder { display: grid; place-items: center; border: 1px dashed #b9b1dc; background: #faf9ff; color: #8b86a3; font-size: 8pt; }
-  .qs-field { display: flex; align-items: flex-end; gap: 2mm; }
+  .qs-field { display: flex; align-items: flex-end; gap: 2mm; text-align: left; }
   .qs-field span { flex: 1 1 auto; border-bottom: 1px solid #1a1240; padding: 0 1mm 0.6mm; }
   .qs-note { border: 1px solid #e7c94a; background: #fff8cc; padding: 2.5mm 3mm; font-size: 9pt; }
   .qs-equation { text-align: center; }
   .qs-equation math { font-size: 1.1em; }
   .qs-free-block { position: absolute; overflow: hidden; }
   .qs-drawings { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 40; }
-  .qs-footer { position: absolute; display: flex; align-items: center; gap: 3mm; border-top: 0.5pt solid #d8d2ef; padding-top: 1.8mm; font-size: 8.5pt; color: #5c5679; height: 8mm; }
+  .qs-footer { position: absolute; display: flex; align-items: center; gap: 3mm; border-top: 0.5pt solid #d8d2ef; padding-top: 1.8mm; font-size: 8.5pt; color: #5c5679; height: 8mm; text-align: left; }
   .qs-footer-left { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .qs-page-count { flex: 0 0 auto; font-variant-numeric: tabular-nums; }
   .qs-brand { position: absolute; right: ${BRAND.rightMm}mm; bottom: ${BRAND.bottomMm}mm; width: ${BRAND.widthMm}mm; height: ${BRAND.heightMm}mm; display: flex; align-items: center; gap: 2.2mm; padding: 1.6mm 2.2mm; background: #ffffff; border: 1.1pt solid #1a1240; border-radius: 2mm; box-shadow: 1mm 1mm 0 rgba(255,210,63,.55); color: #1a1240; opacity: 1; visibility: visible; z-index: ${BRAND.zIndex}; transform: none; }

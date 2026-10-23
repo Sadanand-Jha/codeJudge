@@ -33,7 +33,6 @@ interface RoomStoreState {
   archiveRoom: (id: string) => void;
   unarchiveRoom: (id: string) => void;
   duplicateRoom: (id: string, options?: { copyStudents?: boolean }) => Room | null;
-  deleteRoom: (id: string) => void;
   addStudents: (roomId: string, students: RoomStudent[]) => void;
   removeStudents: (roomId: string, studentIds: string[]) => void;
   setStudentActive: (roomId: string, studentId: string, active: boolean) => void;
@@ -151,10 +150,6 @@ export const useRoomStore = create<RoomStoreState>()(
         };
         set({ rooms: [...get().rooms, copy] });
         return copy;
-      },
-
-      deleteRoom: (id) => {
-        set({ rooms: get().rooms.filter((r) => r.id !== id) });
       },
 
             addStudents: (roomId, students) => {

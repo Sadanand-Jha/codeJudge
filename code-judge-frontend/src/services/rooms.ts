@@ -30,6 +30,7 @@ export interface RoomJoinPreview {
   teacher: CreatorPublicStats | null;
   password_expires_at: string | null;
   registration_form: RoomRegistrationForm;
+  already_member: boolean;
 }
 
 export interface RoomSummary {

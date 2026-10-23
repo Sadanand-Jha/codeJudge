@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, AlertTriangle, ArrowLeft, ClipboardList, Clock, Maximize2, Radio, Rocket, ShieldAlert, ShieldCheck, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowLeft, ClipboardList, Clock, Maximize2, PhoneOff, Radio, Rocket, ShieldAlert, ShieldCheck, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { useTheme } from "@/context/ThemeContext";
@@ -129,6 +129,28 @@ export default function ExamModeShell({
   };
   const timeCritical = timeLeft !== null && timeLeft <= 300;
 
+  /** Fullscreen must be requested while the entry click still counts as a user
+   * gesture. The exam container is not mounted yet, so use the document root;
+   * the fixed exam overlay then fills the screen. */
+  const requestExamFullscreen = useCallback(async (): Promise<boolean> => {
+    if (typeof document === "undefined" || document.fullscreenElement) return false;
+    const target = document.documentElement;
+    if (!target.requestFullscreen) return false;
+    try {
+      await target.requestFullscreen();
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const leaveFullscreenIfRequested = useCallback(async (requested: boolean) => {
+    if (!requested || !document.fullscreenElement) return;
+    try {
+      await document.exitFullscreen();
+    } catch {}
+  }, []);
+
   const recordViolation = useCallback(
     (type: ViolationType, title: string, desc: string) => {
       const now = Date.now();
@@ -177,12 +199,19 @@ export default function ExamModeShell({
     setEntering(true);
     acquireThemeLock();
 
+    let enteredFullscreen = false;
+
     try {
+      // Request fullscreen before any await so the browser still sees the
+      // "Enter Exam Mode" / "Start Exam" click as the required user gesture.
+      enteredFullscreen = await requestExamFullscreen();
+
       // Access and attempt-limit checks must finish before the protected exam
       // UI is activated. Returning false keeps the student on this screen.
       const canEnter = await onEnterExam?.(registrationData);
       if (canEnter === false) {
         releaseThemeLock();
+        await leaveFullscreenIfRequested(enteredFullscreen);
         return false;
       }
 
@@ -198,23 +227,15 @@ export default function ExamModeShell({
         window.history.pushState(null, "", window.location.href);
       } catch {}
 
-      // Request fullscreen when the active exam container is already mounted.
-      const el = containerRef.current;
-      if (el && el.requestFullscreen) {
-        try {
-          await el.requestFullscreen();
-        } catch {
-          // If denied, the protected exam UI still remains usable.
-        }
-      }
       return true;
     } catch (error) {
       releaseThemeLock();
+      await leaveFullscreenIfRequested(enteredFullscreen);
       throw error;
     } finally {
       setEntering(false);
     }
-  }, [entering, onEnterExam, acquireThemeLock, releaseThemeLock]);
+  }, [entering, onEnterExam, acquireThemeLock, releaseThemeLock, requestExamFullscreen, leaveFullscreenIfRequested]);
 
   const submitRegistration = useCallback(async () => {
     if (!registrationComplete) return;
@@ -492,11 +513,19 @@ export default function ExamModeShell({
             <div className="mt-4 space-y-1.5 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 text-left sm:mt-6 sm:space-y-2 sm:p-4">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--qs-muted)] sm:text-xs">Before you continue</p>
               <ul className="space-y-1.5 text-xs text-[var(--qs-muted)] sm:space-y-2 sm:text-sm">
-                <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Fullscreen is required and will be requested automatically.</li>
+                <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Fullscreen starts automatically as soon as you enter the exam.</li>
                 <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Switching tabs/windows may be recorded as a violation.</li>
                 <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Copying, cutting or pasting is blocked and recorded as a violation.</li>
                 <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Answers from AI tools or other outside help during a quiz may be unreliable or deliberately misleading.</li>
-                <li className="flex gap-2 sm:hidden"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)]" /> Pressing volume or other hardware buttons may be recorded as a violation.</li>
+                <li className="flex gap-2 rounded-lg border-2 border-[var(--qs-bad)]/40 bg-[var(--qs-badbg)] p-2.5 text-[var(--qs-bad)]">
+                  <PhoneOff className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    <span className="font-extrabold">Silence your phone before starting.</span>{" "}
+                    Turn off call volume and notifications (silent / Do Not Disturb).
+                    Volume buttons are monitored, so you may not be able to silence
+                    an incoming call during the test.
+                  </span>
+                </li>
                 <li className="hidden gap-2 sm:flex"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)]" /> Leaving fullscreen (Esc) may be recorded as a violation.</li>
                 <li className="hidden gap-2 sm:flex"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)]" /> Your progress will be preserved during temporary warnings.</li>
                 <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> After {maxViolations} violations {isLive ? "your attempt will be submitted automatically and flagged for review" : "the session will be terminated"}.</li>

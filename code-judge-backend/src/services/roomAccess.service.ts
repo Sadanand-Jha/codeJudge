@@ -47,6 +47,8 @@ export interface RoomAccessRepository {
     role: string,
     registrationData: Record<string, string> | null
   ): Promise<{ inserted: boolean }>;
+  /** Optional so credential-only previews do not need a membership lookup. */
+  isMember?(roomId: string | number, userId: string): Promise<boolean>;
 }
 
 export interface RoomJoinInput {
@@ -54,6 +56,12 @@ export interface RoomJoinInput {
   password: string;
   userId: string;
   registrationData?: unknown;
+}
+
+export interface RoomPreviewInput {
+  roomCode: string;
+  password: string;
+  userId?: string;
 }
 
 export interface RoomJoinPreview {
@@ -66,6 +74,8 @@ export interface RoomJoinPreview {
   /** ISO timestamp for the password, or null when it never expires. */
   password_expires_at: string | null;
   registration_form: RoomRegistrationForm;
+  /** True when the signed-in student already has a membership in this room. */
+  already_member: boolean;
 }
 
 export type RoomAccessFailure = "invalid_credentials" | "password_expired";
@@ -192,11 +202,16 @@ async function findJoinableRoom(
  * before joining. Does not create a membership.
  */
 export async function previewRoomJoinWithPassword(
-  repo: RoomLookupRepository,
-  input: { roomCode: string; password: string }
+  repo: RoomLookupRepository & Pick<RoomAccessRepository, "isMember">,
+  input: RoomPreviewInput
 ): Promise<RoomPreviewResult> {
   const access = await findJoinableRoom(repo, input.roomCode, input.password);
   if (!access.ok) return access;
+
+  const already_member =
+    input.userId && repo.isMember
+      ? await repo.isMember(access.room.id, input.userId)
+      : false;
 
   return {
     ok: true,
@@ -205,6 +220,7 @@ export async function previewRoomJoinWithPassword(
       ownerId: String(access.room.owner_id ?? ""),
       password_expires_at: roomPasswordExpiresAtIso(access.room),
       registration_form: normalizeRoomRegistrationForm(access.room.registration_form),
+      already_member,
     },
   };
 }

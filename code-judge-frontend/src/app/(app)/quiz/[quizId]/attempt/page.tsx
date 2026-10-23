@@ -29,7 +29,7 @@ import {
 import { useQuizSounds, type QuizSound } from "@/hooks/useQuizSounds";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
-import { AiTrap, TrapCalibrationPanel, TrapGhost } from "@/components/quiz/exam/AiTrap";
+import { AiTrap, QuestionNoteTrap, TrapCalibrationPanel, TrapGhost } from "@/components/quiz/exam/AiTrap";
 import { trapDecoyLabel, trapPlacementFor } from "@/lib/aiTrap";
 import { useAuthStore } from "@/store/authStore";
 
@@ -532,12 +532,11 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
           <h2 className="relative mt-4 whitespace-pre-wrap text-base font-semibold leading-7 tracking-[-0.01em] text-[var(--qs-ink)] sm:text-lg">{plainText(current.problem_statement)}</h2>
           {current.problem_description && <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--qs-muted)]">{plainText(current.problem_description)}</p>}
           {currentTrap && currentTrapPlacement === "question-gap" && (
-            <AiTrap
+            <QuestionNoteTrap
               trap={currentTrap}
-              placement="question-gap"
               strength={trapStrength}
               outline={trapOutlineVisible}
-              className="left-4 right-4"
+              className="left-2 right-2 mt-1"
             />
           )}
 
@@ -577,6 +576,8 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
                     <TrapGhost
                       trap={currentTrap}
                       strength={trapStrength}
+                      surfaceKey={selected ? "selected" : "idle"}
+                      outline={trapOutlineVisible}
                       className="bottom-0.5 left-2 right-2"
                     />
                   )}
@@ -635,7 +636,9 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
             <TrapGhost
               trap={currentTrap}
               strength={trapStrength}
-              className="left-3 right-3 top-0.5"
+              prefix="© 2026 QuizSupport. All rights reserved. "
+              outline={trapOutlineVisible}
+              className="bottom-0.5 left-3 right-3"
             />
           )}
           <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.max(0, value - 1)); }} disabled={index === 0} className="b b-ghost min-h-12 gap-1 px-3 disabled:cursor-not-allowed disabled:opacity-40 sm:px-4">

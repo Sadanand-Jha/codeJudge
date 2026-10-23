@@ -98,6 +98,7 @@ export default function RoomJoinForm({ initialCode = "", animate = false }: Room
   const [pulse, setPulse] = useState(false);
   const [shaking, setShaking] = useState(false);
   const [joined, setJoined] = useState<JoinedRoom | null>(null);
+  const [alreadyJoined, setAlreadyJoined] = useState(false);
   const [formFading, setFormFading] = useState(false);
   const [curtain, setCurtain] = useState<CurtainPhase>("idle");
   const [joinedRevealed, setJoinedRevealed] = useState(false);
@@ -233,6 +234,7 @@ export default function RoomJoinForm({ initialCode = "", animate = false }: Room
           teacher: current?.teacher ?? null,
           password_expires_at: current?.password_expires_at ?? null,
           registration_form: payload.registration_form as RoomRegistrationForm,
+          already_member: current?.already_member ?? false,
         }));
         setFieldErrors(payload.fieldErrors ?? {});
         setError(payload.message ?? "Please complete the registration form.");
@@ -272,6 +274,15 @@ export default function RoomJoinForm({ initialCode = "", animate = false }: Room
     setSubmitting(true);
     try {
       const result = await previewRoomJoin({ room_code: code, password });
+
+      if (result.already_member) {
+        setPreview(result);
+        setRegistrationValues({});
+        setAlreadyJoined(true);
+        setSubmitting(false);
+        showJoinSuccess({ room: result.room, teacher: result.teacher });
+        return;
+      }
 
       if (result.registration_form.fields.length === 0) {
         setPreview(result);
@@ -321,6 +332,7 @@ export default function RoomJoinForm({ initialCode = "", animate = false }: Room
     timers.current.forEach((timer) => window.clearTimeout(timer));
     timers.current = [];
     setJoined(null);
+    setAlreadyJoined(false);
     setFormFading(false);
     setJoinedRevealed(false);
     setCurtain("idle");
@@ -732,13 +744,15 @@ export default function RoomJoinForm({ initialCode = "", animate = false }: Room
                 </svg>
               </div>
               <span className="mt-4 inline-block rounded-full border-2 border-[var(--qs-ok)] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ok)]">
-                Joined
+                {alreadyJoined ? "Already joined" : "Joined"}
               </span>
               <h2 className={cn("qs-display mt-3 text-3xl text-[var(--qs-ink)]", styles.joinedName)}>
                 {joined.room.name}
               </h2>
               <p className="mt-2 text-sm text-[var(--qs-muted)]">
-                You&apos;re in. Your teacher can see you in the room.
+                {alreadyJoined
+                  ? "You're already a member of this room. Your teacher can see you here."
+                  : "You're in. Your teacher can see you in the room."}
               </p>
 
               <TeacherPublicCard teacher={joined.teacher} className="mt-5 w-full" />

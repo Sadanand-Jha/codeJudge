@@ -34,7 +34,6 @@ import { updateMemberStatus, updateRoomPatch, removeMember } from "@/services/ro
 import RoomMenu, { RoomMenuItem } from "@/components/quiz/creator/settings/audience/RoomMenu";
 import AddStudentsModal from "@/components/quiz/creator/settings/audience/AddStudentsModal";
 import DuplicateRoomModal from "./DuplicateRoomModal";
-import DeleteRoomModal from "./DeleteRoomModal";
 import EditStudentModal from "./EditStudentModal";
 import StudentDetailsPanel from "./StudentDetailsPanel";
 import RoomInviteModal from "./RoomInviteModal";
@@ -86,7 +85,6 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   const archiveRoom = useRoomStore((s) => s.archiveRoom);
   const unarchiveRoom = useRoomStore((s) => s.unarchiveRoom);
   const duplicateRoom = useRoomStore((s) => s.duplicateRoom);
-  const deleteRoom = useRoomStore((s) => s.deleteRoom);
   const { user } = useAuthStore();
   const [backendLoading, setBackendLoading] = useState(() => /^\d+$/.test(roomId));
 
@@ -98,7 +96,6 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   const [addOpen, setAddOpen] = useState(false);
   const [addTab, setAddTab] = useState<"manual" | "import">("manual");
   const [duplicateOpen, setDuplicateOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameName, setRenameName] = useState("");
   const [renameDesc, setRenameDesc] = useState("");
@@ -287,7 +284,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
           <div className="rounded-[22px] border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-surface)] px-6 py-16 text-center">
             <Users className="mx-auto h-8 w-8 text-[var(--qs-muted)]" />
             <h2 className="mt-3 text-lg font-black text-[var(--qs-ink)]">Room not found</h2>
-            <p className="mt-1 text-sm font-medium text-[var(--qs-muted)]">This room may have been deleted.</p>
+            <p className="mt-1 text-sm font-medium text-[var(--qs-muted)]">This room is no longer available.</p>
             <Link href={basePath} className={cn(QS_OUTLINE_BTN, "mt-4 py-2 text-xs")}>
               <ArrowLeft className="h-3.5 w-3.5" />
               Back to Rooms
@@ -397,7 +394,6 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
       icon: Copy,
       onClick: () => setDuplicateOpen(true),
     },
-    { id: "delete", label: "Delete Room", icon: Trash2, destructive: true, onClick: () => setDeleteOpen(true) },
   ];
 
   const statCards = stats
@@ -869,18 +865,6 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
           if (copy) {
             toast.success({ title: "Room duplicated", description: `"${copy.name}" was created.` });
           }
-        }}
-      />
-
-      {/* Delete */}
-      <DeleteRoomModal
-        open={deleteOpen}
-        onClose={() => setDeleteOpen(false)}
-        roomName={room.name}
-        onConfirm={() => {
-          deleteRoom(room.id);
-          window.location.href = basePath;
-          toast.success({ title: "Room deleted", description: "The room was permanently removed." });
         }}
       />
 

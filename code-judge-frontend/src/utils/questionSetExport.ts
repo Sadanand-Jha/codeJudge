@@ -320,15 +320,21 @@ const questionBlocks = (question: ExportableQuestion): Block[] => {
   return result;
 };
 
-const wrapRuns = (doc: jsPDF, runs: Run[], maxWidth: number, size: number): Run[][] => {
-  const lines: Run[][] = [];
+interface WrappedLine {
+  pieces: Run[];
+  /** Soft-wrapped lines are stretched to the column edge when drawn. */
+  justify: boolean;
+}
+
+const wrapRuns = (doc: jsPDF, runs: Run[], maxWidth: number, size: number): WrappedLine[] => {
+  const lines: WrappedLine[] = [];
   let line: Run[] = [];
   let width = 0;
 
-  const flush = () => {
+  const flush = (hardBreak = false) => {
     if (!line.length) return;
     while (line.length && !line[line.length - 1].text.trim()) line.pop();
-    if (line.length) lines.push(line);
+    if (line.length) lines.push({ pieces: line, justify: !hardBreak });
     line = [];
     width = 0;
   };
@@ -336,7 +342,7 @@ const wrapRuns = (doc: jsPDF, runs: Run[], maxWidth: number, size: number): Run[
   for (const run of runs) {
     const segments = pdfSafeText(run.text).split("\n");
     segments.forEach((segment, segmentIndex) => {
-      if (segmentIndex > 0) flush();
+      if (segmentIndex > 0) flush(true);
       // Monospace runs (code / ASCII art) must keep their inner spacing, so
       // they are kept whole instead of being split around whitespace runs.
       const parts = run.mono ? [segment] : segment.split(/(\s+)/);
@@ -385,6 +391,75 @@ const ensureSpace = (state: PdfState, needed: number) => {
   setFont(doc, FONT, "normal", 12, INK);
 };
 
+const drawJustifiedRuns = (
+  doc: jsPDF,
+  pieces: Run[],
+  x: number,
+  baselineY: number,
+  width: number,
+  size: number,
+  color: [number, number, number]
+) => {
+  const tokens: Array<{ text: string; space: boolean; piece: Run }> = [];
+  pieces.forEach((piece) => {
+    piece.text.split(/(\s+)/).forEach((part) => {
+      if (part) tokens.push({ text: part, space: /^\s+$/.test(part), piece });
+    });
+  });
+  const setPieceFont = (piece: Run) =>
+    setFont(doc, piece.mono ? MONO : FONT, styleOf(piece), piece.mono ? 10.5 : size, color);
+
+  const gapIndexes: number[] = [];
+  tokens.forEach((token, index) => {
+    if (token.space && index > 0 && index < tokens.length - 1) gapIndexes.push(index);
+  });
+
+  let natural = 0;
+  tokens.forEach((token) => {
+    setPieceFont(token.piece);
+    natural += doc.getTextWidth(token.text);
+  });
+  const extra = gapIndexes.length > 0 ? Math.max(0, (width - natural) / gapIndexes.length) : 0;
+  const gaps = new Set(gapIndexes);
+
+  let cursor = x;
+  tokens.forEach((token, index) => {
+    setPieceFont(token.piece);
+    if (gaps.has(index)) {
+      cursor += doc.getTextWidth(token.text) + extra;
+      return;
+    }
+    doc.text(token.text, cursor, baselineY);
+    cursor += doc.getTextWidth(token.text);
+  });
+};
+
+const drawJustifiedText = (
+  doc: jsPDF,
+  text: string,
+  x: number,
+  baselineY: number,
+  width: number,
+  size: number,
+  style: FontStyle,
+  color: [number, number, number]
+) => {
+  setFont(doc, FONT, style, size, color);
+  const words = pdfSafeText(text).split(/\s+/).filter(Boolean);
+  if (words.length < 2) {
+    doc.text(text, x, baselineY);
+    return;
+  }
+  const natural = doc.getTextWidth(words.join(" "));
+  const extra = Math.max(0, (width - natural) / (words.length - 1));
+  let cursor = x;
+  words.forEach((word, index) => {
+    doc.text(word, cursor, baselineY);
+    cursor += doc.getTextWidth(word);
+    if (index < words.length - 1) cursor += doc.getTextWidth(" ") + extra;
+  });
+};
+
 const renderRuns = (
   state: PdfState,
   runs: Run[],
@@ -396,16 +471,22 @@ const renderRuns = (
 ) => {
   const { doc } = state;
   const lines = wrapRuns(doc, runs, width, size);
-  for (const line of lines) {
+  lines.forEach((line, index) => {
     ensureSpace(state, lineHeight);
-    let cursor = x;
-    for (const piece of line) {
-      setFont(doc, piece.mono ? MONO : FONT, styleOf(piece), piece.mono ? 10.5 : size, color);
-      doc.text(piece.text, cursor, state.y + size * 0.3528 * 0.82);
-      cursor += doc.getTextWidth(piece.text);
+    const baselineY = state.y + size * 0.3528 * 0.82;
+    const hasMono = line.pieces.some((piece) => piece.mono);
+    if (line.justify && index < lines.length - 1 && !hasMono) {
+      drawJustifiedRuns(doc, line.pieces, x, baselineY, width, size, color);
+    } else {
+      let cursor = x;
+      for (const piece of line.pieces) {
+        setFont(doc, piece.mono ? MONO : FONT, styleOf(piece), piece.mono ? 10.5 : size, color);
+        doc.text(piece.text, cursor, baselineY);
+        cursor += doc.getTextWidth(piece.text);
+      }
     }
     state.y += lineHeight;
-  }
+  });
   if (!lines.length) state.y += lineHeight;
 };
 
@@ -625,12 +706,16 @@ const drawInstructions = (
   const { doc } = state;
   const customItems = customInstructionItems(custom);
   const items = customItems.length ? customItems : defaultPaperInstructionLines(total, attempt, hasChoice);
-  const lines: Array<{ text: string; indent: boolean }> = [];
+  const lines: Array<{ text: string; indent: boolean; justify: boolean }> = [];
   items.forEach((item, index) => {
     const prefix = `${index + 1}. `;
     const wrapped = wrapPlain(doc, item, CONTENT_WIDTH - 12, 10.5);
     wrapped.forEach((line, lineIndex) => {
-      lines.push({ text: lineIndex === 0 ? `${prefix}${line}` : line, indent: lineIndex > 0 });
+      lines.push({
+        text: lineIndex === 0 ? `${prefix}${line}` : line,
+        indent: lineIndex > 0,
+        justify: lineIndex < wrapped.length - 1,
+      });
     });
   });
   const height = lines.length * 4.6 + 13;
@@ -643,8 +728,14 @@ const drawInstructions = (
   setFont(doc, FONT, "bold", 11, INK);
   doc.text("General instructions", MARGIN + 4, top + 5.5);
   lines.forEach((line, index) => {
-    setFont(doc, FONT, "normal", 10.5, INK);
-    doc.text(line.text, MARGIN + (line.indent ? 11 : 4), top + 11.5 + index * 4.6);
+    const lineX = MARGIN + (line.indent ? 11 : 4);
+    const lineY = top + 11.5 + index * 4.6;
+    if (line.justify) {
+      drawJustifiedText(doc, line.text, lineX, lineY, CONTENT_WIDTH - (line.indent ? 15 : 8), 10.5, "normal", INK);
+    } else {
+      setFont(doc, FONT, "normal", 10.5, INK);
+      doc.text(line.text, lineX, lineY);
+    }
   });
   state.y = top + height + 5;
 };
@@ -688,8 +779,12 @@ const drawSection = (
   if (instruction?.trim()) {
     setFont(doc, FONT, "italic", 10.5, MUTED);
     const lines = doc.splitTextToSize(instruction.trim(), CONTENT_WIDTH) as string[];
-    lines.forEach((line) => {
-      doc.text(line, MARGIN, state.y);
+    lines.forEach((line, index) => {
+      if (index < lines.length - 1) {
+        drawJustifiedText(doc, line, MARGIN, state.y, CONTENT_WIDTH, 10.5, "italic", MUTED);
+      } else {
+        doc.text(line, MARGIN, state.y);
+      }
       state.y += 5;
     });
     state.y += 1;

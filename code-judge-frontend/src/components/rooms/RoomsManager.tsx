@@ -15,7 +15,6 @@ import {
   Plus,
   Search,
   Settings2,
-  Trash2,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
@@ -29,7 +28,6 @@ import type { RoomMenuItem } from "@/components/quiz/creator/settings/audience/R
 import CreateRoomModal from "@/components/quiz/creator/settings/audience/CreateRoomModal";
 import AddStudentsModal from "@/components/quiz/creator/settings/audience/AddStudentsModal";
 import DuplicateRoomModal from "./DuplicateRoomModal";
-import DeleteRoomModal from "./DeleteRoomModal";
 
 type FilterTab = "all" | "active" | "archived" | "recent";
 type SortKey = "updated" | "name" | "students";
@@ -74,7 +72,6 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
   const archiveRoom = useRoomStore((s) => s.archiveRoom);
   const unarchiveRoom = useRoomStore((s) => s.unarchiveRoom);
   const duplicateRoom = useRoomStore((s) => s.duplicateRoom);
-  const deleteRoom = useRoomStore((s) => s.deleteRoom);
   const updateRoom = useRoomStore((s) => s.updateRoom);
   const addStudents = useRoomStore((s) => s.addStudents);
   const { user } = useAuthStore();
@@ -86,7 +83,6 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
   const [createTab, setCreateTab] = useState<"manual" | "import">("manual");
   const [editTarget, setEditTarget] = useState<string | null>(null);
   const [duplicateTarget, setDuplicateTarget] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [addTarget, setAddTarget] = useState<{ roomId: string; tab: "manual" | "import" } | null>(null);
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [actionMenu, setActionMenu] = useState<{ roomId: string; archived: boolean; top?: number; bottom?: number; right: number } | null>(null);
@@ -160,7 +156,6 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
 
   const editRoom = editTarget ? ownedRooms.find((r) => r.id === editTarget) : null;
   const duplicateRoomTarget = duplicateTarget ? ownedRooms.find((r) => r.id === duplicateTarget) : null;
-  const deleteRoomTarget = deleteTarget ? ownedRooms.find((r) => r.id === deleteTarget) : null;
   const addRoomTarget = addTarget ? ownedRooms.find((r) => r.id === addTarget.roomId) : null;
 
   const openActionMenu = (e: React.MouseEvent, roomId: string, archived: boolean) => {
@@ -239,13 +234,6 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
           toast.success({ title: "Room archived", description: "The room is now hidden." });
         }
       },
-    },
-    {
-      id: "delete",
-      label: "Delete Room",
-      icon: Trash2,
-      destructive: true,
-      onClick: () => setDeleteTarget(roomId),
     },
   ];
 
@@ -589,19 +577,6 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
                 description: `"${copy.name}" was created.`,
               });
             }
-          }}
-        />
-      )}
-
-      {/* Delete room */}
-      {deleteRoomTarget && (
-        <DeleteRoomModal
-          open={Boolean(deleteTarget)}
-          onClose={() => setDeleteTarget(null)}
-          roomName={deleteRoomTarget.name}
-          onConfirm={() => {
-            deleteRoom(deleteRoomTarget.id);
-            toast.success({ title: "Room deleted", description: "The room was permanently removed." });
           }}
         />
       )}

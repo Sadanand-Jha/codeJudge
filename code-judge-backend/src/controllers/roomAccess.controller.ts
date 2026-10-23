@@ -167,10 +167,15 @@ export const previewRoomJoin = async (req: Request, res: Response) => {
     }
 
     const result = await previewRoomJoinWithPassword(
-      { findRoomByCode: (code) => roomRepo.findRoomByCode(code) },
+      {
+        findRoomByCode: (code) => roomRepo.findRoomByCode(code),
+        isMember: (roomId, memberUserId) =>
+          roomRepo.isMember(String(roomId), memberUserId),
+      },
       {
         roomCode: String(req.body.room_code ?? ""),
         password: String(req.body.password ?? ""),
+        userId: String(userId),
       }
     );
 
