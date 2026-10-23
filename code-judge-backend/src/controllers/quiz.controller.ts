@@ -2095,6 +2095,14 @@ export const submitQuizRating = async (req: Request, res: Response) => {
 };
 
 function areStudentResultsAvailable(result: any): boolean {
+  // Never expose an attempt (or its review) while it is still being taken,
+  // even if immediate results are enabled. This also blocks opening it via a
+  // result URL/history after navigating back.
+  const attemptStatus = String(result?.status ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+  if (attemptStatus === "in_progress") return false;
   if (result?.show_results_immediately === true) return true;
   if (String(result?.quiz_status_name ?? "").toLowerCase() === "ended") return true;
   if (!result?.endtime) return false;

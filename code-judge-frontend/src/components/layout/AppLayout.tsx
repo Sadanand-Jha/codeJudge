@@ -34,6 +34,7 @@ import { useSavedAvatar } from "@/store/avatarStore";
 import { logout } from "@/services/auth";
 import { toast } from "@/lib/toast";
 import { isQuizProblemsPath, isNestedQuizPath, isStudentQuizFlowPath } from "@/lib/quizWorkspace";
+import { markQuizBackNavigation } from "@/lib/quizBackNavigation";
 import { cn } from "@/lib/helpers";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { Sidebar } from "@/components/ui/Sidebar";
@@ -268,6 +269,14 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   useEffect(() => {
     void hydrate();
   }, [hydrate]);
+
+  // Browser back/forward does not expose its intent to the destination route.
+  // Mark history traversals here so protected routes (quiz attempts) can
+  // refuse to reopen from browser history.
+  useEffect(() => {
+    window.addEventListener("popstate", markQuizBackNavigation);
+    return () => window.removeEventListener("popstate", markQuizBackNavigation);
+  }, []);
 
   // Proxy enforcement handles direct requests. This client-side guard also
   // covers already-prefetched pages and stale deployments so a restricted

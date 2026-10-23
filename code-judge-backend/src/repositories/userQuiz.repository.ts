@@ -392,7 +392,11 @@ export class UserQuizRepository {
   }): Promise<{ quizzes: any[]; total: number }> {
     const { page = 1, limit = 10, search = "", sortBy = "completed_at", sortOrder = "DESC" } = filters;
     const offset = (page - 1) * limit;
-    const conditions: string[] = ["qa.user_id = $1", "q.deleted_at IS NULL"];
+    const conditions: string[] = [
+      "qa.user_id = $1",
+      "q.deleted_at IS NULL",
+      "LOWER(REPLACE(COALESCE(qa.status, ''), ' ', '_')) <> 'in_progress'",
+    ];
     const queryParams: any[] = [userId];
     let paramCount = 1;
 

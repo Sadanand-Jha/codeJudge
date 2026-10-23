@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Check, ChevronDown, ClipboardList, Copy, Eye, KeyRound, RefreshCw, ShieldCheck, Shuffle, SlidersHorizontal } from "lucide-react";
+import { Check, ChevronDown, ClipboardList, Copy, Eye, KeyRound, RefreshCw, ShieldCheck, Shuffle, SlidersHorizontal, Timer } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
@@ -217,7 +217,7 @@ export function QuizCodeCard() {
 }
 
 function SummaryAside() {
-  const { state } = useStudio();
+  const { state, summary } = useStudio();
   const lifecycle = state.info.quizLifecycle;
   const status =
     lifecycle === "live"
@@ -228,18 +228,39 @@ function SummaryAside() {
           ? { label: "Ended", pill: "border-[var(--qs-bad)]/40 bg-[var(--qs-badbg)] text-[var(--qs-bad)]", live: false }
           : { label: "Draft", pill: "border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)]", live: false };
 
-  const startLabel =
-    lifecycle === "scheduled" && state.info.startDate
-      ? formatDateTimeIST(state.info.startDate)
-      : "Manual";
+  const isScheduled = lifecycle === "scheduled" && Boolean(state.info.startDate);
+  const startLabel = isScheduled ? formatDateTimeIST(state.info.startDate) : "Manual";
+  const duration = state.info.duration || 60;
 
   return (
     <aside className="min-w-0 lg:sticky lg:top-4">
       <div className="overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
         <div className="flex items-center justify-between border-b-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-4 py-3">
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#1a1240]">Summary</p>
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#1a1240]">Quiz summary</p>
           <ClipboardList className="h-4 w-4 text-[#1a1240]" />
         </div>
+
+        <div className="border-b-2 border-[var(--qs-line)] p-3">
+          <div className="rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)] p-3">
+            <div className="flex items-center gap-2">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[9px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1a1240]">
+                <Timer className="h-3.5 w-3.5" />
+              </span>
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[var(--qs-muted)]">
+                Time per student
+              </p>
+            </div>
+            <p className="mt-2 text-2xl font-black leading-none tabular-nums text-[var(--qs-ink)]">
+              {duration} <span className="text-sm font-extrabold">min</span>
+            </p>
+            <p className="mt-1.5 text-[11px] font-medium leading-relaxed text-[var(--qs-muted)]">
+              {isScheduled
+                ? "Configured for manually started attempts. Scheduled attempts close at the end time."
+                : "Each participant gets this much time after starting."}
+            </p>
+          </div>
+        </div>
+
         <dl className="divide-y-2 divide-[var(--qs-line)] text-xs">
           <div className="flex items-center justify-between gap-3 px-4 py-2.5">
             <dt className="font-bold text-[var(--qs-muted)]">Status</dt>
@@ -257,8 +278,8 @@ function SummaryAside() {
               </span>
             </dd>
           </div>
-          <SummaryRow label="Start" value={startLabel} />
-          <SummaryRow label="Attempt time" value={`${state.info.duration || 60} min`} />
+          <SummaryRow label="Starts" value={startLabel} />
+          <SummaryRow label="Questions" value={String(summary.questionCount)} />
           <SummaryRow label="Negative marking" value={state.settings.negativeMarking ? "On" : "Off"} />
         </dl>
       </div>
@@ -276,9 +297,9 @@ function SummaryRow({
   valueClassName?: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 px-4 py-2.5">
-      <dt className="font-bold text-[var(--qs-muted)]">{label}</dt>
-      <dd className={cn("font-extrabold tabular-nums text-[var(--qs-ink)]", valueClassName)}>{value}</dd>
+    <div className="flex items-start justify-between gap-3 px-4 py-2.5">
+      <dt className="shrink-0 font-bold text-[var(--qs-muted)]">{label}</dt>
+      <dd className={cn("min-w-0 break-words text-right font-extrabold tabular-nums text-[var(--qs-ink)]", valueClassName)}>{value}</dd>
     </div>
   );
 }

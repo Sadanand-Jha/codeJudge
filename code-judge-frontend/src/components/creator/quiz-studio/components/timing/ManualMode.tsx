@@ -181,8 +181,8 @@ export function ManualMode({
         description="Starting the quiz will make it available to registered participants. They can begin their attempts immediately."
         details={[
           {
-            label: "Duration",
-            value: `${participantDuration} minutes per participant`,
+            label: "Time per student",
+            value: `${participantDuration} minutes each`,
           },
         ]}
         confirmLabel="Start Quiz"

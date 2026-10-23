@@ -55,9 +55,8 @@ export function PublishStep({
   const rows: Array<{ label: string; value: ReactNode }> = [
     { label: "Title", value: state.info.title || "Untitled Quiz" },
     { label: "Questions", value: String(summary.questionCount) },
-    isScheduled
-      ? { label: "Attempts", value: "Open during schedule" }
-      : { label: "Duration", value: state.info.duration + " min" },
+    { label: "Time per student", value: state.info.duration + " min" },
+    ...(isScheduled ? [{ label: "Attempts", value: "Open during schedule" }] : []),
     { label: "Audience", value: state.audience.mode },
     {
       label: "Price",
@@ -169,9 +168,8 @@ export function PublishStep({
                 {[
                   { label: "Quiz", value: state.info.title || "Untitled Quiz" },
                   { label: "Questions", value: String(summary.questionCount) },
-                  isScheduled
-                    ? { label: "Attempts", value: "Open during schedule" }
-                    : { label: "Duration", value: `${state.info.duration} min` },
+                  { label: "Time per student", value: `${state.info.duration} min` },
+                  ...(isScheduled ? [{ label: "Attempts", value: "Open during schedule" }] : []),
                   {
                     label: "Audience",
                     value:
@@ -281,7 +279,13 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
         <div className="mt-3 flex flex-wrap justify-center gap-2 text-xs font-medium text-[var(--qs-muted)]">
           <span>{summary.questionCount} questions</span>
           <span>·</span>
-          <span>{isScheduled ? "Open during schedule" : `${state.info.duration} min`}</span>
+          <span>{state.info.duration} min per student</span>
+          {isScheduled && (
+            <>
+              <span>·</span>
+              <span>Open during schedule</span>
+            </>
+          )}
         </div>
         <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center sm:flex-wrap">
           <button

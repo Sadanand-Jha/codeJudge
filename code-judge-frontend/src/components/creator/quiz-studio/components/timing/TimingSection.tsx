@@ -374,9 +374,9 @@ export function TimingSection({
               <Timer className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-sm font-black text-[var(--qs-ink)]">Attempt duration</h3>
+              <h3 className="text-sm font-black text-[var(--qs-ink)]">Time per student</h3>
               <p className="text-xs font-medium text-[var(--qs-muted)]">
-                Used for manually-started quizzes. Scheduled quizzes run until their end time.
+                How long each participant gets after starting. Scheduled quizzes run until their end time.
               </p>
             </div>
           </div>
@@ -387,7 +387,7 @@ export function TimingSection({
               updateInfo({ duration: v });
             }}
             presets={DURATION_PRESETS}
-            label="Time limit"
+            label="Minutes per student"
             max={300}
           />
         </motion.div>

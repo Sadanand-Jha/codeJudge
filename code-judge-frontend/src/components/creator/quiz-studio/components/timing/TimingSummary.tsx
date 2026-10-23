@@ -42,7 +42,7 @@ export function TimingSummary({ state }: { state: TimingState }) {
   }
 
   rows.push({
-    label: "Participant time",
+    label: "Time per student",
     value: mode === "schedule" ? "Until the quiz ends" : `${participantDuration} minutes`,
   });
 
@@ -69,7 +69,7 @@ export function TimingSummary({ state }: { state: TimingState }) {
     manual.sessionDuration < participantDuration
   ) {
     warnings.push(
-      `The quiz session duration (${manual.sessionDuration} min) is shorter than the participant attempt time (${participantDuration} min). Participants may not get the full allotted time.`
+      `The quiz session duration (${manual.sessionDuration} min) is shorter than the time per student (${participantDuration} min). Participants may not get the full allotted time.`
     );
   }
 
@@ -121,7 +121,7 @@ export function TimingSummary({ state }: { state: TimingState }) {
           <p className="text-[11px] font-medium text-[var(--qs-ok)]">
             {mode === "schedule"
               ? "Participants can join and attempt throughout the scheduled window. Responses close automatically at the end time."
-              : "Everything looks good. Participants will receive the configured attempt duration once they start."}
+              : "Everything looks good. Participants will receive the configured time per student once they start."}
           </p>
         </div>
       )}

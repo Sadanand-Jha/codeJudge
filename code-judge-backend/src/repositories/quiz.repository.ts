@@ -1618,7 +1618,14 @@ export class QuizRepository {
     } = filters;
 
     const offset = (page - 1) * limit;
-    const conditions: string[] = ["qa.user_id = $1", "q.deleted_at IS NULL", "qa.deleted_at IS NULL"];
+    // An untouched/in-flight attempt is not history. Hiding it here also means
+    // it cannot be opened from the activity list after navigating back.
+    const conditions: string[] = [
+      "qa.user_id = $1",
+      "q.deleted_at IS NULL",
+      "qa.deleted_at IS NULL",
+      "LOWER(REPLACE(COALESCE(qa.status, ''), ' ', '_')) <> 'in_progress'",
+    ];
     const queryParams: any[] = [userId];
     let paramCount = 1;
 
