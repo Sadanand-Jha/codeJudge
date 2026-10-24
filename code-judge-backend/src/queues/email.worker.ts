@@ -4,6 +4,7 @@ import { getBullmqConnection } from "./connection.ts";
 import { EMAIL_QUEUE, type EmailJobData } from "./email.queue.ts";
 import { sendOtpEmail } from "../services/email.ts";
 import { sendMarksheetEmail } from "../services/email.service.ts";
+import { processQuizResponsesEmail } from "../services/quizResultsEmail.service.ts";
 
 declare global {
   // eslint-disable-next-line no-var
@@ -24,6 +25,15 @@ export function startEmailWorker(): Worker<EmailJobData> | null {
     async (job: Job<EmailJobData>) => {
       if (job.data.type === "otp") {
         await sendOtpEmail({ to: job.data.to, otp: job.data.otp });
+        return;
+      }
+
+      if (job.data.type === "responses") {
+        console.log(`[bullmq] responses email job ${job.id} started for quiz ${job.data.quizId}`);
+        const result = await processQuizResponsesEmail(job.data.quizId);
+        console.log(
+          `[bullmq] responses email job ${job.id} finished for quiz ${job.data.quizId} (sent=${result.sent}, reason=${result.reason ?? "none"})`
+        );
         return;
       }
 

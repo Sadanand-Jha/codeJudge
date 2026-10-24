@@ -8,25 +8,6 @@ import type {
 } from "./types.ts";
 
 export const DAY_MS = 86_400_000;
-export const DEFAULT_TIMEZONE = "UTC";
-
-export function isValidTimeZone(timeZone: string): boolean {
-  if (!timeZone) return false;
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone }).format(0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export function normalizeTimeZone(
-  timeZone: unknown,
-  fallback = DEFAULT_TIMEZONE
-): string {
-  const candidate = typeof timeZone === "string" ? timeZone.trim() : "";
-  return isValidTimeZone(candidate) ? candidate : fallback;
-}
 
 export function addDays(date: Date, days: number): Date {
   return new Date(date.getTime() + days * DAY_MS);

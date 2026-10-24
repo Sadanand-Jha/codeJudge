@@ -4,7 +4,6 @@ import {
   debitAiCredits,
   getEntitlements,
   refundAiCredits,
-  updateUserTimezone,
 } from "../index.ts";
 import { EntitlementError } from "../errors.ts";
 
@@ -147,17 +146,7 @@ async function main(): Promise<void> {
     );
     assert.equal(Number(ledger.rows[0].net), 0, "ledger is balanced after refund");
 
-    const testUserId = userId;
-    const savedTimezone = await updateUserTimezone(testUserId, "America/New_York");
-    assert.equal(savedTimezone, "America/New_York");
-    const entitlementsWithTimezone = await getEntitlements(testUserId);
-    assert.equal(entitlementsWithTimezone.timezone, "America/New_York");
-    await assert.rejects(
-      () => updateUserTimezone(testUserId, "Not/AZone"),
-      /Invalid timezone/
-    );
-
-    console.log("Entitlement concurrency: 14 checks passed.");
+    console.log("Entitlement concurrency: 13 checks passed.");
   } finally {
     if (userId !== null) {
       await pool.query(`DELETE FROM credit_transactions WHERE user_id = $1`, [userId]);

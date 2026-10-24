@@ -87,7 +87,6 @@ export function resolveEntitlements(snapshot: EntitlementSnapshot): Entitlements
 
   return {
     userId: snapshot.userId,
-    timezone: snapshot.timezone,
     plan: {
       id: plan?.id ?? null,
       code: plan?.code ?? "free",

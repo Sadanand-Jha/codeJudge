@@ -100,7 +100,7 @@ function defaultSettings(quizName: string): QuizSettingsConfig {
     },
     navigation: { allowPrevious: true, allowNext: true, allowJumpToQuestion: true, allowReview: true, lockAfterAnswer: false, sequentialMode: false, freeNavigation: true },
     visibility: { type: "private", restrictions: { verifiedEmail: false, verifiedCollege: false, verifiedCompany: false, minXP: undefined } },
-    scheduling: { timezone: "UTC", lateEntryPolicy: "allowed" },
+    scheduling: { lateEntryPolicy: "allowed" },
     scoring: { positiveMarks: 10, negativeMarks: 0, negativeMarkValue: 0, partialMarking: false, bonusQuestions: false, mandatoryQuestions: false, weightage: false },
     certificates: { enabled: false, minimumPassingPercentage: 60, issueAutomatically: true },
     leaderboard: { enabled: true, showToParticipants: true, showTop10Only: false, showOnlyOwnRank: false, anonymousMode: false, hideUntilEnd: false, showAfterQuizEnds: true, showLiveDuringQuiz: false, showAfterAllSubmitted: false, realtimeRanking: false },

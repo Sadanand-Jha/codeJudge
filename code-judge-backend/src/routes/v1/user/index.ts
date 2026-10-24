@@ -1,5 +1,5 @@
 // User sub-router. Aggregates editor, contest, quiz, AI, room, and follow sub-routes,
-// plus user registration, profile, password, timezone, avatar, and info endpoints.
+// plus user registration, profile, password, avatar, and info endpoints.
 import {Router} from "express";
 import editorRoutes from "./editor.routes.ts";
 import contestRoutes from "./contest.routes.ts";
@@ -7,7 +7,6 @@ import quizRoutes from "./quiz.routes.ts";
 import documentRoutes from "./document.routes.ts";
 import { validate, registerSchema } from "../../../middleware/validate.ts";
 import { userRegister, forgetPassword, profile, lookupUser, getPublicUserProfile } from "../../../controllers/user.controller.ts";
-import { getTimezones, updateTimezone } from "../../../controllers/timezone.controller.ts";
 import { authenticate } from "../../../middleware/auth.ts";
 import { updateAvatar } from "../../../controllers/avatar.controller.ts";
 import { getAllSubjects, getAllExamCategories } from "../../../controllers/quiz.controller.ts";
@@ -60,10 +59,6 @@ router.patch("/avatar", authenticate, updateAvatar);
 // ===================== SUBJECTS ==========
 router.get("/quiz-subjects", getAllSubjects)
 router.get("/quiz-exam-categories", getAllExamCategories)
-
-// ===================== TIMEZONES ==========
-router.get("/timezones", authenticate, getTimezones);
-router.patch("/profile/timezone", authenticate, updateTimezone);
 
 // ===================== PUBLIC STUDENT PROFILE ======================
 // Display-safe public fields for classmates; no authentication required.

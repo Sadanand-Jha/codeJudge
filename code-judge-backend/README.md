@@ -175,7 +175,7 @@ protected branding safe zone.
 | `PORT` | Server port |
 | `DATABASE_URL` | PostgreSQL connection string |
 | `DATABASE_POOL_URL` | Transaction-pooler connection string used by the API in serverless production (recommended; keep `DATABASE_URL` for migrations) |
-| `REDIS_URL` | Redis connection string |
+| `REDIS_URL` | Self-hosted Redis connection string (for example `redis://127.0.0.1:6379` on the VPS); API and worker must use the same instance |
 | `JUDGE0_API_URL` | Judge0 API URL |
 | `JUDGE0_API_KEY` | Judge0 API key |
 | `JWT_SECRET` | JWT secret key |
@@ -185,6 +185,20 @@ protected branding safe zone.
 | `PLATFORM_OWNER_EMAILS` | Optional comma-separated owner email allowlist |
 | `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` | Nodemailer SMTP delivery configuration |
 | `AI_API_KEY` | AI service API key |
+
+### VPS Redis
+
+Run Redis on the VPS with `docker compose up -d redis`, or install it as a
+system service. Point both the API and worker at the same self-hosted instance:
+
+```bash
+REDIS_URL=redis://127.0.0.1:6379
+```
+
+Remove any Upstash connection string from the deployment environment. `npm
+start` now starts the HTTP server and background workers; set
+`DISABLE_BACKGROUND_WORKERS=1` only when running `npm run worker:prod`
+separately.
 
 ## Supported Languages
 

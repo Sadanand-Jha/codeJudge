@@ -86,7 +86,7 @@ function registrationValue(value: unknown): string {
 
 export async function generateResponsesReport(quizId: number): Promise<ResponsesReportResult> {
   const quizResult = await pool.query(
-    `SELECT q.id, q.name, q.code, q.registration_fields, u.username AS creator_username, u.timezone AS creator_timezone
+    `SELECT q.id, q.name, q.code, q.registration_fields, u.username AS creator_username
        FROM quiz q
        LEFT JOIN users u ON u.id = q.createdby
       WHERE q.id = $1 AND q.deleted_at IS NULL`,
@@ -286,7 +286,7 @@ export async function generateResponsesReport(quizId: number): Promise<Responses
 
   worksheet.mergeCells(3, 1, 3, lastColumn);
   const metaCell = worksheet.getCell(3, 1);
-  metaCell.value = `Code ${quiz.code}   |   ${stats.totalParticipants} participants   |   ${stats.submitted} submitted   |   Generated ${formatDate(new Date(), quiz.creator_timezone || "UTC")}`;
+  metaCell.value = `Code ${quiz.code}   |   ${stats.totalParticipants} participants   |   ${stats.submitted} submitted   |   Generated ${formatDate(new Date())}`;
   metaCell.font = { size: 10, color: { argb: MUTED } };
   metaCell.alignment = { vertical: "middle", horizontal: "left" };
   worksheet.getRow(3).height = 18;
@@ -366,7 +366,7 @@ export async function generateResponsesReport(quizId: number): Promise<Responses
       status: statusLabel(row.attempt_status),
       flags,
       flagReason: reason,
-      submittedAt: formatDate(row.completed_at, quiz.creator_timezone || "UTC"),
+      submittedAt: formatDate(row.completed_at),
       timeTaken: formatMinutes(row.time_taken),
       totalQuestions: totalQuestionsValue,
       correct,

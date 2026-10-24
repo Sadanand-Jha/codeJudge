@@ -19,7 +19,6 @@ export interface UserInfo {
   rating: number;
   maxRating: number;
   role: string | null;
-  timezone?: string | null;
   isVerified: boolean;
   isActive: boolean;
   lastLogin: string | null;
@@ -46,7 +45,6 @@ export interface UserProfile {
   username: string;
   email: string;
   role: string;
-  timezone?: string | null;
   createdat: string;
   updatedat: string;
 }

@@ -1597,8 +1597,8 @@ export const reportViolation = async (req: Request, res: Response) => {
 
 /**
  * POST /api/v1/user/quiz/attempt/:attemptId/submit
- * Save the student's final answers. Grading is deferred until the quiz ends;
- * no result calculation job is created for an individual submission.
+ * Save the student's final answers and start grading immediately. Unsubmitted
+ * attempts are graded later when the teacher or scheduler ends the quiz.
  */
 export const submitQuizAttempt = async (req: Request, res: Response) => {
   try {
@@ -1640,7 +1640,7 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
     if (attempt.submitted_at) {
       res.status(200).json({
         success: true,
-        message: "Answers already saved; results will be calculated when the quiz ends",
+        message: "Answers already saved; grading is already in progress",
         data: { attemptId: numericAttemptId, status: "submitted", submittedAt: attempt.submitted_at, resultPending: true },
       });
       return;

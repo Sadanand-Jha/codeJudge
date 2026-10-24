@@ -29,7 +29,7 @@ import type {
 import { isPast, formatTime12, isStartAfterEnd, toISTDateTimeParts } from "./helpers";
 import { zonedDateTimeToISO } from "@/lib/timezone";
 
-/** Combine date + time fields into an absolute ISO instant in the user's timezone. */
+/** Combine date + time fields into an absolute ISO instant in the browser timezone. */
 function combineDateTime(date: string, time: string, fallbackTime: string) {
   return date ? zonedDateTimeToISO(date, time || fallbackTime) : "";
 }

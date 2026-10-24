@@ -1,7 +1,7 @@
-// BullMQ queue for transactional emails (OTP + quiz result marksheets).
-// Delivery runs in a background worker with a hard concurrency cap of 2 and
-// 3 attempts per job. When REDIS_URL is absent, callers fall back to inline
-// delivery so local/serverless deployments keep working.
+// BullMQ queue for transactional emails (OTP, quiz result marksheets, and
+// automatic responses reports). Delivery runs in a background worker with a
+// hard concurrency cap of 2 and 3 attempts per job. When REDIS_URL is absent,
+// callers fall back to inline delivery so local deployments keep working.
 import { Queue } from "bullmq";
 import { getBullmqConnection } from "./connection.ts";
 import { sendOtpEmail } from "../services/email.ts";
@@ -17,7 +17,8 @@ export type EmailJobData =
         endTime: string;
         marksheetBase64: string;
       };
-    };
+    }
+  | { type: "responses"; quizId: number };
 
 export function isEmailQueueConfigured(): boolean {
   return Boolean(process.env.REDIS_URL?.trim());
@@ -50,6 +51,22 @@ export async function enqueueOtpEmail(to: string, otp: string): Promise<void> {
     return;
   }
   await getEmailQueue().add("otp-email", { type: "otp", to, otp });
+}
+
+export function quizResponsesEmailJobId(quizId: number | string): string {
+  return `quiz-responses-${quizId}`;
+}
+
+/** Queue the automatic responses report after a quiz finishes grading. */
+export async function enqueueResponsesReportEmail(quizId: number): Promise<void> {
+  if (!isEmailQueueConfigured()) {
+    throw new Error("Email queue is not configured");
+  }
+  await getEmailQueue().add(
+    "responses-report-email",
+    { type: "responses", quizId },
+    { jobId: quizResponsesEmailJobId(quizId) }
+  );
 }
 
 /** Queue a quiz result marksheet email (3 attempts). */

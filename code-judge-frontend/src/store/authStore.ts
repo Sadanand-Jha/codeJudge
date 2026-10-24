@@ -29,7 +29,6 @@ export interface UserProfile {
   maxRating?: number;
   isVerified?: boolean;
   isActive?: boolean;
-  timezone?: string | null;
   lastLogin?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;

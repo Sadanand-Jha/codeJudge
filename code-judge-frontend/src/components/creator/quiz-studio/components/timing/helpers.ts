@@ -24,7 +24,7 @@ export function formatDateTime(date: string, time: string): string {
   return time ? `${datePart} \u00b7 ${formatTime12(time)}` : datePart;
 }
 
-/** Format an ISO/server datetime in the user's saved timezone. */
+/** Format an ISO/server datetime in the viewer's browser timezone. */
 export function formatDateTimeIST(value: string | null | undefined, fallback = "\u2014"): string {
   if (!value) return fallback;
   const date = new Date(value);
@@ -44,7 +44,7 @@ export function formatDateTimeIST(value: string | null | undefined, fallback = "
   return `${datePart} \u00b7 ${timePart}`;
 }
 
-/** Split an ISO/server datetime into the user's local date (YYYY-MM-DD) and time (HH:mm). */
+/** Split an ISO/server datetime into the browser-local date (YYYY-MM-DD) and time (HH:mm). */
 export function toISTDateTimeParts(value: string | null | undefined): { date: string; time: string } {
   return toZonedDateTimeParts(value, getUserTimeZone());
 }

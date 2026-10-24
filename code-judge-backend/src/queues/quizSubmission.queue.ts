@@ -1,8 +1,8 @@
-// BullMQ queue for end-of-quiz result calculation.
-// Student submits only save answers. When the quiz ends, one job per pending
-// attempt is enqueued (jobId = quiz-submit-{attemptId}, deduped across
-// scheduler/teacher-stop/request fallbacks). A worker grades with a hard cap
-// of 5 concurrent jobs and a 5-second settle delay.
+// BullMQ queue for quiz-attempt result calculation.
+// A job is enqueued when a student submits and for every pending attempt when
+// the teacher or scheduler ends the quiz (jobId = quiz-submit-{attemptId},
+// deduped across all triggers). A worker grades with a hard cap of 5
+// concurrent jobs.
 import { Queue, type Job } from "bullmq";
 import { getBullmqConnection } from "./connection.ts";
 import crypto from "node:crypto";

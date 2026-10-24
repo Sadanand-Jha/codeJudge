@@ -1,5 +1,5 @@
-// Redis client setup (node-redis over RESP).
-// Configure via REDIS_URL (defaults to localhost for local development).
+// Redis client setup (node-redis over RESP) for the self-hosted VPS instance.
+// Configure via REDIS_URL (defaults to localhost).
 // Used for OTPs, sessions, rate limits, caching, and quiz recovery payloads.
 import { createClient } from "redis";
 

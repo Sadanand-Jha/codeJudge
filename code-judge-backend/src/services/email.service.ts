@@ -305,7 +305,7 @@ export async function sendResponsesReportEmail(payload: ResponsesReportEmailPayl
                 </tr>
                 <tr>
                   <td style="padding:8px 32px 30px;">
-                    <p style="margin:24px 0 0;padding-top:20px;border-top:2px solid #e0dbf5;font-size:12px;line-height:1.6;color:#5c5679;">Sent automatically from <strong style="color:#1a1240;">QuizSupport</strong> because you requested the responses report for this quiz.</p>
+                    <p style="margin:24px 0 0;padding-top:20px;border-top:2px solid #e0dbf5;font-size:12px;line-height:1.6;color:#5c5679;">Sent automatically from <strong style="color:#1a1240;">QuizSupport</strong> after your quiz results were calculated.</p>
                     <p style="margin:10px 0 0;font-size:12px;color:#8b84a8;">QuizSupport Creator Studio</p>
                   </td>
                 </tr>

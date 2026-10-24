@@ -1,15 +1,4 @@
-import { useAuthStore } from "@/store/authStore";
-
 export const DEFAULT_TIMEZONE = "UTC";
-
-function isValidTimeZone(timeZone: string): boolean {
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone }).format(0);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 export function browserTimeZone(fallback = DEFAULT_TIMEZONE): string {
   if (typeof window === "undefined") return fallback;
@@ -21,24 +10,11 @@ export function browserTimeZone(fallback = DEFAULT_TIMEZONE): string {
 }
 
 /**
- * The signed-in user's saved IANA timezone. Until they choose one, the whole
- * app displays and computes dates in UTC. Safe to call outside React.
+ * The viewer's browser timezone. The app never reads or stores a per-user
+ * timezone; server rendering falls back to UTC until hydration completes.
  */
 export function getUserTimeZone(fallback = DEFAULT_TIMEZONE): string {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const saved = useAuthStore.getState().user?.timezone;
-    if (saved && isValidTimeZone(saved)) return saved;
-  } catch {
-    // Store unavailable during early hydration.
-  }
-  return fallback;
-}
-
-/** Reactive variant for components that should re-render on timezone change. */
-export function useUserTimeZone(): string {
-  const saved = useAuthStore((state) => state.user?.timezone);
-  return saved && isValidTimeZone(saved) ? saved : DEFAULT_TIMEZONE;
+  return browserTimeZone(fallback);
 }
 
 function timeZoneOffsetMs(date: Date, timeZone: string): number {

@@ -3,8 +3,6 @@ import {
   addDays,
   allocateCredits,
   computePlanPlacement,
-  isValidTimeZone,
-  normalizeTimeZone,
   selectActivePlanOrder,
 } from "../plans.ts";
 import { resolveEntitlements } from "../resolver.ts";
@@ -64,7 +62,6 @@ function snapshot(overrides: Partial<EntitlementSnapshot> = {}): EntitlementSnap
   return {
     userId: 42,
     now: NOW,
-    timezone: "Asia/Kolkata",
     trialStartedAt: addDays(NOW, -2),
     createdAt: addDays(NOW, -2),
     freePlan: plan(),
@@ -348,20 +345,6 @@ test("unlimited limits expose -1 remaining", () => {
   );
   assert.equal(result.usage.quizzesRemaining, -1);
   assert.equal(result.usage.emailsRemainingToday, -1);
-});
-
-test("entitlements expose the user timezone", () => {
-  const result = resolveEntitlements(snapshot({ timezone: "America/New_York" }));
-  assert.equal(result.timezone, "America/New_York");
-});
-
-test("timezone validation rejects invalid IANA names", () => {
-  assert.equal(isValidTimeZone("Asia/Kolkata"), true);
-  assert.equal(isValidTimeZone("America/New_York"), true);
-  assert.equal(isValidTimeZone("Not/AZone"), false);
-  assert.equal(normalizeTimeZone("Not/AZone"), "UTC");
-  assert.equal(normalizeTimeZone(null), "UTC");
-  assert.equal(normalizeTimeZone("Europe/London"), "Europe/London");
 });
 
 test("nearest credit expiry is returned for the UI", () => {

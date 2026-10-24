@@ -1,0 +1,2 @@
+ALTER TABLE quiz
+  ADD COLUMN IF NOT EXISTS responses_email_sent_at TIMESTAMPTZ;

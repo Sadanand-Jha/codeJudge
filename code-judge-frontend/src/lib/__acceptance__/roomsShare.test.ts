@@ -93,7 +93,7 @@ test("invite password parses from #p= and ignores empty/oversized values", () =>
   assert.equal(parseRoomInvitePassword(`#p=${"a".repeat(129)}`), null);
 });
 
-test("share message appends the password expiry in the viewer timezone", () => {
+test("share message appends the password expiry in UTC outside the browser", () => {
   const message = buildRoomShareMessage({
     roomName: "Physics",
     roomCode: "XY34ZW",
@@ -110,7 +110,7 @@ test("share message appends the password expiry in the viewer timezone", () => {
   assert.ok(message.endsWith("🚀 _See you inside!_ ✨"), message);
 });
 
-test("password expiry falls back to UTC until a timezone is chosen", () => {
+test("password expiry uses the UTC server fallback", () => {
   assert.equal(
     formatPasswordExpiry("2026-10-24T13:00:00.000Z"),
     "24 Oct 2026, 1:00 pm (UTC)"

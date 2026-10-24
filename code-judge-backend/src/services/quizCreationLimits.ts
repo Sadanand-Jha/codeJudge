@@ -11,7 +11,7 @@ import { assertLimit } from "./entitlement.service.ts";
 /** Free-plan fallback for the entitlement-backed total-quizzes cap. */
 export const MAX_QUIZZES_PER_USER = 10;
 
-/** Maximum quizzes a single user may create per calendar day (user timezone). */
+/** Maximum quizzes a single user may create per UTC calendar day. */
 export const MAX_QUIZZES_PER_DAY = 2;
 
 /** Minimum gap between two quiz creations by the same user, in minutes. */
@@ -46,26 +46,16 @@ interface QuizCreationStats {
 }
 
 async function getQuizCreationStats(userId: number): Promise<QuizCreationStats> {
-  // The daily cap follows the user's saved location timezone, with UTC as the
-  // fallback when they have not chosen one yet.
-  const timezoneResult = await pool.query(
-    `SELECT COALESCE(timezone, 'UTC') AS timezone FROM users WHERE id = $1`,
-    [userId]
-  );
-  const timezone = String(timezoneResult.rows[0]?.timezone || "UTC");
-
   const result = await pool.query(
     `SELECT
        COUNT(*)::int AS total,
        COUNT(*) FILTER (
-         WHERE created_at >= (
-           date_trunc('day', NOW() AT TIME ZONE $2) AT TIME ZONE $2
-         )
+         WHERE created_at >= date_trunc('day', NOW())
        )::int AS today,
        MAX(created_at) AS last_created_at
      FROM quiz
      WHERE createdby = $1`,
-    [userId, timezone]
+    [userId]
   );
   const row = result.rows[0] as {
     total: number;

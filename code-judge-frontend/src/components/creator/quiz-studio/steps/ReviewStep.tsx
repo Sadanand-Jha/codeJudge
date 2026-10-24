@@ -148,17 +148,6 @@ function computeItems(
     items.push({ id: "desc", severity: "ok", label: "Short description is set" });
   }
 
-  if (state.info.duration <= 0) {
-    items.push({
-      id: "duration",
-      severity: "error",
-      label: "Time per student must be greater than 0",
-      fix: () => goToStep("rules"),
-    });
-  } else {
-    items.push({ id: "duration", severity: "ok", label: `${state.info.duration} minutes per student` });
-  }
-
   if (summary.questionCount === 0) {
     items.push({
       id: "qcount",

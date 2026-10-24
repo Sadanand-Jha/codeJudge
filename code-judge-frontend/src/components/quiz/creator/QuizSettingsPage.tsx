@@ -27,10 +27,10 @@ import {
 import { SecureLogo } from "@/components/common/SecureLogo";
 import { QuizDetails, DEFAULT_QUIZ_DETAILS, VISIBILITY_OPTIONS, QuizVisibility } from "./types";
 import { saveQuizDetails, clearQuizState } from "@/utils/quizStorage";
-import { getAllSubjects, getQuizVisibilityOptions, createQuiz, updateQuizStatus, getTimezones } from "@/services/quiz";
+import { getAllSubjects, getQuizVisibilityOptions, createQuiz, updateQuizStatus } from "@/services/quiz";
 import { generateQuizCode } from "@/utils/quizCode";
 import { SearchableDropdown } from "@/components/ui";
-import { SettingsCard, SettingsInput, Toggle, SettingsRow, SettingsSelect } from "@/components/ui/settings";
+import { SettingsCard, SettingsInput, Toggle, SettingsRow } from "@/components/ui/settings";
 import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/helpers";
 
@@ -67,38 +67,6 @@ const RESULT_VISIBILITY_OPTIONS = [
   { id: "after_end", label: "After quiz ends", description: "Results unlock when the quiz closes" },
   { id: "manual", label: "When creator publishes results", description: "You control when results are released" },
 ] as const;
-
-/* Fallback timezone list (used while the timezone API loads or on failure). */
-const FALLBACK_TIMEZONES = [
-  "Asia/Kolkata",
-  "UTC",
-  "America/New_York",
-  "Europe/London",
-  "Asia/Tokyo",
-];
-
-/**
- * Build a readable select label for a timezone, e.g. "Asia/Kolkata (IST)".
- * The stored value stays the raw IANA name.
- */
-function formatTimezoneLabel(name: string): string {
-  try {
-    const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone: name,
-      timeZoneName: "short",
-    }).formatToParts(new Date());
-    const abbr = parts.find((p) => p.type === "timeZoneName")?.value;
-    if (abbr && abbr !== name && !abbr.includes("GMT+0") && !abbr.includes("GMT0")) {
-      return `${name} (${abbr})`;
-    }
-  } catch {
-    // fall through — use the raw IANA name
-  }
-  return name;
-}
-
-const toTimezoneOptions = (zones: string[]) =>
-  zones.map((tz) => ({ label: formatTimezoneLabel(tz), value: tz }));
 
 /* =============================================
    Quiz status (derived from backend state)
@@ -206,11 +174,6 @@ export default function QuizSettingsPage({
   const [confirmingEnd, setConfirmingEnd] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
 
-  /* Timezones — sourced from the existing timezone API with a local fallback */
-  const [timezoneOptions, setTimezoneOptions] = useState<Array<{ label: string; value: string }>>(() =>
-    toTimezoneOptions(FALLBACK_TIMEZONES)
-  );
-
   const update = useCallback((patch: Partial<QuizDetails>) => {
     setDetails((d) => ({ ...d, ...patch }));
   }, []);
@@ -224,21 +187,6 @@ export default function QuizSettingsPage({
           setVisibilityOptions(
             opts.map((o) => ({ id: o.id, heading: o.heading, description: o.description || "" }))
           );
-        }
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  /* ---- Fetch the timezone list from the existing timezone API ---- */
-  useEffect(() => {
-    let cancelled = false;
-    getTimezones()
-      .then((zones) => {
-        if (!cancelled && Array.isArray(zones) && zones.length > 0) {
-          setTimezoneOptions(toTimezoneOptions(zones));
         }
       })
       .catch(() => {});
@@ -334,7 +282,7 @@ export default function QuizSettingsPage({
   const toAbsoluteISO = (value: string) => {
     if (!value) return "";
     const [date, time = "00:00"] = value.split("T");
-    return zonedDateTimeToISO(date, time.slice(0, 5), details.timeZone || getUserTimeZone());
+    return zonedDateTimeToISO(date, time.slice(0, 5), getUserTimeZone());
   };
 
   const selectScheduledEnd = () => {
@@ -343,7 +291,7 @@ export default function QuizSettingsPage({
       ? toAbsoluteISO(details.availabilityStart)
       : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const endIso = new Date(new Date(startIso).getTime() + 60 * 60 * 1000).toISOString();
-    const parts = toZonedDateTimeParts(endIso, details.timeZone || getUserTimeZone());
+    const parts = toZonedDateTimeParts(endIso, getUserTimeZone());
     update({ availabilityEnd: `${parts.date}T${parts.time}` });
   };
 
@@ -456,7 +404,6 @@ export default function QuizSettingsPage({
         visibility: details.visibilityId ?? undefined,
         starttime: toAbsoluteISO(details.availabilityStart) || undefined,
         endtime: toAbsoluteISO(details.availabilityEnd) || undefined,
-        timeZone: details.timeZone,
         randomizeQuestions: details.randomizeQuestions,
         randomizeOptions: details.randomizeOptions,
         showResultImmediately: details.resultVisibility === "immediate",
@@ -1117,10 +1064,10 @@ export default function QuizSettingsPage({
                         </p>
                         <p className="mt-1 text-sm text-text-secondary">
                           {details.availabilityMode === "scheduled"
-                            ? `Students can attempt from ${details.availabilityStart ? new Date(toAbsoluteISO(details.availabilityStart)).toLocaleString("en-IN", { timeZone: details.timeZone || getUserTimeZone() }) : "scheduled start"} to ${details.availabilityEnd ? new Date(toAbsoluteISO(details.availabilityEnd)).toLocaleString("en-IN", { timeZone: details.timeZone || getUserTimeZone() }) : "no fixed end"}`
-                            : `Quiz opens immediately after publishing${details.availabilityEnd ? ` and ends ${new Date(toAbsoluteISO(details.availabilityEnd)).toLocaleString("en-IN", { timeZone: details.timeZone || getUserTimeZone() })}` : " with no fixed end"}`
+                            ? `Students can attempt from ${details.availabilityStart ? new Date(toAbsoluteISO(details.availabilityStart)).toLocaleString("en-IN", { timeZone: getUserTimeZone() }) : "scheduled start"} to ${details.availabilityEnd ? new Date(toAbsoluteISO(details.availabilityEnd)).toLocaleString("en-IN", { timeZone: getUserTimeZone() }) : "no fixed end"}`
+                            : `Quiz opens immediately after publishing${details.availabilityEnd ? ` and ends ${new Date(toAbsoluteISO(details.availabilityEnd)).toLocaleString("en-IN", { timeZone: getUserTimeZone() })}` : " with no fixed end"}`
                           }
-                          <span className="ml-2 text-[10px] font-medium text-amber-500">({details.timeZone || getUserTimeZone()})</span>
+                          <span className="ml-2 text-[10px] font-medium text-amber-500">({getUserTimeZone()})</span>
                         </p>
                         <p className="mt-2 text-[10px] text-text-muted">
                           Responses close when the quiz window ends: {details.availabilityEndBehavior === "auto_submit" ? "auto-submit" : details.availabilityEndBehavior === "allow_finish" ? "allow to finish" : "stop immediately"}.
@@ -1130,23 +1077,6 @@ export default function QuizSettingsPage({
                   </div>
                 )}
 
-                {/* Timezone */}
-                <div className="mt-6">
-                  <SettingsSelect
-                    label="Timezone"
-                    value={details.timeZone}
-                    onChange={(v) => update({ timeZone: v })}
-                    options={timezoneOptions}
-                    searchable
-                  />
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-text-secondary">
-                    <Globe className="h-3.5 w-3.5 shrink-0 text-violet-500" />
-                    All quiz times are displayed in your selected timezone.
-                    <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-500">
-                      {details.timeZone || "Select a timezone"}
-                    </span>
-                  </div>
-                </div>
               </div>
             </SettingsCard>
           </div>
@@ -1195,23 +1125,6 @@ export default function QuizSettingsPage({
                 </motion.div>
               )}
 
-              {/* Timezone — sourced from the existing timezone API */}
-              <div className="mt-6">
-                <SettingsSelect
-                  label="Timezone"
-                  value={details.timeZone}
-                  onChange={(v) => update({ timeZone: v })}
-                  options={timezoneOptions}
-                  searchable
-                />
-                <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-text-secondary">
-                  <Globe className="h-3.5 w-3.5 shrink-0 text-violet-500" />
-                  All quiz times are displayed in your selected timezone.
-                  <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-500">
-                    {details.timeZone || "Select a timezone"}
-                  </span>
-                </div>
-              </div>
             </SettingsCard>
           </div>
 

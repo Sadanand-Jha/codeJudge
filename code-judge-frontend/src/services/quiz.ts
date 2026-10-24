@@ -53,15 +53,6 @@ export async function getQuizVisibilityOptions(): Promise<QuizVisibilityOption[]
   return response.data;
 }
 
-/**
- * Get the list of IANA timezone names
- * GET /api/v1/user/timezones
- */
-export async function getTimezones(): Promise<string[]> {
-  const response = await apiClient.get<string[]>("/v1/user/timezones");
-  return response.data;
-}
-
 export interface CreateQuizPayload {
   name: string;
   description?: string;

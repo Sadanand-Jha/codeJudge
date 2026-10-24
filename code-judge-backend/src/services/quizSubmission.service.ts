@@ -1,10 +1,10 @@
 // Background result calculation for quiz attempts.
-// Student submits only persist answers. The actual grading pipeline runs when
-// the quiz ends (teacher stop or scheduled end), never on an individual
-// submission. A BullMQ worker runs processQuizSubmission with bounded
-// concurrency; the same function is used by serverless recovery when a
-// long-lived worker is unavailable.
+// Grading starts at the earliest of: the student submits, the teacher ends the
+// quiz, or the scheduled quiz end time passes. A BullMQ worker runs
+// processQuizSubmission with bounded concurrency; the same function is used by
+// request-time recovery when a long-lived worker is unavailable.
 import { QuizService } from "./database/quiz.service.ts";
+import { maybeQueueQuizResponsesEmail } from "./quizResultsEmail.service.ts";
 import {
   enqueueQuizSubmission,
   getQuizSubmissionJob,
@@ -13,6 +13,7 @@ import {
   type QuizSubmissionJobData,
 } from "../queues/quizSubmission.queue.ts";
 import { getQuizAttemptDeadlineMs } from "../utils/quizAttemptTiming.ts";
+import { schedulerLog } from "../utils/schedulerLog.ts";
 
 const quizService = new QuizService();
 
@@ -214,6 +215,12 @@ export async function processQuizSubmission(data: QuizSubmissionJobData): Promis
     ...(timeTaken !== undefined ? { time_taken: timeTaken } : {}),
   });
 
+  try {
+    await maybeQueueQuizResponsesEmail(Number(attempt.quiz_id));
+  } catch (error) {
+    console.error(`Could not queue responses email for quiz ${attempt.quiz_id}:`, error);
+  }
+
   return updatedAttempt;
 }
 
@@ -295,50 +302,97 @@ export async function enqueueQuizResultCalculation(
   quizId: number,
   userId?: number
 ): Promise<number> {
+  schedulerLog(
+    "grading",
+    `quiz ${quizId}: looking for expired in-progress attempts${userId !== undefined ? ` for user ${userId}` : ""}`
+  );
   const expired = await quizService.getExpiredQuizAttempts(quizId, userId);
+  schedulerLog("grading", `quiz ${quizId}: found ${expired.length} expired attempt(s)`);
+
   let enqueued = 0;
 
   for (const attempt of expired) {
     const jobData = resultCalculationJobData(attempt);
+    schedulerLog(
+      "grading",
+      `quiz ${quizId}: processing attempt ${jobData.attemptId} (user ${jobData.userId}, isLate=${jobData.isLate})`
+    );
     try {
       if (!isQuizSubmissionQueueConfigured()) {
+        schedulerLog(
+          "grading",
+          `quiz ${quizId}: attempt ${jobData.attemptId} has no Redis queue, processing inline`
+        );
         await processQuizSubmission(jobData);
         enqueued += 1;
+        schedulerLog("grading", `quiz ${quizId}: attempt ${jobData.attemptId} processed inline`);
         continue;
       }
 
+      schedulerLog("grading", `quiz ${quizId}: attempt ${jobData.attemptId} checking existing queue job`);
       const existing = await getQuizSubmissionJob(jobData.attemptId);
       if (existing) {
         const state = await existing.getState();
-        if (state !== "failed") continue;
+        schedulerLog(
+          "grading",
+          `quiz ${quizId}: attempt ${jobData.attemptId} already has a queue job (state=${state})`
+        );
+        if (state !== "failed") {
+          schedulerLog("grading", `quiz ${quizId}: attempt ${jobData.attemptId} skipped because job is ${state}`);
+          continue;
+        }
+        schedulerLog("grading", `quiz ${quizId}: attempt ${jobData.attemptId} previous job failed, removing it`);
         await existing.remove();
       }
 
       // Keep a durable fallback so a status poll can recover if the worker is
       // unavailable, then add the same job to BullMQ.
+      schedulerLog("grading", `quiz ${quizId}: attempt ${jobData.attemptId} storing durable fallback`);
       await storeFallbackQuizSubmission(jobData).catch((error) => {
-        console.warn(`Could not store fallback for quiz attempt ${jobData.attemptId}:`, error);
+        schedulerLog("grading", `quiz ${quizId}: attempt ${jobData.attemptId} fallback store failed`, error);
       });
+      schedulerLog("grading", `quiz ${quizId}: attempt ${jobData.attemptId} adding job to BullMQ`);
       await enqueueQuizSubmission(jobData);
       enqueued += 1;
+      schedulerLog("grading", `quiz ${quizId}: attempt ${jobData.attemptId} queued successfully`);
     } catch (error) {
-      console.error(`Failed to enqueue result calculation for quiz attempt ${jobData.attemptId}:`, error);
+      schedulerLog("grading", `quiz ${quizId}: attempt ${jobData.attemptId} queueing failed`, error);
     }
   }
 
-  if (enqueued > 0) {
-    console.log(`[bullmq] result calculation queued for quiz ${quizId} (${enqueued} attempt(s))`);
+  schedulerLog("grading", `quiz ${quizId}: checking whether the responses email can be queued`);
+  try {
+    const queued = await maybeQueueQuizResponsesEmail(quizId);
+    schedulerLog(
+      "grading",
+      `quiz ${quizId}: responses email check completed (queued=${queued}, attemptsQueued=${enqueued})`
+    );
+  } catch (error) {
+    schedulerLog("grading", `quiz ${quizId}: responses email check failed`, error);
   }
+
+  schedulerLog("grading", `quiz ${quizId}: DONE (${enqueued} attempt(s) queued)`);
   return enqueued;
 }
 
 /** Poll target used on deployments without a long-lived worker/cron. */
 export async function enqueueDueQuizResultCalculations(): Promise<number> {
+  schedulerLog("grading", "polling database for quizzes that have ended with ungraded attempts");
   const quizIds = await quizService.getQuizIdsAwaitingResultCalculation();
+  schedulerLog(
+    "grading",
+    `database poll returned ${quizIds.length} quiz(zes)${quizIds.length > 0 ? `: [${quizIds.join(", ")}]` : ""}`
+  );
+
   let enqueued = 0;
   for (const quizId of quizIds) {
-    enqueued += await enqueueQuizResultCalculation(quizId);
+    schedulerLog("grading", `quiz ${quizId}: beginning result calculation sweep`);
+    const queuedForQuiz = await enqueueQuizResultCalculation(quizId);
+    enqueued += queuedForQuiz;
+    schedulerLog("grading", `quiz ${quizId}: sweep complete (${queuedForQuiz} attempt(s) queued)`);
   }
+
+  schedulerLog("grading", `result calculation poll complete: ${enqueued} total attempt(s) queued`);
   return enqueued;
 }
 

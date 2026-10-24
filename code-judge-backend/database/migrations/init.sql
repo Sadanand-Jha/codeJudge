@@ -654,26 +654,6 @@ ALTER TABLE quiz_collaborator_request ADD CONSTRAINT fk_qcr_invited_by FOREIGN K
 CREATE INDEX IF NOT EXISTS idx_qcr_user_status ON quiz_collaborator_request(user_id, status);
 CREATE INDEX IF NOT EXISTS idx_qcr_quiz ON quiz_collaborator_request(quiz_id);
 
--- Create the timezone table
-CREATE TABLE timezones (
-    id INT PRIMARY KEY,
-    timezone_code VARCHAR(10) NOT NULL,
-    timezone_name VARCHAR(100) NOT NULL,
-    utc_offset VARCHAR(10) NOT NULL,
-    offset_hours DECIMAL(4,2) NOT NULL
-);
-
--- Insert the CSV data into the table
-INSERT INTO timezones (id, timezone_code, timezone_name, utc_offset, offset_hours) 
-VALUES
-    (1, 'UTC', 'Coordinated Universal Time', '+00:00', 0.00),
-    (2, 'EST', 'Eastern Standard Time', '-05:00', -5.00),
-    (3, 'PST', 'Pacific Standard Time', '-08:00', -8.00),
-    (4, 'CET', 'Central European Time', '+01:00', 1.00),
-    (5, 'IST', 'Indian Standard Time', '+05:30', 5.50),
-    (6, 'JST', 'Japan Standard Time', '+09:00', 9.00),
-    (7, 'AEST', 'Australian Eastern Standard Time', '+10:00', 10.00);
-
 alter table quiz_problems
 add column negative_marks integer;
 

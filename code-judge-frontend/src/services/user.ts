@@ -116,17 +116,6 @@ export async function updateProfileLocation(payload: {
   return response.data;
 }
 
-/**
- * Persist the IANA timezone used for date parsing and daily quota resets.
- */
-export async function updateProfileTimezone(timezone: string): Promise<string> {
-  const response = await apiClient.patch<{ timezone: string }>(
-    "/v1/user/profile/timezone",
-    { timezone }
-  );
-  return response.data.timezone;
-}
-
 /* =============================================
    Minimal public user lookup (for collaborators)
    GET /api/v1/user/users/:userId

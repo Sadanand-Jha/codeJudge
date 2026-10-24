@@ -1,9 +1,5 @@
 import { pool } from "../../config/database.ts";
-import {
-  addDays,
-  isOrderActive,
-  normalizeTimeZone,
-} from "./plans.ts";
+import { addDays, isOrderActive } from "./plans.ts";
 import { resolveEntitlements } from "./resolver.ts";
 import type {
   CreditOrder,
@@ -189,11 +185,9 @@ async function getUserTrial(
 ): Promise<{
   trialStartedAt: Date | null;
   createdAt: Date | null;
-  timezone: string;
 }> {
   const result = await db.query(
-    `SELECT trial_started_at, COALESCE(created_at, createdat) AS created_at,
-            timezone
+    `SELECT trial_started_at, COALESCE(created_at, createdat) AS created_at
      FROM users WHERE id = $1 LIMIT 1`,
     [userId]
   );
@@ -201,7 +195,6 @@ async function getUserTrial(
   return {
     trialStartedAt: toDate(row?.trial_started_at),
     createdAt: toDate(row?.created_at),
-    timezone: normalizeTimeZone(row?.timezone),
   };
 }
 
@@ -227,7 +220,6 @@ async function countUsage(
 async function countEmailsToday(
   userId: number,
   now: Date,
-  timeZone: string,
   db: Queryable
 ): Promise<number> {
   const result = await db.query(
@@ -235,15 +227,9 @@ async function countEmailsToday(
      FROM usage_events
      WHERE user_id = $1
        AND event_type = 'email_sent'
-       AND created_at >= (
-         ((($2::timestamptz AT TIME ZONE $3)::date)::timestamp)
-         AT TIME ZONE $3
-       )
-       AND created_at < (
-         (((($2::timestamptz AT TIME ZONE $3)::date + 1)::timestamp))
-         AT TIME ZONE $3
-       )`,
-    [userId, now, timeZone]
+       AND created_at >= date_trunc('day', $2::timestamptz)
+       AND created_at < date_trunc('day', $2::timestamptz) + INTERVAL '1 day'`,
+    [userId, now]
   );
   return toNumber(result.rows[0]?.count);
 }
@@ -254,13 +240,12 @@ export async function loadEntitlementSnapshot(
   db: Queryable = pool
 ): Promise<EntitlementSnapshot> {
   const trial = await getUserTrial(userId, db);
-  const timezone = trial.timezone;
   const [freePlan, activePlanOrder, creditOrders, emailsToday] =
     await Promise.all([
       getPlanByCode("free", db),
       getActivePlanOrder(userId, now, db),
       getCreditOrders(userId, now, db),
-      countEmailsToday(userId, now, timezone, db),
+      countEmailsToday(userId, now, db),
     ]);
 
   const trialStartedAt = trial.trialStartedAt ?? trial.createdAt ?? now;
@@ -286,7 +271,6 @@ export async function loadEntitlementSnapshot(
   return {
     userId,
     now,
-    timezone,
     trialStartedAt,
     createdAt: trial.createdAt,
     freePlan,
@@ -295,35 +279,6 @@ export async function loadEntitlementSnapshot(
     quizzesUsed,
     emailsToday,
   };
-}
-
-export async function updateUserTimezone(
-  userId: number | string,
-  timeZone: string,
-  db: Queryable = pool
-): Promise<string> {
-  const id = Number(userId);
-  if (!Number.isInteger(id) || id <= 0) {
-    throw new Error("Invalid user id");
-  }
-
-  const normalized = normalizeTimeZone(timeZone, "");
-  if (!normalized) {
-    throw new Error("Invalid timezone");
-  }
-
-  const result = await db.query(
-    `UPDATE users
-     SET timezone = $1
-     WHERE id = $2
-     RETURNING timezone`,
-    [normalized, id]
-  );
-
-  if (result.rows.length === 0) {
-    throw new Error("User not found");
-  }
-  return String(result.rows[0].timezone);
 }
 
 export async function getEntitlements(

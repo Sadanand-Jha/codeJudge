@@ -65,7 +65,6 @@ export interface CreditSummary {
 export interface EntitlementSnapshot {
   userId: number;
   now: Date;
-  timezone: string;
   trialStartedAt: Date | null;
   createdAt: Date | null;
   freePlan: MonthlyPlan | null;
@@ -116,7 +115,6 @@ export interface EntitlementBadge {
 
 export interface Entitlements {
   userId: number;
-  timezone: string;
   plan: PlanEntitlement;
   limits: EntitlementLimits;
   usage: EntitlementUsage;

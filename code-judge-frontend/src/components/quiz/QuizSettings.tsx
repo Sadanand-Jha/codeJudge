@@ -269,7 +269,6 @@ function defaultSettings(quizName: string): QuizSettingsConfig {
       },
     },
     scheduling: {
-      timezone: "UTC",
       lateEntryPolicy: "allowed",
     },
     scoring: {
@@ -587,7 +586,6 @@ export default function QuizSettings({ quizId, quizName, settings: externalSetti
                     className="w-full h-9 px-2 rounded-lg border border-border-hover bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none [color-scheme:dark]"
                   />
                 </div>
-                <SelectField label="Timezone" value={settings.scheduling.timezone} onChange={(v) => updateSection("scheduling", { timezone: v })} options={["Asia/Kolkata", "UTC", "America/New_York", "Europe/London", "Asia/Tokyo"]} />
                 <SelectField label="Late Entry Policy" value={settings.scheduling.lateEntryPolicy} onChange={(v) => updateSection("scheduling", { lateEntryPolicy: v })} options={["Allowed", "Blocked", "Penalty"]} />
               </div>
             </SectionCard>

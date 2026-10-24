@@ -383,7 +383,6 @@ export interface QuizSchedulingSettings {
   registrationCloses?: string;
   assessmentStarts?: string;
   assessmentEnds?: string;
-  timezone: string;
   lateEntryPolicy: "allowed" | "blocked" | "penalty";
   lateEntryPenalty?: number;
 }

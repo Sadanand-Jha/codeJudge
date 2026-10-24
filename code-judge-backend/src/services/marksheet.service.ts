@@ -30,7 +30,7 @@ export async function generateMarksheet(quizId: number): Promise<MarksheetResult
 
   // Fetch quiz details
   const quizQuery = `
-    SELECT q.*, u.username as creator_username, u.timezone as creator_timezone
+    SELECT q.*, u.username as creator_username
     FROM quiz q
     JOIN users u ON u.id = q.createdby
     WHERE q.id = $1
@@ -110,7 +110,7 @@ export async function generateMarksheet(quizId: number): Promise<MarksheetResult
       college: attempt.college_name || "",
       quizName: quiz.name,
       quizCode: quiz.code,
-      attemptDate: formatDate(attempt.completed_at, quiz.creator_timezone || "UTC"),
+      attemptDate: formatDate(attempt.completed_at),
       quizDuration: formatDuration(quiz.duration || 0),
       timeTaken: formatDuration(attempt.time_taken || 0),
       totalQuestions: attempt.total_questions,
