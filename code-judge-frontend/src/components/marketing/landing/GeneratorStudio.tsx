@@ -152,7 +152,7 @@ export default function GeneratorStudio() {
     : topicCount
       ? total
         ? ""
-        : "Choose how many questions you want."
+        : "Pick how many you want."
       : "Pick at least one topic.";
 
   const toggleTopic = (topic: string) => {
@@ -183,6 +183,7 @@ export default function GeneratorStudio() {
       `Drafting ${topicCount} topic${topicCount > 1 ? "s" : ""}…`,
       "Balancing difficulty…",
       "Writing answer keys…",
+      "Composing your paper…",
     ];
 
     setBusy(true);
@@ -194,7 +195,7 @@ export default function GeneratorStudio() {
     messageTimer.current = setInterval(() => {
       step += 1;
       setBusyMessage(messages[step % messages.length]);
-    }, 400);
+    }, 320);
 
     generateTimer.current = setTimeout(() => {
       if (messageTimer.current) clearInterval(messageTimer.current);
@@ -209,6 +210,11 @@ export default function GeneratorStudio() {
         }
       });
       setResults(generated);
+      setPaperIds(generated.map((item) => item.id));
+      toast.success({
+        title: "Paper composed",
+        description: "Set the title and time, then export.",
+      });
     }, 1500);
   };
 
@@ -245,18 +251,17 @@ export default function GeneratorStudio() {
             <p className="eb">Question generator</p>
             <h3>Pick the scope. AI writes the questions.</h3>
             <p>
-              Choose the subject and topics, decide how many easy, medium and hard
-              questions you want, and get questions with answer keys in seconds.
-              Paste your syllabus for even more precise results.
+              Subject, chapters, topics, difficulty. Get questions with answer keys
+              in seconds. Paste a syllabus for sharper results.
             </p>
             <ul className="ck">
-              <li>Subject, chapter and topic scope</li>
-              <li>Difficulty and category counts that always add up</li>
-              <li>MCQ, short and long questions with answer keys</li>
-              <li>Regenerate one question or the whole set</li>
+              <li>Subject, chapter and topic</li>
+              <li>Easy, medium, hard — you choose the mix</li>
+              <li>MCQ, short and long, with answer keys</li>
+              <li>Regenerate one or all</li>
             </ul>
             <a className="btn" href="#paper">
-              Then build a paper →
+              Watch the paper assemble →
             </a>
           </div>
           <div className="outer">
@@ -379,11 +384,10 @@ export default function GeneratorStudio() {
         <div className="wrap fx rev">
           <div>
             <p className="eb">Paper generator</p>
-            <h3>Compose a print-ready paper.</h3>
+            <h3>The paper comes out ready.</h3>
             <p>
-              Collect the questions you like, set the title and time, and export a
-              clean question paper for class tests and mock exams. Try it: add
-              questions from the generator above.
+              Your questions are already in. Set the title and time, then export.
+              Add more from the generator above.
             </p>
             <div className="pgf">
               <label className="lb" htmlFor="paper-title">
@@ -480,9 +484,9 @@ export default function GeneratorStudio() {
                 </>
               ) : (
                 <div className="emp">
-                  No questions in this paper yet.
+                  Nothing here yet.
                   <br />
-                  <small>Generate questions and press Add to paper.</small>
+                  <small>Generate a scope above and the paper fills itself.</small>
                 </div>
               )}
             </div>

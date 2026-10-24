@@ -74,7 +74,7 @@ export default function QuizHubHero() {
 
         <p className="mb-[22px] mt-4 max-w-[520px] text-[17px] leading-[1.5] text-[var(--qs-ink)] opacity-80">
           Join a live quiz, step into your teacher’s room for notes and messages, or practice
-          for JEE, NEET, GATE, SSC, UPSC and Banking.
+          with ready-made question sets.
         </p>
 
         <div className="flex flex-wrap gap-2">

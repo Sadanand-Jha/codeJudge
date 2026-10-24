@@ -5,7 +5,6 @@ import { AlertCircle, CheckCircle2, AlertOctagon } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import type { StudioState } from "../types";
-import { getQuestionStatus } from "@/components/quiz/creator/types";
 import { StudioStepHeader, StudioStepLayout } from "../primitives";
 
 interface ReviewItem {
@@ -147,6 +146,17 @@ function computeItems(
     });
   } else {
     items.push({ id: "desc", severity: "ok", label: "Short description is set" });
+  }
+
+  if (state.info.duration <= 0) {
+    items.push({
+      id: "duration",
+      severity: "error",
+      label: "Time per student must be greater than 0",
+      fix: () => goToStep("rules"),
+    });
+  } else {
+    items.push({ id: "duration", severity: "ok", label: `${state.info.duration} minutes per student` });
   }
 
   if (summary.questionCount === 0) {

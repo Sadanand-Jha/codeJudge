@@ -34,16 +34,19 @@ export async function processQuizSubmission(data: QuizSubmissionJobData): Promis
   // The quiz end time wins when configured; otherwise the attempt expires
   // after its fixed 15-minute fallback window.
   const attemptDeadlineMs = getQuizAttemptDeadlineMs(quizRow, attempt);
-  const quizEnded =
-    quizStatus === "ended"
-    || (attemptDeadlineMs !== null && attemptDeadlineMs <= Date.now());
-  if (!quizEnded) {
-    console.warn(`[bullmq] result calculation skipped for attempt ${attemptId}: quiz has not ended`);
-    return attempt;
-  }
   const attemptSubmittedAtMs = attempt.submitted_at
     ? new Date(attempt.submitted_at).getTime()
     : Number.NaN;
+  // Explicit submissions are graded immediately; end-of-quiz jobs still wait
+  // for the quiz window to close.
+  const explicitlySubmitted = Number.isFinite(attemptSubmittedAtMs);
+  const quizEnded =
+    quizStatus === "ended"
+    || (attemptDeadlineMs !== null && attemptDeadlineMs <= Date.now());
+  if (!quizEnded && !explicitlySubmitted) {
+    console.warn(`[bullmq] result calculation skipped for attempt ${attemptId}: quiz has not ended`);
+    return attempt;
+  }
   const jobSubmittedAtMs = new Date(data.submittedAt).getTime();
   const submittedAtMs = Number.isFinite(attemptSubmittedAtMs)
     ? attemptSubmittedAtMs
@@ -244,6 +247,42 @@ function resultCalculationJobData(attempt: any): QuizSubmissionJobData {
     isLate: !attempt.submitted_at,
     submittedAt: new Date().toISOString(),
   };
+}
+
+/**
+ * Grade one explicitly submitted attempt immediately. Called from the student
+ * submit endpoint after the final answers are persisted. The job is deduped by
+ * attempt id, so double submits and the end-of-quiz sweep stay safe.
+ */
+export async function enqueueSubmittedQuizAttempt(attempt: any): Promise<void> {
+  const jobData: QuizSubmissionJobData = {
+    attemptId: Number(attempt.id),
+    userId: Number(attempt.user_id),
+    quizId: Number(attempt.quiz_id),
+    responses: [],
+    violations: Number(attempt.violations) || 0,
+    flagged: attempt.flagged === true,
+    ...(attempt.flag_reason ? { flagReason: String(attempt.flag_reason) } : {}),
+    isLate: false,
+    submittedAt: new Date().toISOString(),
+  };
+
+  if (!isQuizSubmissionQueueConfigured()) {
+    await processQuizSubmission(jobData);
+    return;
+  }
+
+  const existing = await getQuizSubmissionJob(jobData.attemptId);
+  if (existing) {
+    const state = await existing.getState();
+    if (state !== "failed") return;
+    await existing.remove();
+  }
+
+  await storeFallbackQuizSubmission(jobData).catch((error) => {
+    console.warn(`Could not store fallback for quiz attempt ${jobData.attemptId}:`, error);
+  });
+  await enqueueQuizSubmission(jobData);
 }
 
 /**

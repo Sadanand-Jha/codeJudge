@@ -7,7 +7,7 @@ import jwt, { type SignOptions } from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import redisClient from '../config/redis.js';
 import { UserService } from './database/user.database.js';
-import { sendOtpEmail } from './email.js';
+import { enqueueOtpEmail } from '../queues/email.queue.ts';
 import generateOtp from './otpGenerator.js';
 import { isPlatformOwner } from './platformSession.js';
 import { ensureFreeSubscription } from './entitlement.service.js';
@@ -280,7 +280,7 @@ export async function sendOtp(email: string, clientIp?: string): Promise<Service
     // 9. Await provider acceptance. Fire-and-forget work is unsafe on Vercel:
     // the invocation may be frozen as soon as the response is returned.
     try {
-      await sendOtpEmail({ to: normalizedEmail, otp });
+      await enqueueOtpEmail(normalizedEmail, otp);
     } catch (emailError) {
       // Do not leave a valid-but-undelivered code or cooldown behind. The user
       // can retry immediately once the provider recovers.
@@ -613,7 +613,7 @@ export async function requestOwnerLoginOtp(email: string, clientIp?: string): Pr
       // Still return the same generic response on delivery failure so this
       // endpoint cannot reveal whether an owner account exists.
       try {
-        await sendOtpEmail({ to: normalizedEmail, otp });
+        await enqueueOtpEmail(normalizedEmail, otp);
       } catch (err: any) {
         await deleteCachedOwnerLoginOtp(normalizedEmail);
         console.error('Failed to send owner-login OTP email:', err.message || err);
@@ -848,7 +848,7 @@ export async function requestPasswordReset(email: string, clientIp?: string): Pr
     // Wait for provider acceptance before reporting success. This keeps
     // serverless runtimes from freezing the delivery promise mid-flight.
     try {
-      await sendOtpEmail({ to: normalizedEmail, otp });
+      await enqueueOtpEmail(normalizedEmail, otp);
     } catch (emailError) {
       await deleteCachedResetOtp(normalizedEmail);
       await redisClient.del(cooldownKey);

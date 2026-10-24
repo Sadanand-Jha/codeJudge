@@ -3,7 +3,7 @@
 // marksheet, and optionally sends it via email.
 import { pool } from "../config/database.ts";
 import { generateMarksheet } from "./marksheet.service.ts";
-import { sendMarksheetEmail } from "./email.service.ts";
+import { enqueueResultEmail } from "../queues/email.queue.ts";
 import logger from "../utils/logger.ts";
 import { enqueueQuizResultCalculation } from "./quizSubmission.service.ts";
 import {
@@ -308,7 +308,7 @@ export class ResultGenerationService {
     if (sendEmail) {
       try {
         const { buffer, stats } = await generateMarksheet(quizId);
-        await sendMarksheetEmail({
+        await enqueueResultEmail({
           to: quiz.creator_email,
           quizName: quiz.name,
           quizCode: quiz.code,
@@ -349,7 +349,7 @@ export class ResultGenerationService {
 
     try {
       const { buffer, stats } = await generateMarksheet(quizId);
-      await sendMarksheetEmail({
+      await enqueueResultEmail({
         to: quiz.creator_email,
         quizName: quiz.name,
         quizCode: quiz.code,

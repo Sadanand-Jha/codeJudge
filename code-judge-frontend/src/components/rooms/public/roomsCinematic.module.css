@@ -73,6 +73,7 @@
 .joinStage,
 .shareStage {
   position: relative;
+  min-width: 0;
 }
 
 .inviteChip {
@@ -100,7 +101,7 @@
   width: 100%;
   height: 100%;
   border-radius: 26px;
-  transform: translate(16px, 16px);
+  transform: translate(var(--rooms-offset, 16px), var(--rooms-offset, 16px));
 }
 
 .offsetBlockAnimated {
@@ -120,6 +121,7 @@
 .shareCard {
   position: relative;
   z-index: 1;
+  min-width: 0;
   overflow: hidden;
 }
 
@@ -193,6 +195,8 @@
 }
 
 .joinedName {
+  max-width: 100%;
+  overflow-wrap: anywhere;
   opacity: 0;
   transform: translateY(12px);
 }
@@ -587,6 +591,71 @@
   }
 }
 
+@keyframes rooms-mobile-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes rooms-mobile-clapper {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(8px, 8px);
+  }
+}
+
+@keyframes rooms-mobile-success-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 1023px) {
+  .cardAnimated {
+    animation: rooms-mobile-card-in 340ms var(--rooms-ease-out) both;
+  }
+
+  .offsetBlockAnimated {
+    animation: rooms-mobile-clapper 340ms var(--rooms-ease-out) both;
+  }
+
+  .offsetBlockClapper {
+    --rooms-offset: 8px;
+    border-radius: 22px;
+    transform: translate(var(--rooms-offset), var(--rooms-offset));
+  }
+
+  .offsetBlockFill {
+    animation: none;
+  }
+
+  .formLayerHidden {
+    display: none;
+  }
+
+  .joinedLayer {
+    position: relative;
+    inset: auto;
+    animation: rooms-mobile-success-in 360ms var(--rooms-ease-out) both;
+  }
+
+  .curtain {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .heroCardAnimated,
   .pillAnimated,
@@ -596,6 +665,7 @@
   .staggerItemAnimated,
   .offsetBlockAnimated,
   .cardAnimated,
+  .joinedLayer,
   .ambient,
   .codeCharPop,
   .codeFieldPulse::after,
@@ -618,7 +688,7 @@
   }
 
   .offsetBlockAnimated {
-    transform: translate(16px, 16px);
+    transform: translate(var(--rooms-offset, 16px), var(--rooms-offset, 16px));
   }
 
   .offsetBlockFill {

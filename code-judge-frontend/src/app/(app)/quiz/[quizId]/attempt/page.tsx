@@ -1,7 +1,7 @@
 
 "use client";
 
-import { use, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { use, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Home, PartyPopper, Send, ShieldCheck, Target, Volume2, VolumeX } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -19,6 +19,7 @@ import {
 } from "@/services/quiz";
 import { isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
 import { getApiErrorMessage } from "@/lib/apiError";
+import { consumeQuizBackNavigation } from "@/lib/quizBackNavigation";
 import {
   clearQuizAttemptAnswers,
   readQuizAttemptAnswers,
@@ -88,6 +89,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   const [submissionComplete, setSubmissionComplete] = useState(false);
   const [autoSubmitted, setAutoSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [blockedByBackNavigation, setBlockedByBackNavigation] = useState(false);
   const [trapStrength, setTrapStrength] = useState(4);
   const [trapDefaultStrength, setTrapDefaultStrength] = useState(4);
   const [trapOutline, setTrapOutline] = useState(false);
@@ -100,6 +102,21 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   // Ref mirror of `submitting` so the submit guard never goes stale inside
   // the long-lived polling loop (state in the useCallback closure would).
   const submittingRef = useRef(false);
+
+  // A live or submitted attempt must not reopen through browser history.
+  // Normal reloads and lobby/reattempt links are not history traversals and
+  // keep working. BFCache restores are treated the same as back navigation.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot navigation guard
+    if (consumeQuizBackNavigation()) setBlockedByBackNavigation(true);
+  }, []);
+  useEffect(() => {
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) setBlockedByBackNavigation(true);
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
 
   // Calibration is a teacher/admin-only local preview. The server owns the
   // default strength; this flag only enables the controls when explicitly
@@ -269,7 +286,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   // registration values (when the quiz collects them) travel with the start
   // call so the attempt begins only after the form submit.
   const handleEnterExam = useCallback(async (registrationData?: Record<string, string>): Promise<boolean> => {
-    if (!quiz || starting) return false;
+    if (blockedByBackNavigation || !quiz || starting) return false;
     if (attemptId) return true;
     setStarting(true);
     setError(null);
@@ -307,7 +324,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     } finally {
       setStarting(false);
     }
-  }, [quiz, attemptId, starting]);
+  }, [blockedByBackNavigation, quiz, attemptId, starting]);
 
   // The server rejects saves/heartbeats once the teacher stops the quiz or
   // the scheduled window ends. Stop accepting local answers and submit the
@@ -391,6 +408,22 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     router.replace(`/quiz/${code}/results/${attemptId}`);
   }, [attemptId, code, router, submit]);
 
+  if (blockedByBackNavigation) {
+    return (
+      <StatusScreen
+        text="This attempt was reopened from browser history, so it is locked here. Open the quiz from the lobby to continue."
+        action={
+          <button
+            type="button"
+            onClick={() => router.replace("/quiz")}
+            className="rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-brand)] px-4 py-2 text-sm font-bold text-white transition hover:opacity-90"
+          >
+            Go to quiz home
+          </button>
+        }
+      />
+    );
+  }
   if (loading) return <StatusScreen loading text="Preparing your secure attempt…" />;
   if (error && !quiz) return <StatusScreen text={error} />;
   if (!quiz) return <StatusScreen text="This quiz could not be loaded." />;
@@ -762,7 +795,7 @@ function SubmissionProgressOverlay({ complete, soundEnabled, onSound, onHome }: 
   );
 }
 
-function StatusScreen({ loading = false, text }: { loading?: boolean; text: string }) {
+function StatusScreen({ loading = false, text, action }: { loading?: boolean; text: string; action?: ReactNode }) {
   if (loading) {
     return (
       <div className="qs-ui flex min-h-[70vh] items-center justify-center bg-[var(--qs-bg)] px-4">
@@ -775,6 +808,7 @@ function StatusScreen({ loading = false, text }: { loading?: boolean; text: stri
       <div className="w-full max-w-md rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-6 text-center">
         <AlertCircle className="mx-auto h-8 w-8 text-[var(--qs-bad)]" />
         <p className="mt-3 text-sm leading-6 text-[var(--qs-muted)]">{text}</p>
+        {action ? <div className="mt-4 flex justify-center">{action}</div> : null}
       </div>
     </div>
   );

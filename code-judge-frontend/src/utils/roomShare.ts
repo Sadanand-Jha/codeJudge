@@ -84,19 +84,27 @@ export function buildRoomShareMessage({
 }: RoomShareMessageInput): string {
   const joinLink = buildRoomJoinLink({ roomCode, password, appUrl });
   const teacherLine = creatorUsername?.trim()
-    ? `\nTeacher: @${creatorUsername.trim().replace(/^@+/, "")}`
+    ? `\n👩‍🏫 Teacher: @${creatorUsername.trim().replace(/^@+/, "")}`
     : "";
   const expiryLine =
     passwordExpiresAt === undefined
       ? ""
       : passwordExpiresAt
-        ? `\n4. Password valid till: ${formatPasswordExpiry(passwordExpiresAt)}`
-        : "\n4. Password does not expire";
-  return `📚 Join my class: ${roomName}${teacherLine}
+        ? `\n⏳ Password valid till: ${formatPasswordExpiry(passwordExpiresAt)}`
+        : "\n♾️ Password does not expire";
+  return `🎒✨ *CLASS INVITE* ✨🎒
+┏━━━━━━━━━━━━━━━━━━┓
+   📚 *${roomName}*
+┗━━━━━━━━━━━━━━━━━━┛${teacherLine}
 
-1. Tap to join: ${joinLink}
-2. Room code: ${roomCode}
-3. Password: ${password}${expiryLine}`;
+🎟️ *YOUR ENTRY PASS*
+🔑 Room code: *${roomCode}*
+🔐 Password: *${password}*${expiryLine}
+
+👇 *Tap to join in one tap*
+${joinLink}
+
+🚀 _See you inside!_ ✨`;
 }
 
 export function buildWhatsAppHref(message: string): string {

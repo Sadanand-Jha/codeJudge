@@ -1647,7 +1647,14 @@ export class QuizRepository {
     } = filters;
 
     const offset = (page - 1) * limit;
-    const conditions: string[] = ["qa.user_id = $1", "q.deleted_at IS NULL", "qa.deleted_at IS NULL"];
+    // An untouched/in-flight attempt is not history. Hiding it here also means
+    // it cannot be opened from the activity list after navigating back.
+    const conditions: string[] = [
+      "qa.user_id = $1",
+      "q.deleted_at IS NULL",
+      "qa.deleted_at IS NULL",
+      "LOWER(REPLACE(COALESCE(qa.status, ''), ' ', '_')) <> 'in_progress'",
+    ];
     const queryParams: any[] = [userId];
     let paramCount = 1;
 
@@ -1687,6 +1694,9 @@ export class QuizRepository {
         q.name,
         q.total_marks,
         q.passing_marks,
+        q.endtime,
+        q.show_results_immediately,
+        qs.name AS quiz_status_name,
         qa.score,
         qa.percentage,
         qa.rank,
@@ -1699,6 +1709,7 @@ export class QuizRepository {
         qa.skipped_questions
       FROM quiz_attempt qa
       JOIN quiz q ON q.id = qa.quiz_id
+      LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
       WHERE ${whereClause}
       ORDER BY qa.${safeSortBy} ${safeSortOrder}
       LIMIT $${paramCount - 1} OFFSET $${paramCount}
@@ -1873,7 +1884,7 @@ export class QuizRepository {
   async getQuizResult(attemptId: number, userId: number): Promise<any | null> {
     const query = `
       SELECT qa.*, q.name, q.code, q.total_marks, q.passing_marks,
-             q.show_results_immediately, q.endtime, qs.name AS quiz_status_name
+             q.createdby, q.show_results_immediately, q.endtime, qs.name AS quiz_status_name
       FROM quiz_attempt qa
       JOIN quiz q ON q.id = qa.quiz_id
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
