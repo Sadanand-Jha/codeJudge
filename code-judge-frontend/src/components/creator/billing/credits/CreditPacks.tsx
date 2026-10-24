@@ -134,10 +134,7 @@ export function CreditPackCard({
         ₹{pack.price}
       </p>
       <p className="text-base font-bold">
-        {pack.credits} credits{" "}
-        <span className={cn("font-medium", hot ? "opacity-[0.88]" : "text-[var(--qs-muted)]")}>
-          · ₹{(pack.price / pack.credits).toFixed(2)} / credit
-        </span>
+        {pack.credits} credits
       </p>
       <p
         className={cn(

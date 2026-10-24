@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  ArrowRight,
   BarChart3,
   CalendarDays,
   Check,
+  CreditCard,
   FileText,
   HelpCircle,
   KeyRound,
@@ -26,6 +28,7 @@ import {
 import QuizCodeForm from "@/components/marketing/QuizCodeForm";
 import SampleQuizDemo from "@/components/marketing/SampleQuizDemo";
 import HeroPolygons from "@/components/marketing/landing/HeroPolygons";
+import AnimatedStat from "@/components/marketing/landing/AnimatedStat";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import GeneratorStudio from "@/components/marketing/landing/GeneratorStudio";
 import FeatureTabs from "@/components/marketing/landing/FeatureTabs";
@@ -111,7 +114,7 @@ interface FeatureCard {
 }
 
 const FEATURE_CARDS: FeatureCard[] = [
-  { icon: Timer, title: "Secure exams", desc: "Timers, fullscreen and auto-submit. No babysitting." },
+  { icon: Timer, title: "Secure exams", desc: "Timed and focused. No babysitting." },
   {
     icon: CalendarDays,
     title: "Scheduled quizzes",
@@ -129,42 +132,42 @@ const FEATURE_CARDS: FeatureCard[] = [
 ];
 
 const STATS = [
-  { value: "1,000+", label: "learners every month" },
-  { value: "20+", label: "teachers and creators" },
-  { value: "0", label: "installs needed" },
-  { value: "1", label: "code to join" },
+  { value: 1000, suffix: "+", label: "learners every month" },
+  { value: 20, suffix: "+", label: "teachers and creators" },
+  { value: 0, suffix: "", label: "installs needed" },
+  { value: 1, suffix: "", label: "code to join" },
 ];
 
 const WHY_CARDS: FeatureCard[] = [
   {
     icon: ShieldCheck,
     title: "Exam mode, minus the drama",
-    desc: "Fullscreen, tab-switch detection, copy/paste blocking and auto-submit. It watches so you don't have to.",
+    desc: "Cheating is hard. It watches so you don't have to.",
   },
   {
     icon: Users,
     title: "One room. Every quiz.",
-    desc: "Group students once, share a six-character code, and reuse the batch forever.",
+    desc: "Group once, share one code, reuse the batch forever.",
   },
   {
     icon: Zap,
     title: "Results before the bell",
-    desc: "Instant grading, ranks, timing and question-level accuracy. No spreadsheets.",
+    desc: "Instant grading, ranks and accuracy — no spreadsheets.",
   },
   {
     icon: Lock,
     title: "You see it first",
-    desc: "Teachers and collaborators see results immediately. Students see theirs an hour after the quiz ends.",
+    desc: "You see results instantly. Students, one hour after.",
   },
   {
     icon: BarChart3,
     title: "Know what to teach next",
-    desc: "The hardest question, the slowest topic and who needs help — without digging.",
+    desc: "Hardest questions, slowest topics and who needs help.",
   },
   {
     icon: Sparkles,
     title: "AI does the busywork",
-    desc: "Generate a full paper from a scope, then edit anything. You still hold the pen.",
+    desc: "Generate a full paper, then edit anything you want.",
   },
 ];
 
@@ -176,7 +179,7 @@ const COMPARISON_ROWS = [
   },
   {
     need: "Exam integrity",
-    us: "Fullscreen + violation tracking",
+    us: "Focused exam mode",
     them: "No controls",
   },
   {
@@ -265,11 +268,11 @@ const FAQS = [
   },
   {
     q: "What is exam mode?",
-    a: "Fullscreen attempts with tab-switch, fullscreen-exit and copy/paste tracking. Repeated violations can auto-submit.",
+    a: "A focused exam view with timers so every attempt stays on the paper.",
   },
   {
     q: "What are rooms?",
-    a: "Reusable student groups. Create once, share the six-character code, assign every quiz.",
+    a: "Reusable student groups. Create once, share the code, assign every quiz.",
   },
   {
     q: "Who can see results?",
@@ -307,7 +310,7 @@ export default function HomePage() {
       <nav aria-label="Main">
         <div className="wrap">
           <Link href="/" aria-label="QuizSupport home">
-            <SecureLogo size={42} variant="full" rounded={false} className="logo" />
+            <SecureLogo size={35} variant="full" rounded={false} className="logo" />
           </Link>
           <div className="nl">
             {NAV_LINKS.map((link) =>
@@ -346,6 +349,7 @@ export default function HomePage() {
               </div>
               <Link href="/register" className="btn trial-cta">
                 Start free trial
+                <ArrowRight size={16} aria-hidden />
               </Link>
             </div>
           </div>
@@ -358,14 +362,6 @@ export default function HomePage() {
                 land.
               </p>
               <QuizCodeForm />
-              <p className="trust-line">
-                <span className="tdot" aria-hidden />
-                <b>1,000+ learners</b> every month · <b>20+ teachers</b> creating papers
-              </p>
-              <p className="sub">
-                Want to see it happen?{" "}
-                <Link href="/creator/quizzes/create">Create a paper for free</Link>
-              </p>
             </div>
             <SampleQuizDemo />
           </header>
@@ -375,7 +371,9 @@ export default function HomePage() {
           <div className="wrap">
             {STATS.map((stat) => (
               <div className="lp-stat" key={stat.label}>
-                <b>{stat.value}</b>
+                <b>
+                  <AnimatedStat value={stat.value} suffix={stat.suffix} />
+                </b>
                 <span>{stat.label}</span>
               </div>
             ))}
@@ -444,7 +442,14 @@ export default function HomePage() {
             <p className="eb">Why it feels different</p>
             <h2 className="t">Built for the parts nobody warns you about.</h2>
             <p className="d">
-              Most tools stop at a form and a score. QuizSupport handles the rest.
+              Most tools stop at a form and a score.{" "}
+              <SecureLogo
+                size={20}
+                variant="full"
+                rounded={false}
+                className="inline-block align-[-4px]"
+              />{" "}
+              handles the rest.
             </p>
             <div className="wg">
               {WHY_CARDS.map((card) => {
@@ -466,7 +471,7 @@ export default function HomePage() {
                   <tr>
                     <th>What you need</th>
                     <th>
-                      <span className="cmp-us">QuizSupport</span>
+                      <SecureLogo size={26} variant="full" rounded={false} theme="dark" />
                     </th>
                     <th>The usual stack</th>
                   </tr>
@@ -506,7 +511,7 @@ export default function HomePage() {
                 from one place.
               </p>
               <ul className="ck">
-                <li>Six-character code. Join in seconds.</li>
+                <li>Generate a code. Join in seconds.</li>
                 <li>Reuse the room across quizzes and terms.</li>
                 <li>See who joined, attempted and needs a nudge.</li>
                 <li>Built for batches, clubs and study groups.</li>
@@ -537,7 +542,7 @@ export default function HomePage() {
                 </i>
                 <div>
                   <b>Share the room code</b>
-                  <small>One six-character code.</small>
+                  <small>One code for everyone.</small>
                 </div>
               </div>
               <span className="room-flow-line" aria-hidden />
@@ -615,7 +620,12 @@ export default function HomePage() {
                         <span className="save">{discount}% off</span>
                       ) : null}
                     </div>
-                    {plan.offer && <span className="offer-line">{plan.offer}</span>}
+                    <span
+                      className={plan.offer ? "offer-line" : "offer-line is-empty"}
+                      aria-hidden={plan.offer ? undefined : true}
+                    >
+                      {plan.offer ?? "\u00A0"}
+                    </span>
                     <div className="pr">
                       ₹{plan.price}
                       {discount > 0 && plan.originalPrice ? (
@@ -625,11 +635,17 @@ export default function HomePage() {
                         {plan.price === 0 ? ` for ${plan.trialDays} days` : " / month"}
                       </small>
                     </div>
-                    <div className="cr">
-                      {plan.quizzes} quiz creations · {plan.rooms}{" "}
-                      {plan.rooms === 1 ? "room" : "rooms"}
-                      <span>
-                        {" · "}
+                    <div className="cr cr-plans">
+                      <span className="cr-plans-main">
+                        {plan.quizzes} quiz creations · {plan.rooms}{" "}
+                        {plan.rooms === 1 ? "room" : "rooms"}
+                      </span>
+                      <span
+                        className={
+                          plan.credits > 0 ? "cr-credits" : "cr-credits is-muted"
+                        }
+                      >
+                        {plan.credits > 0 && <Sparkles size={12} aria-hidden />}
                         {plan.credits > 0
                           ? `${plan.credits} AI credits / month`
                           : "AI credits sold separately"}
@@ -660,7 +676,10 @@ export default function HomePage() {
               and work with every plan.
             </p>
             <div className="pay-ad">
-              <div>
+              <span className="pay-ico" aria-hidden="true">
+                <CreditCard size={22} />
+              </span>
+              <div className="pay-copy">
                 <span className="pay-tag">One-time payment</span>
                 <b>No auto-renew. No surprise charges.</b>
                 <small>
@@ -687,7 +706,7 @@ export default function HomePage() {
                     </div>
                     <div className="pr">₹{pack.price}</div>
                     <div className="cr">
-                      {pack.credits} credits <span>· ₹{rate.toFixed(2)} / credit</span>
+                      {pack.credits} credits
                     </div>
                     <p>
                       {pack.blurb} Valid for {pack.validityMonths}{" "}

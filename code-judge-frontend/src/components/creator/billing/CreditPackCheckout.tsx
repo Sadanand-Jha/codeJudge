@@ -383,7 +383,7 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack }:
                     ₹{p.price}
                   </span>
                   <span className="mt-1.5 text-xs tabular-nums text-slate-500 dark:text-slate-400">
-                    {p.credits} credits · ₹{(p.price / p.credits).toFixed(2)}/credit
+                    {p.credits} credits
                   </span>
                 </button>
               );

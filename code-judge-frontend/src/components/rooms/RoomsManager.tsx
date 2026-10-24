@@ -28,6 +28,8 @@ import type { RoomMenuItem } from "@/components/quiz/creator/settings/audience/R
 import CreateRoomModal from "@/components/quiz/creator/settings/audience/CreateRoomModal";
 import AddStudentsModal from "@/components/quiz/creator/settings/audience/AddStudentsModal";
 import DuplicateRoomModal from "./DuplicateRoomModal";
+import RoomUpdatesSummary from "./RoomUpdatesSummary";
+import RoomStudentSearch from "./RoomStudentSearch";
 
 type FilterTab = "all" | "active" | "archived" | "recent";
 type SortKey = "updated" | "name" | "students";
@@ -335,6 +337,10 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
             </div>
           ))}
         </div>
+
+        <RoomUpdatesSummary rooms={ownedRooms} basePath={basePath} />
+
+        <RoomStudentSearch rooms={ownedRooms} basePath={basePath} />
 
         {/* Filter bar */}
         <div className="mb-5 flex flex-wrap items-center gap-2.5">

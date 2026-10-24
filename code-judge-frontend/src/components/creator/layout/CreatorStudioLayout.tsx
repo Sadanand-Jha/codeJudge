@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { CreatorSidebar } from "./CreatorSidebar";
@@ -108,7 +108,11 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
 
         {/* Main content */}
         <div data-studio="true" className="flex min-h-0 min-w-0 flex-1 flex-col">
-          {isRoomsWorkspace ? <CreatorRoomsNavbar /> : null}
+          {isRoomsWorkspace ? (
+            <Suspense fallback={null}>
+              <CreatorRoomsNavbar />
+            </Suspense>
+          ) : null}
           <main
             className={
               isFullBleedStudio

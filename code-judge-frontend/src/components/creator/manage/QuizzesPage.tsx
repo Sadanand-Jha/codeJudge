@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
+  Check,
   // MoreHorizontal,
   Plus,
   RotateCcw,
@@ -74,7 +75,7 @@ const STATUS_META: Record<QuizStatus, { label: string; tone: string; dot: string
   live: { label: "Live", tone: "text-[var(--qs-ok)]", dot: "var(--qs-ok)" },
   draft: { label: "Draft", tone: "text-[#a85d00]", dot: "#a85d00" },
   scheduled: { label: "Scheduled", tone: "text-[#2457d6]", dot: "#2457d6" },
-  completed: { label: "Completed", tone: "text-[var(--qs-bad)]", dot: "var(--qs-bad)" },
+  completed: { label: "Completed", tone: "text-[#2457d6]", dot: "#2457d6" },
 };
 
 const BTN =
@@ -537,7 +538,11 @@ function StatTile({
 function StatusPill({ status }: { status: QuizStatus }) {
   return (
     <span className={cn(PILL, STATUS_META[status].tone)}>
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+      {status === "completed" ? (
+        <Check className="h-3 w-3" strokeWidth={3} />
+      ) : (
+        <span className="h-1.5 w-1.5 rounded-full bg-current" />
+      )}
       {STATUS_META[status].label}
     </span>
   );

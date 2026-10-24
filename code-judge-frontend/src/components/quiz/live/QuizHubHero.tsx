@@ -7,12 +7,6 @@ import { cn } from "@/lib/helpers";
 import { formatQuizCode, isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
 import { isValidRoomCodeInput, normalizeRoomCodeInput } from "@/utils/roomShare";
 
-const HUB_STATS = [
-  { label: "Practice tests", value: 24, sun: true },
-  { label: "Exams", value: 6, sun: false },
-  { label: "Rooms joined", value: 1, sun: false },
-] as const;
-
 const ASSURANCES = ["Free to start", "Instant results", "Works on any phone"] as const;
 
 type JoinTab = "quiz" | "room";
@@ -89,29 +83,6 @@ export default function QuizHubHero() {
           ))}
         </div>
 
-        <div className="mt-[26px] grid max-w-[520px] grid-cols-3 gap-3">
-          {HUB_STATS.map((stat) => (
-            <div
-              key={stat.label}
-              className={cn(
-                "rounded-[18px] border-2 px-4 py-3",
-                stat.sun
-                  ? "border-[#1a1240] bg-[var(--qs-sun)] text-[#1a1240]"
-                  : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)]"
-              )}
-            >
-              <span
-                className={cn(
-                  "block text-[12px] font-extrabold uppercase tracking-[0.08em]",
-                  stat.sun ? "text-[#1a1240]" : "text-[var(--qs-muted)]"
-                )}
-              >
-                {stat.label}
-              </span>
-              <b className="qs-display mt-1.5 block text-[32px] leading-[1.1]">{stat.value}</b>
-            </div>
-          ))}
-        </div>
       </div>
 
       <div className="relative mr-4 mb-4">

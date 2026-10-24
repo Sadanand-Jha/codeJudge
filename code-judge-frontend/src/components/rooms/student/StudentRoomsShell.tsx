@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import { StudentRoomsProvider } from "./StudentRoomsProvider";
 import StudentRoomsNavbar from "./StudentRoomsNavbar";
@@ -17,7 +18,9 @@ export default function StudentRoomsShell({ children }: { children: React.ReactN
   return (
     <StudentRoomsProvider>
       <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col bg-[var(--qs-bg)]">
-        <StudentRoomsNavbar />
+        <Suspense fallback={null}>
+          <StudentRoomsNavbar />
+        </Suspense>
         <div className="min-w-0 flex-1">{children}</div>
       </div>
     </StudentRoomsProvider>

@@ -52,6 +52,17 @@ function timestamp(value: string | null): number {
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
+function activityLabel(room: EnrolledRoom): string {
+  const value = room.joined_at ?? room.updated_at;
+  return value ? timeAgo(value) : "Recently";
+}
+
+function joinedLabel(room: EnrolledRoom): string {
+  if (room.joined_at) return `Joined ${timeAgo(room.joined_at)}`;
+  if (room.updated_at) return `Updated ${timeAgo(room.updated_at)}`;
+  return "Recently";
+}
+
 export default function StudentRoomsPage() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -300,7 +311,7 @@ export default function StudentRoomsPage() {
                       Rooms
                     </h2>
                     <p className="mt-0.5 text-sm text-[var(--qs-muted)]">
-                      Your classrooms — open a card to see classmates and updates.
+                      Your classrooms — open a room to see classmates and updates.
                     </p>
                   </div>
                   <p className="text-sm font-medium text-[var(--qs-muted)]">
@@ -318,7 +329,7 @@ export default function StudentRoomsPage() {
                     </h3>
                     <p className="mx-auto mt-1.5 max-w-md text-sm font-medium leading-relaxed text-[var(--qs-muted)]">
                       Use the room code and password your teacher shared. Your joined
-                      classrooms will appear here as cards.
+                      classrooms will appear here.
                     </p>
                     <Link href="/rooms" className={cn(QS_PRIMARY_BTN, "mt-5")}>
                       <UserPlus className="h-4 w-4" strokeWidth={3} />
@@ -343,11 +354,130 @@ export default function StudentRoomsPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="grid gap-3 border-t-2 border-[var(--qs-line)] p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-3">
-                    {filtered.map((room) => (
-                      <RoomCard key={room.id} room={room} />
-                    ))}
-                  </div>
+                  <>
+                    {/* Mobile cards */}
+                    <div className="space-y-2.5 border-t-2 border-[var(--qs-line)] p-4 md:hidden">
+                      {filtered.map((room) => {
+                        const count = room.member_count;
+                        const body = (
+                          <div className="flex items-start gap-3">
+                            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+                              <Users className="h-4 w-4" strokeWidth={2.5} />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="truncate font-bold text-[var(--qs-ink)]">{room.name}</p>
+                                <RoomStatus active={room.is_active} />
+                              </div>
+                              <p className="mt-0.5 truncate text-xs text-[var(--qs-muted)]">
+                                {teacherName(room)} · <b className="font-extrabold text-[var(--qs-ink)]">{count}</b> member{count === 1 ? "" : "s"}
+                              </p>
+                              <p className="mt-1.5 flex min-w-0 items-center gap-1.5 truncate text-[11px] font-medium text-[var(--qs-muted)]">
+                                <Clock className="h-3 w-3 shrink-0" />
+                                {joinedLabel(room)}
+                              </p>
+                            </div>
+                            {room.is_active && (
+                              <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-[var(--qs-muted)]" />
+                            )}
+                          </div>
+                        );
+
+                        return room.is_active ? (
+                          <Link
+                            key={room.id}
+                            href={`/rooms/${room.id}`}
+                            className="block rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 transition-colors active:bg-[var(--qs-bg)]"
+                          >
+                            {body}
+                          </Link>
+                        ) : (
+                          <div
+                            key={room.id}
+                            className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 opacity-70"
+                          >
+                            {body}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Desktop table */}
+                    <div className="hidden overflow-x-auto border-t-2 border-[var(--qs-line)] md:block">
+                      <table className="w-full min-w-[760px] border-collapse text-left">
+                        <thead>
+                          <tr>
+                            {["Room", "Teacher", "Members", "Joined", "Status"].map((heading) => (
+                              <th
+                                key={heading}
+                                className="whitespace-nowrap px-3 py-3.5 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]"
+                              >
+                                {heading}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filtered.map((room) => (
+                            <tr
+                              key={room.id}
+                              onClick={() => {
+                                if (room.is_active) router.push(`/rooms/${room.id}`);
+                              }}
+                              className={cn(
+                                "border-t-2 border-[var(--qs-line)]/60 transition-colors",
+                                room.is_active ? "cursor-pointer hover:bg-[var(--qs-bg)]" : "opacity-70"
+                              )}
+                            >
+                              <td className="px-3 py-3">
+                                <div className="flex items-center gap-3">
+                                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+                                    <Users className="h-4 w-4" strokeWidth={2.5} />
+                                  </span>
+                                  <span className="min-w-0">
+                                    <span className="block max-w-[230px] truncate font-bold text-[var(--qs-ink)]">
+                                      {room.name}
+                                    </span>
+                                    <span className="mt-0.5 block max-w-[230px] truncate text-xs text-[var(--qs-muted)]">
+                                      {room.description || "Classroom room"}
+                                    </span>
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-3 py-3">
+                                <div className="flex items-center gap-2.5">
+                                  {/* eslint-disable-next-line @next/next/no-img-element -- teacher avatars may be remote */}
+                                  <img
+                                    src={room.owner.avatarUrl || getAvatarUrlById(room.owner.avatarId ?? 1)}
+                                    alt=""
+                                    className="h-7 w-7 shrink-0 rounded-full border-2 border-[var(--qs-ink)] object-cover"
+                                  />
+                                  <span className="min-w-0">
+                                    <span className="block max-w-[180px] truncate text-sm font-bold text-[var(--qs-ink)]">
+                                      {teacherName(room)}
+                                    </span>
+                                    <span className="block max-w-[180px] truncate text-xs text-[var(--qs-muted)]">
+                                      {room.owner.username ? `@${room.owner.username}` : "Teacher"}
+                                    </span>
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-3">
+                                <span className="font-bold text-[var(--qs-ink)]">{room.member_count}</span>
+                                <span className="font-medium text-[var(--qs-muted)]"> members</span>
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-3 text-[var(--qs-muted)]">
+                                {activityLabel(room)}
+                              </td>
+                              <td className="px-3 py-3">
+                                <RoomStatus active={room.is_active} />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
                 )}
 
                 <div className="border-t-2 border-[var(--qs-line)] px-4 py-3.5 text-sm font-medium text-[var(--qs-muted)] sm:px-[26px]">
@@ -362,77 +492,15 @@ export default function StudentRoomsPage() {
   );
 }
 
-function RoomCard({ room }: { room: EnrolledRoom }) {
-  const content = (
-    <>
-      <div className="flex items-start justify-between gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
-          <Users className="h-5 w-5" strokeWidth={2.5} />
-        </span>
-        <span
-          className={cn(
-            "shrink-0 rounded-full border-2 border-current px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.05em]",
-            room.is_active ? "text-[var(--qs-ok)]" : "text-[#a85d00]"
-          )}
-        >
-          {room.is_active ? "Active" : "Archived"}
-        </span>
-      </div>
-
-      <div className="mt-3 min-w-0 flex-1">
-        <h3 className="truncate text-lg font-black tracking-tight text-[var(--qs-ink)]">
-          {room.name}
-        </h3>
-        <p className="mt-0.5 line-clamp-2 min-h-[2.5rem] text-[13px] text-[var(--qs-muted)]">
-          {room.description || "Classroom room"}
-        </p>
-      </div>
-
-      <div className="mt-4 flex items-center gap-2.5 border-t-2 border-[var(--qs-line)] pt-3">
-        {/* eslint-disable-next-line @next/next/no-img-element -- teacher avatars may be remote */}
-        <img
-          src={room.owner.avatarUrl || getAvatarUrlById(room.owner.avatarId ?? 1)}
-          alt=""
-          className="h-8 w-8 shrink-0 rounded-full border-2 border-[var(--qs-ink)] object-cover"
-        />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-extrabold text-[var(--qs-ink)]">
-            {teacherName(room)}
-          </p>
-          <p className="truncate text-[11px] text-[var(--qs-muted)]">
-            {room.owner.username ? `@${room.owner.username}` : "Teacher"}
-          </p>
-        </div>
-        {room.is_active ? (
-          <ArrowRight className="h-4 w-4 shrink-0 text-[var(--qs-muted)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--qs-brand)]" />
-        ) : null}
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-bold text-[var(--qs-muted)]">
-        <span className="inline-flex items-center gap-1.5">
-          <Users className="h-3.5 w-3.5" />
-          {room.member_count} member{room.member_count === 1 ? "" : "s"}
-        </span>
-        {room.joined_at ? (
-          <span className="inline-flex items-center gap-1.5">
-            <Clock className="h-3.5 w-3.5" />
-            Joined {timeAgo(room.joined_at)}
-          </span>
-        ) : null}
-      </div>
-    </>
-  );
-
-  const className =
-    "group flex h-full flex-col rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-4 transition-all hover:-translate-y-0.5 hover:border-[var(--qs-ink)] hover:shadow-[3px_3px_0_var(--qs-sun)]";
-
-  if (!room.is_active) {
-    return <div className={cn(className, "opacity-70")}>{content}</div>;
-  }
-
+function RoomStatus({ active }: { active: boolean }) {
   return (
-    <Link href={`/rooms/${room.id}`} className={className}>
-      {content}
-    </Link>
+    <span
+      className={cn(
+        "shrink-0 rounded-full border-2 border-current px-2 py-px text-[10px] font-extrabold uppercase tracking-[0.05em] sm:px-[11px] sm:text-xs",
+        active ? "text-[var(--qs-ok)]" : "text-[#a85d00]"
+      )}
+    >
+      {active ? "Active" : "Archived"}
+    </span>
   );
 }

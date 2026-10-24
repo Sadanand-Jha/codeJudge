@@ -1,9 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Plus } from "lucide-react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useStudentRooms } from "./StudentRoomsProvider";
 import RoomsSubNavbar, { type RoomsSubNavItem } from "@/components/rooms/RoomsSubNavbar";
 
@@ -14,9 +12,50 @@ import RoomsSubNavbar, { type RoomsSubNavItem } from "@/components/rooms/RoomsSu
  */
 export default function StudentRoomsNavbar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { rooms, loading, error, reload } = useStudentRooms();
 
+  const activeRoomId = useMemo(() => {
+    const match = pathname.match(/^\/rooms\/([^/]+)$/);
+    const id = match?.[1] ?? null;
+    return id && id !== "my" ? id : null;
+  }, [pathname]);
+
+  const tab = searchParams.get("tab");
+  const isStudents = tab === "students";
+  const isDocuments = tab === "documents";
+  const isAnnouncements = tab === "announcements";
+
   const items = useMemo<RoomsSubNavItem[]>(() => {
+    if (activeRoomId) {
+      return [
+        {
+          id: "overview",
+          name: "Overview",
+          href: `/rooms/${activeRoomId}`,
+          active: !isStudents && !isDocuments && !isAnnouncements,
+        },
+        {
+          id: "students",
+          name: "Students",
+          href: `/rooms/${activeRoomId}?tab=students`,
+          active: isStudents,
+        },
+        {
+          id: "documents",
+          name: "Documents",
+          href: `/rooms/${activeRoomId}?tab=documents`,
+          active: isDocuments,
+        },
+        {
+          id: "announcements",
+          name: "Announcements",
+          href: `/rooms/${activeRoomId}?tab=announcements`,
+          active: isAnnouncements,
+        },
+      ];
+    }
+
     return [...rooms]
       .sort((a, b) => {
         if (a.is_active !== b.is_active) return a.is_active ? -1 : 1;
@@ -29,7 +68,7 @@ export default function StudentRoomsNavbar() {
         active: pathname === `/rooms/${room.id}`,
         disabled: !room.is_active,
       }));
-  }, [pathname, rooms]);
+  }, [activeRoomId, isAnnouncements, isDocuments, isStudents, pathname, rooms]);
 
   return (
     <RoomsSubNavbar
@@ -40,16 +79,6 @@ export default function StudentRoomsNavbar() {
       error={error}
       onRetry={() => void reload()}
       className="sticky top-14 z-20"
-      action={
-        <Link
-          href="/rooms"
-          aria-label="Join a room"
-          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2.5 text-xs font-extrabold text-[#1A1240] transition-transform hover:-translate-y-px active:translate-y-0 sm:px-3"
-        >
-          <Plus className="h-3.5 w-3.5" strokeWidth={3} />
-          <span className="hidden sm:inline">Join</span>
-        </Link>
-      }
     />
   );
 }

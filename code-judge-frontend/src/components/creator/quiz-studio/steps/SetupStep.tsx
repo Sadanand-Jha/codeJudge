@@ -39,7 +39,7 @@ const FALLBACK_DIFFICULTY = [
 ];
 
 const FIELD_CLS =
-  "w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-[15px] font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]";
+  "w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-[15px] font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:font-normal placeholder:text-[var(--qs-muted)] placeholder:opacity-60 focus:border-[var(--qs-brand)]";
 
 export function SetupStep() {
   const router = useRouter();

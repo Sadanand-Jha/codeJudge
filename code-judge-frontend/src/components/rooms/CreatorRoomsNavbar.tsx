@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { fetchMyRooms } from "@/services/rooms";
 import { getOwnedRooms, useRoomStore } from "@/store/roomStore";
@@ -15,6 +15,7 @@ import RoomsSubNavbar, { type RoomsSubNavItem } from "./RoomsSubNavbar";
  */
 export default function CreatorRoomsNavbar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const rooms = useRoomStore((s) => s.rooms);
   const hydrate = useRoomStore((s) => s.hydrate);
   const setRooms = useRoomStore((s) => s.setRooms);
@@ -45,7 +46,38 @@ export default function CreatorRoomsNavbar() {
 
   const ownedRooms = useMemo(() => getOwnedRooms(rooms, user?.id), [rooms, user]);
 
+  const activeRoomId = useMemo(() => {
+    const match = pathname.match(/^\/creator\/rooms\/([^/]+)$/);
+    return match?.[1] ?? null;
+  }, [pathname]);
+
+  const tab = searchParams.get("tab");
+  const isDocuments = tab === "documents";
+  const isAnnouncements = tab === "announcements";
+
   const items = useMemo<RoomsSubNavItem[]>(() => {
+    if (activeRoomId) {
+      return [
+        {
+          id: "students",
+          name: "Students",
+          href: `/creator/rooms/${activeRoomId}`,
+          active: !isDocuments && !isAnnouncements,
+        },
+        {
+          id: "documents",
+          name: "Documents",
+          href: `/creator/rooms/${activeRoomId}?tab=documents`,
+          active: isDocuments,
+        },
+        {
+          id: "announcements",
+          name: "Announcements",
+          href: `/creator/rooms/${activeRoomId}?tab=announcements`,
+          active: isAnnouncements,
+        },
+      ];
+    }
     return [...ownedRooms]
       .sort((a, b) => {
         if (a.archived !== b.archived) return a.archived ? 1 : -1;
@@ -58,7 +90,7 @@ export default function CreatorRoomsNavbar() {
         active: pathname === `/creator/rooms/${room.id}`,
         disabled: room.archived,
       }));
-  }, [ownedRooms, pathname]);
+  }, [activeRoomId, isAnnouncements, isDocuments, ownedRooms, pathname]);
 
   return (
     <RoomsSubNavbar

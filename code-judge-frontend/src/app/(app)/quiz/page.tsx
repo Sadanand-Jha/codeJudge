@@ -5,7 +5,6 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, BadgeCheck, BrainCircuit, Check, FileText, Minus, Plus, ShieldCheck, SlidersHorizontal, Target, WandSparkles } from "lucide-react";
 import GuestGuard from "@/components/guards/GuestGuard";
-import { TrialOfferBanner } from "@/components/marketing/TrialOfferBanner";
 
 import YourActivitySection from "@/components/quiz/live/YourActivitySection";
 import QuizHubBackdrop from "@/components/quiz/live/QuizHubBackdrop";
@@ -443,9 +442,6 @@ function AIQuizStudioCard() {
                 </span>
                 <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[var(--qs-muted)]">Live AI draft</span>
               </div>
-              <span className="ml-auto rounded-full border border-[var(--qs-line)] bg-[var(--qs-surface)] px-1.5 py-0.5 text-[7px] font-bold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
-                400 tok/s
-              </span>
             </div>
 
             <AnimatePresence mode="wait">
@@ -568,7 +564,6 @@ function QuizHome() {
       <QuizPageReady>
         <div className="qs-wrap relative z-10 pb-12 pt-4 sm:pt-6">
           <main className="w-full space-y-8">
-            <TrialOfferBanner />
             <QuizHubHero />
 
             <div className="hidden md:block">

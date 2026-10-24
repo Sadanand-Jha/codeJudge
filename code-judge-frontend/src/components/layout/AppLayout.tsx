@@ -246,9 +246,9 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   const homeHref = isStudioRoute ? "/creator" : isQuizWorkspace ? "/creator/quizzes" : FOCUS_MODE_ENABLED ? "/quiz" : "/";
   const isBlockedRoute = FOCUS_MODE_ENABLED && !isPathAllowed(pathname);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  // Student quiz pages open with the sidebar closed so the quiz takes center
-  // stage; it can be reopened anytime via the topbar toggle.
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(isStudentQuizRoute);
+  // Student mode opens with the sidebar closed so the page content takes
+  // center stage; it can be reopened anytime via the topbar toggle.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const authModalOpen = useUIStore((s) => s.authModalOpen);
   const authModalRedirect = useUIStore((s) => s.authModalRedirect);

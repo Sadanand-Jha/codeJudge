@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
   Archive,
   ArchiveRestore,
   ArrowLeft,
+  ArrowUpDown,
+  Check,
   CheckSquare,
+  ChevronDown,
   Copy,
   Download,
   Edit3,
@@ -38,6 +42,9 @@ import EditStudentModal from "./EditStudentModal";
 import StudentDetailsPanel from "./StudentDetailsPanel";
 import RoomInviteModal from "./RoomInviteModal";
 import RoomRegistrationFormEditor from "./RoomRegistrationFormEditor";
+import RoomAnnouncementsPanel from "./RoomAnnouncementsPanel";
+import RoomDocumentsPanel from "./RoomDocumentsPanel";
+import { useRoomContentStore } from "@/store/roomContentStore";
 import { WhatsAppIcon } from "@/components/creator/common/ShareQuizDialog";
 
 type StudentFilter = "all" | "recent" | "issues";
@@ -55,12 +62,18 @@ const QS_TOP_BTN =
   "inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-[9px] text-sm font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]";
 
 const QS_WHATSAPP_BTN =
-  "inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[#0b3d2c] bg-[#25D366] px-3.5 py-[9px] text-sm font-extrabold text-[#052e1d] shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[#0b3d2c] bg-[#25D366] px-3.5 py-[9px] text-sm font-extrabold text-white shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50";
 
 const FILTERS: Array<{ id: StudentFilter; label: string }> = [
   { id: "all", label: "All" },
   { id: "recent", label: "Recently Added" },
   { id: "issues", label: "Issues" },
+];
+
+const SORT_OPTIONS: Array<{ id: StudentSort; label: string }> = [
+  { id: "default", label: "Default Order" },
+  { id: "recent", label: "Recently Added" },
+  { id: "name", label: "Name A–Z" },
 ];
 
 interface RoomDetailsViewProps {
@@ -76,6 +89,11 @@ interface RoomDetailsViewProps {
  */
 export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }: RoomDetailsViewProps) {
   const toast = useToast();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const section =
+    tabParam === "documents" || tabParam === "announcements" ? tabParam : "students";
+  const seedRoomContent = useRoomContentStore((s) => s.seedRoom);
   const rooms = useRoomStore((s) => s.rooms);
   const hydrate = useRoomStore((s) => s.hydrate);
   const setRooms = useRoomStore((s) => s.setRooms);
@@ -88,7 +106,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   const { user } = useAuthStore();
   const [backendLoading, setBackendLoading] = useState(() => /^\d+$/.test(roomId));
 
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(() => searchParams.get("student") ?? "");
   const [filter, setFilter] = useState<StudentFilter>("all");
   const [sort, setSort] = useState<StudentSort>("default");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -179,6 +197,11 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
 
   const ownedRooms = useMemo(() => getOwnedRooms(rooms, user?.id), [rooms, user]);
   const room = ownedRooms.find((r) => r.id === roomId);
+
+  useEffect(() => {
+    if (!room) return;
+    seedRoomContent(room.id, room.name);
+  }, [room, seedRoomContent]);
 
   const quizUsage = useMemo(() => (room ? countRoomQuizUsage(room.id) : 0), [room]);
 
@@ -470,46 +493,50 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setInviteOpen(true)}
-              disabled={room.archived}
-              title={room.archived ? "Restore the room before inviting students" : "Create a WhatsApp invite"}
-              className={QS_WHATSAPP_BTN}
-            >
-              <WhatsAppIcon className="h-4 w-4" />
-              Invite on WhatsApp
-            </button>
-            <button type="button" onClick={() => setRegistrationOpen(true)} className={QS_TOP_BTN}>
-              <ClipboardList className="h-4 w-4" />
-              Form
-            </button>
-            <button type="button" onClick={handleExport} className={QS_TOP_BTN}>
-              <Download className="h-4 w-4" />
-              Export
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setAddTab("import");
-                setAddOpen(true);
-              }}
-              className={QS_TOP_BTN}
-            >
-              <FileSpreadsheet className="h-4 w-4" />
-              Import
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setAddTab("manual");
-                setAddOpen(true);
-              }}
-              className={cn(QS_PRIMARY_BTN, "rounded-[12px] px-3.5 py-[9px] text-sm")}
-            >
-              <UserRoundPlus className="h-4 w-4" />
-              Add Students
-            </button>
+            {section === "students" && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setInviteOpen(true)}
+                  disabled={room.archived}
+                  title={room.archived ? "Restore the room before inviting students" : "Create a WhatsApp invite"}
+                  className={QS_WHATSAPP_BTN}
+                >
+                  <WhatsAppIcon className="h-4 w-4" />
+                  Invite on WhatsApp
+                </button>
+                <button type="button" onClick={() => setRegistrationOpen(true)} className={QS_TOP_BTN}>
+                  <ClipboardList className="h-4 w-4" />
+                  Form
+                </button>
+                <button type="button" onClick={handleExport} className={QS_TOP_BTN}>
+                  <Download className="h-4 w-4" />
+                  Export
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAddTab("import");
+                    setAddOpen(true);
+                  }}
+                  className={QS_TOP_BTN}
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Import
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAddTab("manual");
+                    setAddOpen(true);
+                  }}
+                  className={cn(QS_PRIMARY_BTN, "rounded-[12px] px-3.5 py-[9px] text-sm")}
+                >
+                  <UserRoundPlus className="h-4 w-4" />
+                  Add Students
+                </button>
+              </>
+            )}
             <div className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] transition-colors hover:border-[var(--qs-brand)]">
               <RoomMenu items={headerMenuItems} />
             </div>
@@ -517,7 +544,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
         </div>
 
         {/* Stats */}
-        {stats && (
+        {section === "students" && stats && (
           <div className="mb-4 flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:mb-5 sm:grid sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-4">
             {statCards.map((kpi) => (
               <div
@@ -543,6 +570,8 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
           </div>
         )}
 
+        {section === "students" ? (
+          <>
         {/* Filter bar */}
         <div className="mb-5 flex flex-wrap items-center gap-2.5">
           <div className="relative w-full sm:w-auto sm:min-w-[220px] sm:flex-[0_1_290px]">
@@ -577,16 +606,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
               );
             })}
           </div>
-          <select
-            value={sort}
-            onChange={(e) => changeSort(e.target.value as StudentSort)}
-            aria-label="Sort students"
-            className="w-full shrink-0 cursor-pointer rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-[9px] text-sm font-bold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)] focus:border-[var(--qs-brand)] sm:w-auto"
-          >
-            <option value="default">Sort: Default Order</option>
-            <option value="recent">Sort: Recently Added</option>
-            <option value="name">Sort: Name A–Z</option>
-          </select>
+          <SortSelect value={sort} onChange={changeSort} />
         </div>
 
         {/* Bulk bar */}
@@ -833,6 +853,12 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
             </div>
           </div>
         </div>
+          </>
+        ) : section === "documents" ? (
+          <RoomDocumentsPanel roomId={room.id} roomName={room.name} />
+        ) : (
+          <RoomAnnouncementsPanel roomId={room.id} roomName={room.name} />
+        )}
       </div>
 
       {/* Add / import students */}
@@ -970,6 +996,124 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
           setDetailsStudent(null);
         }}
       />
+    </div>
+  );
+}
+
+function SortSelect({
+  value,
+  onChange,
+}: {
+  value: StudentSort;
+  onChange: (value: StudentSort) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const selected = SORT_OPTIONS.find((option) => option.id === value) ?? SORT_OPTIONS[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  const handleTriggerKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+    event.preventDefault();
+    if (!open) {
+      setOpen(true);
+      return;
+    }
+    const currentIndex = SORT_OPTIONS.findIndex((option) => option.id === value);
+    const direction = event.key === "ArrowDown" ? 1 : -1;
+    const nextIndex = (currentIndex + direction + SORT_OPTIONS.length) % SORT_OPTIONS.length;
+    onChange(SORT_OPTIONS[nextIndex].id);
+  };
+
+  return (
+    <div ref={rootRef} className="relative w-full shrink-0 sm:w-auto">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        onKeyDown={handleTriggerKeyDown}
+        aria-label="Sort students"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className={cn(
+          "flex h-[42px] w-full items-center justify-between gap-2 rounded-[12px] border-2 bg-[var(--qs-surface)] px-3.5 text-sm font-bold text-[var(--qs-ink)] outline-none transition-all sm:w-auto sm:min-w-[196px]",
+          open
+            ? "border-[var(--qs-brand)] shadow-[0_0_0_3px_var(--qs-poly-2)]"
+            : "border-[var(--qs-line)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] focus-visible:shadow-[0_0_0_3px_var(--qs-poly-2)]"
+        )}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <ArrowUpDown
+            className={cn(
+              "h-3.5 w-3.5 shrink-0 transition-colors",
+              open ? "text-[var(--qs-brand)]" : "text-[var(--qs-muted)]"
+            )}
+          />
+          <span className="truncate">Sort: {selected.label}</span>
+        </span>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 text-[var(--qs-muted)] transition-transform duration-200",
+            open && "rotate-180 text-[var(--qs-brand)]"
+          )}
+        />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+            <motion.div
+              role="listbox"
+              aria-label="Sort students"
+              initial={{ opacity: 0, y: -6, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.97 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className="absolute left-0 z-50 mt-2 w-full min-w-[196px] origin-top-left overflow-hidden rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-1.5 shadow-[4px_4px_0_var(--qs-sun)] sm:left-auto sm:right-0 sm:w-[228px] sm:origin-top-right"
+            >
+              {SORT_OPTIONS.map((option) => {
+                const active = option.id === value;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    role="option"
+                    aria-selected={active}
+                    onClick={() => {
+                      onChange(option.id);
+                      setOpen(false);
+                    }}
+                    className={cn(
+                      "flex w-full items-center justify-between gap-2 rounded-[9px] px-2.5 py-2 text-left text-sm font-bold transition-colors",
+                      active
+                        ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
+                        : "text-[var(--qs-ink)] hover:bg-[var(--qs-poly-0)]"
+                    )}
+                  >
+                    <span className="truncate">Sort: {option.label}</span>
+                    {active && <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={3} />}
+                  </button>
+                );
+              })}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Send, Check, BarChart3, Copy, Loader2 } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";

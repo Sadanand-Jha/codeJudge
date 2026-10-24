@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
   CalendarClock,
+  Check,
   ChevronRight,
   Clock,
   Database,
@@ -21,6 +22,7 @@ import { formatDate, formatDateTimeIST, IST_TIMEZONE, timeAgo } from "@/lib/form
 import { deriveQuizStatus, type EffectiveQuizStatus } from "@/lib/quizStatus";
 import { useData } from "@/lib/hooks/useData";
 import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
+import { TrialOfferBanner } from "@/components/marketing/TrialOfferBanner";
 import { TimingModal } from "@/components/creator/dashboard/TimingModal";
 import { ErrorState, Skeleton } from "@/components/creator/billing/ui";
 import { checkLowCreditWarning, useAICreditsStore } from "@/store/aiCreditsStore";
@@ -141,14 +143,14 @@ const PILL_TONE: Record<QuizStatus, string> = {
   live: "text-[var(--qs-ok)]",
   draft: "text-[#a85d00]",
   scheduled: "text-[#2457d6]",
-  completed: "text-[var(--qs-bad)]",
+  completed: "text-[#2457d6]",
 };
 
 const STATUS_META: Record<QuizStatus, { label: string; tone: string; dot: string }> = {
   live: { label: "Live", tone: "text-[var(--qs-ok)]", dot: "var(--qs-ok)" },
   draft: { label: "Draft", tone: "text-[#a85d00]", dot: "var(--qs-sun)" },
   scheduled: { label: "Scheduled", tone: "text-[#2457d6]", dot: "#2457d6" },
-  completed: { label: "Completed", tone: "text-[var(--qs-bad)]", dot: "var(--qs-bad)" },
+  completed: { label: "Completed", tone: "text-[#2457d6]", dot: "#2457d6" },
 };
 
 /* ============================================================
@@ -158,7 +160,11 @@ const STATUS_META: Record<QuizStatus, { label: string; tone: string; dot: string
 function StatusPill({ status }: { status: QuizStatus }) {
   return (
     <span className={cn(PILL, PILL_TONE[status])}>
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+      {status === "completed" ? (
+        <Check className="h-3 w-3" strokeWidth={3} />
+      ) : (
+        <span className="h-1.5 w-1.5 rounded-full bg-current" />
+      )}
       {STATUS_META[status].label}
     </span>
   );
@@ -1137,6 +1143,8 @@ export function CreatorDashboardPage() {
           </Link>
         </div>
       </div>
+
+      <TrialOfferBanner />
 
       <QuickActions />
 

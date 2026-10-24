@@ -2,21 +2,44 @@
 
 import { cn } from "@/lib/helpers";
 
+const PANEL_TONES = {
+  plain: { section: "bg-[var(--qs-surface)]", accent: "" },
+  brand: { section: "bg-[#F5F1FF]", accent: "bg-[var(--qs-brand)]" },
+  sun: { section: "bg-[#FFFAE8]", accent: "bg-[var(--qs-sun)]" },
+  mint: { section: "bg-[#EFFAF4]", accent: "bg-[#2FBF84]" },
+  sky: { section: "bg-[#F0F5FF]", accent: "bg-[#5B8DEF]" },
+  coral: { section: "bg-[#FFF3EE]", accent: "bg-[#FF7A50]" },
+} as const;
+
 export function Panel({
   title,
   subtitle,
   action,
   children,
   className,
+  bodyClassName,
+  tone = "plain",
 }: {
   title: string;
   subtitle?: string;
   action?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
+  bodyClassName?: string;
+  tone?: keyof typeof PANEL_TONES;
 }) {
+  const palette = PANEL_TONES[tone];
   return (
-    <section className={cn("min-w-0 rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-[22px]", className)}>
+    <section
+      className={cn(
+        "relative min-w-0 overflow-hidden rounded-[22px] border-2 border-[var(--qs-ink)] p-5 sm:p-[22px]",
+        palette.section,
+        className
+      )}
+    >
+      {palette.accent && (
+        <span aria-hidden="true" className={cn("absolute inset-x-0 top-0 h-[5px]", palette.accent)} />
+      )}
       <header className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-[19px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-[21px]">{title}</h2>
@@ -24,20 +47,26 @@ export function Panel({
         </div>
         {action}
       </header>
-      {children}
+      <div className={bodyClassName}>{children}</div>
     </section>
   );
 }
 
 export function EmptyNote({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-[16px] border-2 border-dashed border-[var(--qs-line)] px-4 py-8 text-center text-sm font-medium text-[var(--qs-muted)]">
+    <div className="flex min-h-[120px] flex-col items-center justify-center rounded-[16px] border-2 border-dashed border-[var(--qs-line)] bg-white/70 px-4 py-8 text-center text-sm font-medium text-[var(--qs-muted)]">
       {children}
     </div>
   );
 }
 
-export function VBars({ items, peak = false }: { items: { l: string; v: number }[]; peak?: boolean }) {
+export function VBars({
+  items,
+  peak = false,
+}: {
+  items: { l: string; v: number; c?: string }[];
+  peak?: boolean;
+}) {
   const max = Math.max(...items.map((i) => i.v), 1);
   return (
     <>
@@ -48,9 +77,12 @@ export function VBars({ items, peak = false }: { items: { l: string; v: number }
             <div
               className={cn(
                 "w-full rounded-t-[10px] border-2 border-b-0 border-[var(--qs-ink)] transition-[filter] group-hover:brightness-110",
-                peak && i.v === max && i.v > 0 ? "bg-[var(--qs-sun)]" : "bg-[var(--qs-brand)]"
+                !i.c && (peak && i.v === max && i.v > 0 ? "bg-[var(--qs-sun)]" : "bg-[var(--qs-brand)]")
               )}
-              style={{ height: i.v === 0 ? "4px" : `calc(${(i.v / max) * 84}%)` }}
+              style={{
+                height: i.v === 0 ? "6px" : `calc(${(i.v / max) * 84}%)`,
+                background: i.c,
+              }}
             />
           </div>
         ))}

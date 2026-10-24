@@ -5652,7 +5652,7 @@ textarea {
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    height: 72px;
+    height: 60px;
   }
 
   .qs-lp .logo {
@@ -5662,13 +5662,29 @@ textarea {
   .qs-lp .nl {
     display: flex;
     align-items: center;
-    gap: 22px;
+    gap: 18px;
   }
 
   .qs-lp .nl a:not(.btn) {
     text-decoration: none;
     color: var(--muted);
     font-weight: 500;
+    font-size: 14px;
+  }
+
+  .qs-lp .nl .btn.sm {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+
+  .qs-lp .nl > button:not(.btn) {
+    width: 28px;
+    height: 28px;
+  }
+
+  .qs-lp .nl > button:not(.btn) svg {
+    width: 13px;
+    height: 13px;
   }
 
   .qs-lp .nl a:not(.btn):hover {
@@ -5776,15 +5792,24 @@ textarea {
 
   .qs-lp .trial-cta {
     flex: none;
+    gap: 8px;
     background: #1a1240;
     border-color: #1a1240;
     color: var(--sun);
+    box-shadow: 4px 4px 0 rgba(26, 18, 64, 0.28);
   }
 
   .qs-lp .trial-cta:hover {
     background: #2a1f5c;
-    border-color: #2a1f5c;
+    border-color: #1a1240;
     color: var(--sun);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 rgba(26, 18, 64, 0.32);
+  }
+
+  .qs-lp .trial-cta:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 rgba(26, 18, 64, 0.28);
   }
 
   .qs-lp .hero {
@@ -6636,6 +6661,10 @@ textarea {
     text-transform: uppercase;
   }
 
+  .qs-lp .offer-line.is-empty {
+    visibility: hidden;
+  }
+
   .qs-lp .pk.hot .offer-line {
     color: var(--sun);
   }
@@ -6649,6 +6678,52 @@ textarea {
     font-weight: 500;
   }
 
+  .qs-lp .cr-plans {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 9px;
+  }
+
+  .qs-lp .cr-plans .cr-plans-main {
+    color: var(--ink);
+    font-weight: 700;
+  }
+
+  .qs-lp .cr-plans .cr-credits {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 11px;
+    border-radius: 99px;
+    background: var(--sun);
+    color: #1a1240;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    opacity: 1;
+  }
+
+  .qs-lp .cr-plans .cr-credits svg {
+    flex: none;
+  }
+
+  .qs-lp .cr-plans .cr-credits.is-muted {
+    background: color-mix(in srgb, var(--muted) 12%, transparent);
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .qs-lp .pk.hot .cr-plans .cr-plans-main {
+    color: var(--on-brand);
+    opacity: 1;
+  }
+
+  .qs-lp .pk.hot .cr-plans .cr-credits {
+    color: #1a1240;
+    opacity: 1;
+  }
+
   .qs-lp .pk p {
     color: var(--muted);
     margin: 10px 0 16px;
@@ -6659,7 +6734,6 @@ textarea {
     background: var(--brand);
     color: var(--on-brand);
     box-shadow: 10px 10px 0 var(--sun);
-    padding-top: 38px;
   }
 
   .qs-lp .pk.hot p,
@@ -6672,6 +6746,20 @@ textarea {
     background: var(--sun);
     color: #1a1240;
     border-color: #1a1240;
+  }
+
+  .qs-lp .pk .btn {
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+
+  .qs-lp .pk .btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 var(--ink);
+  }
+
+  .qs-lp .pk .btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 var(--ink);
   }
 
   .qs-lp .tag {
@@ -6758,6 +6846,18 @@ textarea {
     background: var(--on-brand);
     color: var(--brand);
     border-color: var(--on-brand);
+    box-shadow: 4px 4px 0 var(--sun);
+  }
+
+  .qs-lp .cta .btn:hover {
+    border-color: var(--on-brand);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--sun);
+  }
+
+  .qs-lp .cta .btn:active {
+    transform: translate(3px, 3px);
+    box-shadow: 1px 1px 0 var(--sun);
   }
 
   .qs-lp footer {
@@ -7066,29 +7166,6 @@ textarea {
     color: var(--muted);
   }
 
-  .qs-lp .trust-line {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin: 14px 0 0;
-    font-size: 14px;
-    color: var(--muted);
-  }
-
-  .qs-lp .trust-line b {
-    color: var(--ink);
-  }
-
-  .qs-lp .tdot {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: var(--ok);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 18%, transparent);
-    flex: none;
-  }
-
   .qs-lp .lp-stats {
     background: var(--ink);
     color: var(--bg);
@@ -7114,12 +7191,12 @@ textarea {
   .qs-lp .lp-stat b {
     display: block;
     font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
-    font-size: clamp(30px, 4vw, 46px);
+    font-size: clamp(34px, 4.6vw, 56px);
     line-height: 1;
     letter-spacing: -0.03em;
   }
 
-  .qs-lp .lp-stat span {
+  .qs-lp .lp-stat > span {
     display: block;
     margin-top: 4px;
     font-size: 12px;
@@ -7236,10 +7313,6 @@ textarea {
     color: var(--bad);
   }
 
-  .qs-lp .cmp-us {
-    color: var(--sun);
-  }
-
   .qs-lp .cmp-note {
     margin: 14px 0 0;
     color: var(--muted);
@@ -7323,34 +7396,55 @@ textarea {
   .qs-lp .pay-ad {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 24px;
+    gap: 20px;
     flex-wrap: wrap;
     margin: 38px auto 0;
-    max-width: 820px;
-    padding: 22px 26px;
+    max-width: 900px;
+    padding: 24px 28px;
     border: 2px solid var(--ink);
-    border-radius: 20px;
-    background: color-mix(in srgb, var(--sun) 32%, var(--surface));
+    border-radius: 24px;
+    background:
+      radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--brand) 16%, transparent), transparent 58%),
+      color-mix(in srgb, var(--sun) 36%, var(--surface));
+    box-shadow: 7px 7px 0 var(--ink);
+  }
+
+  .qs-lp .pay-ico {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    border: 2px solid var(--ink);
+    background: var(--sun);
+    color: #1a1240;
+    box-shadow: 3px 3px 0 color-mix(in srgb, var(--ink) 28%, transparent);
+  }
+
+  .qs-lp .pay-copy {
+    flex: 1 1 340px;
+    min-width: 0;
   }
 
   .qs-lp .pay-tag {
     display: inline-block;
     border-radius: 99px;
-    padding: 3px 11px;
-    background: var(--ink);
-    color: var(--bg);
+    padding: 4px 12px;
+    background: #1a1240;
+    color: var(--sun);
     font-size: 11px;
     font-weight: 800;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
   }
 
   .qs-lp .pay-ad b {
     display: block;
     font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
-    font-size: 24px;
-    margin: 7px 0 4px;
+    font-size: clamp(22px, 2.4vw, 28px);
+    letter-spacing: -0.02em;
+    margin: 9px 0 5px;
   }
 
   .qs-lp .pay-ad small {
@@ -7362,7 +7456,7 @@ textarea {
 
   .qs-lp .pay-pills {
     display: flex;
-    gap: 8px;
+    gap: 9px;
     flex-wrap: wrap;
   }
 
@@ -7370,9 +7464,10 @@ textarea {
     border: 2px solid var(--ink);
     background: var(--surface);
     border-radius: 99px;
-    padding: 7px 14px;
+    padding: 8px 15px;
     font-weight: 800;
     font-size: 13px;
+    box-shadow: 3px 3px 0 color-mix(in srgb, var(--ink) 20%, transparent);
   }
 
   @media (min-width: 961px) {
@@ -7507,19 +7602,15 @@ textarea {
       gap: 6px;
     }
 
-    .qs-lp .trust-line {
-      font-size: 13px;
-    }
-
     .qs-lp .lp-stats {
       padding: 24px 0;
     }
 
     .qs-lp .lp-stat b {
-      font-size: 30px;
+      font-size: 34px;
     }
 
-    .qs-lp .lp-stat span {
+    .qs-lp .lp-stat > span {
       font-size: 10px;
     }
 
@@ -9019,14 +9110,6 @@ textarea {
   font-weight: 700;
 }
 
-.qs-lp .qp-credit-visual-price em {
-  margin-left: auto;
-  color: var(--sun);
-  font-size: 13px;
-  font-style: normal;
-  font-weight: 800;
-}
-
 
 .qs-lp .qp-actions {
   display: flex;
@@ -9584,17 +9667,6 @@ textarea {
   letter-spacing: -0.02em;
 }
 
-.qs-lp .qp-pack-credits span {
-  color: var(--muted);
-  font-weight: 500;
-  margin-left: 6px;
-}
-
-.qs-lp .qp-pack.is-popular .qp-pack-credits span {
-  color: var(--on-brand);
-  opacity: 0.82;
-}
-
 .qs-lp .qp-pack-desc {
   color: var(--muted);
   font-size: 15px;
@@ -9737,21 +9809,6 @@ textarea {
   box-shadow: 5px 5px 0 var(--line);
 }
 
-.qs-lp .qp-step-num {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  margin-bottom: 18px;
-  background: var(--sun);
-  color: #1a1240;
-  border: 2px solid var(--ink);
-  border-radius: 50%;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-}
-
 .qs-lp .qp-steps .qs-step h3 {
   font-size: 21px;
   font-weight: 800;
@@ -9867,11 +9924,6 @@ textarea {
 
   .qs-lp .qp-credit-visual-price b {
     font-size: 32px;
-  }
-
-  .qs-lp .qp-credit-visual-price em {
-    width: 100%;
-    margin-left: 0;
   }
 
   .qs-lp .qp-credit-note {
@@ -10239,10 +10291,6 @@ textarea {
   background: var(--qs-surface);
   border-color: var(--qp-edge);
   box-shadow: 5px 5px 0 rgba(143, 107, 255, 0.2);
-}
-
-.qs-lp.qp-page .qp-step-num {
-  border-color: var(--qp-edge);
 }
 
 .qs-lp.qp-page .qp-pay-secure {

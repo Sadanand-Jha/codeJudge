@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, Mail, ShieldCheck, type LucideIcon } from "lucide-react";
+import { BookOpen, ShieldCheck, type LucideIcon } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import FeedbackForm from "@/components/marketing/landing/FeedbackForm";
 import { SecureLogo } from "@/components/common/SecureLogo";
@@ -16,18 +16,10 @@ interface ContactCard {
   title: string;
   cta: string;
   href: string;
-  mail?: boolean;
-  body?: string;
+  body: string;
 }
 
 const CARDS: ContactCard[] = [
-  {
-    icon: Mail,
-    title: "Email support",
-    cta: "Compose email",
-    href: "mailto:support@quizsupport.com",
-    mail: true,
-  },
   {
     icon: BookOpen,
     title: "Help center",
@@ -88,26 +80,10 @@ export default function ContactPage() {
                     <Icon size={18} />
                   </span>
                   <h3>{card.title}</h3>
-                  <p>
-                    {card.mail ? (
-                      <>
-                        Write to{" "}
-                        <a href="mailto:support@quizsupport.com">support@quizsupport.com</a> — every
-                        message lands with a human.
-                      </>
-                    ) : (
-                      card.body
-                    )}
-                  </p>
-                  {card.mail ? (
-                    <a className="btn sm pri" href={card.href}>
-                      {card.cta}
-                    </a>
-                  ) : (
-                    <Link className="btn sm" href={card.href}>
-                      {card.cta}
-                    </Link>
-                  )}
+                  <p>{card.body}</p>
+                  <Link className="btn sm" href={card.href}>
+                    {card.cta}
+                  </Link>
                 </div>
               );
             })}

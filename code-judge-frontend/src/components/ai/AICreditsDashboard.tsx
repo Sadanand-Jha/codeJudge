@@ -449,9 +449,6 @@ function CreditPackModal({ onClose }: { onClose: () => void }) {
               </div>
               <div className="text-right">
                 <div className="text-sm font-extrabold text-text-primary">₹{pack.price}</div>
-                <div className="text-[9px] text-text-muted">
-                  ₹{Math.round(pack.price / pack.credits * 100) / 100}/credit
-                </div>
               </div>
             </button>
           ))}
