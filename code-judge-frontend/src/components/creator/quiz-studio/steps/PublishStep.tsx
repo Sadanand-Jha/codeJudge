@@ -32,6 +32,7 @@ export function PublishStep({
   bare?: boolean;
 }) {
   const { state, summary, saveToServer, editMode } = useStudio();
+  const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -44,6 +45,7 @@ export function PublishStep({
         title: state.info.title || "Quiz saved",
         description: "Your changes have been saved.",
       });
+      router.push("/creator/quizzes");
     } catch (err) {
       toast.error({
         title: "Could not save quiz",
