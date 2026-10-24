@@ -63,8 +63,12 @@ export async function deleteSectionBlueprint(id: number): Promise<void> {
   await blueprintRequest(`/${id}`, { method: "DELETE" });
 }
 
-export async function getQuestionGeneratorCatalog(signal?: AbortSignal): Promise<QuestionGeneratorCatalog> {
-  const response = await fetch(`${API_BASE}/v1/admin/tests/question-generator/catalog`, {
+export async function getQuestionGeneratorCatalog(
+  signal?: AbortSignal,
+  subjectId?: number | null
+): Promise<QuestionGeneratorCatalog> {
+  const query = subjectId != null ? `?subjectId=${encodeURIComponent(subjectId)}` : "";
+  const response = await fetch(`${API_BASE}/v1/admin/tests/question-generator/catalog${query}`, {
     headers: getAuthHeaders(),
     credentials: "include",
     signal,

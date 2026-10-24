@@ -141,7 +141,6 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
     <div className="mx-auto max-w-[1240px] px-4 py-6 pb-24 sm:px-6">
       <AnalyticsTopBar
         quizName={meta?.name ?? "Quiz analytics"}
-        code={meta?.code ?? ""}
         status={meta?.status ?? null}
         questionCount={questions.length}
         attemptCount={Math.round(toNumber(data.stats.total_attempts))}
@@ -156,7 +155,7 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
         status={meta?.status ?? null}
       />
 
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-5 flex flex-wrap gap-2">
         {TABS.map((t) => (
           <button
             key={t.id}

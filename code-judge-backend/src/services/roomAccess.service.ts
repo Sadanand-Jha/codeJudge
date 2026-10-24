@@ -26,6 +26,7 @@ export const DEFAULT_PASSWORD_VALIDITY_MINUTES = 24 * 60;
 
 export interface RoomAccessRecord {
   id: string | number;
+  owner_id?: string | number | null;
   name: string;
   room_code: string;
   password_hash: string;
@@ -46,6 +47,8 @@ export interface RoomAccessRepository {
     role: string,
     registrationData: Record<string, string> | null
   ): Promise<{ inserted: boolean }>;
+  /** Optional so credential-only previews do not need a membership lookup. */
+  isMember?(roomId: string | number, userId: string): Promise<boolean>;
 }
 
 export interface RoomJoinInput {
@@ -55,14 +58,24 @@ export interface RoomJoinInput {
   registrationData?: unknown;
 }
 
+export interface RoomPreviewInput {
+  roomCode: string;
+  password: string;
+  userId?: string;
+}
+
 export interface RoomJoinPreview {
   room: {
     id: string;
     name: string;
   };
+  /** Teacher account that owns the room, used to load the public teacher card. */
+  ownerId: string;
   /** ISO timestamp for the password, or null when it never expires. */
   password_expires_at: string | null;
   registration_form: RoomRegistrationForm;
+  /** True when the signed-in student already has a membership in this room. */
+  already_member: boolean;
 }
 
 export type RoomAccessFailure = "invalid_credentials" | "password_expired";
@@ -78,6 +91,7 @@ export type RoomJoinResult =
         id: string;
         name: string;
       };
+      ownerId: string;
     }
   | {
       ok: false;
@@ -188,18 +202,25 @@ async function findJoinableRoom(
  * before joining. Does not create a membership.
  */
 export async function previewRoomJoinWithPassword(
-  repo: RoomLookupRepository,
-  input: { roomCode: string; password: string }
+  repo: RoomLookupRepository & Pick<RoomAccessRepository, "isMember">,
+  input: RoomPreviewInput
 ): Promise<RoomPreviewResult> {
   const access = await findJoinableRoom(repo, input.roomCode, input.password);
   if (!access.ok) return access;
+
+  const already_member =
+    input.userId && repo.isMember
+      ? await repo.isMember(access.room.id, input.userId)
+      : false;
 
   return {
     ok: true,
     preview: {
       room: { id: String(access.room.id), name: access.room.name },
+      ownerId: String(access.room.owner_id ?? ""),
       password_expires_at: roomPasswordExpiresAtIso(access.room),
       registration_form: normalizeRoomRegistrationForm(access.room.registration_form),
+      already_member,
     },
   };
 }
@@ -239,6 +260,7 @@ export async function joinRoomWithPassword(
       id: String(room.id),
       name: room.name,
     },
+    ownerId: String(room.owner_id ?? ""),
   };
 }
 

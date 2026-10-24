@@ -215,21 +215,25 @@ export class UserQuizRepository {
     // Audience constraint: once the creator configures a participant list
     // (quiz edit → rooms / invites), only students present in it (status = 1
     // = allowed) may attempt the quiz. An empty list means open access.
-    const audience = await pool.query(
-      `SELECT
-         COUNT(*)::int AS configured,
-         COUNT(*) FILTER (WHERE user_id = $2 AND status = 1)::int AS allowed
-       FROM quiz_participants
-       WHERE quiz_id = $1`,
-      [quizId, userId]
-    );
-    const { configured, allowed } = audience.rows[0] ?? { configured: 0, allowed: 0 };
-    if (Number(configured) > 0 && Number(allowed) === 0) {
-      return { allowed: false, reason: "You are not invited to this quiz" };
+    // The creator is always allowed to attempt their own quiz (owner bypass).
+    const isOwner = Number(q.createdby) === Number(userId);
+    if (!isOwner) {
+      const audience = await pool.query(
+        `SELECT
+           COUNT(*)::int AS configured,
+           COUNT(*) FILTER (WHERE user_id = $2 AND status = 1)::int AS allowed
+         FROM quiz_participants
+         WHERE quiz_id = $1`,
+        [quizId, userId]
+      );
+      const { configured, allowed } = audience.rows[0] ?? { configured: 0, allowed: 0 };
+      if (Number(configured) > 0 && Number(allowed) === 0) {
+        return { allowed: false, reason: "You are not invited to this quiz" };
+      }
     }
 
     const existingAttempt = await pool.query(
-      "SELECT * FROM quiz_attempt WHERE user_id = $1 AND quiz_id = $2 AND status = 'in_progress'",
+      "SELECT * FROM quiz_attempt WHERE user_id = $1 AND quiz_id = $2 AND status = 'in_progress' AND submitted_at IS NULL",
       [userId, quizId]
     );
     if (existingAttempt.rows.length > 0) return { allowed: true, reason: "resume", attemptId: existingAttempt.rows[0].id };
@@ -291,8 +295,9 @@ export class UserQuizRepository {
     const values: any[] = [];
     let paramCount = 0;
     const updateableFields = [
-      "score", "percentage", "rank", "status", "completed_at", "time_taken",
+      "score", "percentage", "rank", "status", "completed_at", "submitted_at", "time_taken",
       "total_questions", "correct_answers", "wrong_answers", "skipped_questions",
+      "violations", "flagged", "flag_reason",
     ];
     for (const field of updateableFields) {
       if (data[field] !== undefined) { paramCount++; fields.push(`${field} = $${paramCount}`); values.push(data[field]); }
@@ -392,7 +397,11 @@ export class UserQuizRepository {
   }): Promise<{ quizzes: any[]; total: number }> {
     const { page = 1, limit = 10, search = "", sortBy = "completed_at", sortOrder = "DESC" } = filters;
     const offset = (page - 1) * limit;
-    const conditions: string[] = ["qa.user_id = $1", "q.deleted_at IS NULL"];
+    const conditions: string[] = [
+      "qa.user_id = $1",
+      "q.deleted_at IS NULL",
+      "LOWER(REPLACE(COALESCE(qa.status, ''), ' ', '_')) <> 'in_progress'",
+    ];
     const queryParams: any[] = [userId];
     let paramCount = 1;
 

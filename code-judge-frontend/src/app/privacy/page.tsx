@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check, Mail } from "lucide-react";
+import { Check } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { SecureLogo } from "@/components/common/SecureLogo";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
@@ -61,7 +61,7 @@ const SECTIONS: PrivacySection[] = [
   {
     id: "choices",
     title: "Your choices",
-    body: "You are in control of your data. Write to us and we will help.",
+    body: "You are in control of your data. Send us feedback and we will help.",
     points: [
       "Ask for a copy of the data we hold for you",
       "Ask us to delete your account and the quiz data linked to it",
@@ -98,7 +98,6 @@ export default function PrivacyPage() {
           </p>
           <div className="pg-meta">
             <span className="pl ok">No data selling</span>
-            <span className="pl blue">Delete anytime</span>
             <span className="pl mu">Last updated October 2026</span>
           </div>
         </header>
@@ -115,9 +114,9 @@ export default function PrivacyPage() {
             </ol>
             <div className="pp-toc-mail">
               <p>Questions about your data?</p>
-              <a className="btn sm" href="mailto:support@quizsupport.com">
-                Email support
-              </a>
+              <Link className="btn sm" href="/contact">
+                Send feedback
+              </Link>
             </div>
           </aside>
 
@@ -146,18 +145,13 @@ export default function PrivacyPage() {
               <div>
                 <h2>Questions about your data?</h2>
                 <p>
-                  Email us at{" "}
-                  <a href="mailto:support@quizsupport.com">support@quizsupport.com</a> and
-                  we will get back to you.
+                  Send us a message through the feedback form and we will get
+                  back to you.
                 </p>
               </div>
               <div className="row">
-                <a className="btn sm pri" href="mailto:support@quizsupport.com" style={{ gap: 8 }}>
-                  <Mail size={16} />
-                  Email support
-                </a>
-                <Link className="btn sm" href="/contact">
-                  Contact page
+                <Link className="btn sm pri" href="/contact">
+                  Send feedback
                 </Link>
               </div>
             </div>

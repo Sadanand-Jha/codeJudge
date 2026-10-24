@@ -17,7 +17,7 @@ export interface ShareQuizInfo {
   status: ShareQuizStatus;
 }
 
-export type ShareStyleId = "clean" | "ticket" | "desi";
+export type ShareStyleId = "clean" | "ticket" | "desi" | "hype";
 
 interface ShareStyle {
   id: ShareStyleId;
@@ -41,6 +41,11 @@ const SHARE_STYLES: ShareStyle[] = [
     name: "Desi",
     description: "Hinglish and friendly. Works for school and college alike.",
   },
+  {
+    id: "hype",
+    name: "Hype",
+    description: "Bold Hinglish announcement with code and tap-to-join link.",
+  },
 ];
 
 export function formatJoinCode(code: string): string {
@@ -57,47 +62,101 @@ function statusLine(status: ShareQuizStatus): string {
   return "Tap to join";
 }
 
+interface QuizMessageInput {
+  title: string;
+  count: number;
+  code: string;
+  url: string;
+}
+
+function buildQuizLiveText({ title, count, code, url }: QuizMessageInput): string {
+  const E = {
+    target: "\u{1F3AF}", memo: "\u{1F4DD}", q: "\u2753",
+    timer: "\u23F1\uFE0F", key: "\u{1F511}", point: "\u{1F447}", rocket: "\u{1F680}",
+  };
+  const spaced = (code.replace(/\s+/g, "").match(/.{1,4}/g) ?? []).join(" ");
+
+  return [
+    `${E.target} *QUIZ LIVE HAI!*`,
+    ``,
+    `${E.memo} *${title}*`,
+    `${E.q} ${count} questions`,
+    ``,
+    `${E.key} *Join code*`,
+    "```" + spaced + "```",
+    ``,
+    `${E.point} *Seedha join karne ke liye tap karo*`,
+    url,
+    ``,
+    `_All the best, tum kar loge! ${E.rocket}_`,
+  ].join("\n");
+}
+
+export function buildQuizMessage(input: QuizMessageInput): string {
+  return "https://wa.me/?text=" + encodeURIComponent(buildQuizLiveText(input));
+}
+
 export function buildShareMessage(quiz: ShareQuizInfo, style: ShareStyleId): string {
   const link = joinLink(quiz.code);
   const show = formatJoinCode(quiz.code);
   const questions = `${quiz.questions} ${quiz.questions === 1 ? "question" : "questions"}`;
 
   if (style === "ticket") {
-    return `🎯 *QUIZ TIME!*
-┈┈┈┈┈┈┈┈┈┈┈┈
-*${quiz.title}*
+    return `🎟️🔥 *QUIZ PASS* 🔥🎟️
+╔════════════════════╗
+   🎯 *${quiz.title}*
+╚════════════════════╝
 
-🔑 Join code
+📚 ${questions}  •  ${statusLine(quiz.status)}
+
+🎫 *YOUR ENTRY CODE*
 \`\`\`${show}\`\`\`
 
-👇 Tap to join
+👇 *One-tap entry*
 ${link}
-┈┈┈┈┈┈┈┈┈┈┈┈
-⏳ _Sab best of luck!_`;
+
+🍀 _Best of luck!_ 🚀`;
+  }
+
+  if (style === "hype") {
+    return buildQuizLiveText({
+      title: quiz.title,
+      count: quiz.questions,
+      code: quiz.code,
+      url: link,
+    });
   }
 
   if (style === "desi") {
     const intro = quiz.status === "live" ? "shuru ho gaya hai! 🚀" : "join ke liye ready hai! 🚀";
-    return `Hello class 👋
+    return `🚀✨ *QUIZ TIME!* ✨🚀
+┏━━━━━━━━━━━━━━━━━━┓
+   🎯 *${quiz.title}*
+┗━━━━━━━━━━━━━━━━━━┛
 
-*${quiz.title}* ${intro}
+${intro}
 
-> Link pe click karo, seedha join ho jaoge.
+👇 *Seedha join karo*
 ${link}
 
-Link na khule to site kholo aur code daalo: *${show}*`;
+🔑 Link na khule to code daalo: *${show}*
+
+🏆 _All the best!_ 💪`;
   }
 
-  return `🎯 *${quiz.title}*
+  return `🎉✨ *QUIZ ALERT* ✨🎉
+┏━━━━━━━━━━━━━━━━━━┓
+   🎯 *${quiz.title}*
+┗━━━━━━━━━━━━━━━━━━┛
 
 📚 ${questions}  •  ${statusLine(quiz.status)}
 
 🔑 *Join code:* \`\`\`${show}\`\`\`
 
-👉 *Join here:*
+👇 *Tap to join instantly*
 ${link}
 
-_Good luck!_ ✨`;
+🏆 _Good luck — you've got this!_ ✨`;
 }
 
 export async function copyText(value: string): Promise<void> {
@@ -197,7 +256,9 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
 
   const activeStyle = SHARE_STYLES.find((style) => style.id === styleId) ?? SHARE_STYLES[0];
   const message = buildShareMessage({ ...quiz, code }, styleId);
-  const whatsappHref = `https://wa.me/?text=${encodeURIComponent(message)}`;
+  const whatsappHref = styleId === "hype"
+    ? buildQuizMessage({ title: quiz.title, count: quiz.questions, code, url: joinLink(code) })
+    : `https://wa.me/?text=${encodeURIComponent(message)}`;
   const sentAt = useMemo(
     () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     []

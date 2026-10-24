@@ -15,7 +15,6 @@ import { ScrollThemeSection } from "@/components/pricing/ScrollThemeSection";
 import {
   CREDIT_PURCHASE_PACKS,
   CREDIT_VALIDITY_MONTHS,
-  type CreditPurchasePack,
 } from "@/config/aiCredits";
 import { CREATOR_PLANS } from "@/config/creatorPlans";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
@@ -35,10 +34,6 @@ const PAYMENT_METHODS: Array<{ label: string; icon: LucideIcon }> = [
 
 function inr(value: number): string {
   return `₹${value.toLocaleString("en-IN")}`;
-}
-
-function perCredit(pack: CreditPurchasePack): string {
-  return `₹${(pack.price / pack.credits).toFixed(2)}`;
 }
 
 export default function AICreditsPricingPage() {
@@ -147,7 +142,6 @@ export default function AICreditsPricingPage() {
               <div className="qp-credit-visual-price">
                 <b>{inr(featuredPack.price)}</b>
                 <span>one-time</span>
-                <em>{perCredit(featuredPack)} / credit</em>
               </div>
             </aside>
           )}
@@ -204,7 +198,6 @@ export default function AICreditsPricingPage() {
 
                   <div className="qp-pack-credits">
                     <strong>{pack.credits}</strong> AI credits
-                    <span>{perCredit(pack)} / credit</span>
                   </div>
 
                   <p className="qp-pack-desc">{pack.blurb}</p>
@@ -243,13 +236,12 @@ export default function AICreditsPricingPage() {
             <div className="qp-table-wrap">
               <table className="qp-table">
                 <caption className="qp-table-caption">
-                  Pack details and per-credit pricing
+                  Pack details
                 </caption>
                 <thead>
                   <tr>
                     <th scope="col">Pack</th>
                     <th scope="col">Credits</th>
-                    <th scope="col">Per credit</th>
                     <th scope="col">Validity</th>
                   </tr>
                 </thead>
@@ -261,7 +253,6 @@ export default function AICreditsPricingPage() {
                         <span>{pack.name}</span>
                       </td>
                       <td>{pack.credits}</td>
-                      <td>{perCredit(pack)}</td>
                       <td>{pack.validityMonths} months</td>
                     </tr>
                   ))}
@@ -298,11 +289,8 @@ export default function AICreditsPricingPage() {
             <p className="eb">How credits work</p>
             <h2 className="t">Simple from top-up to first generation</h2>
             <div className="qs-steps qp-steps">
-              {steps.map((step, index) => (
+              {steps.map((step) => (
                 <div className="qs-step" key={step.title}>
-                  <span className="qp-step-num" aria-hidden="true">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
                   <h3>{step.title}</h3>
                   <p>{step.body}</p>
                 </div>

@@ -147,7 +147,11 @@ async function main() {
       password,
       userId: "7",
     });
-    assert.deepEqual(result, { ok: true, room: { id: "42", name: "Class 10 Maths" } });
+    assert.deepEqual(result, {
+      ok: true,
+      room: { id: "42", name: "Class 10 Maths" },
+      ownerId: "",
+    });
     assert.deepEqual(lookups, ["AB23CD"]);
     assert.deepEqual(joined, [
       { roomId: 42, userId: "7", role: "student", registrationData: null },
@@ -248,7 +252,11 @@ async function main() {
       password,
       userId: "7",
     });
-    assert.deepEqual(result, { ok: true, room: { id: "42", name: "Class 10 Maths" } });
+    assert.deepEqual(result, {
+      ok: true,
+      room: { id: "42", name: "Class 10 Maths" },
+      ownerId: "",
+    });
     assert.equal(joined.length, 1);
   });
 
@@ -352,6 +360,29 @@ async function main() {
       assert.equal(preview.preview.room.name, "Class 10 Maths");
       assert.equal(preview.preview.registration_form.fields.length, 3);
       assert.equal(preview.preview.password_expires_at, null);
+      assert.equal(preview.preview.already_member, false);
+    }
+    assert.equal(joined.length, 0);
+  });
+
+  await test("join preview reports an existing membership without adding another", async () => {
+    const { repo, joined } = fakeRepository(registrationRoom);
+    const memberRepo: RoomAccessRepository = {
+      findRoomByCode: repo.findRoomByCode,
+      addMember: repo.addMember,
+      isMember: async (roomId, userId) =>
+        String(roomId) === "42" && userId === "7",
+    };
+
+    const preview = await previewRoomJoinWithPassword(memberRepo, {
+      roomCode: "AB23CD",
+      password,
+      userId: "7",
+    });
+
+    assert.equal(preview.ok, true);
+    if (preview.ok) {
+      assert.equal(preview.preview.already_member, true);
     }
     assert.equal(joined.length, 0);
   });

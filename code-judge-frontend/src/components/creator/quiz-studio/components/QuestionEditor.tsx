@@ -178,8 +178,6 @@ export function QuestionEditor() {
     update({ options: next.map((o, i) => ({ ...o, label: String.fromCharCode(65 + i) })) });
   };
 
-  const activeIdx = state.questions.findIndex((x) => x.id === q.id);
-
   // Premium Match the Following — full-bleed editor per spec
   if (q.type === "match_following") {
     return <MatchFollowingEditor />;
@@ -189,11 +187,7 @@ export function QuestionEditor() {
     <div className="flex flex-1 flex-col min-h-0 bg-[var(--qs-surface)]">
       <div className="shrink-0 rounded-t-[22px] border-b-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3 py-4 text-[var(--qs-on-brand)] sm:px-6">
         <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] border-2 border-[#1a1240] bg-[var(--qs-sun)] text-[#1a1240]">
-            <FileText className="h-5 w-5" />
-          </span>
-          <h2 className="min-w-0 flex-1 text-lg font-extrabold tracking-tight sm:text-xl">Question {String(activeIdx + 1).padStart(2, "0")}</h2>
-          <div className="relative shrink-0">
+          <div className="relative ml-auto shrink-0">
             <button
               onClick={() => setShowType(!showType)}
               className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-3 py-1.5 text-xs font-extrabold text-[var(--qs-ink)] transition-colors hover:border-[#1a1240]"
@@ -263,13 +257,6 @@ export function QuestionEditor() {
       <div className="p-3 sm:p-6">
         <div className="mx-auto w-full max-w-[720px] space-y-4 sm:space-y-6 min-w-0">
           <div>
-            <div className="mb-3 flex items-center gap-3">
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--qs-ink)] text-[12px] font-extrabold text-[var(--qs-bg)]">1</span>
-              <div className="min-w-0">
-                <h3 className="text-[17px] font-extrabold leading-tight text-[var(--qs-ink)]">Question</h3>
-                <p className="text-[12px] font-medium text-[var(--qs-muted)]">Select some text, then tap a button to format it.</p>
-              </div>
-            </div>
             <div className="overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
               <RichToolbar />
               <EditableContent
@@ -284,7 +271,6 @@ export function QuestionEditor() {
           {isMcq ? (
             <div className="border-t-2 border-[var(--qs-line)] pt-5">
               <div className="mb-3 flex items-center gap-3">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--qs-ink)] text-[12px] font-extrabold text-[var(--qs-bg)]">2</span>
                 <div className="min-w-0 flex-1">
                   <h3 className="text-[17px] font-extrabold leading-tight text-[var(--qs-ink)]">Answer options</h3>
                   <p className="text-[12px] font-medium text-[var(--qs-muted)]">

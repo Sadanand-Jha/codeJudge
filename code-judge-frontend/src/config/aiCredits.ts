@@ -301,21 +301,21 @@ export const CREDIT_PURCHASE_PACKS: CreditPurchasePack[] = [
   {
     id: "teacher",
     name: "Teacher Pack",
-    credits: 75,
+    credits: 50,
     price: 99,
     cta: "Choose Teacher Pack",
     blurb: "For regular question-paper creation.",
     popular: true,
-    validityMonths: 3,
+    validityMonths: 6,
   },
   {
     id: "master",
     name: "Master Pack",
-    credits: 180,
+    credits: 125,
     price: 199,
     cta: "Get Master Pack",
     blurb: "For frequent paper generation and advanced AI workflows.",
-    validityMonths: 3,
+    validityMonths: 6,
   },
 ];
 
@@ -399,7 +399,7 @@ export const AI_MODEL_BUDGETS: AIModelBudget[] = [
 ];
 
 /** How long purchased credits stay valid, in months from purchase. */
-export const CREDIT_VALIDITY_MONTHS = 3;
+export const CREDIT_VALIDITY_MONTHS = 6;
 
 /* ============================================
    AI effort levels (question-paper generation)

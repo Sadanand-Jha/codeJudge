@@ -4,12 +4,13 @@ import { Check, Coins, Lock, Star } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import {
   CREDIT_PURCHASE_PACKS,
+  CREDIT_VALIDITY_MONTHS,
   type CreditPurchasePack,
 } from "@/config/aiCredits";
 
 /* Pack data — exact values from billing config (single source of truth). */
 const PACKS: CreditPurchasePack[] = CREDIT_PURCHASE_PACKS;
-const VALIDITY_MONTHS = PACKS[0]?.validityMonths ?? 3;
+const VALIDITY_MONTHS = PACKS[0]?.validityMonths ?? CREDIT_VALIDITY_MONTHS;
 
 const PACK_FEATURES: Record<string, string[]> = {
   teacher: [
@@ -64,7 +65,6 @@ export function CreditPacksSection({ onSelectPack }: CreditPacksSectionProps) {
       {/* Cards — equal height, 24px gap */}
       <div className="mx-auto mt-8 grid max-w-5xl grid-cols-1 items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {PACKS.map((pack) => {
-          const rate = perCreditRate(pack);
           const save = savingsPct(pack, baseRate);
           const popular = pack.popular === true;
           const features = PACK_FEATURES[pack.id] ?? PACK_FEATURES.teacher;
@@ -117,9 +117,6 @@ export function CreditPacksSection({ onSelectPack }: CreditPacksSectionProps) {
                   aria-hidden="true"
                 />
                 {pack.credits} credits
-                <span className="font-normal text-slate-500">
-                  · ₹{rate.toFixed(2)} / credit
-                </span>
               </p>
 
 

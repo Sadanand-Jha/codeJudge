@@ -5,8 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  Clock,
-  BookOpen,
   Target,
   Users,
   Eye,
@@ -17,7 +15,6 @@ import {
   Sparkles,
   AlertCircle,
   Send,
-  Trophy,
   Timer,
   Copy,
   Flag,
@@ -116,7 +113,6 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
   const [selectedMechanic, setSelectedMechanic] = useState<number | null>(null);
   const [usedMechanics, setUsedMechanics] = useState<Record<number, boolean>>({});
   const [fiftyFiftyMap, setFiftyFiftyMap] = useState<Record<number, string[]>>({});
-  const [timeLeft, setTimeLeft] = useState(30 * 60);
   const [quiz, setQuiz] = useState<QuizBasic | null>(null);
   const [questions, setQuestions] = useState<PreviewQuestion[]>([]);
   const [mechanics, setMechanics] = useState<DisplayMechanic[]>([]);
@@ -153,8 +149,6 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
           questionNumber: p.question_number ?? idx + 1,
         }));
         setQuestions(mapped);
-        const dur = (quizData.duration ?? 30) * 60;
-        setTimeLeft(dur);
 
         if (!cancelled) {
           setMechanics(
@@ -182,18 +176,7 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
     };
   }, [quizId]);
 
-  /* Live countdown */
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((t) => (t > 0 ? t - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
   const totalMarks = useMemo(() => questions.reduce((s, q) => s + q.marks, 0), [questions]);
-  const durationSec = (quiz?.duration ?? 30) * 60;
-  const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")} : ${(s % 60).toString().padStart(2, "0")}`;
-  const timerProgress = durationSec > 0 ? (timeLeft / durationSec) * 100 : 0;
 
   const getNavigatorClass = (question: PreviewQuestion, idx: number) => {
     if (idx === current) return "bg-pink-500 text-white shadow-sm";
@@ -229,7 +212,7 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
     <ExamModeShell
       quizName={quiz.name}
       progressLabel={`${current + 1} / ${questions.length}`}
-      timeLeft={timeLeft}
+      timeLeft={null}
       onExitPreview={onExitPreview}
       autoEnter
       fullWidth
@@ -382,21 +365,9 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
           <div className="rounded-xl border border-border bg-card p-4 h-[92px] shrink-0 flex items-center justify-between">
             <div>
               <p className="flex items-center gap-1.5 text-[11px] font-semibold text-text-muted uppercase tracking-wider">
-                <Timer className="h-3.5 w-3.5" /> Time Left
+                <Timer className="h-3.5 w-3.5" /> Responses
               </p>
-              <p className="mt-1 font-mono text-2xl font-bold text-pink-600 dark:text-pink-400">{formatTime(timeLeft)}</p>
-            </div>
-            <div className="relative h-16 w-16 shrink-0">
-              <svg className="h-16 w-16 -rotate-90" viewBox="0 0 64 64">
-                <circle cx="32" cy="32" r="28" fill="none" stroke="var(--border)" strokeWidth="4" />
-                <circle cx="32" cy="32" r="28" fill="none" stroke="url(#timerGrad)" strokeWidth="4" strokeDasharray={`${2 * Math.PI * 28}`} strokeDashoffset={`${2 * Math.PI * 28 * (1 - timerProgress / 100)}`} strokeLinecap="round" />
-                <defs>
-                  <linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#ec4899" />
-                    <stop offset="100%" stopColor="#f43f5e" />
-                  </linearGradient>
-                </defs>
-              </svg>
+              <p className="mt-1 text-sm font-bold text-text-primary">Open until the quiz ends</p>
             </div>
           </div>
           <div className="rounded-xl border border-border bg-card p-4 h-[68px] shrink-0">

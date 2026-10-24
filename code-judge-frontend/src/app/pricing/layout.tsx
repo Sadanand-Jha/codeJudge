@@ -4,7 +4,7 @@ import { buildPublicPageMetadata } from "@/lib/seo/site";
 export const metadata: Metadata = buildPublicPageMetadata({
   title: "Pricing",
   description:
-    "Compare QuizSupport monthly plans for creating, hosting and organising online quizzes. Start free with five quizzes a month; Basic and Pro include monthly AI credits.",
+    "Compare QuizSupport monthly plans for creating, hosting and organising online quizzes. Start with a 7-day free trial with 2 quiz creations and 1 room; Basic and Pro include monthly AI credits at the limited 2026 offer price.",
   path: "/pricing",
 });
 

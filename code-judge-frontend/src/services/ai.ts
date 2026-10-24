@@ -254,6 +254,44 @@ export const generateQuestionsFromFiles = async (
   return payload.data?.questions ?? [];
 };
 
+/**
+ * Upload study material files and stream AI-generated questions over SSE.
+ * The backend emits `reasoning`/`content`/`questions`/`usage`/`done` events,
+ * each forwarded to the matching callback as it arrives.
+ */
+export const generateQuestionsFromFilesStream = async (
+  files: File[],
+  options: GenerateFromFilesOptions,
+  callbacks: StreamCallbacks,
+  signal?: AbortSignal
+): Promise<void> => {
+  const formData = new FormData();
+  files.forEach((file) => formData.append("files", file));
+
+  formData.append("numberOfQuestions", String(options.numberOfQuestions));
+  formData.append("questionTypes", JSON.stringify(options.questionTypes));
+  formData.append("difficulty", JSON.stringify(options.difficulty));
+  formData.append("bloomsLevel", options.bloomsLevel);
+  formData.append("includeExplanations", String(options.includeExplanations));
+  formData.append("includeHints", String(options.includeHints));
+  formData.append("includeReferenceNotes", String(options.includeReferenceNotes));
+  formData.append("includeTags", String(options.includeTags));
+  if (options.subjectId != null) formData.append("subjectId", String(options.subjectId));
+  if (options.chapterId != null) formData.append("chapterId", String(options.chapterId));
+  if (options.topicId != null) formData.append("topicId", String(options.topicId));
+  if (options.quizId != null) formData.append("quizId", String(options.quizId));
+
+  const response = await fetch(`${API_BASE}/v1/user/ai/generate-questions?stream=1`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: formData,
+    credentials: "include",
+    signal,
+  });
+
+  return consumeSSEResponse(response, callbacks);
+};
+
 export interface GenerateFromBankOptions {
   numberOfQuestions: number;
   easyCount?: number;
@@ -271,6 +309,8 @@ export interface GenerateFromBankOptions {
   kind?: "any" | "theory" | "numerical";
   /** Quiz being authored — lets the backend store generated questions in the bank. */
   quizId?: string | number | null;
+  /** Optional live metrics from the provider response (used by the studio preview). */
+  onUsage?: (usage: LiveUsage) => void;
 }
 
 export interface GenerateFromBankResponse {
@@ -308,6 +348,7 @@ export const generateFromQuestionBank = async (
   if (!response.ok || !payload.success) {
     throw new Error(payload.message || `Request failed with status ${response.status}`);
   }
+  if (payload.data?.usage) options.onUsage?.(payload.data.usage);
   return payload.data?.questions ?? [];
 };
 
@@ -478,6 +519,42 @@ const consumeSSEResponse = async (
   } finally {
     reader.releaseLock();
   }
+};
+
+/**
+ * Stream topic-scoped question generation over SSE. The backend emits
+ * `reasoning` chunks while the model thinks, then `questions`, `usage` and
+ * `done`. Falls back to the same wire protocol consumed by chat.
+ */
+export const generateFromQuestionBankStream = async (
+  options: GenerateFromBankOptions,
+  callbacks: StreamCallbacks,
+  signal?: AbortSignal
+): Promise<void> => {
+  const response = await fetch(`${API_BASE}/v1/user/ai/generate-from-bank?stream=1`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify({
+      numberOfQuestions: options.numberOfQuestions,
+      easyCount: options.easyCount,
+      mediumCount: options.mediumCount,
+      hardCount: options.hardCount,
+      theoryCount: options.theoryCount,
+      numericalCount: options.numericalCount,
+      hardnessHint: options.hardnessHint,
+      syllabus: options.syllabus,
+      subjectId: options.subjectId,
+      chapterId: options.chapterId ?? options.chapterIds?.[0] ?? null,
+      topicId: options.topicId ?? options.topicIds?.[0] ?? null,
+      chapterIds: options.chapterIds,
+      topicIds: options.topicIds,
+      kind: options.kind,
+      quizId: options.quizId,
+    }),
+    credentials: "include",
+    signal,
+  });
+  return consumeSSEResponse(response, callbacks);
 };
 
 export interface UserBankQuestion {

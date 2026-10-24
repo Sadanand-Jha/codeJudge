@@ -42,6 +42,7 @@ export function ConfirmModal({
   children,
   confirmLabel,
   confirmColor = "pink",
+  icon,
 }: {
   open: boolean;
   onClose: () => void;
@@ -52,9 +53,10 @@ export function ConfirmModal({
   children?: React.ReactNode;
   confirmLabel: string;
   confirmColor?: Variant;
+  icon?: LucideIcon;
 }) {
   const v = VARIANTS[confirmColor];
-  const Icon = v.icon;
+  const Icon = icon ?? v.icon;
 
   useEffect(() => {
     if (!open) return;

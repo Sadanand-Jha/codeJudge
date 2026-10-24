@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Globe, Clock, Languages, Sparkles } from "lucide-react";
+import { Globe, Languages, Sparkles } from "lucide-react";
 import { cn } from "@/lib/helpers";
 
 export function StudioPreferences() {
   const [visibility, setVisibility] = useState<"public" | "private">("public");
-  const [duration, setDuration] = useState(60);
   const [language, setLanguage] = useState("English");
   const [aiEnabled, setAiEnabled] = useState(true);
 
@@ -32,21 +31,6 @@ export function StudioPreferences() {
                 {v}
               </button>
             ))}
-          </div>
-        </PrefRow>
-
-        {/* Default duration */}
-        <PrefRow icon={Clock} label="Default Assessment Duration">
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min={5}
-              max={300}
-              value={duration}
-              onChange={(e) => setDuration(Number(e.target.value))}
-              className="h-8 w-20 rounded-md border border-profile-border bg-profile-surface-elevated px-2.5 text-[13px] text-profile-text-primary outline-none focus:border-profile-accent"
-            />
-            <span className="text-[12px] text-profile-text-muted">min</span>
           </div>
         </PrefRow>
 

@@ -425,11 +425,7 @@ export default function QuizSettings({ quizId, quizName, settings: externalSetti
       case "assessment":
         return (
           <div className="space-y-4">
-            <SectionCard title="Assessment Configuration" description="Duration, passing criteria, and randomization rules">
-              <div className="grid grid-cols-2 gap-4">
-                <NumberField label="Duration (minutes)" value={settings.assessment.duration} onChange={(v) => updateSection("assessment", { duration: v })} min={1} />
-                <NumberField label="Time Per Question (seconds)" value={settings.assessment.timePerQuestion || 0} onChange={(v) => updateSection("assessment", { timePerQuestion: v })} min={0} suffix="s" />
-              </div>
+            <SectionCard title="Assessment Configuration" description="Passing criteria and randomization rules">
               <div className="border-t border-border pt-2">
                 <Toggle label="Negative Marking" description="Deduct marks for wrong answers" checked={settings.assessment.negativeMarking} onChange={(v) => updateSection("assessment", { negativeMarking: v })} />
                 {settings.assessment.negativeMarking && (

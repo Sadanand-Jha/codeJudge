@@ -368,7 +368,7 @@ export default function RoomInviteModal({
                       href={whatsappHref}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[#0b3d2c] bg-[#25D366] px-4 text-sm font-extrabold text-[#052e1d] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
+                      className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[#0b3d2c] bg-[#25D366] px-4 text-sm font-extrabold text-white shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
                     >
                       <WhatsAppIcon className="h-4.5 w-4.5" />
                       Share on WhatsApp

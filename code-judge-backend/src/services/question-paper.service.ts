@@ -426,7 +426,10 @@ ${avoidQuestions ? `DO NOT REPEAT OR NEAR-DUPLICATE THESE EXISTING QUESTIONS:\n$
   return { questions: numbered, usage };
 };
 
-export async function getQuestionGeneratorCatalog() {
+export async function getQuestionGeneratorCatalog(subjectId?: number) {
+  const subjectFilter = subjectId != null ? "AND s.id = $1" : "";
+  const chapterFilter = subjectId != null ? "AND sc.subject_id = $1" : "";
+  const params = subjectId != null ? [subjectId] : [];
   const [subjects, chapters, topics, difficulties, categories] = await Promise.all([
     db.query(
       `SELECT DISTINCT s.id, s.subject_name AS name
@@ -437,18 +440,29 @@ export async function getQuestionGeneratorCatalog() {
            JOIN subject_chapters sc ON sc.id = ct.chapter_id
            WHERE sc.subject_id = s.id
          )
-       ORDER BY name`
+         ${subjectFilter}
+       ORDER BY name`,
+      params
     ).then((r) => r.rows),
     db.query(
       `SELECT DISTINCT sc.id, sc.subject_id AS "subjectId", sc.chapter_name AS name
        FROM subject_chapters sc
        WHERE EXISTS (SELECT 1 FROM chapter_topics ct WHERE ct.chapter_id = sc.id)
-       ORDER BY name`
+         ${chapterFilter}
+       ORDER BY name`,
+      params
     ).then((r) => r.rows),
     db.query(
-      `SELECT DISTINCT ct.id, ct.chapter_id AS "chapterId", ct.topic_name AS name
-       FROM chapter_topics ct
-       ORDER BY name`
+      subjectId != null
+        ? `SELECT DISTINCT ct.id, ct.chapter_id AS "chapterId", ct.topic_name AS name
+           FROM chapter_topics ct
+           JOIN subject_chapters sc ON sc.id = ct.chapter_id
+           WHERE sc.subject_id = $1
+           ORDER BY name`
+        : `SELECT DISTINCT ct.id, ct.chapter_id AS "chapterId", ct.topic_name AS name
+           FROM chapter_topics ct
+           ORDER BY name`,
+      params
     ).then((r) => r.rows),
     db.query(`SELECT id, name FROM question_difficulty ORDER BY id`).then((r) => r.rows),
     db.query(`SELECT id, name FROM question_category ORDER BY id`).then((r) => r.rows),
@@ -999,7 +1013,7 @@ export const renderPaperHtml = (paper: QuestionPaper): string => {
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${escapeHtml(paper.title)}</title>
 <style>
-  body { font-family: Georgia, "Times New Roman", "Noto Serif", serif; color: #111; max-width: 760px; margin: 0 auto; padding: 40px 32px; line-height: 1.6; }
+  body { font-family: Georgia, "Times New Roman", "Noto Serif", serif; color: #111; max-width: 760px; margin: 0 auto; padding: 40px 32px; line-height: 1.6; text-align: justify; }
   .paper-head { text-align: center; border-bottom: 2px solid #111; padding-bottom: 16px; margin-bottom: 28px; }
   .paper-head h1 { font-size: 26px; margin: 0 0 8px; letter-spacing: 0.01em; }
   .paper-meta { font-size: 13.5px; color: #333; }

@@ -21,6 +21,7 @@ import CreateRoomModal from "@/components/quiz/creator/settings/audience/CreateR
 import { fetchMyRooms, getRoom } from "@/services/rooms";
 import { getQuizParticipants } from "@/services/quiz";
 import { StudioStepHeader, StudioStepLayout } from "../primitives";
+import { ConfirmModal } from "../components/timing/ConfirmModal";
 
 const MODE_OPTIONS: Array<{ id: "public" | "private" | "classroom"; label: string }> = [
   { id: "public", label: "Public" },
@@ -41,6 +42,9 @@ export function AudienceStep({ embedded = false }: { embedded?: boolean } = {}) 
     a.mode === "classroom" && (a.roomIds?.length ?? 0) === 0 && Boolean(state.serverQuizId)
   );
   const [roomLoadsInFlight, setRoomLoadsInFlight] = useState(0);
+  const [pendingMode, setPendingMode] = useState<(typeof MODE_OPTIONS)[number]["id"] | null>(null);
+  const pendingModeLabel = MODE_OPTIONS.find((m) => m.id === pendingMode)?.label;
+  const currentModeLabel = MODE_OPTIONS.find((m) => m.id === a.mode)?.label;
 
   const roomIds = useMemo(() => a.roomIds ?? [], [a.roomIds]);
   const selections = a.roomStudentSelections ?? {};
@@ -280,11 +284,8 @@ export function AudienceStep({ embedded = false }: { embedded?: boolean } = {}) 
               className="sr-only"
               checked={a.mode === m.id}
               onChange={() => {
-                if (m.id === "classroom") {
-                  setRoomListLoading(true);
-                  setRestoringAudience(roomIds.length === 0 && Boolean(state.serverQuizId));
-                }
-                updateAudience({ mode: m.id });
+                if (m.id === a.mode) return;
+                setPendingMode(m.id);
               }}
             />
             <span className="flex items-center justify-between gap-2">
@@ -422,6 +423,29 @@ export function AudienceStep({ embedded = false }: { embedded?: boolean } = {}) 
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={pendingMode !== null}
+        onClose={() => setPendingMode(null)}
+        onConfirm={() => {
+          if (!pendingMode) return;
+          if (pendingMode === "classroom") {
+            setRoomListLoading(true);
+            setRestoringAudience(roomIds.length === 0 && Boolean(state.serverQuizId));
+          }
+          updateAudience({ mode: pendingMode });
+          setPendingMode(null);
+        }}
+        title="Change audience & access?"
+        description="Switching modes changes who can register and attempt this quiz. Your current rooms and participant selections will be kept."
+        details={[
+          { label: "Current", value: currentModeLabel ?? "—" },
+          { label: "New", value: pendingModeLabel ?? "—" },
+        ]}
+        confirmLabel={`Switch to ${pendingModeLabel ?? "new mode"}`}
+        confirmColor="pink"
+        icon={Users}
+      />
 
       <SelectRoomsModal
         open={selectRoomsOpen}

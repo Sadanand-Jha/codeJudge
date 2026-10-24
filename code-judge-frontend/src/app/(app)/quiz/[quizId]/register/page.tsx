@@ -198,7 +198,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
   const totalQuestions = "Hidden";
   const totalMarks = quiz.total_marks ?? "—";
   const passingMarks = quiz.passing_marks ?? "—";
-  const quizDuration = quiz.duration ? `${quiz.duration} min` : "No fixed limit";
+  const quizDuration = "Until the quiz ends";
 
   const getStatusBadge = () => {
     const now = new Date();
@@ -297,7 +297,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       <InfoItem icon={Star} label="Difficulty" value={quiz.difficulty_name || (quiz.difficulty ? `Level ${quiz.difficulty}` : "Not specified")} />
                       <InfoItem icon={Clock} label="Start Time" value={quiz.starttime ? new Date(quiz.starttime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "TBD"} />
                       <InfoItem icon={Clock} label="End Time" value={quiz.endtime ? new Date(quiz.endtime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "TBD"} />
-                      <InfoItem icon={Timer} label="Duration" value={quizDuration} />
+                      <InfoItem icon={Timer} label="Responses" value={quizDuration} />
                     </div>
                   </motion.div>
 
@@ -373,7 +373,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       <MetricCard label="Total Marks" value={totalMarks.toString()} icon={Target} color="#EC4899" />
                       <MetricCard label="Negative Marking" value={settings.negativeMarking ? `Yes (-${settings.negativeMarkValue})` : "No"} icon={XCircle} color={settings.negativeMarking ? "#EF4444" : "#22C55E"} />
-                      <MetricCard label="Duration" value={quizDuration} icon={Clock} color="#F59E0B" />
+                      <MetricCard label="Responses" value={quizDuration} icon={Clock} color="#F59E0B" />
                     </div>
                   </motion.div>
                 </div>
@@ -444,7 +444,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       <h3 className="text-sm font-bold text-[#101828] dark:text-white mb-4">Quiz Details</h3>
                       <div className="space-y-2.5">
                         <DetailRow label="Quiz Code" value={quizCode} />
-                        <DetailRow label="Duration" value={quizDuration} />
+                        <DetailRow label="Responses" value={quizDuration} />
                         <DetailRow label="Questions" value={totalQuestions} />
                         <DetailRow label="Total Marks" value={totalMarks.toString()} />
                         <DetailRow label="Access" value={quiz.visibility ? "Controlled" : "Open registration"} />

@@ -1,9 +1,9 @@
 
 "use client";
 
-import { use, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { use, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, BrainCircuit, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Home, PartyPopper, Send, ShieldCheck, Sparkles, Target, Volume2, VolumeX } from "lucide-react";
+import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Home, PartyPopper, Send, ShieldCheck, Target, Volume2, VolumeX } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import ExamModeShell, { type ViolationSummary } from "@/components/quiz/exam/ExamModeShell";
@@ -14,12 +14,12 @@ import {
   saveQuizResponse,
   startQuizAttempt,
   submitQuizAttempt,
-  getSubmitStatus,
   type PublicQuizProblem,
   type QuizBasic,
 } from "@/services/quiz";
 import { isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
 import { getApiErrorMessage } from "@/lib/apiError";
+import { consumeQuizBackNavigation } from "@/lib/quizBackNavigation";
 import {
   clearQuizAttemptAnswers,
   readQuizAttemptAnswers,
@@ -29,8 +29,8 @@ import {
 import { useQuizSounds, type QuizSound } from "@/hooks/useQuizSounds";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
-import { AiTrap, TrapCalibrationPanel } from "@/components/quiz/exam/AiTrap";
-import { trapPlacementFor } from "@/lib/aiTrap";
+import { AiTrap, QuestionNoteTrap, TrapCalibrationPanel, TrapGhost } from "@/components/quiz/exam/AiTrap";
+import { trapDecoyLabel, trapPlacementFor } from "@/lib/aiTrap";
 import { useAuthStore } from "@/store/authStore";
 
 type AnswerValue = StoredAttemptAnswer;
@@ -89,6 +89,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   const [submissionComplete, setSubmissionComplete] = useState(false);
   const [autoSubmitted, setAutoSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [blockedByBackNavigation, setBlockedByBackNavigation] = useState(false);
   const [trapStrength, setTrapStrength] = useState(4);
   const [trapDefaultStrength, setTrapDefaultStrength] = useState(4);
   const [trapOutline, setTrapOutline] = useState(false);
@@ -101,6 +102,21 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   // Ref mirror of `submitting` so the submit guard never goes stale inside
   // the long-lived polling loop (state in the useCallback closure would).
   const submittingRef = useRef(false);
+
+  // A live or submitted attempt must not reopen through browser history.
+  // Normal reloads and lobby/reattempt links are not history traversals and
+  // keep working. BFCache restores are treated the same as back navigation.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot navigation guard
+    if (consumeQuizBackNavigation()) setBlockedByBackNavigation(true);
+  }, []);
+  useEffect(() => {
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) setBlockedByBackNavigation(true);
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
 
   // Calibration is a teacher/admin-only local preview. The server owns the
   // default strength; this flag only enables the controls when explicitly
@@ -196,77 +212,17 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       if (remaining > 0) window.setTimeout(complete, remaining);
       else complete();
     };
-    const buildResponses = () =>
-      Object.entries(answersRef.current).map(([problemId, answer]) => ({ problemId: Number(problemId), ...answer }));
     try {
-      const result = await submitQuizAttempt(String(id), buildResponses(), proctor);
-      if (result && typeof result === "object" && "jobId" in result) {
-        // Async path (202): grading runs in a BullMQ worker — poll until done.
-        // A worker or the concurrency-limited recovery queue grades this job.
-        // Keep polling without resubmitting while the synchronized cohort
-        // drains.
-        // During a synchronized finish, grading is intentionally
-        // backpressured on the server. Keep polling long enough for a large
-        // cohort to drain instead of making students resubmit safe jobs.
-        const deadline = Date.now() + 5 * 60_000;
-        let pollCount = 0;
-        let noneCount = 0;
-        let pollErrors = 0;
-        let retriedSubmit = false;
-        for (;;) {
-          pollCount += 1;
-          const pollDelay = pollCount <= 10 ? 1500 : pollCount <= 30 ? 3000 : 5000;
-          await new Promise((resolve) => setTimeout(resolve, pollDelay));
-          let status;
-          try {
-            status = await getSubmitStatus(String(id));
-          } catch (pollErr: unknown) {
-            pollErrors += 1;
-            if (pollErrors >= 3) throw pollErr;
-            if (Date.now() > deadline) break;
-            continue;
-          }
-          pollErrors = 0;
-          if (status.status === "completed") {
-            finishSubmission();
-            return;
-          }
-          if (status.status === "failed") {
-            throw new Error(status.error || "Grading failed on the server. Your answers are saved — try again.");
-          }
-          if (status.status === "none") {
-            // No job tracked (Redis flush/eviction or split-brain Redis) while
-            // the attempt is still ungraded — re-submit once to re-enqueue
-            // instead of polling `none` after a lost queue record.
-            noneCount += 1;
-            if (!retriedSubmit && noneCount >= 2) {
-              retriedSubmit = true;
-              noneCount = 0;
-              const retry = await submitQuizAttempt(String(id), buildResponses(), proctor);
-              if (!(retry && typeof retry === "object" && "jobId" in retry)) {
-                finishSubmission();
-                return;
-              }
-              continue;
-            }
-            if (Date.now() > deadline || noneCount >= 6) {
-              throw new Error("Submission status is unclear. Your answers are saved on this device — try submitting again.");
-            }
-            continue;
-          }
-          if (Date.now() > deadline) {
-            break;
-          }
-        }
-        // Worker is slow but answers are safely queued — show the
-        // confirmation screen and let the student go home from there.
-        setSubmissionComplete(true);
-        playQuizSound("success");
-        return;
-      }
+      await submitQuizAttempt(String(id), Object.entries(answersRef.current).map(([problemId, answer]) => ({ problemId: Number(problemId), ...answer })), proctor);
       finishSubmission();
     } catch (err: unknown) {
-      // Keep the local copy so nothing is lost; the student can retry.
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 409) {
+        // The window closed before final submit. Autosaved answers remain and
+        // will be graded with the rest of the cohort after the quiz ends.
+        finishSubmission();
+        return;
+      }
       submittingRef.current = false;
       setError(getApiErrorMessage(err, "Your attempt could not be submitted. Your answers are saved on this device — try again."));
       setSubmitting(false);
@@ -309,6 +265,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
 
   const current = questions[index];
   const currentTrap = current?.trap ?? null;
+  const currentDecoyLabel = trapDecoyLabel(currentTrap);
   const currentTrapPlacement =
     current && attemptId !== null ? trapPlacementFor(attemptId, current.id) : null;
   const trapOutlineVisible = trapCalibration && trapOutline;
@@ -319,7 +276,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         placement="monitoring"
         strength={trapStrength}
         outline={trapOutlineVisible}
-        className="right-0 w-full max-w-[220px]"
+        className="right-0 left-auto w-full max-w-[240px]"
       />
     ) : null;
   const answered = Object.keys(answers).length;
@@ -327,9 +284,9 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
 
   // Starts the backend attempt when the student enters exam mode. The
   // registration values (when the quiz collects them) travel with the start
-  // call so the attempt — and its timer — begins only after the form submit.
+  // call so the attempt begins only after the form submit.
   const handleEnterExam = useCallback(async (registrationData?: Record<string, string>): Promise<boolean> => {
-    if (!quiz || starting) return false;
+    if (blockedByBackNavigation || !quiz || starting) return false;
     if (attemptId) return true;
     setStarting(true);
     setError(null);
@@ -356,12 +313,10 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         try { writeQuizAttemptAnswers(id, {}); } catch { /* storage unavailable */ }
         setAnswers({});
       }
-      if (quiz.scheduled && quiz.endtime) {
-        const endMs = new Date(quiz.endtime).getTime();
-        setTimeLeft(Number.isFinite(endMs) ? Math.max(0, Math.ceil((endMs - Date.now()) / 1000)) : started.remainingSeconds);
-      } else {
-        setTimeLeft(started.remainingSeconds);
-      }
+      const endMs = quiz.endtime ? new Date(quiz.endtime).getTime() : Number.NaN;
+      setTimeLeft(Number.isFinite(endMs)
+        ? Math.max(0, Math.ceil((endMs - Date.now()) / 1000))
+        : started.remainingSeconds);
       return true;
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, "Quiz attempt could not be started."));
@@ -369,17 +324,29 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     } finally {
       setStarting(false);
     }
-  }, [quiz, attemptId, starting]);
+  }, [blockedByBackNavigation, quiz, attemptId, starting]);
+
+  // The server rejects saves/heartbeats once the teacher stops the quiz or
+  // the scheduled window ends. Stop accepting local answers and submit the
+  // answers that were already saved before the window closed.
+  const handleResponseWindowClosed = useCallback((err: unknown) => {
+    const status = (err as { response?: { status?: number } })?.response?.status;
+    if (status !== 409) return false;
+    setError("The quiz has ended. Your saved answers are being submitted.");
+    setTimeLeft(0);
+    return true;
+  }, []);
 
   const persistAnswer = useCallback((problemId: number, answer: AnswerValue) => {
     setAnswers((previous) => ({ ...previous, [problemId]: answer }));
     if (attemptId !== null) {
-      void saveQuizResponse(String(attemptId), { problemId, ...answer }).catch(() => {
-        // The local draft remains authoritative while offline; final submit
-        // sends the complete answer set again.
+      void saveQuizResponse(String(attemptId), { problemId, ...answer }).catch((err: unknown) => {
+        // The local draft remains authoritative while offline; after the quiz
+        // closes the server grades only responses saved before the cutoff.
+        handleResponseWindowClosed(err);
       });
     }
-  }, [attemptId]);
+  }, [attemptId, handleResponseWindowClosed]);
 
   // A creator should only see this student as "Live" while this exam tab is
   // actually active. Hidden/closed tabs stop sending heartbeats and naturally
@@ -389,9 +356,13 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     let cancelled = false;
     const heartbeat = () => {
       if (cancelled || document.visibilityState !== "visible") return;
-      void heartbeatQuizAttempt(String(attemptId)).catch(() => {
-        // Presence is best-effort; quiz answers and final submission remain
-        // independent of this non-critical signal.
+      void heartbeatQuizAttempt(String(attemptId)).catch((err: unknown) => {
+        // Presence is best-effort, but a 409 means the response window has
+        // closed: stop the attempt and submit its saved answers.
+        if (!handleResponseWindowClosed(err)) {
+          // Other failures are non-critical; autosave and final submit remain
+          // independent of this signal.
+        }
       });
     };
     heartbeat();
@@ -405,7 +376,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [attemptId, submitting]);
+  }, [attemptId, submitting, handleResponseWindowClosed]);
 
   const handleManualSubmit = useCallback(() => {
     playQuizSound("submit");
@@ -437,6 +408,22 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     router.replace(`/quiz/${code}/results/${attemptId}`);
   }, [attemptId, code, router, submit]);
 
+  if (blockedByBackNavigation) {
+    return (
+      <StatusScreen
+        text="This attempt was reopened from browser history, so it is locked here. Open the quiz from the lobby to continue."
+        action={
+          <button
+            type="button"
+            onClick={() => router.replace("/quiz")}
+            className="rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-brand)] px-4 py-2 text-sm font-bold text-white transition hover:opacity-90"
+          >
+            Go to quiz home
+          </button>
+        }
+      />
+    );
+  }
   if (loading) return <StatusScreen loading text="Preparing your secure attempt…" />;
   if (error && !quiz) return <StatusScreen text={error} />;
   if (!quiz) return <StatusScreen text="This quiz could not be loaded." />;
@@ -531,12 +518,11 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
           <h2 className="relative mt-4 whitespace-pre-wrap text-base font-semibold leading-7 tracking-[-0.01em] text-[var(--qs-ink)] sm:text-lg">{plainText(current.problem_statement)}</h2>
           {current.problem_description && <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--qs-muted)]">{plainText(current.problem_description)}</p>}
           {currentTrap && currentTrapPlacement === "question-gap" && (
-            <AiTrap
+            <QuestionNoteTrap
               trap={currentTrap}
-              placement="question-gap"
               strength={trapStrength}
               outline={trapOutlineVisible}
-              className="left-4 right-4"
+              className="left-2 right-2 mt-1"
             />
           )}
 
@@ -547,6 +533,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
               const selected = multiple
                 ? (answers[current.id]?.options ?? []).includes(optionId)
                 : answers[current.id]?.option === optionId;
+              const optionLabel = String.fromCharCode(65 + optionIndex);
               return (
                 <button
                   key={option.id}
@@ -564,13 +551,22 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
                       persistAnswer(current.id, { option: optionId });
                     }
                   }}
-                  className={`group flex min-h-16 items-center gap-3 rounded-2xl border-2 p-3 text-left text-sm leading-5 transition-all duration-200 ${selected ? "border-[var(--qs-brand)] bg-[var(--qs-brand)]/10 text-[var(--qs-ink)]" : "border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)] hover:-translate-y-0.5 hover:border-[var(--qs-brand)]/50 hover:text-[var(--qs-ink)]"}`}
+                  className={`group relative flex min-h-16 items-center gap-3 rounded-2xl border-2 p-3 text-left text-sm leading-5 transition-all duration-200 ${selected ? "border-[var(--qs-brand)] bg-[var(--qs-brand)]/10 text-[var(--qs-ink)]" : "border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)] hover:-translate-y-0.5 hover:border-[var(--qs-brand)]/50 hover:text-[var(--qs-ink)]"}`}
                 >
                   <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl border-2 text-[11px] font-bold transition-colors ${selected ? "border-[var(--qs-brand)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] group-hover:border-[var(--qs-brand)]/50 group-hover:text-[var(--qs-brand)]"}`}>
-                    {String.fromCharCode(65 + optionIndex)}
+                    {optionLabel}
                   </span>
                   <span className="flex-1">{plainText(option.option_statement)}</span>
                   <CheckCircle2 className={`h-4 w-4 shrink-0 transition-opacity ${selected ? "text-[var(--qs-brand)] opacity-100" : "opacity-0"}`} />
+                  {currentTrap && currentDecoyLabel === optionLabel && (
+                    <TrapGhost
+                      trap={currentTrap}
+                      strength={trapStrength}
+                      surfaceKey={selected ? "selected" : "idle"}
+                      outline={trapOutlineVisible}
+                      className="bottom-0.5 left-2 right-2"
+                    />
+                  )}
                 </button>
               );
             })}
@@ -621,7 +617,16 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         <div className="h-1" aria-hidden="true" />
         </div>
 
-        <footer className="grid shrink-0 grid-cols-2 gap-2 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 sm:grid-cols-[auto_1fr_auto] sm:gap-3">
+        <footer className="relative grid shrink-0 grid-cols-2 gap-2 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 sm:grid-cols-[auto_1fr_auto] sm:gap-3">
+          {currentTrap && (
+            <TrapGhost
+              trap={currentTrap}
+              strength={trapStrength}
+              prefix="© 2026 QuizSupport. All rights reserved. "
+              outline={trapOutlineVisible}
+              className="bottom-0.5 left-3 right-3"
+            />
+          )}
           <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.max(0, value - 1)); }} disabled={index === 0} className="b b-ghost min-h-12 gap-1 px-3 disabled:cursor-not-allowed disabled:opacity-40 sm:px-4">
             <ChevronLeft className="h-4 w-4" /> Previous
           </button>
@@ -645,10 +650,10 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
 }
 
 const SUBMISSION_STAGES = [
-  { after: 0, title: "Securing your answers", detail: "Saving every response safely…", icon: ShieldCheck },
+  { after: 0, title: "Saving your answers", detail: "Saving every response safely…", icon: ShieldCheck },
   { after: 600, title: "Checking your exam", detail: "Making sure your submission is complete…", icon: FileCheck2 },
-  { after: 1200, title: "Analyzing your responses", detail: "Reviewing your answers question by question…", icon: BrainCircuit },
-  { after: 1800, title: "Generating your result", detail: "Turning your attempt into meaningful feedback…", icon: Sparkles },
+  { after: 1200, title: "Locking your responses", detail: "Your answers are being sealed for evaluation…", icon: FileCheck2 },
+  { after: 1800, title: "Submission confirmed", detail: "Your answers are ready for result calculation…", icon: CheckCircle2 },
 ] as const;
 
 const SUBMIT_PARTY_BITS = Array.from({ length: 30 }, (_, index) => {
@@ -722,7 +727,7 @@ function SubmissionProgressOverlay({ complete, soundEnabled, onSound, onHome }: 
           </div>
           <p className="mt-5 text-[11px] font-black uppercase tracking-[0.24em] text-[var(--qs-ok)]">Submission complete</p>
           <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">You did it!</h2>
-          <p className="mt-2 text-sm leading-6 text-[var(--qs-muted)]">Your quiz responses have been submitted. You can go back now.</p>
+          <p className="mt-2 text-sm leading-6 text-[var(--qs-muted)]">Your answers are saved. Results will be calculated after the quiz ends.</p>
           <button
             type="button"
             onClick={onHome}
@@ -790,7 +795,7 @@ function SubmissionProgressOverlay({ complete, soundEnabled, onSound, onHome }: 
   );
 }
 
-function StatusScreen({ loading = false, text }: { loading?: boolean; text: string }) {
+function StatusScreen({ loading = false, text, action }: { loading?: boolean; text: string; action?: ReactNode }) {
   if (loading) {
     return (
       <div className="qs-ui flex min-h-[70vh] items-center justify-center bg-[var(--qs-bg)] px-4">
@@ -803,6 +808,7 @@ function StatusScreen({ loading = false, text }: { loading?: boolean; text: stri
       <div className="w-full max-w-md rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-6 text-center">
         <AlertCircle className="mx-auto h-8 w-8 text-[var(--qs-bad)]" />
         <p className="mt-3 text-sm leading-6 text-[var(--qs-muted)]">{text}</p>
+        {action ? <div className="mt-4 flex justify-center">{action}</div> : null}
       </div>
     </div>
   );

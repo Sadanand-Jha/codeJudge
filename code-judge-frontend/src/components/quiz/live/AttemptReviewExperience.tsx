@@ -379,6 +379,8 @@ export default function AttemptReviewExperience({
   const [selectedQuestion, setSelectedQuestion] = useState(0);
   const [data, setData] = useState<AttemptReviewData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pending, setPending] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ratingState, setRatingState] = useState<QuizRatingState | null>(null);
   const [selectedRatings, setSelectedRatings] = useState<RatingSelection>(EMPTY_RATINGS);
@@ -397,6 +399,8 @@ export default function AttemptReviewExperience({
     let cancelled = false;
     async function load() {
       setLoading(true);
+      setPending(false);
+      setPendingMessage(null);
       setError(null);
       try {
         const [result, review] = await Promise.all([
@@ -414,8 +418,14 @@ export default function AttemptReviewExperience({
         }
       } catch (err: unknown) {
         if (!cancelled) {
-          setError(getApiErrorMessage(err, "Could not load attempt review."));
-          playQuizSound("error");
+          const status = (err as { response?: { status?: number } })?.response?.status;
+          if (status === 403) {
+            setPending(true);
+            setPendingMessage(getApiErrorMessage(err, "Results are being prepared."));
+          } else {
+            setError(getApiErrorMessage(err, "Could not load attempt review."));
+            playQuizSound("error");
+          }
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -481,6 +491,20 @@ export default function AttemptReviewExperience({
         loading
         title="Preparing your review"
         text="Checking your answers and building the full review…"
+      />
+    );
+  }
+
+  if (pending && !data) {
+    return (
+      <QuizStateScreen
+        title="Results are being prepared"
+        text={pendingMessage ?? "Your answers are saved. Results will be available 1 hour after the quiz ends."}
+        action={
+          <Link href="/quiz" className="b b-pri gap-2">
+            <ArrowLeft className="h-4 w-4" /> Back to quiz home
+          </Link>
+        }
       />
     );
   }

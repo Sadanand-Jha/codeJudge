@@ -1,34 +1,46 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  ArrowRight,
+  BarChart3,
   CalendarDays,
+  Check,
+  CreditCard,
   FileText,
   HelpCircle,
+  KeyRound,
+  Lock,
   Mail,
   Moon,
   PenLine,
   Plus,
   Radio,
+  ShieldCheck,
   Smartphone,
   Sparkles,
   Timer,
   Trophy,
+  Users,
+  X,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import QuizCodeForm from "@/components/marketing/QuizCodeForm";
 import SampleQuizDemo from "@/components/marketing/SampleQuizDemo";
 import HeroPolygons from "@/components/marketing/landing/HeroPolygons";
+import AnimatedStat from "@/components/marketing/landing/AnimatedStat";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import GeneratorStudio from "@/components/marketing/landing/GeneratorStudio";
 import FeatureTabs from "@/components/marketing/landing/FeatureTabs";
 import { SecureLogo } from "@/components/common/SecureLogo";
 import { CREDIT_PURCHASE_PACKS } from "@/config/aiCredits";
+import { CREATOR_PLANS, getCreatorPlanDiscount } from "@/config/creatorPlans";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
 
 export const metadata: Metadata = buildPublicPageMetadata({
-  title: "QuizSupport – Create quizzes with AI. Share them with a code.",
+  title: "QuizSupport – Pick a scope. AI composes the paper.",
   description:
-    "Turn a topic into a ready paper, send students one access code, and watch scores, ranks and question insights arrive live. Generate questions with AI, or practice for JEE, NEET, GATE, SSC, UPSC and Banking.",
+    "Choose your subject and scope. AI writes the questions, composes the paper and gets it ready to share. One code for students, instant results for you.",
   path: "/",
   absoluteTitle: true,
 });
@@ -36,12 +48,11 @@ export const metadata: Metadata = buildPublicPageMetadata({
 const NAV_LINKS = [
   { label: "Tools", href: "#tools" },
   { label: "Features", href: "#features" },
+  { label: "Rooms", href: "#rooms" },
+  { label: "Why us", href: "#why" },
   { label: "How it works", href: "#how" },
-  { label: "Pricing", href: "/pricing" },
-  { label: "AI credits", href: "#pricing" },
+  { label: "Pricing", href: "#plans" },
 ];
-
-const EXAMS = ["JEE", "NEET", "GATE", "SSC", "UPSC", "Banking"];
 
 interface ToolCard {
   icon: LucideIcon;
@@ -55,43 +66,43 @@ const TOOLS: ToolCard[] = [
   {
     icon: Plus,
     title: "Quiz builder",
-    desc: "Build a quiz by hand or from generated questions.",
-    cta: "Start building →",
+    desc: "Start blank. Or start with a prompt.",
+    cta: "Build one →",
     href: "/creator/quizzes/create",
   },
   {
     icon: Sparkles,
     title: "AI question generator",
-    desc: "Pick scope and difficulty. Get questions with answer keys.",
-    cta: "Try it below →",
+    desc: "Pick the scope. Get questions, keys and marks.",
+    cta: "Try it →",
     href: "#qgen",
   },
   {
     icon: FileText,
     title: "Paper generator",
-    desc: "Compose a print-ready paper and export it to PDF or Word.",
-    cta: "Try it below →",
+    desc: "The paper assembles itself.",
+    cta: "See it →",
     href: "#paper",
   },
   {
     icon: HelpCircle,
     title: "Question bank",
-    desc: "Save problems once and reuse them across papers.",
+    desc: "Save the good ones. Reuse them.",
     cta: "Open bank →",
     href: "/creator/problems",
   },
   {
     icon: PenLine,
     title: "Practice sets",
-    desc: "Ready-made sets for JEE, NEET, GATE, SSC, UPSC and Banking.",
+    desc: "Ready-made. No setup.",
     cta: "Browse sets →",
     href: "/quiz",
   },
   {
     icon: Radio,
     title: "Live quizzes",
-    desc: "Share a code and watch responses arrive in real time.",
-    cta: "See how →",
+    desc: "One code. Everyone in. Results live.",
+    cta: "See it live →",
     href: "#features",
   },
 ];
@@ -103,21 +114,94 @@ interface FeatureCard {
 }
 
 const FEATURE_CARDS: FeatureCard[] = [
-  { icon: Timer, title: "Secure exams", desc: "Timers and auto-submit when time runs out." },
+  { icon: Timer, title: "Secure exams", desc: "Timed and focused. No babysitting." },
   {
     icon: CalendarDays,
     title: "Scheduled quizzes",
-    desc: "Open and close a quiz on your own schedule.",
+    desc: "Open and close on your clock.",
   },
-  { icon: HelpCircle, title: "Question bank", desc: "Save problems and reuse them across papers." },
-  { icon: Mail, title: "Email and export", desc: "Send results by email or download them as CSV." },
+  { icon: HelpCircle, title: "Question bank", desc: "Save once. Reuse everywhere." },
+  { icon: Mail, title: "Email and export", desc: "Results out in one click." },
   {
     icon: Trophy,
     title: "Ranks and leaderboards",
-    desc: "See who is on top, with time as the tiebreaker.",
+    desc: "Ranks, with time as the tiebreaker.",
   },
   { icon: Smartphone, title: "Works anywhere", desc: "Phone or laptop. Nothing to install." },
   { icon: Moon, title: "Light and dark", desc: "Easy on the eyes, day or night." },
+];
+
+const STATS = [
+  { value: 1000, suffix: "+", label: "learners every month" },
+  { value: 20, suffix: "+", label: "teachers and creators" },
+  { value: 0, suffix: "", label: "installs needed" },
+  { value: 1, suffix: "", label: "code to join" },
+];
+
+const WHY_CARDS: FeatureCard[] = [
+  {
+    icon: ShieldCheck,
+    title: "Exam mode, minus the drama",
+    desc: "Cheating is hard. It watches so you don't have to.",
+  },
+  {
+    icon: Users,
+    title: "One room. Every quiz.",
+    desc: "Group once, share one code, reuse the batch forever.",
+  },
+  {
+    icon: Zap,
+    title: "Results before the bell",
+    desc: "Instant grading, ranks and accuracy — no spreadsheets.",
+  },
+  {
+    icon: Lock,
+    title: "You see it first",
+    desc: "You see results instantly. Students, one hour after.",
+  },
+  {
+    icon: BarChart3,
+    title: "Know what to teach next",
+    desc: "Hardest questions, slowest topics and who needs help.",
+  },
+  {
+    icon: Sparkles,
+    title: "AI does the busywork",
+    desc: "Generate a full paper, then edit anything you want.",
+  },
+];
+
+const COMPARISON_ROWS = [
+  {
+    need: "Students join",
+    us: "One code",
+    them: "Links, lists, reminders",
+  },
+  {
+    need: "Exam integrity",
+    us: "Focused exam mode",
+    them: "No controls",
+  },
+  {
+    need: "Batch management",
+    us: "Reusable rooms",
+    them: "Spreadsheets",
+  },
+  {
+    need: "Results",
+    us: "Instant ranks + analytics",
+    them: "Manual marking",
+  },
+  {
+    need: "Result privacy",
+    us: "Teacher first",
+    them: "Everyone at once",
+  },
+  {
+    need: "Exports",
+    us: "CSV, email, PDF, Word",
+    them: "Copy-paste",
+  },
 ];
 
 interface Step {
@@ -130,19 +214,19 @@ interface Step {
 const STEPS: Step[] = [
   {
     number: "1",
-    title: "Create",
-    desc: "Pick subject, chapters and topics, set how many easy, medium and hard questions you want, and let AI draft the paper. Edit anything.",
+    title: "Pick the scope",
+    desc: "Subject, chapters, difficulty. AI drafts the paper. You edit what you want.",
   },
   {
     number: "2",
     title: "Share the code",
-    desc: "Every quiz gets its own access code. Send it on WhatsApp, email or a class group.",
+    desc: "Every quiz gets its own code. Send it anywhere.",
     code: "VQBA-MIDJ-ETTW-EFRT",
   },
   {
     number: "3",
     title: "Watch results",
-    desc: "Students get instant feedback. You get scores, ranks, time taken and which questions were hardest.",
+    desc: "Scores, ranks and the questions that tripped everyone up — instantly.",
   },
 ];
 
@@ -150,8 +234,8 @@ const AUDIENCES = [
   {
     chip: "Students",
     tone: "blue",
-    title: "Practice and compete",
-    desc: "Join with a code, answer on any device, see your score instantly and keep your history.",
+    title: "Practice. Compete. Repeat.",
+    desc: "Join with a code, answer anywhere, see your score instantly.",
     cta: "Find practice sets",
     href: "/quiz",
   },
@@ -159,15 +243,15 @@ const AUDIENCES = [
     chip: "Teachers",
     tone: "ok",
     title: "Papers in minutes",
-    desc: "Generate questions from your syllabus, export print-ready papers, and see how every student did.",
+    desc: "Generate from your syllabus, export print-ready, see every result.",
     cta: "See AI credits",
     href: "/pricing/credits",
   },
   {
     chip: "Creators",
     tone: "warn",
-    title: "Host and track",
-    desc: "Run live quizzes, add lifelines and lives to make them fun, and track performance over time.",
+    title: "Host. Track. Repeat.",
+    desc: "Live quizzes, lifelines and performance over time.",
     cta: "Explore features",
     href: "#features",
   },
@@ -176,27 +260,39 @@ const AUDIENCES = [
 const FAQS = [
   {
     q: "Do students need to install anything?",
-    a: "No. QuizSupport works in the browser on mobile and desktop, so students only need the access code.",
+    a: "No. It runs in the browser on phone or laptop. Just the code.",
   },
   {
     q: "How does the access code work?",
-    a: "Each quiz has its own code. Students enter it on the home page to join, answer the questions and see their result right away.",
+    a: "Every quiz has its own code. Enter it to join. Results open an hour after the quiz ends; teachers see them immediately.",
+  },
+  {
+    q: "What is exam mode?",
+    a: "A focused exam view with timers so every attempt stays on the paper.",
+  },
+  {
+    q: "What are rooms?",
+    a: "Reusable student groups. Create once, share the code, assign every quiz.",
+  },
+  {
+    q: "Who can see results?",
+    a: "Owners and collaborators see results immediately. Students see theirs an hour after the quiz ends.",
   },
   {
     q: "What kinds of questions can AI generate?",
-    a: "MCQ, short and long questions, from the subject, chapters and topics you pick. Paste your syllabus for more precise results.",
+    a: "MCQ, short and long, from the subject, chapters and topics you choose. Paste a syllabus for sharper results.",
   },
   {
     q: "Is there a subscription?",
-    a: "There is a free plan with five quizzes a month. Basic and Pro add more quiz creations and include monthly AI credits; extra credits are one-time packs that work with every plan.",
+    a: "The free plan is a 7-day trial with 2 quiz creations and 1 room. Basic and Pro add more creations, rooms and monthly AI credits; extra credits are one-time packs.",
   },
   {
     q: "Can I get results out of the platform?",
-    a: "Yes. Download results as CSV, send them by email, or export papers to PDF and Word.",
+    a: "Yes. CSV, email, PDF and Word.",
   },
   {
     q: "Can I print a question paper?",
-    a: "Yes. Add questions to the paper generator, set the title, marks and time, then export it to PDF or Word.",
+    a: "Yes. Add questions, set title, marks and time, then export to PDF or Word.",
   },
 ];
 
@@ -214,7 +310,7 @@ export default function HomePage() {
       <nav aria-label="Main">
         <div className="wrap">
           <Link href="/" aria-label="QuizSupport home">
-            <SecureLogo size={42} variant="full" rounded={false} className="logo" />
+            <SecureLogo size={35} variant="full" rounded={false} className="logo" />
           </Link>
           <div className="nl">
             {NAV_LINKS.map((link) =>
@@ -233,7 +329,7 @@ export default function HomePage() {
               Log in
             </Link>
             <Link href="/creator/quizzes/create" className="btn sm pri">
-              Create a quiz
+              Create a paper
             </Link>
           </div>
         </div>
@@ -242,33 +338,52 @@ export default function HomePage() {
       <main id="top">
         <div className="hs">
           <HeroPolygons />
+          <div className="wrap trial-banner-wrap">
+            <div className="trial-banner">
+              <div className="trial-copy">
+                <span className="trial-kicker">Limited 2026 offer</span>
+                <strong>7-day free trial</strong>
+                <span className="trial-includes">
+                  2 quizzes + 1 room. No card required.
+                </span>
+              </div>
+              <Link href="/register" className="btn trial-cta">
+                Start free trial
+                <ArrowRight size={16} aria-hidden />
+              </Link>
+            </div>
+          </div>
           <header className="wrap hero">
             <div>
-              <p className="eb">AI quiz &amp; paper studio</p>
-              <h1>Create quizzes with AI. Share them with a code.</h1>
+              <p className="eb">AI paper studio</p>
+              <h1>Pick a scope. The paper writes itself.</h1>
               <p className="lead">
-                Turn a topic into a ready paper, send students one access code, and
-                watch scores, ranks and question insights arrive live.
+                One scope in. A ready paper out. Share a code and watch the results
+                land.
               </p>
               <QuizCodeForm />
-              <p className="sub">
-                Want to host one?{" "}
-                <Link href="/creator/quizzes/create">Create a quiz for free</Link>
-              </p>
-              <div className="exs">
-                {EXAMS.map((exam) => (
-                  <span key={exam}>{exam}</span>
-                ))}
-              </div>
             </div>
             <SampleQuizDemo />
           </header>
         </div>
 
+        <section className="lp-stats" aria-label="QuizSupport by the numbers">
+          <div className="wrap">
+            {STATS.map((stat) => (
+              <div className="lp-stat" key={stat.label}>
+                <b>
+                  <AnimatedStat value={stat.value} suffix={stat.suffix} />
+                </b>
+                <span>{stat.label}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <section className="s" id="tools">
           <div className="wrap">
             <p className="eb">The toolkit</p>
-            <h2 className="t">Everything you need to build a quiz or a question paper</h2>
+            <h2 className="t">From one scope to a finished paper.</h2>
             <div className="tg">
               {TOOLS.map((tool) => {
                 const Icon = tool.icon;
@@ -302,10 +417,8 @@ export default function HomePage() {
 
         <section className="s" id="features">
           <div className="wrap">
-            <p className="eb">Everything in one place</p>
-            <h2 className="t">
-              One platform for the whole quiz, from first question to final rank
-            </h2>
+            <p className="eb">After the paper</p>
+            <h2 className="t">The paper is only the beginning.</h2>
             <FeatureTabs />
             <div className="fg">
               {FEATURE_CARDS.map((feature) => {
@@ -324,10 +437,132 @@ export default function HomePage() {
           </div>
         </section>
 
+        <section className="s" id="why">
+          <div className="wrap">
+            <p className="eb">Why it feels different</p>
+            <h2 className="t">Built for the parts nobody warns you about.</h2>
+            <p className="d">
+              Most tools stop at a form and a score.{" "}
+              <SecureLogo
+                size={20}
+                variant="full"
+                rounded={false}
+                className="inline-block align-[-4px]"
+              />{" "}
+              handles the rest.
+            </p>
+            <div className="wg">
+              {WHY_CARDS.map((card) => {
+                const Icon = card.icon;
+                return (
+                  <div className="wc" key={card.title}>
+                    <i>
+                      <Icon size={22} />
+                    </i>
+                    <h3>{card.title}</h3>
+                    <p>{card.desc}</p>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="cmp-wrap">
+              <table className="cmp">
+                <thead>
+                  <tr>
+                    <th>What you need</th>
+                    <th>
+                      <SecureLogo size={26} variant="full" rounded={false} theme="dark" />
+                    </th>
+                    <th>The usual stack</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {COMPARISON_ROWS.map((row) => (
+                    <tr key={row.need}>
+                      <th scope="row">{row.need}</th>
+                      <td className="yes">
+                        <span>
+                          <Check size={16} aria-hidden />
+                          {row.us}
+                        </span>
+                      </td>
+                      <td className="no">
+                        <span>
+                          <X size={16} aria-hidden />
+                          {row.them}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="cmp-note">One platform. None of the patchwork.</p>
+          </div>
+        </section>
+
+        <section className="s" id="rooms">
+          <div className="wrap rooms-split">
+            <div>
+              <p className="eb">Rooms</p>
+              <h2 className="t">Your batch. Your quizzes. One room.</h2>
+              <p className="d">
+                Create a room once. Share the code. Run every quiz for that batch
+                from one place.
+              </p>
+              <ul className="ck">
+                <li>Generate a code. Join in seconds.</li>
+                <li>Reuse the room across quizzes and terms.</li>
+                <li>See who joined, attempted and needs a nudge.</li>
+                <li>Built for batches, clubs and study groups.</li>
+              </ul>
+              <div className="rooms-actions">
+                <Link className="btn pri" href="/rooms">
+                  Explore rooms
+                </Link>
+                <Link className="btn" href="/creator/rooms">
+                  Create a room
+                </Link>
+              </div>
+            </div>
+            <div className="room-flow">
+              <div className="room-flow-step">
+                <i>
+                  <Users size={24} />
+                </i>
+                <div>
+                  <b>Create a room</b>
+                  <small>Add students once.</small>
+                </div>
+              </div>
+              <span className="room-flow-line" aria-hidden />
+              <div className="room-flow-step">
+                <i>
+                  <KeyRound size={24} />
+                </i>
+                <div>
+                  <b>Share the room code</b>
+                  <small>One code for everyone.</small>
+                </div>
+              </div>
+              <span className="room-flow-line" aria-hidden />
+              <div className="room-flow-step">
+                <i>
+                  <Radio size={24} />
+                </i>
+                <div>
+                  <b>Run every quiz</b>
+                  <small>Reuse the batch. Track every attempt.</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="s" id="how">
           <div className="wrap">
             <p className="eb">How it works</p>
-            <h2 className="t">From blank page to live results in three steps</h2>
+            <h2 className="t">Three steps. One of them is just choosing.</h2>
             <div className="st">
               {STEPS.map((step) => (
                 <div className="step" key={step.number}>
@@ -353,6 +588,83 @@ export default function HomePage() {
           </div>
         </section>
 
+        <section className="s" id="plans">
+          <div className="wrap">
+            <p className="eb">Monthly plans</p>
+            <h2 className="t">Start free. Upgrade at the 2026 offer price.</h2>
+            <p className="d">
+              Every plan includes the builder, codes, instant results and
+              leaderboards. Paid plans add more creations and AI credits.
+            </p>
+            <div className="offer-strip">
+              <span className="offer-tag">Limited 2026 offer</span>
+              <div>
+                <b>Basic and Pro are available at the limited 2026 offer price.</b>
+                <small>
+                  Start with a 7-day free trial: 2 quizzes and 1 room. Upgrade
+                  only when you need more.
+                </small>
+              </div>
+            </div>
+            <div className="lp-plans">
+              {CREATOR_PLANS.map((plan) => {
+                const discount = getCreatorPlanDiscount(plan);
+                return (
+                  <div className={plan.featured ? "pk hot" : "pk"} key={plan.id}>
+                    {plan.featured && <span className="tag">★ Most popular</span>}
+                    <div className="nm">
+                      {plan.name}
+                      {plan.trialDays ? (
+                        <span className="save">{plan.trialDays}-day trial</span>
+                      ) : discount > 0 ? (
+                        <span className="save">{discount}% off</span>
+                      ) : null}
+                    </div>
+                    <span
+                      className={plan.offer ? "offer-line" : "offer-line is-empty"}
+                      aria-hidden={plan.offer ? undefined : true}
+                    >
+                      {plan.offer ?? "\u00A0"}
+                    </span>
+                    <div className="pr">
+                      ₹{plan.price}
+                      {discount > 0 && plan.originalPrice ? (
+                        <s className="was">₹{plan.originalPrice}</s>
+                      ) : null}
+                      <small>
+                        {plan.price === 0 ? ` for ${plan.trialDays} days` : " / month"}
+                      </small>
+                    </div>
+                    <div className="cr cr-plans">
+                      <span className="cr-plans-main">
+                        {plan.quizzes} quiz creations · {plan.rooms}{" "}
+                        {plan.rooms === 1 ? "room" : "rooms"}
+                      </span>
+                      <span
+                        className={
+                          plan.credits > 0 ? "cr-credits" : "cr-credits is-muted"
+                        }
+                      >
+                        {plan.credits > 0 && <Sparkles size={12} aria-hidden />}
+                        {plan.credits > 0
+                          ? `${plan.credits} AI credits / month`
+                          : "AI credits sold separately"}
+                      </span>
+                    </div>
+                    <p>{plan.tagline}</p>
+                    <Link className="btn" href="/pricing">
+                      {plan.cta}
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="sub" style={{ textAlign: "center", marginTop: 30 }}>
+              <Link href="/pricing">Compare all monthly plans</Link>.
+            </p>
+          </div>
+        </section>
+
         <section className="s" id="pricing">
           <div className="wrap">
             <p className="eb">AI credits</p>
@@ -360,10 +672,27 @@ export default function HomePage() {
               Pay once. Use your credits for up to {CREDIT_VALIDITY_MONTHS} months.
             </h2>
             <p className="d">
-              Basic and Pro include monthly AI credits; extra packs are a
-              one-time purchase and work with every plan. Every pack lets you
-              generate MCQ, short and long questions and export to PDF or Word.
+              Paid monthly plans include AI credits. Extra packs are one-time
+              and work with every plan.
             </p>
+            <div className="pay-ad">
+              <span className="pay-ico" aria-hidden="true">
+                <CreditCard size={22} />
+              </span>
+              <div className="pay-copy">
+                <span className="pay-tag">One-time payment</span>
+                <b>No auto-renew. No surprise charges.</b>
+                <small>
+                  Buy once. Use for up to {CREDIT_VALIDITY_MONTHS} months. UPI,
+                  cards or net banking.
+                </small>
+              </div>
+              <div className="pay-pills" aria-label="Payment methods">
+                <span>UPI</span>
+                <span>Cards</span>
+                <span>Net Banking</span>
+              </div>
+            </div>
             <div className="pk3">
               {CREDIT_PURCHASE_PACKS.map((pack) => {
                 const rate = pack.price / pack.credits;
@@ -377,7 +706,7 @@ export default function HomePage() {
                     </div>
                     <div className="pr">₹{pack.price}</div>
                     <div className="cr">
-                      {pack.credits} credits <span>· ₹{rate.toFixed(2)} / credit</span>
+                      {pack.credits} credits
                     </div>
                     <p>
                       {pack.blurb} Valid for {pack.validityMonths}{" "}
@@ -391,7 +720,6 @@ export default function HomePage() {
               })}
             </div>
             <p className="sub" style={{ textAlign: "center", marginTop: 30 }}>
-              Secure payments via UPI, Cards &amp; Net Banking.{" "}
               <Link href="/pricing/credits">See all AI credit packs</Link>.
             </p>
             <p className="sub" style={{ textAlign: "center", marginTop: 8 }}>
@@ -417,10 +745,10 @@ export default function HomePage() {
         <section className="s" style={{ borderTop: 0 }}>
           <div className="wrap">
             <div className="cta">
-              <h2>Your first quiz takes about five minutes.</h2>
+              <h2>Your first paper is one scope away.</h2>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <Link className="btn" href="/creator/quizzes/create">
-                  Create a quiz
+                  Start with a scope
                 </Link>
                 <a
                   className="btn"
@@ -447,6 +775,7 @@ export default function HomePage() {
             <Link href="/contact">Contact</Link>
             <Link href="/privacy">Privacy Policy</Link>
             <Link href="/quiz">Quizzes</Link>
+            <Link href="/rooms">Rooms</Link>
           </div>
         </div>
       </footer>

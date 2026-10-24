@@ -1,37 +1,71 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Send, Check, BarChart3, Copy } from "lucide-react";
+import { Send, Check, BarChart3, Copy, Loader2 } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
+import { buildShareMessage, WhatsAppIcon } from "@/components/creator/common/ShareQuizDialog";
+import { copyQuizCode } from "@/services/quiz";
 import { useStudio } from "../StudioProvider";
 import { toast } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { StudioStepLayout } from "../primitives";
 import { formatDateTimeIST } from "../components/timing/helpers";
+import { cn } from "@/lib/helpers";
+
+function buildJoinLink(code: string): string {
+  const normalized = code.replace(/\s+/g, "");
+  const origin = typeof window === "undefined" ? "" : window.location.origin;
+  return `${origin}/quiz/join?code=${encodeURIComponent(normalized)}`;
+}
 
 export function PublishStep({
   onPublish,
   embedded = false,
+  bare = false,
 }: {
   onPublish: () => void;
   embedded?: boolean;
+  /** Render without the outer card so it can sit inside a combined panel. */
+  bare?: boolean;
 }) {
-  const { state, summary, saveToServer } = useStudio();
+  const { state, summary, saveToServer, editMode } = useStudio();
+  const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const handleSaveChanges = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await saveToServer();
+      toast.success({
+        title: state.info.title || "Quiz saved",
+        description: "Your changes have been saved.",
+      });
+      router.push("/creator/quizzes");
+    } catch (err) {
+      toast.error({
+        title: "Could not save quiz",
+        description: getApiErrorMessage(err, "Something went wrong. Please try again."),
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handlePublish = async () => {
     if (saving) return;
     setSaving(true);
     try {
-      await saveToServer({ publish: true });
-      const link = `${window.location.origin}/quiz/${state.info.code}/live`;
+      const { code } = await saveToServer({ publish: true });
+      const link = buildJoinLink(code);
       navigator.clipboard.writeText(link);
       toast.success({
         title: state.info.title || "Quiz published",
-        description: "Quiz saved and link copied to clipboard.",
+        description: "Quiz saved and join link copied to clipboard.",
       });
       onPublish();
     } catch (err) {
@@ -48,9 +82,10 @@ export function PublishStep({
   const rows: Array<{ label: string; value: ReactNode }> = [
     { label: "Title", value: state.info.title || "Untitled Quiz" },
     { label: "Questions", value: String(summary.questionCount) },
-    isScheduled
-      ? { label: "Attempts", value: "Open during schedule" }
-      : { label: "Duration", value: state.info.duration + " min" },
+    {
+      label: "Responses",
+      value: isScheduled ? "Open during the scheduled window" : "Open until you end the quiz",
+    },
     { label: "Audience", value: state.audience.mode },
     {
       label: "Price",
@@ -67,20 +102,24 @@ export function PublishStep({
   ];
 
   return (
-    <StudioStepLayout width="compact" className="sm:py-8" embedded={embedded}>
+    <StudioStepLayout width="compact" className={bare ? undefined : "sm:py-8"} embedded={embedded}>
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      className="overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]"
+      className={cn(
+        !bare && "overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]"
+      )}
     >
-        <div className="border-b-2 border-[var(--qs-line)] px-6 py-5">
-          <h2 className="text-base font-extrabold text-[var(--qs-ink)]">
-            Ready to publish?
-          </h2>
-        </div>
+        {!bare && (
+          <div className="border-b-2 border-[var(--qs-line)] px-6 py-5">
+            <h2 className="text-base font-extrabold text-[var(--qs-ink)]">
+              {editMode ? "Ready to save?" : "Ready to publish?"}
+            </h2>
+          </div>
+        )}
 
-        <div className="px-6 py-5">
+        <div className={cn(bare ? "min-w-0" : "px-6 py-5")}>
           <div className="flex items-center gap-4 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-4">
             {state.branding.logoUrl ? (
               <img src={state.branding.logoUrl} alt="thumb" className="h-14 w-20 rounded-[10px] border-2 border-[var(--qs-line)] object-cover" />
@@ -107,22 +146,41 @@ export function PublishStep({
           </dl>
 
           <div className="mt-6 flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setConfirmOpen(true)}
-              disabled={saving}
-              className="inline-flex items-center justify-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform duration-150 hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:opacity-60"
-            >
-              {saving ? (
-                <>
-                  <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> Starting…
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4" /> {isScheduled ? "Schedule Quiz" : "Start Quiz"}
-                </>
-              )}
-            </button>
+            {editMode ? (
+              <button
+                type="button"
+                onClick={() => void handleSaveChanges()}
+                disabled={saving}
+                className="inline-flex items-center justify-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform duration-150 hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:opacity-60"
+              >
+                {saving ? (
+                  <>
+                    <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> Saving…
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4" /> Save changes
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(true)}
+                disabled={saving}
+                className="inline-flex items-center justify-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform duration-150 hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:opacity-60"
+              >
+                {saving ? (
+                  <>
+                    <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> Starting…
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" /> {isScheduled ? "Schedule Quiz" : "Start Quiz"}
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </motion.div>
@@ -162,9 +220,10 @@ export function PublishStep({
                 {[
                   { label: "Quiz", value: state.info.title || "Untitled Quiz" },
                   { label: "Questions", value: String(summary.questionCount) },
-                  isScheduled
-                    ? { label: "Attempts", value: "Open during schedule" }
-                    : { label: "Duration", value: `${state.info.duration} min` },
+                  {
+                    label: "Responses",
+                    value: isScheduled ? "Open during the scheduled window" : "Open until you end the quiz",
+                  },
                   {
                     label: "Audience",
                     value:
@@ -221,103 +280,157 @@ export function PublishStep({
 }
 
 export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
-  const { state, summary, setState } = useStudio();
-  const link = `${window.location.origin}/quiz/${state.info.code}/live`;
+  const { state, summary } = useStudio();
+  const localCode = state.info.code.replace(/\s+/g, "");
+  const [code, setCode] = useState(localCode);
+  const [copying, setCopying] = useState(false);
+  const title = state.info.title || "Untitled Quiz";
   const isScheduled = state.info.quizLifecycle === "scheduled" && Boolean(state.info.startDate);
+  const displayCode = code || localCode;
+  const link = buildJoinLink(displayCode);
+  const shareQuiz = {
+    id: state.serverQuizId ?? displayCode,
+    title,
+    code: displayCode,
+    questions: summary.questionCount,
+    status: isScheduled ? "scheduled" : "live",
+  } as const;
+  const [sharing, setSharing] = useState(false);
 
-  const editQuiz = () => {
-    setState((s) => ({ ...s, published: false, step: "details" }));
+  const loadCode = useCallback(async (): Promise<string> => {
+    if (!state.serverQuizId) return displayCode;
+    const fresh = await copyQuizCode(String(state.serverQuizId));
+    const normalized = fresh.replace(/\s+/g, "");
+    setCode(normalized);
+    return normalized;
+  }, [state.serverQuizId, displayCode]);
+
+  const shareOnWhatsApp = async () => {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      const currentCode = await loadCode();
+      const message = buildShareMessage({ ...shareQuiz, code: currentCode }, "clean");
+      window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      toast.error({
+        title: "Could not open WhatsApp",
+        description: getApiErrorMessage(err, "Please try again."),
+      });
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const copyInvite = async () => {
+    if (copying) return;
+    setCopying(true);
+    try {
+      const currentCode = await loadCode();
+      const message = buildShareMessage({ ...shareQuiz, code: currentCode }, "clean");
+      await navigator.clipboard.writeText(message);
+      toast.success({
+        title: "Invite copied",
+        description: "Quiz code and join link copied to clipboard.",
+      });
+    } catch (err) {
+      toast.error({
+        title: "Could not copy invite",
+        description: getApiErrorMessage(err, "Please try again."),
+      });
+    } finally {
+      setCopying(false);
+    }
   };
 
   return (
     <div className="flex flex-col">
-    <div className="">
-    <div className="mx-auto flex min-h-[70vh] max-w-2xl items-center justify-center px-4 py-10 text-center">
-      <div>
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[16px] border-2 border-[var(--qs-ink)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]">
-          <Check className="h-6 w-6" />
-        </div>
-        <h2 className="mt-5 text-2xl font-extrabold text-[var(--qs-ink)]">
-          {isScheduled ? "Your quiz is scheduled." : "Your quiz is live."}
-        </h2>
-        <p className="mt-2 text-sm font-medium text-[var(--qs-muted)]">
-          {isScheduled ? "Participants can join during the scheduled window. Share this link:" : "Share this link with participants:"}
-        </p>
-        <div className="mx-auto my-4 flex max-w-md items-center justify-between gap-2 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2">
-          <code className="truncate text-xs font-medium text-[var(--qs-ink)]">{link}</code>
-          <button
-            type="button"
-            onClick={() => {
-              navigator.clipboard.writeText(link);
-              toast.success({ title: "Link copied" });
-            }}
-            className="shrink-0 rounded-[8px] p-1.5 text-[var(--qs-muted)] transition-colors duration-150 hover:bg-[var(--qs-poly-2)] hover:text-[var(--qs-ink)]"
-            title="Copy link"
-          >
-            <Copy className="h-3.5 w-3.5" />
-          </button>
-        </div>
-        <div className="mt-3 flex flex-wrap justify-center gap-2 text-xs font-medium text-[var(--qs-muted)]">
-          <span>{summary.questionCount} questions</span>
-          <span>·</span>
-          <span>{isScheduled ? "Open during schedule" : `${state.info.duration} min`}</span>
-        </div>
-        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center sm:flex-wrap">
-          <button
-            type="button"
-            onClick={() => window.open(link, "_blank")}
-            className="rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform duration-150 hover:-translate-y-px active:translate-y-0 active:shadow-none"
-          >
-            Open Quiz
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              navigator.clipboard.writeText(link);
-              toast.success({ title: "Link copied" });
-            }}
-            className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2 text-sm font-bold text-[var(--qs-ink)] transition-colors duration-150 hover:border-[var(--qs-brand)]"
-          >
-            Copy Link
-          </button>
-          <button
-            type="button"
-            onClick={editQuiz}
-            className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2 text-sm font-bold text-[var(--qs-ink)] transition-colors duration-150 hover:border-[var(--qs-brand)]"
-          >
-            Edit Quiz
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              try {
-                localStorage.removeItem("studio_quiz_draft");
-              } catch {}
-              window.location.assign("/creator/quizzes/create");
-            }}
-            className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2 text-sm font-bold text-[var(--qs-ink)] transition-colors duration-150 hover:border-[var(--qs-brand)]"
-          >
-            Create New Quiz
-          </button>
-          <button
-            type="button"
-            onClick={onDashboard}
-            className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2 text-sm font-bold text-[var(--qs-ink)] transition-colors duration-150 hover:border-[var(--qs-brand)]"
-          >
-            Go to Dashboard
-          </button>
-          {state.serverQuizId && (
-            <a
-              href={`/creator/quizzes/${state.info.code}/responses`}
-              className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-4 py-2 text-sm font-extrabold text-[#1a1240] transition-transform duration-150 hover:-translate-y-px active:translate-y-0"
+      <div className="mx-auto flex min-h-[70vh] max-w-2xl items-center justify-center px-4 py-10 text-center">
+        <div className="w-full">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[16px] border-2 border-[var(--qs-ink)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]">
+            <Check className="h-6 w-6" />
+          </div>
+          <h2 className="mt-5 text-2xl font-extrabold text-[var(--qs-ink)]">
+            {isScheduled ? "Your quiz is scheduled." : "Your quiz is live."}
+          </h2>
+          <p className="mt-2 text-sm font-medium text-[var(--qs-muted)]">
+            {isScheduled
+              ? "It will open automatically at the scheduled time. Share the code or link with participants:"
+              : "Share the code or link with participants:"}
+          </p>
+
+          <div className="mx-auto mt-5 max-w-md rounded-[16px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-4 py-4 shadow-[3px_3px_0_var(--qs-sun)]">
+            <p className="text-[9px] font-extrabold uppercase tracking-[0.14em] text-[var(--qs-muted)]">
+              Quiz code
+            </p>
+            <div className="mt-1 flex items-center justify-center gap-2">
+              <code className="break-all text-lg font-extrabold tracking-[0.18em] text-[var(--qs-ink)]">
+                {displayCode || "—"}
+              </code>
+              <button
+                type="button"
+                onClick={() => void copyInvite()}
+                disabled={copying}
+                className="shrink-0 rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-1.5 text-[var(--qs-muted)] transition-colors duration-150 hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)] disabled:opacity-50"
+                title="Copy quiz code and join link"
+                aria-label="Copy quiz code and join link"
+              >
+                {copying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Copy className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+            <p className="mt-2 truncate text-[11px] font-medium text-[var(--qs-muted)]">{link}</p>
+          </div>
+
+          <div className="mt-3 flex flex-wrap justify-center gap-2 text-xs font-medium text-[var(--qs-muted)]">
+            <span>{summary.questionCount} questions</span>
+            <span>·</span>
+            <span>{isScheduled ? "Scheduled" : "Live now"}</span>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-center">
+            <button
+              type="button"
+              onClick={() => void copyInvite()}
+              disabled={copying}
+              className="inline-flex items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform duration-150 hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:opacity-60"
             >
-              <BarChart3 className="h-4 w-4" /> View Responses
-            </a>
-          )}
+              {copying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
+              Copy code & link
+            </button>
+            <button
+              type="button"
+              onClick={() => void shareOnWhatsApp()}
+              disabled={sharing}
+              className="inline-flex items-center justify-center gap-1.5 rounded-[12px] border-2 border-[#128c4a] bg-[#25d366] px-4 py-2 text-sm font-extrabold text-[#06301a] transition-colors duration-150 hover:brightness-105 disabled:opacity-60"
+            >
+              {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <WhatsAppIcon className="h-4 w-4" />}
+              Send on WhatsApp
+            </button>
+            <button
+              type="button"
+              onClick={() => window.open(link, "_blank")}
+              className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2 text-sm font-bold text-[var(--qs-ink)] transition-colors duration-150 hover:border-[var(--qs-brand)]"
+            >
+              Open Quiz
+            </button>
+            {state.serverQuizId && (
+              <a
+                href={`/creator/quizzes/${state.serverQuizId}/responses`}
+                className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-4 py-2 text-sm font-extrabold text-[#1a1240] transition-transform duration-150 hover:-translate-y-px active:translate-y-0"
+              >
+                <BarChart3 className="h-4 w-4" /> View Responses
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={onDashboard}
+              className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2 text-sm font-bold text-[var(--qs-ink)] transition-colors duration-150 hover:border-[var(--qs-brand)]"
+            >
+              Go to Dashboard
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-    </div>
     </div>
   );
 }

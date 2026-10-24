@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowLeft, Check, Loader2, Users } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { getRoomSummary, type RoomSummary } from "@/services/rooms";
+import { getCreatorStats, type CreatorPublicStats } from "@/services/quiz";
 import { getApiErrorMessage } from "@/lib/apiError";
+import TeacherPublicCard from "./TeacherPublicCard";
 
 export default function RoomJoinedView({ roomId }: { roomId: string }) {
   const router = useRouter();
@@ -14,6 +16,7 @@ export default function RoomJoinedView({ roomId }: { roomId: string }) {
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
 
   const [room, setRoom] = useState<RoomSummary | null>(null);
+  const [teacher, setTeacher] = useState<CreatorPublicStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +31,17 @@ export default function RoomJoinedView({ roomId }: { roomId: string }) {
     let cancelled = false;
     getRoomSummary(roomId)
       .then((summary) => {
-        if (!cancelled) setRoom(summary);
+        if (cancelled) return;
+        setRoom(summary);
+        if (summary.owner?.id) {
+          getCreatorStats(summary.owner.id)
+            .then((stats) => {
+              if (!cancelled) setTeacher(stats);
+            })
+            .catch(() => {
+              if (!cancelled) setTeacher(null);
+            });
+        }
       })
       .catch((err: unknown) => {
         if (!cancelled) setError(getApiErrorMessage(err, "We couldn't load this room."));
@@ -79,6 +92,8 @@ export default function RoomJoinedView({ roomId }: { roomId: string }) {
       <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[var(--qs-poly-1)] px-3 py-1 text-xs font-bold text-[var(--qs-ink)]">
         <Users className="h-3.5 w-3.5" /> {room.memberCount} member{room.memberCount === 1 ? "" : "s"}
       </p>
+
+      <TeacherPublicCard teacher={teacher} className="mt-5" />
 
       <div className="mt-7 grid gap-2.5">
         <Link href="/quiz" className="qs-btn min-h-12 w-full text-base">

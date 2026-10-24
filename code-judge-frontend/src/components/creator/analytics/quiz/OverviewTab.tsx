@@ -1,9 +1,18 @@
 "use client";
 
 import { useMemo } from "react";
+import { cn } from "@/lib/helpers";
 import { EmptyNote, HBars, OutlinePill, Panel, VBars, difficultyTone } from "./ui";
 import type { AnalyticsStats, FunnelRow, QuestionStat, ScatterPoint } from "./types";
 import { cleanStatement, fmtSec, toNumber } from "./utils";
+
+const VIZ_COLORS = ["var(--qs-brand)", "var(--qs-sun)", "#2FBF84", "#5B8DEF", "#FF7A50"];
+
+const DIFFICULTY_STYLES: Record<string, { card: string; bar: string; text: string }> = {
+  Easy: { card: "bg-[#E9F8F0]", bar: "#2FBF84", text: "text-[#0F7A4F]" },
+  Medium: { card: "bg-[#FFF6D6]", bar: "#F5A623", text: "text-[#8A5A00]" },
+  Hard: { card: "bg-[#FFEDE7]", bar: "#EF4444", text: "text-[#B42318]" },
+};
 
 function InsightCard({ label, text }: { label: string; text: string }) {
   return (
@@ -59,7 +68,15 @@ function ScoreVsTimeChart({ points }: { points: ScatterPoint[] }) {
         {data.slice(0, 300).map((p, i) => {
           const cy = Math.min(160, Math.max(10, y(p.s) + ((i % 5) - 2) * 2.2));
           return (
-            <circle key={i} cx={x(p.t)} cy={cy} r="5.5" fill="var(--qs-brand)" fillOpacity="0.85" stroke="var(--qs-ink)" strokeWidth="1.5">
+            <circle
+              key={i}
+              cx={x(p.t)}
+              cy={cy}
+              r="5.5"
+              fill={VIZ_COLORS[i % VIZ_COLORS.length]}
+              stroke="var(--qs-ink)"
+              strokeWidth="1.5"
+            >
               <title>{`${p.user ?? "Student"} · score ${p.s} · ${fmtSec(p.t)}`}</title>
             </circle>
           );
@@ -92,21 +109,41 @@ function DifficultyCards({ questions }: { questions: QuestionStat[] }) {
 
   return (
     <div className="grid gap-3.5 sm:grid-cols-3">
-      {groups.map((g) => (
-        <div key={g.label} className="rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4">
-          <OutlinePill tone={difficultyTone(g.label)}>{g.label}</OutlinePill>
-          <b className="my-1.5 block text-[30px] font-extrabold leading-none text-[var(--qs-ink)]">
-            {g.accuracy > 0 ? `${g.accuracy.toFixed(0)}%` : "—"}
-          </b>
-          <div className="my-3 h-3 overflow-hidden rounded-full border-2 border-[var(--qs-ink)]">
-            <i className="block h-full bg-[var(--qs-brand)]" style={{ width: `${Math.min(100, g.accuracy)}%` }} />
+      {groups.map((g) => {
+        const style = DIFFICULTY_STYLES[g.label] ?? {
+          card: "bg-[var(--qs-surface)]",
+          bar: "var(--qs-brand)",
+          text: "text-[var(--qs-ink)]",
+        };
+        return (
+          <div
+            key={g.label}
+            className={cn("rounded-[18px] border-2 border-[var(--qs-ink)] p-4", style.card)}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <OutlinePill tone={difficultyTone(g.label)}>{g.label}</OutlinePill>
+              <span
+                aria-hidden="true"
+                className="h-3 w-3 rounded-full border-2 border-[var(--qs-ink)]"
+                style={{ background: style.bar }}
+              />
+            </div>
+            <b className={cn("my-1.5 block text-[30px] font-extrabold leading-none", style.text)}>
+              {g.accuracy > 0 ? `${g.accuracy.toFixed(0)}%` : "—"}
+            </b>
+            <div className="my-3 h-3 overflow-hidden rounded-full border-2 border-[var(--qs-ink)] bg-white/70">
+              <i
+                className="block h-full"
+                style={{ width: `${Math.min(100, g.accuracy)}%`, background: style.bar }}
+              />
+            </div>
+            <small className="text-xs font-bold text-[var(--qs-muted)]">
+              {g.count} question{g.count === 1 ? "" : "s"}
+              {g.avgTime > 0 ? ` · avg ${fmtSec(g.avgTime)}` : ""}
+            </small>
           </div>
-          <small className="text-xs font-bold text-[var(--qs-muted)]">
-            {g.count} question{g.count === 1 ? "" : "s"}
-            {g.avgTime > 0 ? ` · avg ${fmtSec(g.avgTime)}` : ""}
-          </small>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -192,18 +229,21 @@ export function OverviewTab({
     return bins;
   }, [scatter, totalMarks]);
 
-  const funnelRows = funnel.length > 0 ? [...funnel].sort((a, b) => a.question_number - b.question_number).slice(0, 12) : [];
+  const funnelRows = funnel.length > 0 ? [...funnel].sort((a, b) => a.question_number - b.question_number).slice(0, 8) : [];
   const funnelPeak = Math.max(...funnelRows.map((f) => toNumber(f.reached)), 1);
+  const funnelHasData = funnelRows.some((f) => toNumber(f.reached) > 0);
+  const hasScores = buckets.some((b) => b.v > 0);
 
   if (questions.length === 0) {
     return <EmptyNote>No analytics available yet — data appears once students start attempting.</EmptyNote>;
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <Panel
         title="Automated insights"
         subtitle="Plain-language findings pulled from live response data."
+        tone="coral"
       >
         {insights.length > 0 ? (
           <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
@@ -216,29 +256,63 @@ export function OverviewTab({
         )}
       </Panel>
 
-      <div className="grid gap-[18px] lg:grid-cols-3">
-        <Panel title="Score distribution" subtitle="How final marks were spread.">
-          <VBars items={buckets} peak />
-          <p className="mt-2 text-xs font-semibold text-[var(--qs-muted)]">Marks scored (bucket start)</p>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Panel
+          title="Score distribution"
+          subtitle="How final marks were spread."
+          tone="mint"
+          className="flex flex-col"
+          bodyClassName="flex flex-1 flex-col"
+        >
+          <div className="flex min-h-[260px] flex-1 flex-col justify-center">
+            {hasScores ? (
+              <>
+                <VBars
+                  items={buckets.map((b, i) => ({ ...b, c: VIZ_COLORS[i % VIZ_COLORS.length] }))}
+                  peak
+                />
+                <p className="mt-2 text-xs font-semibold text-[var(--qs-muted)]">Marks scored (bucket start)</p>
+              </>
+            ) : (
+              <EmptyNote>Scores appear once students start attempting.</EmptyNote>
+            )}
+          </div>
         </Panel>
-        <Panel title="Score vs time" subtitle="Faster finishers vs final marks.">
-          <ScoreVsTimeChart points={scatter} />
+        <Panel
+          title="Score vs time"
+          subtitle="Faster finishers vs final marks."
+          tone="sky"
+          className="flex flex-col"
+          bodyClassName="flex flex-1 flex-col"
+        >
+          <div className="flex min-h-[260px] flex-1 flex-col justify-center">
+            <ScoreVsTimeChart points={scatter} />
+          </div>
         </Panel>
-        <Panel title="Completion funnel" subtitle="Attempts reaching each question.">
-          {funnelRows.length > 0 ? (
-            <HBars
-              items={funnelRows.map((f) => ({
-                l: `Q${f.question_number}`,
-                v: (toNumber(f.reached) / funnelPeak) * 100,
-                r: String(Math.round(toNumber(f.reached))),
-              }))}
-            />
-          ) : (
-            <EmptyNote>No funnel data yet.</EmptyNote>
-          )}
-          {funnel.length > 12 && (
-            <p className="mt-2 text-xs font-semibold text-[var(--qs-muted)]">Showing first 12 of {funnel.length} questions.</p>
-          )}
+        <Panel
+          title="Completion funnel"
+          subtitle="Attempts reaching each question."
+          tone="sun"
+          className="flex flex-col"
+          bodyClassName="flex flex-1 flex-col"
+        >
+          <div className="flex min-h-[260px] flex-1 flex-col justify-center">
+            {funnelHasData ? (
+              <HBars
+                items={funnelRows.map((f, i) => ({
+                  l: `Q${f.question_number}`,
+                  v: (toNumber(f.reached) / funnelPeak) * 100,
+                  r: String(Math.round(toNumber(f.reached))),
+                  c: VIZ_COLORS[i % VIZ_COLORS.length],
+                }))}
+              />
+            ) : (
+              <EmptyNote>Funnel data appears once students start attempting.</EmptyNote>
+            )}
+            {funnel.length > 8 && funnelHasData && (
+              <p className="mt-2 text-xs font-semibold text-[var(--qs-muted)]">Showing first 8 of {funnel.length} questions.</p>
+            )}
+          </div>
         </Panel>
       </div>
 

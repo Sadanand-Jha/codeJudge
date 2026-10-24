@@ -1,7 +1,7 @@
 // Question-paper PDF endpoint. Receives a fully-styled print HTML document
 // (built client-side by the paper builder) and streams back an A4 PDF.
 import type { Request, Response, NextFunction } from "express";
-import { renderPaperPdf } from "../services/paperPdf.service.ts";
+import { renderPaperPdfQueued } from "../queues/pdf.queue.ts";
 
 const safeFilename = (value: string | undefined): string => {
   const cleaned = (value || "question-paper").replace(/[^a-z0-9._-]+/gi, "-").replace(/^-+|-+$/g, "");
@@ -21,7 +21,7 @@ export async function renderPaperPdfController(
       filename?: string;
     };
 
-    const pdf = await renderPaperPdf({ html, footer, fontCss });
+    const pdf = await renderPaperPdfQueued({ html, footer, fontCss });
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${safeFilename(filename)}"`);

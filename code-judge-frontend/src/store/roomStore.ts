@@ -33,7 +33,6 @@ interface RoomStoreState {
   archiveRoom: (id: string) => void;
   unarchiveRoom: (id: string) => void;
   duplicateRoom: (id: string, options?: { copyStudents?: boolean }) => Room | null;
-  deleteRoom: (id: string) => void;
   addStudents: (roomId: string, students: RoomStudent[]) => void;
   removeStudents: (roomId: string, studentIds: string[]) => void;
   setStudentActive: (roomId: string, studentId: string, active: boolean) => void;
@@ -153,10 +152,6 @@ export const useRoomStore = create<RoomStoreState>()(
         return copy;
       },
 
-      deleteRoom: (id) => {
-        set({ rooms: get().rooms.filter((r) => r.id !== id) });
-      },
-
             addStudents: (roomId, students) => {
         if (!students || students.length === 0) return;
         const now = new Date().toISOString();
@@ -237,10 +232,11 @@ export const useRoomStore = create<RoomStoreState>()(
    Eligibility helpers (display-only)
    ============================================= */
 
-/** Rooms owned by `userId` (rooms without an owner belong to the current admin). */
+/** Rooms owned by `userId`; ownerless rooms are never exposed in the workspace. */
 export function getOwnedRooms(rooms: Room[], userId?: string | number | null): Room[] {
-  if (!userId) return rooms;
-  return rooms.filter((r) => !r.ownerId || r.ownerId === String(userId));
+  if (userId == null || String(userId).length === 0) return [];
+  const ownerId = String(userId);
+  return rooms.filter((r) => r.ownerId != null && String(r.ownerId) === ownerId);
 }
 
 /**

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -18,6 +18,7 @@ import {
   Waypoints,
   Repeat,
   UserPlus,
+  Users,
   Sparkles,
   X,
   type LucideIcon,
@@ -32,11 +33,11 @@ import { useUIStore } from "@/store/uiStore";
 import { useSavedAvatar } from "@/store/avatarStore";
 import { logout } from "@/services/auth";
 import { toast } from "@/lib/toast";
-import { isQuizProblemsPath, isNestedQuizPath } from "@/lib/quizWorkspace";
+import { isQuizProblemsPath, isNestedQuizPath, isStudentQuizFlowPath } from "@/lib/quizWorkspace";
+import { markQuizBackNavigation } from "@/lib/quizBackNavigation";
 import { cn } from "@/lib/helpers";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { Sidebar } from "@/components/ui/Sidebar";
-import BackButton from "@/components/layout/BackButton";
 import { GuestModeProvider, useGuestMode } from "@/context/GuestModeContext";
 import { ChatProvider } from "@/context/ChatContext";
 import AuthModal from "@/components/modals/AuthModal";
@@ -171,6 +172,10 @@ const _fullNavGroups: { label: string; items: NavItemData[] }[] = [
     ],
   },
   {
+    label: "ROOMS",
+    items: [{ label: "My Rooms", icon: Users, href: "/rooms/my" }],
+  },
+  {
     label: "PREPARATION",
     items: [{ label: "Preparation", icon: Waypoints, href: "/preparation" }],
   },
@@ -195,6 +200,12 @@ const _focusNavGroups: { label: string; items: NavItemData[] }[] = [
       { label: "Quiz Hub", icon: UserPlus, href: "/quiz" },
     ],
   },
+  {
+    label: "ROOMS",
+    items: [
+      { label: "My Rooms", icon: Users, href: "/rooms/my" },
+    ],
+  },
 ];
 
 const navGroups: { label: string; items: NavItemData[] }[] = FOCUS_MODE_ENABLED ? _focusNavGroups : _fullNavGroups;
@@ -212,7 +223,7 @@ function isEditorPath(pathname: string): boolean {
 
 // Routes that should be fullscreen (no sidebar/navbar)
 function isFullscreenRoute(pathname: string): boolean {
-  return pathname.includes("/waiting") || pathname.startsWith("/tests/attempt");
+  return isStudentQuizFlowPath(pathname) || pathname.startsWith("/tests/attempt");
 }
 
 // Public pages whose children are fully static (server-rendered). Rendering
@@ -234,11 +245,10 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   const visibleNavGroups = navGroups;
   const homeHref = isStudioRoute ? "/creator" : isQuizWorkspace ? "/creator/quizzes" : FOCUS_MODE_ENABLED ? "/quiz" : "/";
   const isBlockedRoute = FOCUS_MODE_ENABLED && !isPathAllowed(pathname);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  // Account dropdown state lives here (not inside ProfileMenu) so the
-  // sidebar's collapse handlers can close it — the card must never float
-  // over a collapsed rail.
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Student mode opens with the sidebar closed so the page content takes
+  // center stage; it can be reopened anytime via the topbar toggle.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const authModalOpen = useUIStore((s) => s.authModalOpen);
   const authModalRedirect = useUIStore((s) => s.authModalRedirect);
@@ -246,27 +256,12 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   const logoutConfirmOpen = useUIStore((s) => s.logoutConfirmOpen);
   const cancelLogout = useUIStore((s) => s.cancelLogout);
   const openAuthModal = useUIStore((s) => s.openAuthModal);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const hydrate = useAuthStore((s) => s.hydrate);
-  const savedAvatar = useSavedAvatar();
   const { isGuest } = useGuestMode();
-
-  // The desktop nav is an icon rail by default. Hovering the rail expands it
-  // and moving the cursor away collapses it back. Labels appear only while
-  // expanded (or when the mobile drawer is open).
-  const showLabels = sidebarExpanded || mobileMenuOpen;
-  // After an explicit collapse (active-click / Collapse button) the rail
-  // stays collapsed even while the cursor remains over it, until the cursor
-  // leaves and re-enters the sidebar.
-  const suppressHoverRef = useRef(false);
-
-  const collapseSidebar = useCallback(() => {
-    suppressHoverRef.current = true;
-    setSidebarExpanded(false);
-    setAccountMenuOpen(false);
-  }, []);
+  const savedAvatar = useSavedAvatar();
 
   // The AI assistant is only relevant inside the quiz creator's problem
   // building section (/quiz/{code}/problems and /quiz/{code}/problems/{id}).
@@ -278,6 +273,14 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
     void hydrate();
   }, [hydrate]);
 
+  // Browser back/forward does not expose its intent to the destination route.
+  // Mark history traversals here so protected routes (quiz attempts) can
+  // refuse to reopen from browser history.
+  useEffect(() => {
+    window.addEventListener("popstate", markQuizBackNavigation);
+    return () => window.removeEventListener("popstate", markQuizBackNavigation);
+  }, []);
+
   // Proxy enforcement handles direct requests. This client-side guard also
   // covers already-prefetched pages and stale deployments so a restricted
   // student route can never render its content or full navigation. Blocked
@@ -288,6 +291,27 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
       isHomeRedirectPath(pathname) ? "/" : `/quiz?blocked=${encodeURIComponent(pathname)}`
     );
   }, [isBlockedRoute, pathname, router]);
+
+  // Desktop keeps the student rail permanently visible and lets the topbar
+  // toggle it; on phones the same rail behaves as a slide-in drawer.
+  const isDesktopViewport = () =>
+    typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
+
+  const toggleSidebar = () => {
+    if (isDesktopViewport()) {
+      setSidebarCollapsed((collapsed) => !collapsed);
+      return;
+    }
+    setSidebarOpen((open) => !open);
+  };
+
+  const closeSidebar = () => {
+    if (isDesktopViewport()) {
+      setSidebarCollapsed(true);
+      return;
+    }
+    setSidebarOpen(false);
+  };
 
   const handleLogout = async () => {
     try {
@@ -356,163 +380,24 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   }
 
   return (
-    <div className="min-h-dvh w-full min-w-0 bg-ai-bg flex" data-ai-scope>
-      {/* Mobile overlay */}
+    <div className="flex min-h-dvh w-full min-w-0 flex-col bg-ai-bg" data-ai-scope>
+      {/* Mobile overlay (starts below the topbar so the menu toggle stays usable) */}
       <AnimatePresence>
-        {mobileMenuOpen && (
+        {sidebarOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-40"
-            onClick={() => {
-              setMobileMenuOpen(false);
-              setAccountMenuOpen(false);
-            }}
+            className="fixed inset-x-0 bottom-0 top-14 z-40 bg-black/60 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
           />
         )}
       </AnimatePresence>
 
-      {/* ===== SIDEBAR (hidden inside Creator Studio — it has its own nav) ===== */}
-      {!isStudioRoute && (
-      <Sidebar
-        dataSidebar="true"
-        className={cn(
-          // `100vh` can extend behind mobile browser chrome. `100dvh` tracks
-          // the actually visible viewport, keeping the account action onscreen.
-          "app-sidebar-rail fixed left-0 top-0 h-dvh w-64 will-change-transform border-r-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] flex flex-col z-50 overflow-hidden transition-transform duration-200 ease-out",
-          mobileMenuOpen && "app-sidebar-mobile-open"
-        )}
-      >
-        <div
-          onMouseEnter={() => {
-            suppressHoverRef.current = false;
-            setSidebarExpanded(true);
-          }}
-          onMouseLeave={() => {
-            setSidebarExpanded(false);
-            setAccountMenuOpen(false);
-          }}
-          className={cn(
-            "relative z-10 flex h-full flex-col",
-            showLabels ? "w-full" : "ml-auto w-[3.75rem]"
-          )}
-        >
-        {/* Brand — only while the drawer is open. Rail mode stays icon-only. */}
-        {showLabels && (
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b-2 border-[var(--qs-line)] px-3 py-3">
-            <Link
-              href={homeHref}
-              onClick={() => {
-                setMobileMenuOpen(false);
-                setAccountMenuOpen(false);
-              }}
-              className="flex min-w-0 items-center gap-2.5"
-              aria-label="QuizSupport home"
-            >
-              <SecureLogo size={36} variant="mark" />
-              <span className="truncate text-sm font-extrabold tracking-tight text-[var(--qs-ink)]">
-                QuizSupport
-              </span>
-            </Link>
-            <button
-              type="button"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                setAccountMenuOpen(false);
-              }}
-              className="b b-close sm shrink-0"
-              aria-label="Close navigation"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-
-        {/* Navigation */}
-        <nav className={cn("flex-1 overflow-y-auto", showLabels ? "px-2.5 py-3 space-y-1" : "px-0 pt-2 pb-3 space-y-1")}>
-          {visibleNavGroups.map((group, groupIndex) => (
-            <div key={group.label} className="space-y-1">
-              {groupIndex > 0 && (
-                <div className={cn("my-2 h-0.5 shrink-0 rounded-full bg-[var(--qs-line)]", showLabels ? "mx-1" : "mx-2.5")} />
-              )}
-              {showLabels && (
-                <p className="px-3 pb-1 pt-2 text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--qs-brand)]">{group.label}</p>
-              )}
-              {group.items.map((item) => (
-                <NavItem
-                  key={item.label}
-                  item={item}
-                  pathname={pathname}
-                  isGuest={isGuest}
-                  sidebarExpanded={sidebarExpanded}
-                  showLabels={showLabels}
-                  setSidebarExpanded={setSidebarExpanded}
-                  collapseSidebar={collapseSidebar}
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    setAccountMenuOpen(false);
-                  }}
-                />
-              ))}
-            </div>
-          ))}
-        </nav>
-
-        {/* Bottom: Account + Collapse */}
-        <div className="shrink-0 space-y-1 border-t-2 border-[var(--qs-line)] p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-          {!isAuthenticated && showLabels && (
-            <div className="rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2">
-              <div className="mb-1 text-[10px] text-[var(--qs-muted)]">{"You're browsing as a guest"}</div>
-              <button
-                onClick={() => handleAuthRequired(pathname + window.location.search)}
-                className="text-[10px] font-bold text-[var(--qs-brand)] transition-colors hover:text-[var(--qs-ink)]"
-              >
-                Sign in to unlock all features →
-              </button>
-            </div>
-          )}
-
-          <Link
-            href="/meet-the-developer"
-            onClick={() => setMobileMenuOpen(false)}
-            title={showLabels ? undefined : "Meet the developer"}
-            aria-label="Meet the developer"
-            className={cn(
-              "flex items-center gap-2 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]",
-              showLabels ? "mx-1 justify-center px-3 py-2 text-[11px] font-bold" : "mx-1 justify-center py-2.5"
-            )}
-          >
-            <Sparkles className="h-3.5 w-3.5 shrink-0 text-[var(--qs-brand)]" />
-            {showLabels && <span>Meet the developer</span>}
-          </Link>
-
-          <ProfileMenu
-            showLabels={showLabels}
-            setSidebarExpanded={setSidebarExpanded}
-            open={accountMenuOpen}
-            onOpenChange={setAccountMenuOpen}
-            isAuthenticated={isAuthenticated}
-            username={user?.username || "Guest"}
-            avatar={savedAvatar}
-            onAuthRequired={() => handleAuthRequired(pathname + window.location.search)}
-          />
-        </div>
-      </div>
-      </Sidebar>
-      )}
-
-      {/* ===== MAIN CONTENT ===== */}
-      <div
-        className={cn(
-          "flex-1 w-0 min-w-0 flex flex-col",
-          isStudioRoute ? "h-dvh overflow-hidden" : "min-h-dvh"
-        )}
-      >
-        {/* ===== TOP HEADER ===== */}
-        {header ? (
-          header
-        ) : !isEditorPath(pathname) ? (
+      {/* ===== TOP HEADER (full width so the logo never moves with the sidebar) ===== */}
+      {header ? (
+        header
+      ) : !isEditorPath(pathname) ? (
         <header
           onDragStart={(e) => e.preventDefault()}
           onContextMenu={(e) => e.preventDefault()}
@@ -522,26 +407,22 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
             "app-topbar sticky top-0 z-30 flex h-14 min-w-0 w-full select-none items-center gap-2 border-b border-ai-border bg-ai-sidebar px-3 sm:gap-4 sm:px-4"
           )}
         >
-          {/* Left: menu + brand + page title */}
-          <div className="flex items-center gap-4 min-w-0 flex-1">
-            {/* Navigation menu button */}
+          {/* Left: sidebar toggle + brand + page title */}
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            {/* Sidebar toggle button */}
             <button
-              onClick={() => setMobileMenuOpen(true)}
-              aria-label="Open navigation"
-              className="shrink-0 p-2 rounded-lg hover:bg-accent/5 text-text-secondary"
+              onClick={toggleSidebar}
+              aria-label="Toggle navigation"
+              aria-expanded={!sidebarCollapsed || sidebarOpen}
+              className="shrink-0 rounded-lg p-2 text-text-secondary hover:bg-accent/5"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            {/* Back — internal pages only; never inside the quiz flow */}
-            <BackButton />
-
-            {/* Brand logo — sidebar no longer carries a logo, so the topbar shows it
-                on every size. Mobile shows the icon-only mark; the full wordmark is
-                too wide and overlaps the header actions on small screens. */}
+            {/* Brand logo */}
             <Link href={homeHref} className="flex shrink-0 items-center gap-2" aria-label="QuizSupport home">
-              <SecureLogo size={36} variant="mark" className="sm:hidden" />
-              <SecureLogo size={48} variant="full" className="hidden sm:block" />
+              <SecureLogo size={30} variant="mark" className="sm:hidden" />
+              <SecureLogo size={40} variant="full" className="hidden sm:block" />
             </Link>
           </div>
 
@@ -562,11 +443,111 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
 
             {/* Right actions */}
             <NavbarRightActions />
-          </header>
-        ) : null}
+        </header>
+      ) : null}
 
-        {/* ===== PAGE CONTENT ===== */}
-        <main className={cn("min-w-0 w-full flex-1", isStudioRoute && "min-h-0 flex flex-col")}>{children}</main>
+      {/* ===== WORKSPACE (sidebar starts below the navbar) ===== */}
+      <div className="flex w-full min-w-0 flex-1">
+        {/* ===== STUDENT SIDEBAR (permanent on desktop, drawer on phones) ===== */}
+        {!isStudioRoute && (
+          <Sidebar
+            dataSidebar="true"
+            className={cn(
+              "app-sidebar-rail fixed left-0 top-14 z-50 flex h-[calc(100dvh-3.5rem)] w-64 shrink-0 flex-col overflow-hidden border-r-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] transition-transform duration-200 ease-out lg:sticky lg:top-14",
+              sidebarOpen && "app-sidebar-mobile-open",
+              sidebarCollapsed && "lg:hidden"
+            )}
+          >
+            <div className="relative z-10 flex h-full w-full flex-col">
+              {/* Brand header */}
+              <div className="flex shrink-0 items-center justify-between gap-2 border-b-2 border-[var(--qs-line)] px-3 py-3">
+                <Link
+                  href={homeHref}
+                  onClick={closeSidebar}
+                  className="flex min-w-0 items-center gap-2.5"
+                  aria-label="QuizSupport home"
+                >
+                  <span className="min-w-0 truncate text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--qs-brand)]">
+                    Student Mode
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={closeSidebar}
+                  className="shrink-0 lg:hidden"
+                  aria-label="Close navigation"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Navigation */}
+              <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-1">
+                {visibleNavGroups.map((group, groupIndex) => (
+                  <div key={group.label} className="space-y-1">
+                    {groupIndex > 0 && (
+                      <div className="mx-1 my-2 h-0.5 shrink-0 rounded-full bg-[var(--qs-line)]" />
+                    )}
+                    <p className="px-3 pb-1 pt-2 text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--qs-brand)]">{group.label}</p>
+                    {group.items.map((item) => (
+                      <NavItem
+                        key={item.label}
+                        item={item}
+                        pathname={pathname}
+                        isGuest={isGuest}
+                        onClick={() => setSidebarOpen(false)}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </nav>
+
+              {/* Bottom: developer link + account dropdown */}
+              <div className="shrink-0 space-y-1 border-t-2 border-[var(--qs-line)] p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+                {!isAuthenticated && (
+                  <div className="rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2">
+                    <div className="mb-1 text-[10px] text-[var(--qs-muted)]">{"You're browsing as a guest"}</div>
+                    <button
+                      onClick={() => handleAuthRequired(pathname + window.location.search)}
+                      className="text-[10px] font-bold text-[var(--qs-brand)] transition-colors hover:text-[var(--qs-ink)]"
+                    >
+                      Sign in to unlock all features →
+                    </button>
+                  </div>
+                )}
+
+                <Link
+                  href="/meet-the-developer"
+                  onClick={() => setSidebarOpen(false)}
+                  aria-label="Meet the developer"
+                  className="mx-1 flex items-center justify-center gap-2 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2 text-[11px] font-bold text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
+                >
+                  <Sparkles className="h-3.5 w-3.5 shrink-0 text-[var(--qs-brand)]" />
+                  <span>Meet the developer</span>
+                </Link>
+
+                <ProfileMenu
+                  open={accountMenuOpen}
+                  onOpenChange={setAccountMenuOpen}
+                  isAuthenticated={isAuthenticated}
+                  username={user?.username || "Guest"}
+                  avatar={savedAvatar}
+                  onAuthRequired={() => handleAuthRequired(pathname + window.location.search)}
+                />
+              </div>
+            </div>
+          </Sidebar>
+        )}
+
+        {/* ===== MAIN CONTENT ===== */}
+        <div
+          className={cn(
+            "flex-1 w-0 min-w-0 flex flex-col",
+            isStudioRoute ? "h-[calc(100dvh-3.5rem)] overflow-hidden" : "min-h-[calc(100dvh-3.5rem)]"
+          )}
+        >
+          <main className={cn("min-w-0 w-full flex-1", isStudioRoute && "min-h-0 flex flex-col")}>{children}</main>
+        </div>
       </div>
 
       <LogoutConfirmModal
@@ -612,9 +593,7 @@ function NavIcon({ Icon, isActive, showDot }: { Icon: LucideIcon; isActive: bool
 }
 
 // Student account menu — student-only.
-function ProfileMenu({ showLabels, setSidebarExpanded, open, onOpenChange, isAuthenticated, username, avatar, onAuthRequired }: {
-  showLabels: boolean;
-  setSidebarExpanded: (v: boolean) => void;
+function ProfileMenu({ open, onOpenChange, isAuthenticated, username, avatar, onAuthRequired }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   isAuthenticated: boolean;
@@ -644,11 +623,6 @@ function ProfileMenu({ showLabels, setSidebarExpanded, open, onOpenChange, isAut
       onAuthRequired();
       return;
     }
-    // Collapsed rail (icon-only) would clip the menu card — expand first.
-    if (!showLabels) {
-      setSidebarExpanded(true);
-      return;
-    }
     setOpen(!open);
   };
 
@@ -657,15 +631,8 @@ function ProfileMenu({ showLabels, setSidebarExpanded, open, onOpenChange, isAut
       <button
         type="button"
         onClick={handleTrigger}
-        title={showLabels ? undefined : "Account"}
-        aria-label={showLabels ? undefined : "Account"}
         aria-expanded={open}
-        className={cn(
-          "flex items-center gap-3 rounded-xl border-2 transition-colors duration-150",
-          showLabels
-            ? "w-full justify-start border-[var(--qs-line)] px-3 py-2 hover:border-[var(--qs-brand)] hover:bg-[var(--qs-bg)]"
-            : "w-full justify-center border-transparent py-2.5 hover:bg-[var(--qs-bg)]"
-        )}
+        className="flex w-full items-center gap-3 rounded-xl border-2 border-[var(--qs-line)] px-3 py-2 transition-colors duration-150 hover:border-[var(--qs-brand)] hover:bg-[var(--qs-bg)]"
       >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-xs font-bold text-[var(--qs-on-brand)]">
           {avatar ? (
@@ -674,12 +641,8 @@ function ProfileMenu({ showLabels, setSidebarExpanded, open, onOpenChange, isAut
             (username || "U").charAt(0).toUpperCase()
           )}
         </div>
-        {showLabels && (
-          <>
-            <span className="truncate text-xs font-bold text-[var(--qs-ink)]">{username}</span>
-            <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-[var(--qs-muted)] transition-transform", open && "rotate-180")} />
-          </>
-        )}
+        <span className="truncate text-xs font-bold text-[var(--qs-ink)]">{username}</span>
+        <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-[var(--qs-muted)] transition-transform", open && "rotate-180")} />
       </button>
 
       <AnimatePresence>
@@ -745,15 +708,11 @@ function ProfileMenu({ showLabels, setSidebarExpanded, open, onOpenChange, isAut
 
 // Standard nav link — same pill, spacing and active state for every item so the
 // rail reads as one unified navigation system.
-function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels, setSidebarExpanded, collapseSidebar }: {
+function NavItem({ item, pathname, isGuest, onClick }: {
   item: (typeof navItems)[number];
   pathname: string;
   isGuest: boolean;
   onClick?: () => void;
-  sidebarExpanded: boolean;
-  showLabels: boolean;
-  setSidebarExpanded: (v: boolean) => void;
-  collapseSidebar: () => void;
 }) {
   const isQuizWorkspace = isNestedQuizPath(pathname);
   // Join Quiz (/quiz) should not appear active while inside creator quiz workspace
@@ -769,8 +728,6 @@ function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels
   return (
     <Link
       href={item.href}
-      title={showLabels ? undefined : item.label}
-      aria-label={showLabels ? undefined : item.label}
       onClick={(e) => {
         if (isProtected) {
           e.preventDefault();
@@ -779,37 +736,26 @@ function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels
           }));
           return;
         }
-        // Rail mode: clicking any icon expands the sidebar. Expanded mode:
-        // clicking the active item again collapses back to the icon rail.
-        if (!sidebarExpanded) {
-          setSidebarExpanded(true);
-        } else if (isActive) {
-          collapseSidebar();
-        }
         onClick?.();
       }}
       className={cn(
-        "relative group w-full flex items-center gap-3 rounded-xl border-2 text-sm font-bold whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-[var(--qs-brand)]/40",
-        "transition-all duration-150",
-        showLabels ? "justify-start px-3 py-2.5" : "justify-center py-2.5",
+        "relative group flex w-full items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-sm font-bold whitespace-nowrap outline-none transition-all duration-150 focus-visible:ring-3 focus-visible:ring-[var(--qs-brand)]/40",
         isActive
           ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] shadow-[3px_3px_0_var(--qs-sun)]"
           : "border-transparent hover:border-[var(--qs-line)] hover:bg-[var(--qs-bg)]"
       )}
     >
       <NavIcon Icon={item.icon} isActive={isActive} showDot={isProtected} />
-      {showLabels && (
-        <span
-          className={cn(
-            "relative z-10 transition-colors duration-150",
-            isActive
-              ? "font-extrabold text-[var(--qs-on-brand)]"
-              : "text-[var(--qs-muted)] group-hover:text-[var(--qs-ink)]"
-          )}
-        >
-          {item.label}
-        </span>
-      )}
+      <span
+        className={cn(
+          "relative z-10 transition-colors duration-150",
+          isActive
+            ? "font-extrabold text-[var(--qs-on-brand)]"
+            : "text-[var(--qs-muted)] group-hover:text-[var(--qs-ink)]"
+        )}
+      >
+        {item.label}
+      </span>
     </Link>
   );
 }

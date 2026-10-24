@@ -48,7 +48,7 @@ test("share message matches the requested template exactly", () => {
 
   assert.equal(
     message,
-    "📚 Join my class: Class 10 Maths\nTeacher: @quizteacher\n\n1. Tap to join: https://www.quizsupport.com/rooms?code=AB23CD#p=maple7x\n2. Room code: AB23CD\n3. Password: maple7x"
+    "🎒✨ *CLASS INVITE* ✨🎒\n┏━━━━━━━━━━━━━━━━━━┓\n   📚 *Class 10 Maths*\n┗━━━━━━━━━━━━━━━━━━┛\n👩‍🏫 Teacher: @quizteacher\n\n🎟️ *YOUR ENTRY PASS*\n🔑 Room code: *AB23CD*\n🔐 Password: *maple7x*\n\n👇 *Tap to join in one tap*\nhttps://www.quizsupport.com/rooms?code=AB23CD#p=maple7x\n\n🚀 _See you inside!_ ✨"
   );
 });
 
@@ -71,7 +71,7 @@ test("share message normalizes a trailing slash on APP_URL", () => {
     password: "abc12345",
     appUrl: "http://localhost:3000/",
   });
-  assert.ok(message.includes("1. Tap to join: http://localhost:3000/rooms?code=XY34ZW#p=abc12345"));
+  assert.ok(message.includes("👇 *Tap to join in one tap*\nhttp://localhost:3000/rooms?code=XY34ZW#p=abc12345"));
   assert.ok(!message.includes("3000//rooms"));
 });
 
@@ -102,11 +102,12 @@ test("share message appends the password expiry in IST", () => {
     passwordExpiresAt: "2026-10-24T13:00:00.000Z",
   });
   assert.ok(
-    message.endsWith(
-      "3. Password: abc12345\n4. Password valid till: 24 Oct 2026, 6:30 pm IST"
+    message.includes(
+      "🔐 Password: *abc12345*\n⏳ Password valid till: 24 Oct 2026, 6:30 pm IST"
     ),
     message
   );
+  assert.ok(message.endsWith("🚀 _See you inside!_ ✨"), message);
 });
 
 test("password expiry is formatted for the Kolkata region", () => {

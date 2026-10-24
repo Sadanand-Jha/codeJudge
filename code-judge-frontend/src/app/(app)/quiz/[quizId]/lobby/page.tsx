@@ -53,13 +53,13 @@ export default function QuizLobbyPage({ params }: { params: Promise<{ quizId: st
           <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"><Rocket className="h-7 w-7" /><Sparkles className="absolute -right-2 -top-2 h-5 w-5 text-[var(--qs-sun)]" /></div>
           <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--qs-brand)]">All systems ready</p>
           <h2 className="mt-1 text-xl font-extrabold text-[var(--qs-ink)] sm:text-2xl">Ready for your next adventure?</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--qs-muted)]">Once you enter, the timer may begin. Keep this tab open and enjoy the challenge.</p>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--qs-muted)]">The quiz stays open until the scheduled window ends or your teacher stops it. Keep this tab open and enjoy the challenge.</p>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--qs-ok)] bg-[var(--qs-okbg)] px-2.5 py-1 text-[11px] font-bold text-[var(--qs-ok)]">
               <ShieldCheck className="h-3.5 w-3.5" /> Access verified
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-1 text-[11px] font-bold text-[var(--qs-muted)]">
-              <Clock className="h-3.5 w-3.5" /> {quiz.duration ? `${quiz.duration} minutes` : "No fixed duration"}
+              <Clock className="h-3.5 w-3.5" /> {quiz.endtime ? "Open during the scheduled window" : "Open until the quiz ends"}
             </span>
           </div>
         </div>

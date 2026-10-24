@@ -762,7 +762,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
                                 onCopy={() => copyOrderId(txn)}
                                 onSupport={() => {
                                   setOpenMenuId(null);
-                                  toast.info({ title: "Contact support", description: "Write to support@quizsupport.in with your order ID." });
+                                  toast.info({ title: "Contact support", description: "Send a message through the Contact page feedback form with your order ID." });
                                 }}
                                 onCheck={() => toast.info({ title: "Payment pending", description: `Order ${txn.id} is still being confirmed.` })}
                               />

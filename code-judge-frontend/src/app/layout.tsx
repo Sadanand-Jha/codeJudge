@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans, Bricolage_Grotesque, DM_Sans } from "next/font/google";
+import { Inter, Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 import "katex/dist/katex.min.css";
 import { Toaster } from "@/components/ui/toast";
@@ -137,8 +137,9 @@ function migrateLegacyStorageKeys() {
   }
 }
 
-const jakarta = Plus_Jakarta_Sans({
+const inter = Inter({
   subsets: ["latin"],
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -147,13 +148,6 @@ const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
   weight: ["600", "800"],
   variable: "--font-bricolage",
-  display: "swap",
-});
-
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  variable: "--font-dm-sans",
   display: "swap",
 });
 
@@ -188,7 +182,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildSiteJsonLd()) }}
         />
       </head>
-      <body className={`${jakarta.className} ${bricolage.variable} ${dmSans.variable} min-h-screen bg-[var(--background)]`} suppressHydrationWarning>
+      <body className={`${inter.variable} ${inter.className} ${bricolage.variable} min-h-screen bg-[var(--background)]`} suppressHydrationWarning>
         <ThemeProvider>
           <AuthHydrator />
           {children}

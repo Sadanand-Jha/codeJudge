@@ -2,22 +2,22 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, CalendarClock, Clock, MousePointerClick, Timer } from "lucide-react";
+import { ArrowRight, CalendarClock, Clock, MousePointerClick } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../../StudioProvider";
 import { updateQuizStatus } from "@/services/quiz";
 import { ScheduleMode } from "./ScheduleMode";
 import { ManualMode } from "./ManualMode";
-import { AdvancedTiming } from "./AdvancedTiming";
-import { DurationPicker } from "./DurationPicker";
+// Advanced timing is temporarily hidden from the studio.
+// import { AdvancedTiming } from "./AdvancedTiming";
 import { TimingSummary } from "./TimingSummary";
 import { ParticipantPreview } from "./ParticipantPreview";
 import { ModeLockModal } from "./ModeLockModal";
+import { ConfirmModal } from "./ConfirmModal";
 import {
   DEFAULT_SCHEDULE,
   DEFAULT_MANUAL,
   DEFAULT_ADVANCED,
-  DURATION_PRESETS,
 } from "./types";
 import type {
   TimingMode,
@@ -36,10 +36,13 @@ function combineDateTime(date: string, time: string, fallbackTime: string) {
 export function TimingSection({
   variant = "full",
   allowInlineStart,
+  flat = false,
 }: {
   variant?: "full" | "rules" | "availability";
   /** Keep the inline Start Quiz action visible (edit mode uses it). */
   allowInlineStart?: boolean;
+  /** Render without the outer card so it can sit inside a combined panel. */
+  flat?: boolean;
 }) {
   const { state, updateInfo, setHelpExtra } = useStudio();
   const quizId = state.serverQuizId ?? undefined;
@@ -47,14 +50,18 @@ export function TimingSection({
   const [mode, setMode] = useState<TimingMode>("manual");
   const [schedule, setSchedule] = useState<ScheduleConfig>(DEFAULT_SCHEDULE);
   const [manual, setManual] = useState<ManualConfig>(DEFAULT_MANUAL);
-  const [participantDuration, setParticipantDuration] = useState(
-    state.info.duration || 60
-  );
   const [advanced, setAdvanced] = useState<AdvancedConfig>(DEFAULT_ADVANCED);
+  const [allowPastSchedule] = useState(() => {
+    if (!state.serverQuizId || state.info.quizLifecycle !== "scheduled") {
+      return false;
+    }
+    const start = toISTDateTimeParts(state.info.startDate);
+    return Boolean(start.date) && isPast(start.date, start.time);
+  });
   const [modeLockModal, setModeLockModal] = useState(false);
+  const [modeSwitchConfirmOpen, setModeSwitchConfirmOpen] = useState(false);
   const [pendingMode, setPendingMode] = useState<TimingMode | null>(null);
   const showLifecycle = variant !== "rules";
-  const showDuration = variant !== "availability";
   const canStartInline = allowInlineStart ?? variant !== "availability";
 
   // Hydrate manual/schedule mode from server-loaded quiz status
@@ -95,7 +102,7 @@ export function TimingSection({
   const validationErrors = useMemo(() => {
     const errs: string[] = [];
     if (mode === "schedule") {
-      if (schedule.startDate && isPast(schedule.startDate, schedule.startTime)) {
+      if (!allowPastSchedule && schedule.startDate && isPast(schedule.startDate, schedule.startTime)) {
         errs.push(
           'Start time cannot be in the past. Choose a future start time or switch to "Start when I\'m ready."'
         );
@@ -112,11 +119,8 @@ export function TimingSection({
         errs.push("End time must be after the scheduled start time.");
       }
     }
-    if (participantDuration <= 0) {
-      errs.push("Enter a valid duration.");
-    }
     return errs;
-  }, [mode, schedule, participantDuration]);
+  }, [mode, schedule, allowPastSchedule]);
 
   const handleScheduleChange = useCallback(
     (patch: Partial<ScheduleConfig>) => {
@@ -169,8 +173,9 @@ export function TimingSection({
     setAdvanced((prev) => ({ ...prev, ...patch }));
   }, []);
 
-  const switchMode = (newMode: TimingMode) => {
-    if (isQuizActive) return;
+  const switchMode = (newMode: TimingMode, force = false) => {
+    if (isQuizActive && !force) return;
+    if (newMode === mode) return;
     setMode(newMode);
     if (newMode === "schedule") {
       setManual((prev) => ({ ...prev, status: "scheduled" }));
@@ -190,7 +195,7 @@ export function TimingSection({
   };
 
   useEffect(() => {
-    // Rules only shows attempt-level timing; the lifecycle explanation
+    // Rules only shows response-level timing; the lifecycle explanation
     // belongs to Review & publish.
     if (variant === "rules") return;
 
@@ -198,7 +203,6 @@ export function TimingSection({
       mode,
       schedule,
       manual,
-      participantDuration,
       advanced,
       validationErrors,
     };
@@ -238,10 +242,10 @@ export function TimingSection({
           </p>
           <p className="mt-0.5 text-[11px] font-medium leading-relaxed text-[var(--qs-muted)]">
             {mode === "schedule" && schedule.startDate
-              ? "Participants can join and attempt throughout the scheduled window. Responses stop automatically at the end time."
+              ? "Participants can join and answer throughout the scheduled window. Responses stop automatically at the end time."
               : manual.status === "live"
-                ? `The quiz is currently live. Each participant gets ${participantDuration} minutes once they begin their attempt.`
-                : `Once you start the quiz, participants will be able to begin their attempts. Each participant gets ${participantDuration} minutes.`}
+                ? "The quiz is currently live. Participants can answer until you stop the quiz."
+                : "Once you start the quiz, participants can begin answering. Responses remain open until you stop the quiz."}
           </p>
         </div>
         <ParticipantPreview state={helpState} />
@@ -249,7 +253,7 @@ export function TimingSection({
       </div>
     );
     return () => setHelpExtra(null);
-  }, [variant, mode, schedule, manual, participantDuration, advanced, validationErrors, handleAdvancedChange, setHelpExtra]);
+  }, [variant, mode, schedule, manual, advanced, validationErrors, handleAdvancedChange, setHelpExtra]);
 
   const isQuizActive = manual.status === "live";
 
@@ -262,16 +266,21 @@ export function TimingSection({
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
-          className="min-w-0 overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 sm:p-5"
+          className={cn(
+            "min-w-0 overflow-hidden",
+            !flat && "rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 sm:p-5"
+          )}
         >
-          <div className="mb-4 flex min-w-0 items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
-              <Clock className="h-4 w-4" />
+          {!flat && (
+            <div className="mb-4 flex min-w-0 items-center gap-2.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+                <Clock className="h-4 w-4" />
+              </div>
+              <h3 className="min-w-0 text-sm font-black text-[var(--qs-ink)]">
+                {variant === "availability" ? "Availability" : "Timing & lifecycle"}
+              </h3>
             </div>
-            <h3 className="min-w-0 text-sm font-black text-[var(--qs-ink)]">
-              {variant === "availability" ? "Availability" : "Timing & lifecycle"}
-            </h3>
-          </div>
+          )}
 
           <p className="text-sm font-bold text-[var(--qs-ink)]">When should this quiz run?</p>
 
@@ -280,8 +289,10 @@ export function TimingSection({
             <button
               type="button"
               onClick={() => {
-                if (isQuizActive) { setPendingMode("schedule"); setModeLockModal(true); return; }
-                switchMode("schedule");
+                if (mode === "schedule") return;
+                setPendingMode("schedule");
+                if (isQuizActive) setModeLockModal(true);
+                else setModeSwitchConfirmOpen(true);
               }}
               className={cn(
                 "flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[10px] border-2 py-2 text-xs font-bold transition-colors sm:text-sm",
@@ -296,8 +307,10 @@ export function TimingSection({
             <button
               type="button"
               onClick={() => {
-                if (isQuizActive) { setPendingMode("manual"); setModeLockModal(true); return; }
-                switchMode("manual");
+                if (mode === "manual") return;
+                setPendingMode("manual");
+                if (isQuizActive) setModeLockModal(true);
+                else setModeSwitchConfirmOpen(true);
               }}
               className={cn(
                 "flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[10px] border-2 py-2 text-xs font-bold transition-colors sm:text-sm",
@@ -340,7 +353,6 @@ export function TimingSection({
                   <ManualMode
                     manual={manual}
                     onManualChange={handleManualChange}
-                    participantDuration={participantDuration}
                     quizId={quizId}
                     allowStart={canStartInline}
                   />
@@ -361,41 +373,11 @@ export function TimingSection({
         </motion.div>
         )}
 
-        {/* Attempt duration */}
-        {showDuration && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-          className="min-w-0 overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 sm:p-5"
-        >
-          <div className="mb-3 flex min-w-0 items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1a1240]">
-              <Timer className="h-4 w-4" />
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-sm font-black text-[var(--qs-ink)]">Attempt duration</h3>
-              <p className="text-xs font-medium text-[var(--qs-muted)]">
-                Used for manually-started quizzes. Scheduled quizzes run until their end time.
-              </p>
-            </div>
-          </div>
-          <DurationPicker
-            value={participantDuration}
-            onChange={(v) => {
-              setParticipantDuration(v);
-              updateInfo({ duration: v });
-            }}
-            presets={DURATION_PRESETS}
-            label="Time limit"
-            max={300}
-          />
-        </motion.div>
-        )}
-
+        {/* Advanced timing temporarily hidden from the studio.
         {variant !== "availability" && (
           <AdvancedTiming advanced={advanced} onChange={handleAdvancedChange} />
         )}
+        */}
       </div>
 
       {/* Mode lock modal */}
@@ -413,12 +395,36 @@ export function TimingSection({
           setManual((prev) => ({ ...prev, status: "ended", endedAt: new Date().toISOString() }));
           setModeLockModal(false);
           if (pendingMode) {
-            switchMode(pendingMode);
+            switchMode(pendingMode, true);
             setPendingMode(null);
           }
         }}
         currentModeLabel={mode === "schedule" ? "Schedule for later" : "Start when I'm ready"}
         status={manual.status === "ended" ? "ended" : "live"}
+      />
+
+      <ConfirmModal
+        open={modeSwitchConfirmOpen}
+        onClose={() => { setModeSwitchConfirmOpen(false); setPendingMode(null); }}
+        onConfirm={() => {
+          const next = pendingMode;
+          setModeSwitchConfirmOpen(false);
+          setPendingMode(null);
+          if (next) switchMode(next);
+        }}
+        title="Switch availability mode?"
+        description={
+          pendingMode === "schedule"
+            ? "The quiz will stop using manual start and switch to a scheduled window. You can review the dates before saving."
+            : "The quiz will stop using a scheduled window and wait for you to start it manually."
+        }
+        details={[
+          { label: "Current", value: mode === "schedule" ? "Schedule for later" : "Start when I'm ready" },
+          { label: "New", value: pendingMode === "schedule" ? "Schedule for later" : "Start when I'm ready" },
+        ]}
+        confirmLabel="Switch mode"
+        confirmColor="pink"
+        icon={pendingMode === "schedule" ? CalendarClock : MousePointerClick}
       />
     </div>
   );

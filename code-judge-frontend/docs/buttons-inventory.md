@@ -1944,7 +1944,7 @@ Type is inferred from usage/className/props: `primary` (main CTA), `secondary`, 
 - `"Create Room"` — primary — :299, :693
 - filters: All / Active / Archived / Recently Updated ({n}) — filter — :367
 - `[icon: MoreVertical]` aria-label `Actions for {room}` — icon-only — :459, :519
-- row menu: View Students / Edit Room / Add Students / Import Students / Export Students / Duplicate Room / Archive Room / Restore Room / Delete Room — ghost — :654
+- row menu: View Students / Edit Room / Add Students / Import Students / Export Students / Duplicate Room / Archive Room / Restore Room — ghost — :654
 - `"Import Students"` — secondary — :697
 - `"Cancel"` — secondary — :741
 - `"Save"` — primary — :744
@@ -1955,7 +1955,7 @@ Type is inferred from usage/className/props: `primary` (main CTA), `secondary`, 
 - `"Import"` — secondary — :457
 - `"Add Students"` — primary — :468
 - `[icon: MoreHorizontal]` aria-label `Room actions` — icon-only — :480
-- header menu: Export Students / Archive Room / Restore Room / Duplicate Room / Delete Room — ghost — :349–:377
+- header menu: Export Students / Archive Room / Restore Room / Duplicate Room — ghost — :349–:377
 - filters: All / Recently Added / Issues ({n}) — filter — :528
 - `"Remove"` (bulk) — danger — :571
 - `"Clear"` — secondary — :578
@@ -1969,10 +1969,6 @@ Type is inferred from usage/className/props: `primary` (main CTA), `secondary`, 
 - `"Edit"` — secondary — :186
 - `"Remove"` — danger — :193
 - `"Done"` — primary — :201
-
-### src/components/rooms/DeleteRoomModal.tsx
-- `"Cancel"` — secondary — :33
-- `"Delete Room"` — danger — :39
 
 ### src/components/rooms/DuplicateRoomModal.tsx
 - `"Cancel"` — secondary — :56

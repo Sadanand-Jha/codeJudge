@@ -2,6 +2,7 @@
 // problems, options, attempts, responses, game config, collaborators, subjects,
 // exam categories, and more.
 import { pool } from "../config/database.ts";
+import { NO_END_ATTEMPT_DURATION_MINUTES } from "../utils/quizAttemptTiming.ts";
 
 /**
  * Maximum number of attempts a single user may start for the same quiz,
@@ -41,7 +42,15 @@ export interface QuizRatingInput {
  */
 export interface CreatorPublicStats {
   username: string;
+  displayName: string | null;
   avatarUrl: string | null;
+  bio: string | null;
+  country: string | null;
+  college: string | null;
+  isVerified: boolean;
+  memberSince: string | null;
+  rating: number;
+  maxRating: number;
   quizzesCreated: number;
   uniqueStudents: number;
   totalAttempts: number;
@@ -1021,20 +1030,43 @@ export class QuizRepository {
          AND qa.deleted_at IS NULL
          AND ($2::int IS NULL OR qa.user_id = $2)
          AND (
-           (LOWER(COALESCE(qs.name, '')) = 'scheduled'
-             AND q.endtime IS NOT NULL
-             AND q.endtime <= CURRENT_TIMESTAMP)
-           OR (LOWER(COALESCE(qs.name, '')) <> 'scheduled'
-             AND (
-               (q.duration IS NOT NULL
-                 AND COALESCE(qa.started_at, qa.created_at) + (q.duration * INTERVAL '1 minute') <= CURRENT_TIMESTAMP)
-               OR (q.endtime IS NOT NULL AND q.endtime <= CURRENT_TIMESTAMP)
-             ))
+           LOWER(COALESCE(qs.name, '')) = 'ended'
+           OR (q.endtime IS NOT NULL AND q.endtime <= CURRENT_TIMESTAMP)
+           OR (
+             q.endtime IS NULL
+             AND COALESCE(qa.started_at, qa.created_at)
+               + ($3::int * INTERVAL '1 minute') <= CURRENT_TIMESTAMP
+           )
          )
        ORDER BY qa.id ASC`,
-      [quizId, userId ?? null]
+      [quizId, userId ?? null, NO_END_ATTEMPT_DURATION_MINUTES]
     );
     return result.rows;
+  }
+
+  /** Quiz ids that have ended and still contain ungraded attempts. */
+  async getQuizIdsAwaitingResultCalculation(): Promise<number[]> {
+    const result = await pool.query(
+      `SELECT DISTINCT q.id
+       FROM quiz q
+       JOIN quiz_attempt qa ON qa.quiz_id = q.id
+       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
+       WHERE q.deleted_at IS NULL
+         AND qa.status = 'in_progress'
+         AND qa.deleted_at IS NULL
+         AND (
+           LOWER(COALESCE(qs.name, '')) = 'ended'
+           OR (q.endtime IS NOT NULL AND q.endtime <= CURRENT_TIMESTAMP)
+           OR (
+             q.endtime IS NULL
+             AND COALESCE(qa.started_at, qa.created_at)
+               + ($1::int * INTERVAL '1 minute') <= CURRENT_TIMESTAMP
+           )
+         )
+       ORDER BY q.id ASC`,
+      [NO_END_ATTEMPT_DURATION_MINUTES]
+    );
+    return result.rows.map((row) => Number(row.id)).filter((id) => Number.isInteger(id) && id > 0);
   }
 
   async createQuizAttempt(data: {
@@ -1096,7 +1128,7 @@ export class QuizRepository {
     let paramCount = 0;
 
     const updateableFields = [
-      "score", "percentage", "rank", "status", "completed_at", "time_taken",
+      "score", "percentage", "rank", "status", "completed_at", "submitted_at", "time_taken",
       "total_questions", "correct_answers", "wrong_answers", "skipped_questions",
       "violations", "flagged", "flag_reason", "total_marks", "marks_obtained",
       "decoy_map"
@@ -1250,7 +1282,7 @@ export class QuizRepository {
   async getQuizCrowdAvatars(quizId: number): Promise<Array<{ avatarUrl: string | null; status: "submitted" | "attempting" }>> {
     const avatars = await pool.query(
       `SELECT DISTINCT ON (qa.user_id) a.url AS avatar_url,
-              CASE WHEN LOWER(qa.status) = 'completed' THEN 'submitted' ELSE 'attempting' END AS status
+              CASE WHEN LOWER(qa.status) = 'completed' OR qa.submitted_at IS NOT NULL THEN 'submitted' ELSE 'attempting' END AS status
        FROM quiz_attempt qa
        JOIN users u ON u.id = qa.user_id
        LEFT JOIN avatar a ON a.id = u.avatar_id
@@ -1513,21 +1545,25 @@ export class QuizRepository {
     // Audience constraint: once the creator configures a participant list
     // (quiz edit → rooms / invites), only students present in it (status = 1
     // = allowed) may attempt the quiz. An empty list means open access.
-    const audience = await pool.query(
-      `SELECT
-         COUNT(*)::int AS configured,
-         COUNT(*) FILTER (WHERE user_id = $2 AND status = 1)::int AS allowed
-       FROM quiz_participants
-       WHERE quiz_id = $1`,
-      [quizId, userId]
-    );
-    const { configured, allowed } = audience.rows[0] ?? { configured: 0, allowed: 0 };
-    if (q.audience_mode === 'classroom' && Number(configured) > 0 && Number(allowed) === 0) {
-      return { allowed: false, reason: "You are not invited to this quiz" };
+    // The creator is always allowed to attempt their own quiz (owner bypass).
+    const isOwner = Number(q.createdby) === Number(userId);
+    if (!isOwner) {
+      const audience = await pool.query(
+        `SELECT
+           COUNT(*)::int AS configured,
+           COUNT(*) FILTER (WHERE user_id = $2 AND status = 1)::int AS allowed
+         FROM quiz_participants
+         WHERE quiz_id = $1`,
+        [quizId, userId]
+      );
+      const { configured, allowed } = audience.rows[0] ?? { configured: 0, allowed: 0 };
+      if (q.audience_mode === 'classroom' && Number(configured) > 0 && Number(allowed) === 0) {
+        return { allowed: false, reason: "You are not invited to this quiz" };
+      }
     }
 
     const existingAttempt = await pool.query(
-      "SELECT * FROM quiz_attempt WHERE user_id = $1 AND quiz_id = $2 AND status = 'in_progress'",
+      "SELECT * FROM quiz_attempt WHERE user_id = $1 AND quiz_id = $2 AND status = 'in_progress' AND submitted_at IS NULL",
       [userId, quizId]
     );
     if (existingAttempt.rows.length > 0) {
@@ -1562,8 +1598,9 @@ export class QuizRepository {
     if (q.endtime && new Date(q.endtime) < now) return { allowed: false, reason: "Quiz has ended" };
 
     // An empty participant list means open access. Once a creator configures
-    // an audience, only explicitly allowed users may register.
-    if (userId) {
+    // an audience, only explicitly allowed users may register. The creator is
+    // always allowed (owner bypass).
+    if (userId && Number(q.createdby) !== Number(userId)) {
       const audience = await pool.query(
         `SELECT
            COUNT(*)::int AS configured,
@@ -1610,7 +1647,14 @@ export class QuizRepository {
     } = filters;
 
     const offset = (page - 1) * limit;
-    const conditions: string[] = ["qa.user_id = $1", "q.deleted_at IS NULL", "qa.deleted_at IS NULL"];
+    // An untouched/in-flight attempt is not history. Hiding it here also means
+    // it cannot be opened from the activity list after navigating back.
+    const conditions: string[] = [
+      "qa.user_id = $1",
+      "q.deleted_at IS NULL",
+      "qa.deleted_at IS NULL",
+      "LOWER(REPLACE(COALESCE(qa.status, ''), ' ', '_')) <> 'in_progress'",
+    ];
     const queryParams: any[] = [userId];
     let paramCount = 1;
 
@@ -1650,6 +1694,9 @@ export class QuizRepository {
         q.name,
         q.total_marks,
         q.passing_marks,
+        q.endtime,
+        q.show_results_immediately,
+        qs.name AS quiz_status_name,
         qa.score,
         qa.percentage,
         qa.rank,
@@ -1662,6 +1709,7 @@ export class QuizRepository {
         qa.skipped_questions
       FROM quiz_attempt qa
       JOIN quiz q ON q.id = qa.quiz_id
+      LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
       WHERE ${whereClause}
       ORDER BY qa.${safeSortBy} ${safeSortOrder}
       LIMIT $${paramCount - 1} OFFSET $${paramCount}
@@ -1778,7 +1826,15 @@ export class QuizRepository {
     // row would multiply counts, so each aggregate is computed separately.
     const result = await pool.query(
       `SELECT u.username,
+              u.display_name,
+              u.bio,
+              u.rating,
+              u.max_rating,
+              u.is_verified,
+              u.created_at,
               a.url AS avatar_url,
+              cn.name AS country_name,
+              cl.name AS college_name,
               (SELECT COUNT(*)::int FROM quiz q
                 WHERE q.createdby = u.id AND q.deleted_at IS NULL) AS quizzes_created,
               (SELECT COUNT(DISTINCT qa.user_id)::int FROM quiz_attempt qa
@@ -1798,6 +1854,8 @@ export class QuizRepository {
                 WHERE q.createdby = u.id AND q.deleted_at IS NULL) AS teacher_rating_count
        FROM users u
        LEFT JOIN avatar a ON a.id = u.avatar_id
+       LEFT JOIN country cn ON cn.id = u.country_id
+       LEFT JOIN college cl ON cl.id = u.college_id
        WHERE u.id = $1`,
       [creatorId]
     );
@@ -1806,7 +1864,15 @@ export class QuizRepository {
     const row = result.rows[0];
     return {
       username: String(row.username ?? ""),
+      displayName: row.display_name ?? null,
       avatarUrl: row.avatar_url ?? null,
+      bio: row.bio ?? null,
+      country: row.country_name ?? null,
+      college: row.college_name ?? null,
+      isVerified: row.is_verified === true,
+      memberSince: row.created_at ? new Date(row.created_at).toISOString() : null,
+      rating: Number(row.rating) || 0,
+      maxRating: Number(row.max_rating) || 0,
       quizzesCreated: Number(row.quizzes_created) || 0,
       uniqueStudents: Number(row.unique_students) || 0,
       totalAttempts: Number(row.total_attempts) || 0,
@@ -1818,7 +1884,7 @@ export class QuizRepository {
   async getQuizResult(attemptId: number, userId: number): Promise<any | null> {
     const query = `
       SELECT qa.*, q.name, q.code, q.total_marks, q.passing_marks,
-             q.show_results_immediately, q.endtime, qs.name AS quiz_status_name
+             q.createdby, q.show_results_immediately, q.endtime, qs.name AS quiz_status_name
       FROM quiz_attempt qa
       JOIN quiz q ON q.id = qa.quiz_id
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status

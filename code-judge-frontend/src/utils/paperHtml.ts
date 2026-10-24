@@ -75,6 +75,8 @@ const FONT_FILES = {
   mono: "/fonts/NotoSansMono-var.ttf",
 } as const;
 
+const PAPER_LOGO_FILE = "/logos/name.png";
+
 export function buildPaperFontCss(fonts: {
   sans: string;
   devanagari: string;
@@ -102,15 +104,21 @@ async function fetchAsBase64(url: string): Promise<string> {
   return btoa(binary);
 }
 
-/** Loads the bundled Noto fonts once and caches the @font-face CSS. */
+/** Loads the bundled Noto fonts and brand logo once, caching the CSS. */
 export function loadPaperFontCss(): Promise<string> {
   if (!fontCssPromise) {
     fontCssPromise = Promise.all([
       fetchAsBase64(FONT_FILES.sans),
       fetchAsBase64(FONT_FILES.devanagari),
       fetchAsBase64(FONT_FILES.mono),
+      fetchAsBase64(PAPER_LOGO_FILE).catch(() => ""),
     ])
-      .then(([sans, devanagari, mono]) => buildPaperFontCss({ sans, devanagari, mono }))
+      .then(([sans, devanagari, mono, logo]) => {
+        const brandCss = logo
+          ? `\n.brand-logo{display:block;width:22mm;height:4.5mm;background:url(data:image/png;base64,${logo}) center/contain no-repeat;}`
+          : "";
+        return `${buildPaperFontCss({ sans, devanagari, mono })}${brandCss}`;
+      })
       .catch((error) => {
         fontCssPromise = null;
         throw error;
@@ -458,7 +466,7 @@ ${renderInstructions(meta, questions)}
 <div class="banner"><span><span class="bl">Section A</span> — ${esc(sectionTitle(questions))}</span></div>
 <p class="secinstr">All questions are compulsory.</p>`;
   const body = questions.map((question, index) => renderQuestion(question, index, twoColumns)).join("");
-  return `<section class="paper">${header}<main class="qs${twoColumns ? " two" : ""}">${body}</main><div class="end">End of question paper</div><div class="brand"><span class="bm">Q</span><span>QuizSupport</span></div></section>`;
+  return `<section class="paper">${header}<main class="qs${twoColumns ? " two" : ""}">${body}</main><div class="end">End of question paper</div><div class="brand"><span class="brand-logo" role="img" aria-label="QuizSupport"></span></div></section>`;
 }
 
 export function buildPaperBody(input: PaperBuildInput): string {
@@ -488,25 +496,25 @@ body {
   line-height: 1.15;
   color: #000;
   background: #fff;
-  text-align: left;
+  text-align: justify;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
 .inst { font-size: 16pt; font-weight: 700; text-transform: uppercase; text-align: center; margin: 0 0 1.5mm; }
 .ptitle { font-size: 14pt; font-weight: 700; text-align: center; margin: 0 0 3mm; }
-.meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2mm 6mm; font-size: 11pt; margin: 0 0 3mm; }
+.meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2mm 6mm; font-size: 11pt; text-align: left; margin: 0 0 3mm; }
 .meta .cell { display: flex; gap: 1.2mm; min-width: 0; }
 .meta .lbl { font-weight: 700; white-space: nowrap; }
 .meta .val { font-weight: 400; min-width: 0; overflow-wrap: anywhere; }
 .rule { border-top: 1.5pt solid #000; margin: 0 0 3mm; }
-.student { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; font-size: 11pt; margin: 0 0 2.5mm; }
+.student { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; font-size: 11pt; text-align: left; margin: 0 0 2.5mm; }
 .student .f { display: flex; align-items: baseline; gap: 1mm; min-width: 0; }
 .student .fill { flex: 1; min-width: 30mm; border-bottom: 0.75pt solid #000; padding: 0 1mm 0.5mm; min-height: 1.2em; }
 .instr { border: 1pt solid #000; background: #F2F2F2; padding: 2.5mm 3mm; font-size: 10.5pt; line-height: 1.3; break-inside: avoid; margin: 0 0 4mm; }
 .instr .ititle { font-weight: 700; margin: 0 0 1mm; }
 .instr ol { margin: 0; padding-left: 5mm; }
 .instr li { margin: 0 0 0.7mm; }
-.banner { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 4mm; background: #F2F2F2; border-top: 1pt solid #000; border-bottom: 1pt solid #000; padding: 1.5mm 2.5mm; font-size: 12pt; font-weight: 700; break-after: avoid; }
+.banner { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 4mm; background: #F2F2F2; border-top: 1pt solid #000; border-bottom: 1pt solid #000; padding: 1.5mm 2.5mm; font-size: 12pt; font-weight: 700; text-align: left; break-after: avoid; }
 .banner .bl { text-transform: uppercase; }
 .secinstr { font-size: 10.5pt; font-style: italic; color: #555; margin: 2mm 0 1mm; break-after: avoid; }
 .qs { margin: 0; }
@@ -514,7 +522,7 @@ body {
 @media print { .qs.two { column-fill: auto; } }
 .q { display: grid; grid-template-columns: 12mm minmax(0, 1fr); column-gap: 2mm; margin: 4mm 0 0; break-inside: avoid; }
 .q:first-child { margin-top: 0; }
-.q .qn { font-size: 12pt; font-weight: 700; padding-top: 0.2mm; }
+.q .qn { font-size: 12pt; font-weight: 700; text-align: left; padding-top: 0.2mm; }
 .q .qb { font-size: 12pt; font-weight: 400; min-width: 0; overflow-wrap: break-word; }
 .q .qb p { margin: 0 0 1.5mm; }
 .q .qb p:last-child { margin-bottom: 0; }
@@ -522,7 +530,7 @@ body {
 .opts.four { grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 4mm; }
 .opts.two { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 6mm; }
 .opt { display: grid; grid-template-columns: 6mm minmax(0, 1fr); column-gap: 1.5mm; font-size: 11pt; font-weight: 400; line-height: 1.25; }
-.opt .ol { font-weight: 400; }
+.opt .ol { font-weight: 400; text-align: left; }
 .opt .oc { min-width: 0; overflow-wrap: break-word; }
 .opt img { max-width: 100%; height: auto; margin-top: 1mm; }
 .muted { color: #555; font-style: italic; }
@@ -537,8 +545,7 @@ table.tbl th { font-weight: 700; background: #F2F2F2; }
 .qimg img { max-width: 100%; height: auto; }
 .qimg .cap { font-size: 10.5pt; font-style: italic; color: #555; margin-top: 1mm; }
 .end { text-align: center; font-size: 10.5pt; font-style: italic; margin: 8mm 0 0; break-before: avoid; }
-.brand { display: flex; align-items: center; justify-content: center; gap: 1.5mm; margin: 4mm 0 0; font-size: 8.5pt; color: #777; letter-spacing: 0.02em; break-before: avoid; }
-.brand .bm { display: inline-flex; align-items: center; justify-content: center; width: 4mm; height: 4mm; border-radius: 1mm; background: #EC4899; color: #fff; font-size: 7pt; font-weight: 700; }
+.brand { display: flex; align-items: center; justify-content: center; margin: 4mm 0 0; break-before: avoid; }
 .pgbreak { break-before: page; }
 .keypage { break-before: page; }
 .keytitle { font-size: 14pt; font-weight: 700; text-align: center; margin: 0 0 1mm; }

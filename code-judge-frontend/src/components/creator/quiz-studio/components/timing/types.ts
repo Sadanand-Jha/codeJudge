@@ -36,7 +36,6 @@ export interface TimingState {
   mode: TimingMode;
   schedule: ScheduleConfig;
   manual: ManualConfig;
-  participantDuration: number;
   advanced: AdvancedConfig;
   validationErrors: string[];
 }

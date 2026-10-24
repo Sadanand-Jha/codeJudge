@@ -8,7 +8,8 @@ import { ResultGenerationService } from "../services/resultGeneration.service.ts
 import { sendCollaboratorInviteEmail } from "../services/email.ts";
 import { sendResponsesReportEmail } from "../services/email.service.ts";
 import { generateResponsesReport } from "../services/responsesReport.service.ts";
-import { finalizeExpiredQuizAttempts, processQuizSubmission } from "../services/quizSubmission.service.ts";
+import { reserveResponseEmailQuota } from "../services/responseEmailRateLimit.ts";
+import { enqueueQuizResultCalculation, enqueueSubmittedQuizAttempt, finalizeExpiredQuizAttempts, processQuizSubmission } from "../services/quizSubmission.service.ts";
 import { QuizCreationLimitError } from "../services/quizCreationLimits.ts";
 import { QuizQuestionLimitError } from "../services/quizQuestionLimits.ts";
 import { prepareAttemptDecoys, TRAP_STRENGTH_DEFAULT } from "../services/quizDecoy.service.ts";
@@ -16,15 +17,18 @@ import { sanitizeAttemptForStudent } from "../services/quizDecoy.ts";
 import { sendEntitlementError } from "../services/entitlement.service.ts";
 import { isQuizCodeConflictError } from "../utils/databaseError.ts";
 import {
+  getQuizAttemptDeadlineMs,
+  isQuizAttemptWindowClosed,
+  NO_END_ATTEMPT_DURATION_MINUTES,
+} from "../utils/quizAttemptTiming.ts";
+import {
   acquireQuizSubmissionRecoveryLock,
   deleteFallbackQuizSubmission,
-  enqueueQuizSubmission,
   getFallbackQuizSubmission,
   getQuizSubmissionJob,
   getQuizSubmissionQueue,
   isQuizSubmissionQueueConfigured,
   releaseQuizSubmissionRecoveryLock,
-  storeFallbackQuizSubmission,
   type QuizSubmissionJobData,
 } from "../queues/quizSubmission.queue.ts";
 
@@ -92,6 +96,27 @@ const toStudentQuiz = (quiz: Record<string, any>) => {
   registration_fields: Array.isArray(quiz.registration_fields) ? quiz.registration_fields : null,
   });
 };
+
+/**
+ * A quiz accepts responses only while its session is open and the attempt is
+ * inside its deadline. A configured quiz end time applies to everyone;
+ * otherwise the attempt gets a fixed 15-minute window from its start.
+ */
+function quizResponseWindowClosed(
+  quiz: Record<string, any> | null | undefined,
+  attempt: Record<string, any> | null | undefined,
+  now = Date.now()
+): string | null {
+  if (!quiz) return "Quiz not found";
+  const status = String(quiz.status ?? "").toLowerCase();
+  if (status === "ended") return "Quiz has ended; no new responses are accepted";
+  if (isQuizAttemptWindowClosed(quiz, attempt, now)) {
+    return quiz.endtime
+      ? "Quiz has ended; no new responses are accepted"
+      : `Your ${NO_END_ATTEMPT_DURATION_MINUTES}-minute attempt has ended; submit your saved answers`;
+  }
+  return null;
+}
 
 const normalizeQuizCode = (value: unknown) =>
   typeof value === "string" ? value.trim().toUpperCase() : "";
@@ -706,6 +731,10 @@ export const updateQuizStatus = async (req: Request, res: Response) => {
 
     const updatedQuiz = await quizService.updateQuiz(Number(quizId), updateData);
 
+    if (status === "ended") {
+      await enqueueQuizResultCalculation(Number(quizId));
+    }
+
     res.status(200).json({
       success: true,
       message: `Quiz ${status} successfully`,
@@ -1240,19 +1269,11 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
 
     const buildAttemptPayload = async (attempt: any, resumed: boolean) => {
       const savedResponses = await quizService.getStudentResponses(Number(attempt.id), Number(userId));
-      const startedAtMs = new Date(attempt.started_at ?? attempt.created_at).getTime();
-      // Scheduled quizzes run for the full quiz window. The per-attempt
-      // duration is only used by manually-started/live quizzes.
-      const scheduledQuiz = String(quiz?.status ?? "").toLowerCase() === "scheduled";
-      const durationDeadline = !scheduledQuiz && quiz?.duration
-        ? startedAtMs + Number(quiz.duration) * 60_000
-        : Number.POSITIVE_INFINITY;
-      const quizDeadline = quiz?.endtime
-        ? new Date(quiz.endtime).getTime()
-        : Number.POSITIVE_INFINITY;
-      const deadlineMs = Math.min(durationDeadline, quizDeadline);
-      const remainingSeconds = Number.isFinite(deadlineMs)
-        ? Math.max(0, Math.floor((deadlineMs - Date.now()) / 1000))
+      // A configured quiz end time is the deadline for every attempt.
+      // Otherwise this attempt gets the fixed 15-minute fallback window.
+      const attemptDeadline = getQuizAttemptDeadlineMs(quiz, attempt);
+      const remainingSeconds = attemptDeadline !== null
+        ? Math.max(0, Math.floor((attemptDeadline - Date.now()) / 1000))
         : null;
       // Student attempts always receive a stable per-attempt order. The seed
       // keeps refresh/resume consistent while different attempts can differ;
@@ -1365,8 +1386,14 @@ export const getAttemptRegistrationState = async (req: Request, res: Response) =
     }
 
     const latestAttempt = await quizService.getQuizAttempt(Number(userId), Number(quizId));
+    const latestQuiz = latestAttempt
+      ? await quizService.getQuizById(String(latestAttempt.quiz_id))
+      : null;
     const activeAttempt =
-      latestAttempt && String(latestAttempt.status).toLowerCase() === "in_progress"
+      latestAttempt
+      && String(latestAttempt.status).toLowerCase() === "in_progress"
+      && !latestAttempt.submitted_at
+      && !isQuizAttemptWindowClosed(latestQuiz, latestAttempt)
         ? latestAttempt
         : null;
 
@@ -1417,18 +1444,15 @@ export const saveQuizResponse = async (req: Request, res: Response) => {
       res.status(404).json({ success: false, message: "Active quiz attempt not found" });
       return;
     }
+    if (attempt.submitted_at) {
+      res.status(409).json({ success: false, message: "Attempt already submitted" });
+      return;
+    }
 
     const attemptQuiz = await quizService.getQuizById(String(attempt.quiz_id));
-    const attemptStartedAt = attempt.started_at ?? attempt.created_at;
-    const scheduledQuiz = String(attemptQuiz?.status ?? "").toLowerCase() === "scheduled";
-    const durationDeadline = !scheduledQuiz && attemptQuiz?.duration && attemptStartedAt
-      ? new Date(attemptStartedAt).getTime() + Number(attemptQuiz.duration) * 60_000
-      : Number.POSITIVE_INFINITY;
-    const quizDeadline = attemptQuiz?.endtime
-      ? new Date(attemptQuiz.endtime).getTime()
-      : Number.POSITIVE_INFINITY;
-    if (Date.now() > Math.min(durationDeadline, quizDeadline)) {
-      res.status(409).json({ success: false, message: "Quiz time has expired; submit your saved attempt" });
+    const closedReason = quizResponseWindowClosed(attemptQuiz, attempt);
+    if (closedReason) {
+      res.status(409).json({ success: false, message: `${closedReason}; submit your saved attempt` });
       return;
     }
 
@@ -1483,16 +1507,15 @@ export const heartbeatQuizAttempt = async (req: Request, res: Response) => {
       res.status(404).json({ success: false, message: "Active quiz attempt not found" });
       return;
     }
+    if (attempt.submitted_at) {
+      res.status(409).json({ success: false, message: "Attempt already submitted" });
+      return;
+    }
 
     const quiz = await quizService.getQuizById(String(attempt.quiz_id));
-    const startedAt = attempt.started_at ?? attempt.created_at;
-    const scheduledQuiz = String(quiz?.status ?? "").toLowerCase() === "scheduled";
-    const durationDeadline = !scheduledQuiz && quiz?.duration && startedAt
-      ? new Date(startedAt).getTime() + Number(quiz.duration) * 60_000
-      : Number.POSITIVE_INFINITY;
-    const quizDeadline = quiz?.endtime ? new Date(quiz.endtime).getTime() : Number.POSITIVE_INFINITY;
-    if (Date.now() > Math.min(durationDeadline, quizDeadline)) {
-      res.status(409).json({ success: false, message: "Quiz time has expired" });
+    const closedReason = quizResponseWindowClosed(quiz, attempt);
+    if (closedReason) {
+      res.status(409).json({ success: false, message: closedReason });
       return;
     }
 
@@ -1538,7 +1561,7 @@ export const reportViolation = async (req: Request, res: Response) => {
       return;
     }
 
-    if (attempt.status !== "in_progress") {
+    if (attempt.status !== "in_progress" || attempt.submitted_at) {
       res.status(400).json({ success: false, message: "Attempt is no longer active" });
       return;
     }
@@ -1573,13 +1596,8 @@ export const reportViolation = async (req: Request, res: Response) => {
 
 /**
  * POST /api/v1/user/quiz/attempt/:attemptId/submit
- * Submit a quiz attempt with batch responses
- * Body: { responses: Array<{ problemId: number, option?: string, textAnswer?: string }> }
- *
- * Async flow: validates + enqueues a BullMQ grading job and returns 202
- * immediately. The client polls GET /attempt/:attemptId/submit-status.
- * If BullMQ is unreachable, the Upstash REST fallback remains durable and the
- * client polls until controlled recovery grading completes.
+ * Save the student's final answers. Grading is deferred until the quiz ends;
+ * no result calculation job is created for an individual submission.
  */
 export const submitQuizAttempt = async (req: Request, res: Response) => {
   try {
@@ -1588,18 +1606,12 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
     const { responses } = req.body;
 
     if (!userId) {
-      res.status(401).json({
-        success: false,
-        message: "Unauthorized access",
-      });
+      res.status(401).json({ success: false, message: "Unauthorized access" });
       return;
     }
 
     if (!Array.isArray(responses)) {
-      res.status(400).json({
-        success: false,
-        message: "Invalid request: responses must be an array",
-      });
+      res.status(400).json({ success: false, message: "Invalid request: responses must be an array" });
       return;
     }
 
@@ -1609,96 +1621,97 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
       return;
     }
 
-    // Ownership, attempt state and deadline are validated again by the grading
-    // worker. Keeping the intake path Redis-only prevents a simultaneous exam
-    // finish from opening one database connection per student.
-    const body = req.body as {
-      responses?: unknown;
-      violations?: unknown;
-      flagged?: unknown;
-      flagReason?: unknown;
-    };
-    const violations = Number(body.violations) || 0;
-    const flagged = body.flagged === true || violations >= MAX_PROCTORING_VIOLATIONS;
-    const sentReason = typeof body.flagReason === "string" ? body.flagReason.trim().slice(0, 500) : "";
-    const flagReason = flagged ? sentReason || "auto-flagged" : undefined;
+    const attempt = await quizService.getQuizAttemptById(numericAttemptId);
+    if (!attempt || Number(attempt.user_id) !== Number(userId)) {
+      res.status(404).json({ success: false, message: "Quiz attempt not found" });
+      return;
+    }
 
-    const jobData: QuizSubmissionJobData = {
-      attemptId: numericAttemptId,
-      userId: Number(userId),
-      responses,
-      violations,
-      flagged,
-      ...(flagReason !== undefined ? { flagReason } : {}),
-      // Final lateness is calculated against submittedAt by the worker.
-      isLate: false,
-      submittedAt: new Date().toISOString(),
-    };
-
-    // Store a durable HTTP-Redis copy before touching BullMQ. This survives a
-    // missing RESP endpoint/worker and is consumed by the controlled recovery
-    // path in getSubmitStatus.
-    await storeFallbackQuizSubmission(jobData);
-
-    if (!isQuizSubmissionQueueConfigured()) {
-      res.status(202).json({
+    if (attempt.status === "completed" || attempt.status === "timed_out") {
+      res.status(200).json({
         success: true,
-        message: "Submission safely queued for grading",
-        data: { attemptId: numericAttemptId, jobId: `fallback-${numericAttemptId}`, status: "queued" },
+        message: "Quiz already submitted",
+        data: { attemptId: numericAttemptId, status: attempt.status, attempt },
       });
       return;
     }
 
-    try {
-      const job = await enqueueQuizSubmission(jobData);
-      const state = await job.getState().catch(() => "unknown");
-      if (state === "completed") {
-        // Double-submit after a finished job: return the graded attempt directly.
-        const finishedJob = await getQuizSubmissionJob(attemptId).catch(() => undefined);
-        const finished = finishedJob?.returnvalue ?? null;
-        res.status(200).json({
-          success: true,
-          message: "Quiz submitted successfully",
-          data: finished,
-        });
-        return;
-      }
-      // If no long-lived worker exists (normal on Vercel), remove the BullMQ
-      // copy and leave the durable Upstash job for controlled poll recovery.
-      if (state !== "active") {
-        const liveWorkers = await hasLiveQuizWorkers();
-        if (!liveWorkers) {
-          console.warn(`No live quiz-submission workers detected for attempt ${attemptId}; using durable recovery queue`);
-          await job.remove().catch(() => undefined);
-          res.status(202).json({
-            success: true,
-            message: "Submission safely queued for grading",
-            data: { attemptId: numericAttemptId, jobId: `fallback-${numericAttemptId}`, status: "queued" },
-          });
-          return;
-        }
-      }
-      res.status(202).json({
+    if (attempt.submitted_at) {
+      res.status(200).json({
         success: true,
-        message: "Submission queued for grading",
-        data: { attemptId: Number(attemptId), jobId: job.id, status: "queued" },
+        message: "Answers already saved; results will be calculated when the quiz ends",
+        data: { attemptId: numericAttemptId, status: "submitted", submittedAt: attempt.submitted_at, resultPending: true },
       });
-    } catch (queueError) {
-      // BullMQ RESP is optional on Vercel. The Upstash copy above is durable,
-      // so acknowledge it without running a database-heavy inline grader.
-      console.warn("BullMQ enqueue failed; using durable recovery queue:", (queueError as Error).message);
-      res.status(202).json({
-        success: true,
-        message: "Submission safely queued for grading",
-        data: { attemptId: numericAttemptId, jobId: `fallback-${numericAttemptId}`, status: "queued" },
-      });
+      return;
     }
+
+    const quiz = await quizService.getQuizById(String(attempt.quiz_id));
+    const closedReason = quizResponseWindowClosed(quiz, attempt);
+    if (closedReason) {
+      res.status(409).json({ success: false, message: closedReason });
+      return;
+    }
+
+    const problems = await quizService.getQuizProblems(String(attempt.quiz_id));
+    const validProblemIds = new Set(problems.map((problem: any) => Number(problem.id)));
+
+    for (const response of responses) {
+      const problemId = Number(response?.problemId);
+      if (!Number.isInteger(problemId) || !validProblemIds.has(problemId)) continue;
+      try {
+        await quizService.saveStudentResponse({
+          attemptId: numericAttemptId,
+          problemId,
+          option: response?.option,
+          options: response?.options,
+          textAnswer: response?.textAnswer,
+        });
+      } catch (error) {
+        console.error(`Error saving final response for attempt ${numericAttemptId}:`, error);
+      }
+    }
+
+    const body = req.body as { violations?: unknown; flagged?: unknown; flagReason?: unknown };
+    const violations = Number(body.violations) || 0;
+    const storedViolations = Number(attempt.violations) || 0;
+    const flagged = attempt.flagged === true || body.flagged === true || violations >= MAX_PROCTORING_VIOLATIONS;
+    const sentReason = typeof body.flagReason === "string" ? body.flagReason.trim().slice(0, 500) : "";
+    const flagReason = [attempt.flag_reason, sentReason].filter(Boolean).join("; ").slice(0, 500) || undefined;
+    const submittedAt = new Date();
+
+    await quizService.updateQuizAttempt(numericAttemptId, {
+      submitted_at: submittedAt,
+      violations: Math.max(storedViolations, violations),
+      flagged,
+      ...(flagReason !== undefined ? { flag_reason: flagReason } : {}),
+    });
+
+    // Grade this attempt right away. The attempt is already marked submitted,
+    // so the worker treats it as a normal completion even while the quiz is
+    // still open. Teacher-facing results are available immediately; students
+    // see them only after the visibility window (quiz end + 1 hour).
+    const submittedAttempt = await quizService.getQuizAttemptById(numericAttemptId);
+    if (submittedAttempt) {
+      try {
+        await enqueueSubmittedQuizAttempt(submittedAttempt);
+      } catch (error) {
+        console.error(`Could not enqueue result calculation for attempt ${numericAttemptId}:`, error);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Answers saved. Results are being calculated.",
+      data: {
+        attemptId: numericAttemptId,
+        status: "submitted",
+        submittedAt: submittedAt.toISOString(),
+        resultPending: true,
+      },
+    });
   } catch (error) {
     console.error("Error submitting quiz:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error while submitting quiz",
-    });
+    res.status(500).json({ success: false, message: "Internal server error while submitting quiz" });
   }
 };
 
@@ -1935,6 +1948,14 @@ export const unregisterFromQuiz = async (req: Request, res: Response) => {
 
 // ==================== PREVIOUS QUIZZES ====================
 
+const ATTEMPT_RESULT_VISIBILITY_DELAY_MS = 60 * 60 * 1000;
+
+/** Hide scores in the student's attempt history until end time + 1 hour. */
+function isAttemptResultVisible(row: any): boolean {
+  if (!row?.endtime) return false;
+  return new Date(row.endtime).getTime() + ATTEMPT_RESULT_VISIBILITY_DELAY_MS <= Date.now();
+}
+
 /**
  * GET /api/v1/user/quiz/previous
  * Get previous quizzes (attempted by logged-in student)
@@ -1968,9 +1989,23 @@ export const getPreviousQuizzes = async (req: Request, res: Response) => {
       sortOrder: sortOrder as string,
     });
 
+    const data = result.quizzes.map((row) => {
+      if (isAttemptResultVisible(row)) return { ...row, result_available: true };
+      return {
+        ...row,
+        result_available: false,
+        score: null,
+        percentage: null,
+        rank: null,
+        correct_answers: null,
+        wrong_answers: null,
+        skipped_questions: null,
+      };
+    });
+
     res.status(200).json({
       success: true,
-      data: result.quizzes,
+      data,
       pagination: {
         page: Number(page),
         limit: Number(limit),
@@ -2094,11 +2129,37 @@ export const submitQuizRating = async (req: Request, res: Response) => {
   }
 };
 
+const RESULT_VISIBILITY_DELAY_MS = 60 * 60 * 1000;
+
+function isAttemptInProgress(attempt: any): boolean {
+  const status = String(attempt?.status ?? attempt?.attempt_status ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+  return status === "in_progress";
+}
+
 function areStudentResultsAvailable(result: any): boolean {
-  if (result?.show_results_immediately === true) return true;
-  if (String(result?.quiz_status_name ?? "").toLowerCase() === "ended") return true;
+  // Never expose an attempt (or its review) while it is still being taken,
+  // even if immediate results are enabled. This also blocks opening it via a
+  // result URL/history after navigating back.
+  if (isAttemptInProgress(result)) return false;
+  // Students can see their result one hour after the quiz end time. The quiz
+  // status alone is not enough — an early end still respects the same delay.
   if (!result?.endtime) return false;
-  return new Date(result.endtime).getTime() <= Date.now();
+  return new Date(result.endtime).getTime() + RESULT_VISIBILITY_DELAY_MS <= Date.now();
+}
+
+/** Owners and accepted collaborators can always view results immediately. */
+async function canViewerSeeResult(result: any, viewerId: number): Promise<boolean> {
+  if (isAttemptInProgress(result)) return false;
+  if (Number(result?.createdby) === Number(viewerId)) return true;
+  const quizId = Number(result?.quiz_id);
+  if (Number.isInteger(quizId) && quizId > 0) {
+    const isCollaborator = await quizService.isAcceptedCollaborator(Number(viewerId), quizId);
+    if (isCollaborator) return true;
+  }
+  return areStudentResultsAvailable(result);
 }
 
 /**
@@ -2128,10 +2189,18 @@ export const getQuizResult = async (req: Request, res: Response) => {
       return;
     }
 
-    if (!areStudentResultsAvailable(result)) {
+    if (isAttemptInProgress(result)) {
       res.status(403).json({
         success: false,
-        message: "Results will be available after the quiz ends",
+        message: "This attempt is still in progress. Finish and submit the quiz to see your result.",
+      });
+      return;
+    }
+
+    if (!(await canViewerSeeResult(result, Number(userId)))) {
+      res.status(403).json({
+        success: false,
+        message: "Results will be available 1 hour after the quiz ends",
       });
       return;
     }
@@ -2171,10 +2240,17 @@ export const getQuizReview = async (req: Request, res: Response) => {
       res.status(404).json({ success: false, message: "Quiz result not found" });
       return;
     }
-    if (!areStudentResultsAvailable(result)) {
+    if (isAttemptInProgress(result)) {
       res.status(403).json({
         success: false,
-        message: "Answer review will be available after the quiz ends",
+        message: "This attempt is still in progress. Finish and submit the quiz to see the review.",
+      });
+      return;
+    }
+    if (!(await canViewerSeeResult(result, Number(userId)))) {
+      res.status(403).json({
+        success: false,
+        message: "Answer review will be available 1 hour after the quiz ends",
       });
       return;
     }
@@ -2242,6 +2318,22 @@ export const generateQuizResults = async (req: Request, res: Response) => {
       data: result,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "RESULTS_PENDING") {
+      res.status(409).json({
+        success: false,
+        message: "Results are still being calculated. Please try again in a few seconds.",
+        code: "RESULTS_PENDING",
+      });
+      return;
+    }
+    if (error instanceof Error && error.message === "QUIZ_NOT_ENDED") {
+      res.status(409).json({
+        success: false,
+        message: "Results can only be calculated after the quiz ends.",
+        code: "QUIZ_NOT_ENDED",
+      });
+      return;
+    }
     if (error instanceof Error && error.message === "RESULTS_ALREADY_GENERATED") {
       res.status(409).json({
         success: false,
@@ -3012,15 +3104,31 @@ export const sendQuizResponsesEmail = async (req: Request, res: Response) => {
       return;
     }
 
-    const { buffer, stats, registrationFields } = await generateResponsesReport(numericQuizId);
-    await sendResponsesReportEmail({
-      to: email,
-      quizName: quiz.name,
-      quizCode: quiz.code,
-      responsesBuffer: buffer,
-      registrationFields,
-      stats,
-    });
+    const quota = await reserveResponseEmailQuota(Number(userId), numericQuizId);
+    if (!quota.allowed) {
+      res.setHeader("Retry-After", String(quota.retryAfterSeconds));
+      res.status(429).json({
+        success: false,
+        message: quota.message,
+        data: { reason: quota.reason, retryAfterSeconds: quota.retryAfterSeconds },
+      });
+      return;
+    }
+
+    try {
+      const { buffer, stats, registrationFields } = await generateResponsesReport(numericQuizId);
+      await sendResponsesReportEmail({
+        to: email,
+        quizName: quiz.name,
+        quizCode: quiz.code,
+        responsesBuffer: buffer,
+        registrationFields,
+        stats,
+      });
+    } catch (error) {
+      await quota.release();
+      throw error;
+    }
 
     res.status(200).json({ success: true, data: { sent: true, to: email } });
   } catch (error) {
@@ -3072,8 +3180,13 @@ export const getStudentResponseDetail = async (req: Request, res: Response) => {
       return;
     }
 
-    const review = await quizService.getStudentQuestionReview(attempt.attempt_id);
-    res.status(200).json({ success: true, data: { attempt, review } });
+    // An in-flight attempt has no final review. Never expose partial answers
+    // to the creator while the student is still taking the quiz.
+    const reviewAvailable = !isAttemptInProgress(attempt);
+    const review = reviewAvailable
+      ? await quizService.getStudentQuestionReview(attempt.attempt_id)
+      : [];
+    res.status(200).json({ success: true, data: { attempt, review, review_available: reviewAvailable } });
   } catch (error) {
     console.error("Error fetching student response detail:", error);
     res.status(500).json({

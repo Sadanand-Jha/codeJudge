@@ -1,167 +1,31 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Check, HelpCircle, Rocket, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Check, AlertTriangle, Rocket } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import { useStudio, useSaveStatus, isQuestionValidationError } from "./StudioProvider";
 import { toast } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiError";
 
-const STEP_HELP: Record<string, { title: string; intro: string; items: string[] }> = {
-  details: {
-    title: "Quiz details",
-    intro: "Add the basic details students will see before starting the quiz.",
-    items: [
-      "Choose how you want to create the quiz, then add a clear title and description.",
-      "Select the closest subject, exam, and difficulty level.",
-      "The live preview shows how the quiz card will look to students.",
-    ],
-  },
-  questions: {
-    title: "Questions",
-    intro: "Build the question paper and mark the correct answers.",
-    items: [
-      "Add a question, choose its type, then enter the question and answer options.",
-      "For single choice, select one correct answer. Multiple choice can have several correct answers.",
-      "Use question settings for marks, difficulty, and explanation.",
-      "The question list lets you reorder, duplicate, search, or remove questions.",
-    ],
-  },
-  access: {
-    title: "Access",
-    intro: "Decide who can join, what they share, and how they get in.",
-    items: [
-      "Public quizzes can be discovered by anyone. Private quizzes require the link or code.",
-      "Rooms restrict access to students from the rooms you select.",
-      "Add only the registration fields you need for participant records.",
-      "Choose Free, or mark the quiz as paid (available soon).",
-    ],
-  },
-  rules: {
-    title: "Rules",
-    intro: "Control what happens during an attempt.",
-    items: [
-      "Set the attempt duration, question order, and result visibility.",
-      "Security options help discourage tab switching, copying, and leaving full screen.",
-      "Advanced timing covers late joining, rejoining, and auto-submit.",
-    ],
-  },
-  reviewPublish: {
-    title: "Review & publish",
-    intro: "Check the quiz, choose when it runs, then start it.",
-    items: [
-      "Errors must be fixed before publishing. Warnings are recommendations.",
-      "Choose a scheduled window or start the quiz manually.",
-      "The quiz code lets students join after the quiz is published.",
-      "Starting the quiz makes it live for eligible participants.",
-    ],
-  },
-};
-
-// Mobile follows a focused subset of the Studio flow (see MOBILE_STEP_IDS).
-// Desktop keeps the complete Studio navigation.
-
-function StudioHelpButton() {
-  const { state, helpExtra } = useStudio();
-  const [open, setOpen] = useState(false);
-  const help = STEP_HELP[state.step] ?? STEP_HELP.setup;
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="b b-ghost sm shrink-0"
-        aria-label="Open help"
-      >
-        <HelpCircle className="h-4 w-4" />
-        <span className="hidden sm:inline">Help</span>
-      </button>
-
-      {typeof document !== "undefined" &&
-        createPortal(
-          <AnimatePresence>
-            {open && (
-              <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-stretch sm:justify-end">
-                <motion.button
-                  type="button"
-                  aria-label="Close help"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="absolute inset-0 bg-[#1A1240]/50 backdrop-blur-[2px]"
-                  onClick={() => setOpen(false)}
-                />
-                <motion.aside
-                  initial={{ y: "100%" }}
-                  animate={{ y: 0 }}
-                  exit={{ y: "100%" }}
-                  transition={{ type: "spring", stiffness: 360, damping: 34 }}
-                  className="relative z-10 max-h-[85vh] w-full overflow-y-auto rounded-t-[24px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 shadow-2xl sm:h-full sm:max-h-none sm:max-w-sm sm:rounded-none sm:rounded-l-[24px] sm:border-l-2 sm:p-6"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[var(--qs-brand)]">Help</p>
-                      <h2 className="mt-1 text-lg font-black text-[var(--qs-ink)]">{help.title}</h2>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setOpen(false)}
-                      className="b b-icon b-close b-ghost"
-                      aria-label="Close help"
-                      title="Close help"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <p className="mt-4 text-sm font-medium leading-relaxed text-[var(--qs-muted)]">{help.intro}</p>
-                  <ol className="mt-5 space-y-3">
-                    {help.items.map((item, index) => (
-                      <li key={item} className="flex gap-3 text-sm font-medium leading-relaxed text-[var(--qs-muted)]">
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[11px] font-extrabold text-[var(--qs-on-brand)]">
-                          {index + 1}
-                        </span>
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ol>
-                  {helpExtra && (
-                    <div className="mt-6 border-t-2 border-[var(--qs-line)] pt-5">{helpExtra}</div>
-                  )}
-                </motion.aside>
-              </div>
-            )}
-          </AnimatePresence>,
-          document.body
-        )}
-    </>
-  );
-}
-
 export function StudioHeader() {
   const router = useRouter();
-  const { state, updateInfo, prevStep, nextStep, prevMobileStep, nextMobileStep, stepIndex, steps, saveToServer, mobileSteps, mobileStepIndex, editMode, questionsDirty, savingToServer } = useStudio();
+  const { state, updateInfo, prevMobileStep, nextMobileStep, saveToServer, mobileSteps, mobileStepIndex, editMode, questionsDirty, savingToServer } = useStudio();
   const { status, lastSaved } = useSaveStatus();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(state.info.title);
   const [continuing, setContinuing] = useState(false);
   const [saving, setSaving] = useState(false);
   const isMobileLast = mobileStepIndex !== -1 && mobileStepIndex === mobileSteps.length - 1;
-  const isLastStep = stepIndex === steps.length - 1;
-  const showContinue = !isLastStep || editMode;
+  const showContinue = !isMobileLast || editMode;
   const saveDisabled = state.step === "questions" && !questionsDirty;
   const label = state.info.title.trim();
-  const activeIdx = state.questions.findIndex((q) => q.id === state.activeQuestionId);
-  const total = state.questions.length;
-  const currentNum = activeIdx >= 0 ? activeIdx + 1 : total > 0 ? 1 : 0;
-  const progress = total > 0 ? Math.round((currentNum / Math.max(total, 1)) * 100) : 0;
-  const topCounter = total > 0 ? `${currentNum} / ${total} questions` : `0 / ${total} questions`;
 
-  useEffect(() => setDraft(state.info.title), [state.info.title]);
+  useEffect(() => {
+    queueMicrotask(() => setDraft(state.info.title));
+  }, [state.info.title]);
 
   const commit = () => {
     setEditing(false);
@@ -185,11 +49,8 @@ export function StudioHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-20 flex min-h-[56px] h-auto w-full max-w-[100vw] min-w-0 flex-wrap items-center gap-2 border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2 py-2 sm:gap-3 sm:px-4 lg:h-14 lg:flex-nowrap lg:py-0">
-      <button type="button" aria-label="Exit quiz studio" title="Exit quiz studio" onClick={() => router.push("/creator/quizzes")} className="b b-icon sm shrink-0 max-sm:hidden">
-        <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-      </button>
-      <div className="flex min-w-0 flex-1 items-center gap-1.5">
+    <header className="sticky top-0 z-20 flex min-h-[56px] h-auto w-full max-w-[100vw] min-w-0 flex-wrap items-center gap-2 border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2 py-2 sm:gap-3 sm:px-4 lg:h-11 lg:min-h-[44px] lg:flex-nowrap lg:justify-center lg:py-0">
+      <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5 lg:flex-none lg:max-w-[70%]">
         {editing ? (
           <input
             autoFocus
@@ -200,16 +61,16 @@ export function StudioHeader() {
               if (e.key === "Enter") commit();
               if (e.key === "Escape") setEditing(false);
             }}
-            className="min-w-0 flex-1 rounded-[10px] border-2 border-[var(--qs-brand)] bg-[var(--qs-surface)] px-2 py-1.5 text-sm font-bold text-[var(--qs-ink)] outline-none sm:min-w-[120px] sm:max-w-[40vw] sm:rounded-[12px] sm:px-3 sm:py-2"
+            className="min-w-0 flex-1 rounded-[10px] border-2 border-[var(--qs-brand)] bg-[var(--qs-surface)] px-2 py-1.5 text-center text-sm font-bold text-[var(--qs-ink)] outline-none sm:min-w-[120px] sm:max-w-[40vw] sm:rounded-[12px] sm:px-3 sm:py-2"
           />
         ) : label !== "" ? (
-          <button onClick={() => setEditing(true)} className="min-w-0 flex-1 whitespace-normal break-words text-left font-['Inter'] text-[13px] font-bold leading-snug text-[var(--qs-ink)] sm:text-[15px]">
+          <button onClick={() => setEditing(true)} className="min-w-0 max-w-full whitespace-normal break-words text-center font-['Inter'] text-[13px] font-bold leading-snug text-[var(--qs-ink)] sm:text-[15px]">
             {label}
           </button>
         ) : null}
       </div>
 
-      <div className="hidden shrink-0 items-center gap-1.5 text-xs text-[var(--qs-ok)] sm:ml-3 sm:flex border-l-2 border-[var(--qs-line)] pl-2 sm:pl-3">
+      <div className="absolute left-4 top-1/2 hidden -translate-y-1/2 items-center gap-1.5 text-xs text-[var(--qs-ok)] lg:flex">
         {status === "saving" ? (
           <span className="flex items-center gap-1 text-[var(--qs-muted)]"><SecureLogo variant="mark" size={12} className="animate-pulse motion-reduce:animate-none" />Saving…</span>
         ) : status === "saved" && lastSaved ? (
@@ -220,36 +81,19 @@ export function StudioHeader() {
         ) : null}
       </div>
 
-      <div className="ml-auto flex w-full min-w-0 items-center gap-2 border-t-2 border-[var(--qs-line)] pt-2 lg:w-auto lg:shrink-0 lg:justify-end lg:border-0 lg:pt-0">
+      <div className="ml-auto flex w-full min-w-0 items-center gap-2 border-t-2 border-[var(--qs-line)] pt-2 lg:hidden">
         <button
           type="button"
           onClick={() => void prevMobileStep()}
           disabled={mobileStepIndex <= 0}
           title="Previous step"
           aria-label="Previous step"
-          className="b b-icon sm shrink-0 lg:hidden"
+          className="b b-icon sm shrink-0"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
-        <button
-          type="button"
-          onClick={() => void prevStep()}
-          disabled={stepIndex === 0}
-          className="b b-ghost sm hidden shrink-0 lg:inline-flex"
-        >
-          <ChevronLeft className="h-3.5 w-3.5" /> Back
-        </button>
-        <StudioHelpButton />
-        {state.step === "questions" && (
-          <div className="hidden shrink-0 items-center gap-2 lg:flex">
-            <span className="whitespace-nowrap font-['Inter'] text-xs font-bold text-[var(--qs-muted)]">{topCounter}</span>
-            <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[var(--qs-line)] xl:w-20">
-              <div className="h-full rounded-full bg-[var(--qs-brand)] transition-all" style={{ width: `${Math.max(8, Math.min(100, progress))}%` }} />
-            </div>
-          </div>
-        )}
         {/* Mobile: Save + Continue compact */}
-        <div className="flex min-w-0 flex-1 items-center gap-2 lg:hidden">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           {!editMode && (
             <button
               type="button"
@@ -300,164 +144,106 @@ export function StudioHeader() {
             </button>
           )}
         </div>
-        {/* Desktop: Continue only */}
-        {showContinue && (
-          <button
-            type="button"
-            onClick={async () => {
-              if (continuing) return;
-              setContinuing(true);
-              try {
-                await nextStep();
-              } finally {
-                setContinuing(false);
-              }
-            }}
-            disabled={continuing}
-            aria-busy={continuing || undefined}
-            className={cn("b b-pri sm hidden lg:inline-flex", continuing && "loading")}
-          >
-            {continuing ? "Saving…" : <>Continue <ArrowRight className="h-3.5 w-3.5" /></>}
-          </button>
-        )}
       </div>
     </header>
   );
 }
 
 export function StudioStepper() {
-  const { state, goToStep, stepIndex, steps, mobileSteps, mobileStepIndex } = useStudio();
-  const [stepMenuOpen, setStepMenuOpen] = useState(false);
-  const stepMenuRef = useRef<HTMLDivElement>(null);
-  const display = steps;
-  const current = display[stepIndex] ?? display[0];
-  const progress = ((stepIndex + 1) / Math.max(display.length, 1)) * 100;
-  // Mobile follows only the mobile subset. If the current step isn't part of
-  // it (e.g. reached via a Review "Fix" link), fall back to full numbering so
-  // we never render nonsense like "Step 8 of 5".
-  const onMobilePath = mobileStepIndex !== -1;
-  const mobileCurrent = mobileSteps[mobileStepIndex] ?? current;
-  const mobileProgress = onMobilePath
-    ? ((mobileStepIndex + 1) / Math.max(mobileSteps.length, 1)) * 100
-    : progress;
-
-  useEffect(() => {
-    if (!stepMenuOpen) return;
-    const close = (event: MouseEvent) => {
-      if (!stepMenuRef.current?.contains(event.target as Node)) setStepMenuOpen(false);
-    };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, [stepMenuOpen]);
+  const { goToStep, prevStep, nextStep, stepIndex, steps, questionsValid } = useStudio();
 
   return (
-    <div className="relative z-30 shrink-0 border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2.5 sm:px-4">
-      <div className="mx-auto flex w-full max-w-5xl items-center gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="mb-1.5 flex items-center justify-between gap-3">
-            <span className="shrink-0 text-[10px] font-extrabold uppercase tracking-wide text-[var(--qs-muted)]">
-              {onMobilePath ? (
-                <span className="lg:hidden">Step {mobileStepIndex + 1} of {mobileSteps.length}</span>
-              ) : (
-                <span className="lg:hidden">Step {stepIndex + 1} of {display.length}</span>
-              )}
-              <span className="hidden lg:inline">Step {stepIndex + 1} of {display.length}</span>
-            </span>
-          </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-[var(--qs-line)]">
-            <div className="h-full rounded-full bg-[var(--qs-brand)] transition-all lg:hidden" style={{ width: `${mobileProgress}%` }} />
-            <div className="hidden h-full rounded-full bg-[var(--qs-brand)] transition-all lg:block" style={{ width: `${progress}%` }} />
-          </div>
-        </div>
-        <div ref={stepMenuRef} className="relative shrink-0">
-          <button
-            type="button"
-            onClick={() => setStepMenuOpen((value) => !value)}
-            aria-haspopup="menu"
-            aria-expanded={stepMenuOpen}
-            className={cn(
-              "b sm max-w-[64vw] items-center gap-1.5 sm:max-w-none",
-              stepMenuOpen ? "border-[var(--qs-brand)] text-[var(--qs-brand)]" : ""
-            )}
-          >
-            <span className="min-w-0 whitespace-normal break-words text-left leading-4">
-              {onMobilePath ? (
-                <span className="lg:hidden">{mobileStepIndex + 1}.</span>
-              ) : (
-                <span className="lg:hidden">{stepIndex + 1}.</span>
-              )}
-              <span className="hidden lg:inline">{stepIndex + 1}.</span>{" "}{onMobilePath ? mobileCurrent?.label : current?.label}
-            </span>
-            <ChevronRight className={cn("h-3.5 w-3.5 shrink-0 rotate-90 transition-transform", stepMenuOpen && "-rotate-90")} />
-          </button>
-          <AnimatePresence>
-            {stepMenuOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -4, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -4, scale: 0.98 }}
-                transition={{ duration: 0.14 }}
-                role="menu"
-                className="absolute right-0 top-full z-50 mt-1.5 max-h-[70vh] w-52 overflow-x-hidden overflow-y-auto overscroll-contain rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-1.5 shadow-[4px_4px_0_var(--qs-sun)]"
-              >
-                {/* Mobile menu: only the mobile subset */}
-                <div className="lg:hidden">
-                  {mobileSteps.map((step, index) => {
-                    const active = step.id === state.step;
-                    return (
-                      <button
-                        key={step.id}
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          goToStep(step.id);
-                          setStepMenuOpen(false);
-                        }}
-                        className={cn(
-                          "flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-xs font-bold transition-colors",
-                          active ? "bg-[var(--qs-poly-1)] text-[var(--qs-brand)]" : "text-[var(--qs-muted)] hover:bg-[var(--qs-poly-0)] hover:text-[var(--qs-ink)]"
-                        )}
-                      >
-                        <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold", active ? "border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "bg-[var(--qs-bg)] text-[var(--qs-muted)]")}>
-                          {index + 1}
-                        </span>
-                        <span className="min-w-0 whitespace-normal break-words">{step.label}</span>
-                        {active && <Check className="ml-auto h-3.5 w-3.5" />}
-                      </button>
-                    );
-                  })}
-                </div>
-                {/* Desktop menu: full Studio navigation */}
-                <div className="hidden lg:block">
-                  {display.map((step, index) => {
-                    const active = step.id === state.step;
-                    return (
-                      <button
-                        key={step.id}
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          goToStep(step.id);
-                          setStepMenuOpen(false);
-                        }}
-                        className={cn(
-                          "flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-xs font-bold transition-colors",
-                          active ? "bg-[var(--qs-poly-1)] text-[var(--qs-brand)]" : "text-[var(--qs-muted)] hover:bg-[var(--qs-poly-0)] hover:text-[var(--qs-ink)]"
-                        )}
-                      >
-                        <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold", active ? "border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "bg-[var(--qs-bg)] text-[var(--qs-muted)]")}>
-                          {index + 1}
-                        </span>
-                        <span className="min-w-0 whitespace-normal break-words">{step.label}</span>
-                        {active && <Check className="ml-auto h-3.5 w-3.5" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+    <div className="relative z-30 shrink-0 border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2 py-2.5 sm:px-4">
+      <div className="mx-auto flex w-full max-w-5xl items-center gap-1.5 sm:gap-2">
+        <p className="sr-only">
+          Step {stepIndex + 1} of {steps.length}: {steps[stepIndex]?.label}
+        </p>
+        <button
+          type="button"
+          onClick={() => void prevStep()}
+          disabled={stepIndex === 0}
+          aria-label="Previous step"
+          title="Previous step"
+          className="group inline-flex h-8 shrink-0 items-center gap-1 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 text-[10px] font-extrabold uppercase tracking-[0.04em] text-[var(--qs-ink)] shadow-[2px_2px_0_var(--qs-line)] transition-all hover:-translate-y-0.5 hover:border-[var(--qs-brand)] hover:shadow-[3px_3px_0_var(--qs-sun)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:pointer-events-none disabled:opacity-40 sm:h-9 sm:px-2.5 sm:text-[11px]"
+        >
+          <ChevronLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+          <span className="hidden md:inline">Previous</span>
+        </button>
+        <ol className="flex min-w-0 flex-1 items-stretch gap-1.5 sm:gap-2">
+          {steps.map((step, index) => {
+            const done = index < stepIndex;
+            const active = index === stepIndex;
+            const needsAttention = done && step.id === "questions" && !questionsValid;
+            return (
+              <li key={step.id} className="relative min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={() => goToStep(step.id)}
+                  aria-current={active ? "step" : undefined}
+                  aria-label={`Step ${index + 1}: ${step.label}`}
+                  title={step.label}
+                  className={cn(
+                    "flex h-full w-full min-w-0 flex-col items-center justify-center gap-1 rounded-[10px] border-2 px-1 py-1.5 text-center transition-all sm:flex-row sm:gap-1.5 sm:rounded-[12px] sm:px-2 sm:py-2",
+                    done && !needsAttention && "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]",
+                    needsAttention && "border-[var(--qs-warn)] bg-[var(--qs-warnbg)] text-[var(--qs-warn)]",
+                    active && "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)]",
+                    !done && !active && "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold tabular-nums",
+                      done && !needsAttention && "bg-[var(--qs-ok)] text-[var(--qs-bg)]",
+                      needsAttention && "bg-[var(--qs-warn)] text-[var(--qs-bg)]",
+                      active && "border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] text-[var(--qs-brand)]",
+                      !done && !active && "bg-[var(--qs-bg)] text-[var(--qs-muted)]"
+                    )}
+                  >
+                    {done && !needsAttention ? (
+                      <Check className="h-3 w-3" strokeWidth={3} />
+                    ) : needsAttention ? (
+                      <AlertTriangle className="h-3 w-3" strokeWidth={3} />
+                    ) : (
+                      index + 1
+                    )}
+                  </span>
+                  <span
+                    className={cn(
+                      "min-w-0 text-[8px] font-extrabold uppercase leading-[1.15] tracking-[0.02em] sm:text-[10px] sm:leading-tight sm:tracking-normal lg:text-[11px]",
+                      step.label.includes("&") ? "whitespace-normal" : "whitespace-nowrap"
+                    )}
+                  >
+                    {step.label}
+                  </span>
+                </button>
+                {index < steps.length - 1 && (
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "absolute -right-1.5 top-1/2 h-1 w-1.5 -translate-y-1/2 rounded-full sm:-right-2 sm:w-2",
+                      index < stepIndex
+                        ? step.id === "questions" && !questionsValid
+                          ? "bg-[var(--qs-warn)]"
+                          : "bg-[var(--qs-ok)]"
+                        : "bg-[var(--qs-line)]"
+                    )}
+                  />
+                )}
+              </li>
+            );
+          })}
+        </ol>
+        <button
+          type="button"
+          onClick={() => void nextStep()}
+          disabled={stepIndex === steps.length - 1}
+          aria-label="Next step"
+          title="Next step"
+          className="group inline-flex h-8 shrink-0 items-center gap-1 rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-2 text-[10px] font-extrabold uppercase tracking-[0.04em] text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] transition-all hover:-translate-y-0.5 hover:shadow-[3px_3px_0_var(--qs-sun)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:pointer-events-none disabled:opacity-40 sm:h-9 sm:px-2.5 sm:text-[11px]"
+        >
+          <span className="hidden md:inline">Next</span>
+          <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+        </button>
       </div>
     </div>
   );
@@ -465,24 +251,9 @@ export function StudioStepper() {
 
 export function StudioFooter() {
   const router = useRouter();
-  const { state, prevStep, nextStep, stepIndex, steps, summary, publish, saveToServer, setActiveQuestion, editMode } = useStudio();
-  const [savingDraft, setSavingDraft] = useState(false);
+  const { state, prevStep, nextStep, stepIndex, steps, publish, saveToServer, setActiveQuestion, editMode } = useStudio();
   const [continuing, setContinuing] = useState(false);
   const isLast = stepIndex === steps.length - 1;
-
-  const handleSaveDraft = async () => {
-    if (savingDraft) return;
-    setSavingDraft(true);
-    try {
-      await saveToServer();
-      toast.success({ title: "Saved to server", description: "Your quiz draft and questions are saved." });
-    } catch (err) {
-      if (isQuestionValidationError(err)) return;
-      toast.error({ title: "Could not save draft", description: err instanceof Error ? err.message : "Something went wrong." });
-    } finally {
-      setSavingDraft(false);
-    }
-  };
 
   const handleContinue = async () => {
     if (continuing) return;
@@ -505,7 +276,6 @@ export function StudioFooter() {
       if (state.info.title.trim().length < 3) return false;
       return true;
     }
-    if (state.step === "questions") return summary.validQuestions > 0;
     return true;
   };
 
@@ -513,16 +283,25 @@ export function StudioFooter() {
   const activeIdx = state.questions.findIndex((q) => q.id === state.activeQuestionId) + 1;
   const [confirmPublish, setConfirmPublish] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const isScheduledPublish = Boolean(state.info.startDate);
 
   const handleConfirmPublish = async () => {
     if (publishing) return;
     setPublishing(true);
     try {
       await saveToServer({ publish: true });
-      toast.success({ title: state.info.title || "Quiz published", description: "Your quiz is now live." });
+      toast.success({
+        title: state.info.title || "Quiz published",
+        description: isScheduledPublish ? "Your quiz has been scheduled." : "Your quiz is now live.",
+      });
       publish();
     } catch (err) {
-      if (!isQuestionValidationError(err)) toast.error({ title: "Could not start quiz", description: err instanceof Error ? err.message : "Something went wrong." });
+      if (!isQuestionValidationError(err)) {
+        toast.error({
+          title: isScheduledPublish ? "Could not schedule quiz" : "Could not start quiz",
+          description: err instanceof Error ? err.message : "Something went wrong.",
+        });
+      }
     } finally {
       setPublishing(false);
     }
@@ -586,13 +365,19 @@ export function StudioFooter() {
               disabled={publishing}
               className="b b-pri sm"
             >
-              <Rocket className="h-3.5 w-3.5" /> Start quiz
+              <Rocket className="h-3.5 w-3.5" /> {isScheduledPublish ? "Schedule quiz" : "Start quiz"}
             </button>
             {confirmPublish && (
               <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#1A1240]/60 p-4" onClick={() => !publishing && setConfirmPublish(false)}>
                 <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-6 shadow-[6px_6px_0_var(--qs-sun)]">
-                  <h3 className="text-base font-black text-[var(--qs-ink)]">Start this quiz?</h3>
-                  <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">It will go live immediately for eligible students.</p>
+                  <h3 className="text-base font-black text-[var(--qs-ink)]">
+                    {isScheduledPublish ? "Schedule this quiz?" : "Start this quiz?"}
+                  </h3>
+                  <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">
+                    {isScheduledPublish
+                      ? "It will open automatically at the scheduled start time for eligible students."
+                      : "It will go live immediately for eligible students."}
+                  </p>
                   <div className="mt-4 flex justify-end gap-2">
                     <button type="button" onClick={() => setConfirmPublish(false)} className="b sm">Cancel</button>
                     <button
@@ -602,7 +387,7 @@ export function StudioFooter() {
                       aria-busy={publishing || undefined}
                       className={cn("b b-pri sm", publishing && "loading")}
                     >
-                      {publishing ? "Starting…" : "Start quiz"}
+                      {publishing ? "Saving…" : isScheduledPublish ? "Schedule quiz" : "Start quiz"}
                     </button>
                   </div>
                 </div>

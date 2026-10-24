@@ -6,7 +6,7 @@
  * single-correct MCQs for the requested subject / chapter / topic / syllabus
  * scope while respecting the requested difficulty distribution.
  */
-import { chatWithAI } from "./ai.service.js";
+import { chatWithAI, streamChatWithAI } from "./ai.service.js";
 import type { LiveUsage } from "./ai.service.js";
 import { parseQuestionsJSON } from "./question-generation.service.js";
 import type { GeneratedQuestionPayload } from "./question-generation.service.js";
@@ -44,12 +44,19 @@ export interface QuestionBankSelectionRequest {
   quizId?: number | null;
   /** Creator account that requested generation (optional). */
   createdBy?: number | null;
+  /** Live model reasoning chunks. When provided, generation streams from the provider. */
+  onReasoning?: (chunk: string) => void;
+  /** Live model content chunks (raw JSON while a question bank is generated). */
+  onContent?: (chunk: string) => void;
+  /** Cancels the provider request when the client disconnects. */
+  signal?: AbortSignal;
 }
 
 export interface QuestionBankSelectionResult {
   questions: GeneratedQuestionPayload[];
   extractedText: string;
   usage?: LiveUsage;
+  reasoning?: string;
 }
 
 const SYSTEM_PROMPT = `You are an expert academic assessment author. You write original, exam-quality single-correct multiple-choice questions (MCQs).
@@ -609,7 +616,27 @@ ${scopeRule}
 Do not return fewer than ${numberOfQuestions} questions. Each question must be unique; never duplicate a concept already asked.`;
 
   try {
-    const { content, usage } = await chatWithAI(prompt);
+    let content = "";
+    let usage: LiveUsage | undefined;
+    let reasoning = "";
+    if (request.onReasoning || request.onContent) {
+      for await (const chunk of streamChatWithAI(prompt, request.signal)) {
+        if (chunk.reasoning) {
+          reasoning += chunk.reasoning;
+          request.onReasoning?.(chunk.reasoning);
+        }
+        if (chunk.content) {
+          content += chunk.content;
+          request.onContent?.(chunk.content);
+        }
+        if (chunk.usage) usage = chunk.usage;
+      }
+    } else {
+      const response = await chatWithAI(prompt, request.signal);
+      content = response.content;
+      usage = response.usage;
+      reasoning = response.reasoning ?? "";
+    }
     const parsed = parseQuestionsJSON(content);
 
     const seen = new Set<string>();
@@ -651,6 +678,7 @@ Do not return fewer than ${numberOfQuestions} questions. Each question must be u
       questions,
       extractedText: scopeLines,
       usage,
+      reasoning: reasoning || undefined,
     };
   } catch (error) {
     console.warn("[question-bank] AI generation failed:", error);

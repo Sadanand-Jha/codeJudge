@@ -15,7 +15,6 @@ import {
   Plus,
   Search,
   Settings2,
-  Trash2,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
@@ -29,7 +28,8 @@ import type { RoomMenuItem } from "@/components/quiz/creator/settings/audience/R
 import CreateRoomModal from "@/components/quiz/creator/settings/audience/CreateRoomModal";
 import AddStudentsModal from "@/components/quiz/creator/settings/audience/AddStudentsModal";
 import DuplicateRoomModal from "./DuplicateRoomModal";
-import DeleteRoomModal from "./DeleteRoomModal";
+import RoomUpdatesSummary from "./RoomUpdatesSummary";
+import RoomStudentSearch from "./RoomStudentSearch";
 
 type FilterTab = "all" | "active" | "archived" | "recent";
 type SortKey = "updated" | "name" | "students";
@@ -74,7 +74,6 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
   const archiveRoom = useRoomStore((s) => s.archiveRoom);
   const unarchiveRoom = useRoomStore((s) => s.unarchiveRoom);
   const duplicateRoom = useRoomStore((s) => s.duplicateRoom);
-  const deleteRoom = useRoomStore((s) => s.deleteRoom);
   const updateRoom = useRoomStore((s) => s.updateRoom);
   const addStudents = useRoomStore((s) => s.addStudents);
   const { user } = useAuthStore();
@@ -86,7 +85,6 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
   const [createTab, setCreateTab] = useState<"manual" | "import">("manual");
   const [editTarget, setEditTarget] = useState<string | null>(null);
   const [duplicateTarget, setDuplicateTarget] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [addTarget, setAddTarget] = useState<{ roomId: string; tab: "manual" | "import" } | null>(null);
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [actionMenu, setActionMenu] = useState<{ roomId: string; archived: boolean; top?: number; bottom?: number; right: number } | null>(null);
@@ -160,7 +158,6 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
 
   const editRoom = editTarget ? ownedRooms.find((r) => r.id === editTarget) : null;
   const duplicateRoomTarget = duplicateTarget ? ownedRooms.find((r) => r.id === duplicateTarget) : null;
-  const deleteRoomTarget = deleteTarget ? ownedRooms.find((r) => r.id === deleteTarget) : null;
   const addRoomTarget = addTarget ? ownedRooms.find((r) => r.id === addTarget.roomId) : null;
 
   const openActionMenu = (e: React.MouseEvent, roomId: string, archived: boolean) => {
@@ -240,13 +237,6 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
         }
       },
     },
-    {
-      id: "delete",
-      label: "Delete Room",
-      icon: Trash2,
-      destructive: true,
-      onClick: () => setDeleteTarget(roomId),
-    },
   ];
 
   // Full-page skeleton while rooms & students are fetched from the backend
@@ -258,11 +248,11 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
             <div className="app-skeleton h-9 w-44 rounded" />
             <div className="app-skeleton mt-2 h-4 w-72 rounded" />
           </div>
-          <div className="mb-5 grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+          <div className="mb-4 flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:mb-5 sm:grid sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">
-                <div className="app-skeleton h-3 w-20 rounded" />
-                <div className="app-skeleton mt-3 h-7 w-14 rounded" />
+              <div key={i} className="min-w-[132px] flex-1 shrink-0 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 sm:min-w-0 sm:rounded-[18px] sm:p-4">
+                <div className="app-skeleton h-3 w-16 rounded sm:w-20" />
+                <div className="app-skeleton mt-3 h-6 w-12 rounded sm:h-7 sm:w-14" />
               </div>
             ))}
           </div>
@@ -324,29 +314,33 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
         )}
 
         {/* Stats */}
-        <div className="mb-5 grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+        <div className="mb-4 flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:mb-5 sm:grid sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-4">
           {statCards.map((kpi) => (
             <div
               key={kpi.label}
               className={cn(
-                "rounded-[18px] border-2 p-4 sm:px-[18px]",
+                "min-w-[136px] flex-1 shrink-0 rounded-[16px] border-2 p-3 sm:min-w-0 sm:rounded-[18px] sm:p-4 sm:px-[18px]",
                 kpi.hi ? "border-[var(--qs-ink)] bg-[var(--qs-sun)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
               )}
             >
               <small className={cn(
-                "flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.08em]",
+                "flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] sm:gap-2 sm:text-xs",
                 kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-muted)]"
               )}>
-                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: kpi.color }} />
+                <span className="h-2 w-2 shrink-0 rounded-full sm:h-2.5 sm:w-2.5" style={{ background: kpi.color }} />
                 {kpi.label}
               </small>
-              <b className={cn("mt-2 block text-[32px] font-extrabold leading-[1.1] sm:text-[36px]", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-ink)]")}>
+              <b className={cn("mt-1.5 block text-[24px] font-extrabold leading-[1.1] sm:mt-2 sm:text-[32px] lg:text-[36px]", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-ink)]")}>
                 {kpi.value}
-                <span className={cn("ml-1 text-sm font-medium", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-muted)]")}>{kpi.sub}</span>
+                <span className={cn("ml-1 text-xs font-medium sm:text-sm", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-muted)]")}>{kpi.sub}</span>
               </b>
             </div>
           ))}
         </div>
+
+        <RoomUpdatesSummary rooms={ownedRooms} basePath={basePath} />
+
+        <RoomStudentSearch rooms={ownedRooms} basePath={basePath} />
 
         {/* Filter bar */}
         <div className="mb-5 flex flex-wrap items-center gap-2.5">
@@ -589,19 +583,6 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
                 description: `"${copy.name}" was created.`,
               });
             }
-          }}
-        />
-      )}
-
-      {/* Delete room */}
-      {deleteRoomTarget && (
-        <DeleteRoomModal
-          open={Boolean(deleteTarget)}
-          onClose={() => setDeleteTarget(null)}
-          roomName={deleteRoomTarget.name}
-          onConfirm={() => {
-            deleteRoom(deleteRoomTarget.id);
-            toast.success({ title: "Room deleted", description: "The room was permanently removed." });
           }}
         />
       )}

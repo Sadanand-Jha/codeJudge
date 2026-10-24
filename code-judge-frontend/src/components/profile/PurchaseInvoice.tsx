@@ -234,7 +234,7 @@ export default function PurchaseInvoice() {
                 <p>
                   Thank you for choosing QuizSupport. This invoice confirms your purchase of the
                   learning resources listed above. Access remains valid as described on each product.
-                  For billing questions, contact <span className="text-text-primary">support@quizsupport.dev</span>.
+                  For billing questions, use the feedback form on the Contact page.
                 </p>
               </div>
 

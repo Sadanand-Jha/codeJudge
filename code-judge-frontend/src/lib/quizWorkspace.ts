@@ -36,3 +36,17 @@ export function parseQuizCodeFromPath(pathname: string): string {
   const m = pathname.match(/^\/quiz\/([^/]+)/);
   return m ? m[1] : "";
 }
+
+/**
+ * True while the student is inside the join → wait → attempt → result flow.
+ *
+ * These steps take over the whole screen (the join card, waiting room, exam
+ * shell and result review all carry their own navigation), so the app sidebar
+ * and topbar must stay out of the way once a student starts joining a quiz.
+ */
+export function isStudentQuizFlowPath(pathname: string): boolean {
+  if (pathname === "/quiz/join") return true;
+  return /^\/quiz\/[^/]+\/(register|lobby|waiting|attempt|results|leaderboard)(\/|$)/.test(
+    pathname
+  );
+}

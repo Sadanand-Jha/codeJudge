@@ -12,9 +12,11 @@ import { cn } from "@/lib/helpers";
 import {
   CREATOR_PLANS,
   getCreatorPlan,
+  getCreatorPlanDiscount,
   type CreatorPlan,
 } from "@/config/creatorPlans";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
+import { TrialOfferBanner } from "@/components/marketing/TrialOfferBanner";
 import { PageHeader } from "./ui";
 
 const OUTLINE_BTN =
@@ -38,6 +40,7 @@ function PlanCard({
   const isCurrent = plan.id === currentPlanId;
   const isHot = plan.featured && !isCurrent;
   const includedCredits = plan.credits > 0;
+  const discount = getCreatorPlanDiscount(plan);
 
   return (
     <article
@@ -77,7 +80,15 @@ function PlanCard({
               : "bg-[var(--qs-bg)] text-[var(--qs-muted)]"
           )}
         >
-          {plan.price === 0 ? "Free forever" : "Monthly"}
+          {plan.price === 0
+            ? plan.trialDays
+              ? `${plan.trialDays}-day trial`
+              : "Free forever"
+            : plan.id === "basic" && discount > 0
+              ? `Limited ${discount}% off`
+              : discount > 0
+                ? `${discount}% off`
+                : "Monthly"}
         </span>
       </div>
 
@@ -92,6 +103,16 @@ function PlanCard({
 
       <p className="mt-4 text-[44px] font-black leading-none tracking-tight">
         {inr(plan.price)}
+        {discount > 0 && plan.originalPrice && (
+          <s
+            className={cn(
+              "ml-2 align-middle text-[16px] font-bold tracking-normal",
+              isHot ? "text-[var(--qs-on-brand)]/70" : "text-[var(--qs-muted)]"
+            )}
+          >
+            {inr(plan.originalPrice)}
+          </s>
+        )}
         {plan.price > 0 && (
           <span
             className={cn(
@@ -163,7 +184,11 @@ function PlanCard({
               : "bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:bg-[var(--qs-ink)] hover:text-[var(--qs-bg)]"
           )}
         >
-          {plan.price === 0 ? "Switch to Free" : `Upgrade to ${plan.name}`}
+          {plan.price === 0
+            ? plan.trialDays
+              ? "Start free trial"
+              : "Switch to Free"
+            : `Upgrade to ${plan.name}`}
           <ArrowRight className="h-4 w-4" />
         </Link>
       )}
@@ -179,7 +204,7 @@ export function MonthlyPlansPage() {
     <div className="space-y-5 pb-2">
       <PageHeader
         title="Monthly plans"
-        subtitle="Pick the plan that matches how often you run quizzes. Paid plans include monthly AI credits."
+        subtitle="Start with a 7-day free trial: 2 quizzes and 1 room. Paid plans include monthly AI credits."
         actions={
           <>
             <Link href="/creator/billing/credits" className={OUTLINE_BTN}>
@@ -192,6 +217,12 @@ export function MonthlyPlansPage() {
             </Link>
           </>
         }
+      />
+
+      <TrialOfferBanner
+        showBasicOffer
+        ctaHref="/pricing#plans"
+        ctaLabel="Choose Basic"
       />
 
       <section

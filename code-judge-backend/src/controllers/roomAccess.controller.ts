@@ -13,6 +13,7 @@ import {
   roomPasswordExpiresAtIso,
 } from "../services/roomAccess.service.ts";
 import { normalizeRoomRegistrationForm } from "../services/roomRegistration.service.ts";
+import { QuizService } from "../services/database/quiz.service.ts";
 import {
   generateRoomPassword,
   isValidRoomCodeInput,
@@ -20,6 +21,18 @@ import {
 } from "../utils/roomCode.ts";
 
 const roomRepo = new RoomRepository();
+const quizService = new QuizService();
+
+/** Load the teacher's public card; never block a join on this lookup. */
+async function loadPublicTeacher(ownerId: string) {
+  const id = Number(ownerId);
+  if (!Number.isInteger(id) || id <= 0) return null;
+  try {
+    return await quizService.getCreatorPublicStats(id);
+  } catch {
+    return null;
+  }
+}
 
 // Must match MAX_ROOMS_PER_CREATOR in the frontend.
 const MAX_ROOMS_PER_CREATOR = 5;
@@ -154,10 +167,15 @@ export const previewRoomJoin = async (req: Request, res: Response) => {
     }
 
     const result = await previewRoomJoinWithPassword(
-      { findRoomByCode: (code) => roomRepo.findRoomByCode(code) },
+      {
+        findRoomByCode: (code) => roomRepo.findRoomByCode(code),
+        isMember: (roomId, memberUserId) =>
+          roomRepo.isMember(String(roomId), memberUserId),
+      },
       {
         roomCode: String(req.body.room_code ?? ""),
         password: String(req.body.password ?? ""),
+        userId: String(userId),
       }
     );
 
@@ -174,7 +192,8 @@ export const previewRoomJoin = async (req: Request, res: Response) => {
       return;
     }
 
-    res.status(200).json({ success: true, data: result.preview });
+    const teacher = await loadPublicTeacher(result.preview.ownerId);
+    res.status(200).json({ success: true, data: { ...result.preview, teacher } });
   } catch (error) {
     console.error("previewRoomJoin error", error);
     res.status(500).json({
@@ -239,9 +258,10 @@ export const joinRoom = async (req: Request, res: Response) => {
       return;
     }
 
+    const teacher = await loadPublicTeacher(result.ownerId);
     res.status(200).json({
       success: true,
-      data: { room: result.room },
+      data: { room: result.room, teacher },
     });
   } catch (error) {
     console.error("joinRoom error", error);

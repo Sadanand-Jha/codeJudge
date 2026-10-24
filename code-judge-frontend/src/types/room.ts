@@ -58,8 +58,8 @@ export interface Room {
   /**
    * Admin/teacher account that owns this room. Rooms are reusable,
    * persistent resources owned by an admin — a quiz references them via
-   * `QuizAudience.roomIds`. When unset (demo seed data) the room is treated
-   * as owned by the currently authenticated admin.
+   * `QuizAudience.roomIds`. Rooms without an owner are never shown in the
+   * teacher workspace.
    */
   ownerId?: string;
   /** ISO timestamp. */

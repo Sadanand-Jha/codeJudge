@@ -56,7 +56,7 @@ export function AnalyticsHero({
   const isLive = (status ?? "").toLowerCase() === "live" || (status ?? "").toLowerCase() === "active";
 
   return (
-    <div className="relative mb-4 mr-4">
+    <div className="relative mb-7 mr-4">
       <div aria-hidden="true" className="absolute left-4 top-4 -bottom-4 -right-4 rounded-[30px] bg-[var(--qs-sun)]" />
       <div className="relative overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
         <div className="bg-[var(--qs-brand)] px-5 pt-6 text-[var(--qs-on-brand)] sm:px-[26px]">
