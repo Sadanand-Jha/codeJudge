@@ -1,3 +1,5 @@
+import { getUserTimeZone } from "@/lib/timezone";
+
 import { jsPDF } from "jspdf";
 import { CreatorQuestion } from "@/components/quiz/creator/types";
 import {
@@ -916,7 +918,7 @@ export function layoutQuestionPaper(input: PaperInput, date: string, time: strin
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export function footerDateTime(d = new Date()): { date: string; time: string } {
-  const options = { timeZone: "Asia/Kolkata" } as const;
+  const options = { timeZone: getUserTimeZone() } as const;
   const day = Number(d.toLocaleDateString("en-IN", { ...options, day: "numeric" }));
   const month = d.toLocaleDateString("en-IN", { ...options, month: "short" });
   const year = Number(d.toLocaleDateString("en-IN", { ...options, year: "numeric" }));

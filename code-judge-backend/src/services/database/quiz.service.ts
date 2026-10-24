@@ -84,6 +84,7 @@ export class QuizService {
     code: string;
     createdby: number;
     starttime?: Date;
+    endtime?: Date;
     visibility?: number;
     difficulty?: number;
     subjectId?: number;

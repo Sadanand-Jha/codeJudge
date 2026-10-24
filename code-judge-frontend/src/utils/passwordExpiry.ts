@@ -1,4 +1,5 @@
 import { formatDateTimeIST } from "@/lib/formatters";
+import { getUserTimeZone } from "@/lib/timezone";
 
 /** Shared default for new rooms: passwords are valid for one day. */
 export const DEFAULT_PASSWORD_EXPIRY_MINUTES = 24 * 60;
@@ -21,14 +22,14 @@ export const PASSWORD_EXPIRY_OPTIONS: PasswordExpiryOption[] = [
 ];
 
 /**
- * Absolute expiry in the Kolkata region. Example:
- * "24 Oct 2026, 6:30 pm IST". The room code itself never expires.
+ * Absolute expiry in the viewer's timezone, with the IANA zone appended so
+ * recipients of a share message know which clock it refers to.
  */
 export function formatPasswordExpiry(value: string | null | undefined): string {
   if (!value) return "Does not expire";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Does not expire";
-  return `${formatDateTimeIST(date)} IST`;
+  return `${formatDateTimeIST(date)} (${getUserTimeZone()})`;
 }
 
 export function isPasswordExpired(

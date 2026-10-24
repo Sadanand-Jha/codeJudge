@@ -269,7 +269,7 @@ function defaultSettings(quizName: string): QuizSettingsConfig {
       },
     },
     scheduling: {
-      timezone: "Asia/Kolkata",
+      timezone: "UTC",
       lateEntryPolicy: "allowed",
     },
     scoring: {

@@ -203,28 +203,36 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
   return (
     <div className="min-h-full bg-[var(--qs-bg)]">
       <div className="mx-auto w-full max-w-[1280px] px-4 py-6 pb-20 sm:px-6">
-        <header className="flex flex-wrap items-start justify-between gap-4">
+        <header className="flex flex-wrap items-start justify-between gap-4 xl:items-center">
           <div className="flex min-w-0 items-start gap-3.5">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[15px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)]">
-              <Users className="h-6 w-6" strokeWidth={2.5} />
+            <span className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] md:h-16 md:w-16 md:rounded-[16px]">
+              <Users className="h-[26px] w-[26px] md:h-[30px] md:w-[30px]" strokeWidth={2.5} />
             </span>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--qs-ok)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-ok)]">
+                <span className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--qs-ok)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-ok)] md:text-[11px]">
                   Joined
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--qs-poly-1)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-ink)]">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--qs-poly-1)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-ink)] md:text-[11px]">
                   <Users className="h-3 w-3" />
                   {room.memberCount} classmate{room.memberCount === 1 ? "" : "s"}
                 </span>
               </div>
-              <h1 className="mt-2 text-[28px] font-extrabold leading-none tracking-[-0.02em] text-[var(--qs-ink)] sm:text-[34px]">
+              <h1 className="mt-2 text-[26px] font-extrabold leading-[1.1] tracking-[-0.02em] text-[var(--qs-ink)] sm:text-[30px] md:text-[34px]">
                 {room.name}
               </h1>
               <p className="mt-1 max-w-2xl text-sm text-[var(--qs-muted)]">
                 {room.description || "Your classroom space for classmates, updates and shared notes."}
+                <span className="hidden md:inline">
+                  <span className="mx-1">·</span>
+                  Taught by{" "}
+                  <span className="font-extrabold text-[var(--qs-ink)]">{teacherDisplay}</span>
+                  {room.owner?.username ? (
+                    <span className="text-[var(--qs-muted)]"> @{room.owner.username}</span>
+                  ) : null}
+                </span>
               </p>
-              <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs font-semibold text-[var(--qs-muted)]">
+              <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs font-semibold text-[var(--qs-muted)] md:hidden">
                 <span>Taught by</span>
                 <span className="font-extrabold text-[var(--qs-ink)]">{teacherDisplay}</span>
                 {room.owner?.username ? (
@@ -233,63 +241,103 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
               </p>
             </div>
           </div>
+
+          <div className="grid w-full grid-cols-2 gap-2.5 sm:grid-cols-4 lg:w-auto">
+            <RoomStat label="Classmates" value={room.memberCount} />
+            <RoomStat label="Documents" value={roomDocuments.length} />
+            <RoomStat label="Announcements" value={roomAnnouncements.length} />
+            <RoomStat
+              label="Joined"
+              value={myMembership?.joinedAt ? timeAgo(myMembership.joinedAt) : "—"}
+            />
+          </div>
         </header>
 
-        {section === "documents" ? (
+        {section === "overview" && teacher ? (
           <div className="mt-5">
-            <RoomDocumentsPanel roomId={room.id} roomName={room.name} readOnly />
+            <TeacherPublicCard teacher={teacher} className="bg-[var(--qs-surface)]" />
           </div>
-        ) : section === "announcements" ? (
-          <div className="mt-5">
-            <RoomAnnouncementsPanel roomId={room.id} roomName={room.name} readOnly />
-          </div>
-        ) : (
-          <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-            <div className="min-w-0 space-y-5">
-              {section === "students" ? (
-                <StudentsPanel
-                  classmates={classmates}
-                  filteredClassmates={filteredClassmates}
-                  query={query}
-                  setQuery={setQuery}
-                />
-              ) : (
-                <RecentUpdatesPanel
-                  room={room}
-                  announcements={roomAnnouncements}
-                  documents={roomDocuments}
-                />
-              )}
-            </div>
+        ) : null}
 
-            <aside className="min-w-0 space-y-5">
-              <TeacherPublicCard teacher={teacher} />
-
-              <section className="rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">
-                <h2 className="text-sm font-extrabold text-[var(--qs-ink)]">Room details</h2>
-                <dl className="mt-3 space-y-2.5 text-sm">
-                  <div className="flex items-center justify-between gap-3 border-b-2 border-[var(--qs-line)] pb-2.5">
-                    <dt className="font-semibold text-[var(--qs-muted)]">Room code</dt>
-                    <dd className="rounded-[8px] bg-[var(--qs-bg)] px-2 py-0.5 font-mono text-xs font-bold text-[var(--qs-ink)]">
-                      {room.room_code}
-                    </dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 border-b-2 border-[var(--qs-line)] pb-2.5">
-                    <dt className="font-semibold text-[var(--qs-muted)]">Classmates</dt>
-                    <dd className="font-extrabold text-[var(--qs-ink)]">{room.memberCount}</dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="font-semibold text-[var(--qs-muted)]">You joined</dt>
-                    <dd className="font-extrabold text-[var(--qs-ink)]">
-                      {myMembership?.joinedAt ? timeAgo(myMembership.joinedAt) : "—"}
-                    </dd>
-                  </div>
-                </dl>
-              </section>
-            </aside>
+        <div className="mt-5 grid gap-5 md:mt-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:gap-6">
+          <div className="min-w-0">
+            {section === "documents" ? (
+              <RoomDocumentsPanel roomId={room.id} roomName={room.name} readOnly />
+            ) : section === "announcements" ? (
+              <RoomAnnouncementsPanel
+                roomId={room.id}
+                roomName={room.name}
+                readOnly
+                author={
+                  room.owner
+                    ? {
+                        name: teacherDisplay,
+                        username: room.owner.username,
+                        avatarId: room.owner.avatarId,
+                        avatarUrl: room.owner.avatarUrl,
+                      }
+                    : null
+                }
+              />
+            ) : section === "students" ? (
+              <StudentsPanel
+                classmates={classmates}
+                filteredClassmates={filteredClassmates}
+                query={query}
+                setQuery={setQuery}
+              />
+            ) : (
+              <RecentUpdatesPanel
+                room={room}
+                announcements={roomAnnouncements}
+                documents={roomDocuments}
+              />
+            )}
           </div>
-        )}
+
+          <aside className="min-w-0 space-y-4">
+            <section className="rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">
+              <h2 className="text-sm font-extrabold text-[var(--qs-ink)]">Room details</h2>
+              <dl className="mt-3 space-y-2.5 text-sm">
+                <div className="flex items-center justify-between gap-3 border-b-2 border-[var(--qs-line)] pb-2.5">
+                  <dt className="font-semibold text-[var(--qs-muted)]">Room code</dt>
+                  <dd className="rounded-[8px] bg-[var(--qs-poly-1)] px-2 py-0.5 font-mono text-xs font-bold tracking-[0.08em] text-[var(--qs-brand)]">
+                    {room.room_code}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-3 border-b-2 border-[var(--qs-line)] pb-2.5">
+                  <dt className="font-semibold text-[var(--qs-muted)]">Classmates</dt>
+                  <dd className="font-extrabold text-[var(--qs-ink)]">{room.memberCount}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="font-semibold text-[var(--qs-muted)]">You joined</dt>
+                  <dd className="font-extrabold text-[var(--qs-ink)]">
+                    {myMembership?.joinedAt ? timeAgo(myMembership.joinedAt) : "—"}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+          </aside>
+        </div>
       </div>
+    </div>
+  );
+}
+
+function RoomStat({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div className="min-w-0 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5 sm:px-3.5 lg:w-[112px] xl:w-[128px]">
+      <p className="truncate text-[10px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-muted)] md:text-[11px]">
+        {label}
+      </p>
+      <p
+        className={cn(
+          "mt-0.5 truncate text-lg font-extrabold leading-[1.15] text-[var(--qs-ink)] md:text-xl",
+          typeof value === "string" && value.length > 6 && "md:text-[17px]"
+        )}
+      >
+        {value}
+      </p>
     </div>
   );
 }
@@ -309,32 +357,31 @@ function StudentsPanel({
     <section className="relative mb-4 mr-4 min-w-0">
       <div aria-hidden className="absolute left-4 top-4 -bottom-4 -right-4 rounded-[30px] bg-[var(--qs-sun)]" />
       <div className="relative overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
-        <header className="flex flex-wrap items-start justify-between gap-3 px-4 pb-4 pt-5 sm:px-[26px]">
+        <header className="flex flex-wrap items-start justify-between gap-3 px-4 pb-4 pt-5 sm:px-[26px] md:items-center">
           <div>
-            <h2 className="text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-2xl">
+            <h2 className="flex items-center gap-2 text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)]">
               Students
+              <span className="rounded-full bg-[var(--qs-poly-1)] px-2 py-0.5 text-[11px] font-extrabold text-[var(--qs-brand)]">
+                {classmates.length}
+              </span>
             </h2>
             <p className="mt-0.5 text-sm text-[var(--qs-muted)]">
-              Everyone learning with you in this room.
+              Classmates in this room.
             </p>
           </div>
-          <p className="text-sm font-medium text-[var(--qs-muted)]">
-            {classmates.length} total
-          </p>
-        </header>
-
-        <div className="border-t-2 border-[var(--qs-line)] p-4 sm:p-5">
-          <div className="relative mb-4 w-full sm:max-w-xs">
+          <div className="relative w-full md:w-[280px]">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search students…"
               aria-label="Search students"
-              className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] py-2.5 pl-9 pr-3.5 text-sm text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
+              className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-2.5 pl-9 pr-3.5 text-sm text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
             />
           </div>
+        </header>
 
+        <div className="border-t-2 border-[var(--qs-line)] p-4">
           {filteredClassmates.length === 0 ? (
             <div className="rounded-[16px] border-2 border-dashed border-[var(--qs-line)] px-4 py-10 text-center">
               <Users className="mx-auto h-7 w-7 text-[var(--qs-muted)]" />
@@ -343,12 +390,13 @@ function StudentsPanel({
               </p>
             </div>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
               {filteredClassmates.map((member) => (
-                <div
+                <Link
                   key={member.id}
+                  href={`/students/${encodeURIComponent(member.username || member.id)}`}
                   className={cn(
-                    "flex items-center gap-3 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3.5",
+                    "group flex min-w-0 items-center gap-3 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 transition-colors hover:border-[var(--qs-brand)] hover:bg-[var(--qs-bg)]",
                     member.is_you && "border-[var(--qs-brand)] bg-[var(--qs-poly-1)]"
                   )}
                 >
@@ -356,11 +404,11 @@ function StudentsPanel({
                   <img
                     src={memberAvatar(member)}
                     alt=""
-                    className="h-10 w-10 shrink-0 rounded-full border-2 border-[var(--qs-ink)] object-cover"
+                    className="h-10 w-10 shrink-0 rounded-full border-2 border-[var(--qs-ink)] object-cover md:h-[42px] md:w-[42px]"
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <p className="truncate text-sm font-extrabold text-[var(--qs-ink)]">
+                      <p className="truncate text-[15px] font-extrabold text-[var(--qs-ink)]">
                         {memberName(member)}
                       </p>
                       {member.is_you ? (
@@ -369,20 +417,27 @@ function StudentsPanel({
                         </span>
                       ) : null}
                     </div>
-                    <p className="truncate text-[11px] font-semibold text-[var(--qs-muted)]">
-                      @{member.username}
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] font-semibold text-[var(--qs-muted)]">
+                      <span>@{member.username}</span>
+                      {member.joinedAt ? (
+                        <>
+                          <span aria-hidden>·</span>
+                          <span className="inline-flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            Joined {timeAgo(member.joinedAt)}
+                          </span>
+                        </>
+                      ) : null}
                     </p>
-                    {member.joinedAt ? (
-                      <p className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold text-[var(--qs-muted)]">
-                        <Clock className="h-3 w-3" />
-                        Joined {timeAgo(member.joinedAt)}
-                      </p>
-                    ) : null}
                   </div>
-                </div>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-[var(--qs-muted)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--qs-brand)]" />
+                </Link>
               ))}
             </div>
           )}
+        </div>
+        <div className="border-t-2 border-[var(--qs-line)] px-4 py-3.5 text-sm font-medium text-[var(--qs-muted)] sm:px-[26px]">
+          Showing {filteredClassmates.length} of {classmates.length} students
         </div>
       </div>
     </section>
@@ -419,7 +474,7 @@ function RecentUpdatesPanel({
           </span>
         </header>
 
-        <div className="grid border-t-2 border-[var(--qs-line)] md:grid-cols-2">
+        <div className="border-t-2 border-[var(--qs-line)] md:grid md:grid-cols-2">
           <div className="p-4 sm:p-5 md:border-r-2 md:border-[var(--qs-line)]">
             <div className="flex items-center justify-between gap-3">
               <h3 className="flex items-center gap-2 text-sm font-extrabold text-[var(--qs-ink)]">
@@ -445,7 +500,7 @@ function RecentUpdatesPanel({
                 latestAnnouncements.map((announcement) => (
                   <article
                     key={announcement.id}
-                    className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3.5"
+                    className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <p className="text-sm font-bold text-[var(--qs-ink)]">
@@ -489,7 +544,7 @@ function RecentUpdatesPanel({
                 latestDocuments.map((document) => (
                   <div
                     key={document.id}
-                    className="flex items-center gap-3 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3"
+                    className="flex items-center gap-3 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3"
                   >
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]">
                       <FileText className="h-4 w-4" />

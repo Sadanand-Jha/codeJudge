@@ -137,6 +137,17 @@ export default function StudentDetailsPanel({
                 </div>
               </div>
 
+              {student.username ? (
+                <Link
+                  href={`/students/${encodeURIComponent(student.username)}`}
+                  onClick={onClose}
+                  className="group flex items-center justify-between gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2.5 text-sm font-extrabold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+                >
+                  View public profile
+                  <ArrowRight className="h-4 w-4 text-[var(--qs-muted)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--qs-brand)]" />
+                </Link>
+              ) : null}
+
               {student.registrationData && Object.keys(student.registrationData).length > 0 ? (
                 <div>
                   <h4 className="mb-2 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">

@@ -347,12 +347,15 @@ export function QuestionsStep() {
         currentQuestionCount={state.questions.length}
       />
 
-      <StudentPreviewModal
-        open={studentPreviewOpen}
-        onClose={() => setStudentPreviewOpen(false)}
-        questions={state.questions}
-        quizTitle={state.info.title}
-      />
+      {studentPreviewOpen && (
+        <StudentPreviewModal
+          open
+          onClose={() => setStudentPreviewOpen(false)}
+          questions={state.questions}
+          quizTitle={state.info.title}
+          durationMinutes={state.info.duration}
+        />
+      )}
 
       <PdfConfigModal
         open={pdfModalOpen}

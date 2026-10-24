@@ -30,7 +30,7 @@ export async function generateMarksheet(quizId: number): Promise<MarksheetResult
 
   // Fetch quiz details
   const quizQuery = `
-    SELECT q.*, u.username as creator_username
+    SELECT q.*, u.username as creator_username, u.timezone as creator_timezone
     FROM quiz q
     JOIN users u ON u.id = q.createdby
     WHERE q.id = $1
@@ -110,7 +110,7 @@ export async function generateMarksheet(quizId: number): Promise<MarksheetResult
       college: attempt.college_name || "",
       quizName: quiz.name,
       quizCode: quiz.code,
-      attemptDate: formatDate(attempt.completed_at),
+      attemptDate: formatDate(attempt.completed_at, quiz.creator_timezone || "UTC"),
       quizDuration: formatDuration(quiz.duration || 0),
       timeTaken: formatDuration(attempt.time_taken || 0),
       totalQuestions: attempt.total_questions,
@@ -184,10 +184,11 @@ function calculateQuizStats(quiz: any, attempts: any[]): MarksheetStats {
 /**
  * Format date for Excel
  */
-function formatDate(date: string | Date | null): string {
+function formatDate(date: string | Date | null, timeZone = "UTC"): string {
   if (!date) return "";
   const d = new Date(date);
   return d.toLocaleString("en-IN", {
+    timeZone,
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

@@ -18,7 +18,9 @@
     "prepare-avatars": "tsx src/utils/avatarProcessor.ts",
     "test:document-export": "tsx src/scripts/testDocumentExport.ts",
     "test:rooms": "tsx src/__tests__/roomAccess.test.ts",
-    "test:decoy": "tsx src/__tests__/quizDecoy.test.ts"
+    "test:decoy": "tsx src/__tests__/quizDecoy.test.ts",
+    "test:entitlements": "tsx src/services/entitlements/__tests__/resolver.test.ts",
+    "test:entitlements:db": "tsx src/services/entitlements/__tests__/concurrency.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.6.0",

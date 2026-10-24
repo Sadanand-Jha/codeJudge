@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserTimeZone } from "@/lib/timezone";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -46,7 +48,7 @@ function ContestDetailContent({ params }: { params: { contestId: string } }) {
   const formatDate = (starttime: string | null) => {
     if (!starttime) return "TBD";
     return new Date(starttime).toLocaleString("en-IN", {
-      timeZone: "Asia/Kolkata",
+      timeZone: getUserTimeZone(),
       month: "short",
       day: "numeric",
       year: "numeric",

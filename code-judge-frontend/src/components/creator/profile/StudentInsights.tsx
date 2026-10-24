@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { Users, ArrowRight } from "lucide-react";
-import { timeAgo, IST_TIMEZONE } from "@/lib/formatters";
+import { timeAgo } from "@/lib/formatters";
+import { getUserTimeZone } from "@/lib/timezone";
 import type { CreatorProfileOverview, CreatorRecentAttempt } from "@/services/creatorProfile";
 
 const nf = new Intl.NumberFormat("en-IN");
@@ -12,7 +13,7 @@ function exactDate(iso: string | null): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleString("en-IN", {
-    timeZone: IST_TIMEZONE,
+    timeZone: getUserTimeZone(),
     day: "numeric",
     month: "short",
     year: "numeric",

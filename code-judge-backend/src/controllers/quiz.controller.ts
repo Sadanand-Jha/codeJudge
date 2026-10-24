@@ -14,7 +14,7 @@ import { QuizCreationLimitError } from "../services/quizCreationLimits.ts";
 import { QuizQuestionLimitError } from "../services/quizQuestionLimits.ts";
 import { prepareAttemptDecoys, TRAP_STRENGTH_DEFAULT } from "../services/quizDecoy.service.ts";
 import { sanitizeAttemptForStudent } from "../services/quizDecoy.ts";
-import { sendEntitlementError } from "../services/entitlement.service.ts";
+import { getEntitlements, sendEntitlementError } from "../services/entitlement.service.ts";
 import { isQuizCodeConflictError } from "../utils/databaseError.ts";
 import {
   getQuizAttemptDeadlineMs,
@@ -412,6 +412,7 @@ export const createQuiz = async (req: Request, res: Response) => {
       code,
       createdby: Number(userId),
       starttime: body.starttime ? new Date(body.starttime) : undefined,
+      endtime: body.endtime ? new Date(body.endtime) : undefined,
       visibility: visibilityId ?? undefined,
       difficulty: difficultyId ?? undefined,
       subjectId: subjectId ?? undefined,
@@ -718,15 +719,15 @@ export const updateQuizStatus = async (req: Request, res: Response) => {
 
     const updateData: Record<string, any> = { status };
     if (status === "live") {
-      updateData.starttime = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" }).replace(" ", "T");
+      updateData.starttime = new Date().toISOString();
       if (endBehavior === "auto_duration" && typeof sessionDuration === "number" && sessionDuration > 0) {
         const endTime = new Date(Date.now() + sessionDuration * 60 * 1000);
-        updateData.endtime = endTime.toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" }).replace(" ", "T");
+        updateData.endtime = endTime.toISOString();
       } else {
         updateData.endtime = null;
       }
     } else if (status === "ended") {
-      updateData.endtime = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" }).replace(" ", "T");
+      updateData.endtime = new Date().toISOString();
     }
 
     const updatedQuiz = await quizService.updateQuiz(Number(quizId), updateData);
@@ -3101,6 +3102,16 @@ export const sendQuizResponsesEmail = async (req: Request, res: Response) => {
     const isCollaborator = await quizService.isAcceptedCollaborator(Number(userId), numericQuizId);
     if (!isOwner && !isCollaborator) {
       res.status(403).json({ success: false, message: "You are not authorized to email responses" });
+      return;
+    }
+
+    const entitlements = await getEntitlements(userId);
+    if (!entitlements.isPaid) {
+      res.status(403).json({
+        success: false,
+        message: "Emailing response reports is available on paid plans. Upgrade your plan to use this feature.",
+        data: { reason: "subscription_required", upgradeUrl: "/pricing" },
+      });
       return;
     }
 

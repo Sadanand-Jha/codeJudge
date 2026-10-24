@@ -348,6 +348,7 @@ export const createQuiz = async (req: Request, res: Response) => {
       code,
       createdby: userId,
       starttime: body.starttime ? new Date(body.starttime) : undefined,
+      endtime: body.endtime ? new Date(body.endtime) : undefined,
       visibility: visibilityId ?? undefined,
       audienceMode: body.audienceMode,
       difficulty: difficultyId ?? undefined,
@@ -504,15 +505,15 @@ export const updateQuizStatus = async (req: Request, res: Response) => {
     const updateData: Record<string, any> = { status };
 
     if (status === "live") {
-      updateData.starttime = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" }).replace(" ", "T");
+      updateData.starttime = new Date().toISOString();
       if (endBehavior === "auto_duration" && typeof sessionDuration === "number" && sessionDuration > 0) {
         const endTime = new Date(Date.now() + sessionDuration * 60 * 1000);
-        updateData.endtime = endTime.toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" }).replace(" ", "T");
+        updateData.endtime = endTime.toISOString();
       } else {
         updateData.endtime = null;
       }
     } else if (status === "ended") {
-      updateData.endtime = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" }).replace(" ", "T");
+      updateData.endtime = new Date().toISOString();
     }
 
     const updatedQuiz = await quizService.updateQuiz(Number(quizId), updateData);

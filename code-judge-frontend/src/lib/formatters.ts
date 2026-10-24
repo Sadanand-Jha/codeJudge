@@ -1,9 +1,7 @@
 /**
  * Formatting helpers shared across the app.
  */
-
-/** Shared IST (Kolkata) timezone option for all date formatting. */
-export const IST_TIMEZONE = "Asia/Kolkata";
+import { getUserTimeZone } from "@/lib/timezone";
 
 export function timeAgo(dateValue: string | number | Date): string {
   const date = new Date(dateValue);
@@ -25,15 +23,15 @@ export function timeAgo(dateValue: string | number | Date): string {
 export function formatDate(dateValue: string | number | Date): string {
   const date = new Date(dateValue);
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString("en-IN", { timeZone: IST_TIMEZONE, month: "short", day: "numeric" });
+  return date.toLocaleDateString("en-IN", { timeZone: getUserTimeZone(), month: "short", day: "numeric" });
 }
 
-/** Full date+time in IST — "5 Jan 2025, 2:30 PM" */
+/** Full date+time in the user's timezone — "5 Jan 2025, 2:30 PM" */
 export function formatDateTimeIST(dateValue: string | number | Date): string {
   const date = new Date(dateValue);
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString("en-IN", {
-    timeZone: IST_TIMEZONE,
+    timeZone: getUserTimeZone(),
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -43,12 +41,12 @@ export function formatDateTimeIST(dateValue: string | number | Date): string {
   });
 }
 
-/** Short date in IST — "5 Jan 2025" */
+/** Short date in the user's timezone — "5 Jan 2025" */
 export function formatDateIST(dateValue: string | number | Date): string {
   const date = new Date(dateValue);
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleDateString("en-IN", {
-    timeZone: IST_TIMEZONE,
+    timeZone: getUserTimeZone(),
     day: "numeric",
     month: "short",
     year: "numeric",

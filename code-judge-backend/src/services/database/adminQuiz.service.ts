@@ -31,7 +31,7 @@ export class AdminQuizService {
   }
 
   async createQuiz(data: {
-    name: string; code: string; createdby: number; starttime?: Date;
+    name: string; code: string; createdby: number; starttime?: Date; endtime?: Date;
     visibility?: number; audienceMode?: "public" | "private" | "classroom"; difficulty?: number; subjectId?: number; examId?: number;
     duration?: number; totalMarks?: number; passingMarks?: number;
     shuffleQuestions?: boolean; shuffleOptions?: boolean;

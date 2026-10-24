@@ -94,16 +94,37 @@ export async function fetchCollegesByState(
  * Persist the user's country / state / college selection.
  * Only the non-null fields are sent to the backend.
  */
+export interface ProfileLocation {
+  countryId: number | null;
+  stateId: number | null;
+  collegeId: number | null;
+}
+
 export async function updateProfileLocation(payload: {
   countryId?: number | null;
   stateId?: number | null;
   collegeId?: number | null;
-}): Promise<void> {
+}): Promise<ProfileLocation> {
   const body: Record<string, number> = {};
   if (payload.countryId != null) body.countryId = payload.countryId;
   if (payload.stateId != null) body.stateId = payload.stateId;
   if (payload.collegeId != null) body.collegeId = payload.collegeId;
-  await apiClient.patch("/v1/user/profile/location", body);
+  const response = await apiClient.patch<ProfileLocation>(
+    "/v1/user/profile/location",
+    body
+  );
+  return response.data;
+}
+
+/**
+ * Persist the IANA timezone used for date parsing and daily quota resets.
+ */
+export async function updateProfileTimezone(timezone: string): Promise<string> {
+  const response = await apiClient.patch<{ timezone: string }>(
+    "/v1/user/profile/timezone",
+    { timezone }
+  );
+  return response.data.timezone;
 }
 
 /* =============================================
@@ -119,5 +140,40 @@ export interface UserLookupResult {
 
 export async function lookupUserById(userId: string): Promise<UserLookupResult> {
   const response = await apiClient.get<UserLookupResult>(`/v1/user/users/${encodeURIComponent(userId)}`);
+  return response.data;
+}
+
+/* =============================================
+   Public student profile
+   GET /api/v1/user/public/users/:username
+   Safe, display-only fields for classmates.
+   ============================================= */
+
+export interface PublicStudentProfile {
+  id: string;
+  username: string;
+  displayName: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  bio: string | null;
+  rating: number;
+  maxRating: number;
+  isVerified: boolean;
+  memberSince: string | null;
+  avatarId: number | null;
+  avatarUrl: string | null;
+  college: string | null;
+  country: string | null;
+  state: string | null;
+}
+
+export async function getPublicStudentProfile(
+  username: string,
+  signal?: AbortSignal
+): Promise<PublicStudentProfile> {
+  const response = await apiClient.get<PublicStudentProfile>(
+    `/v1/user/public/users/${encodeURIComponent(username)}`,
+    { signal }
+  );
   return response.data;
 }

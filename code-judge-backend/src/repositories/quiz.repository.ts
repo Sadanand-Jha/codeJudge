@@ -499,6 +499,7 @@ export class QuizRepository {
     code: string;
     createdby: number;
     starttime?: Date;
+    endtime?: Date;
     visibility?: number;
     audienceMode?: "public" | "private" | "classroom";
     difficulty?: number;
@@ -526,13 +527,13 @@ export class QuizRepository {
 
     const query = `
       INSERT INTO quiz (
-        name, code, createdby, starttime, visibility, audience_mode, difficulty,
+        name, code, createdby, starttime, endtime, visibility, audience_mode, difficulty,
         subject_id, exam_cat, duration, total_marks, passing_marks,
         shuffle_questions, shuffle_options, show_results_immediately,
         negative_marking, leaderboard, quiz_status, registration_fields,
         created_at, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING *
     `;
     const result = await pool.query(query, [
@@ -540,6 +541,7 @@ export class QuizRepository {
       data.code,
       data.createdby,
       data.starttime || null,
+      data.endtime || null,
       data.visibility || null,
       data.audienceMode || "public",
       data.difficulty || null,
@@ -2394,22 +2396,25 @@ export class QuizRepository {
          SELECT qa.user_id
          FROM quiz_attempt qa
          WHERE qa.quiz_id = $1 AND qa.deleted_at IS NULL
+       ),
+       per_user AS (
+         SELECT
+           qa.user_id,
+           COUNT(*) FILTER (WHERE qa.status = 'completed') AS completed_attempts,
+           MAX(qa.score) FILTER (WHERE qa.status = 'completed') AS best_score
+         FROM quiz_attempt qa
+         WHERE qa.quiz_id = $1 AND qa.deleted_at IS NULL
+         GROUP BY qa.user_id
        )
        SELECT
          COUNT(*) AS total,
-         COUNT(DISTINCT qa.id) FILTER (WHERE qa.status = 'completed') AS submitted,
-         COUNT(*) FILTER (WHERE NOT EXISTS (
-           SELECT 1 FROM quiz_attempt completed
-           WHERE completed.quiz_id = $1
-             AND completed.user_id = response_users.user_id
-             AND completed.status = 'completed'
-             AND completed.deleted_at IS NULL
-         )) AS not_submitted,
-         AVG(qa.score) AS average_score,
-         MAX(qa.score) AS highest_score,
-         MIN(qa.score) AS lowest_score
+         COUNT(*) FILTER (WHERE COALESCE(per_user.completed_attempts, 0) > 0) AS submitted,
+         COUNT(*) FILTER (WHERE COALESCE(per_user.completed_attempts, 0) = 0) AS not_submitted,
+         AVG(per_user.best_score) FILTER (WHERE per_user.best_score IS NOT NULL) AS average_score,
+         MAX(per_user.best_score) AS highest_score,
+         MIN(per_user.best_score) AS lowest_score
        FROM response_users
-       LEFT JOIN quiz_attempt qa ON qa.quiz_id = $1 AND qa.user_id = response_users.user_id AND qa.deleted_at IS NULL`,
+       LEFT JOIN per_user ON per_user.user_id = response_users.user_id`,
       [quizId]
     );
 

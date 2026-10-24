@@ -27,7 +27,6 @@ type AddTab = "manual" | "import" | "rooms";
 export default function CreateRoomModal({ open, onClose, onCreated, initialTab = "manual" }: CreateRoomModalProps) {
   const rooms = useRoomStore((s) => s.rooms);
   const setRooms = useRoomStore((s) => s.setRooms);
-  const createRoomLocal = useRoomStore((s) => s.createRoom);
   const { user } = useAuthStore();
   const toast = useToast();
 
@@ -193,25 +192,22 @@ export default function CreateRoomModal({ open, onClose, onCreated, initialTab =
     setCreating(true);
     setError(null);
     try {
-      let roomId: string | null = null;
-      try {
-        const res = await apiCreateRoom({ name: name.trim(), description: description.trim() || undefined });
-        const data = (res as { data?: { id?: string | number } })?.data ?? res as { id?: string | number };
-        roomId = String(data.id ?? (data as unknown as { room?: { id: string } })?.room?.id ?? "");
-        if (!roomId) throw new Error("No id from backend");
-        for (const s of pending) {
-          try { await addMemberToRoom(roomId, s.username!); } catch {}
-        }
-        toast.success({ title: "Room created", description: "Saved to database with members" });
-      } catch (err) {
-        console.warn("Backend room create failed, falling back to local", err);
+      const res = await apiCreateRoom({ name: name.trim(), description: description.trim() || undefined });
+      const data = (res as { data?: { id?: string | number } })?.data ?? res as { id?: string | number };
+      const roomId = String(data.id ?? (data as unknown as { room?: { id: string } })?.room?.id ?? "");
+      if (!roomId) throw new Error("Could not create the room. Please try again.");
+      for (const s of pending) {
+        try { await addMemberToRoom(roomId, s.username!); } catch {}
       }
-      const localRoom = createRoomLocal({ name, description, students: pending, ownerId: user?.id });
-      roomId = roomId || localRoom.id;
+      const { fetchMyRooms } = await import("@/services/rooms");
+      await fetchMyRooms()
+        .then((backendRooms) => setRooms(backendRooms))
+        .catch(() => {});
       reset();
       onCreated(roomId);
+      toast.success({ title: "Room created", description: "Your room is ready to use." });
     } catch (e: unknown) {
-      setError((e instanceof Error ? e.message : "Failed to create room"));
+      setError(e instanceof Error ? e.message : "Failed to create room");
     } finally { setCreating(false); }
   };
 

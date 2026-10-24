@@ -84,7 +84,7 @@ export async function sendMarksheetEmail(payload: MarksheetEmailPayload): Promis
           </tr>
           <tr style="border-bottom: 1px solid #dee2e6;">
             <td style="padding: 8px 0; font-weight: bold;">Quiz End Time</td>
-            <td style="padding: 8px 0;">${new Date(endTime).toLocaleString("en-IN")}</td>
+            <td style="padding: 8px 0;">${new Date(endTime).toLocaleString("en-IN", { timeZone: "UTC" })}</td>
           </tr>
         </table>
       </div>

@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserTimeZone } from "@/lib/timezone";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -35,7 +37,7 @@ export default function ActivityPage() {
         type: "contest",
         title: `Registered for "${c.name}"`,
         description: c.starttime
-          ? `Contest ${new Date(c.starttime) <= new Date() ? "took place" : "is scheduled"} to begin on ${new Date(c.starttime).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", month: "short", day: "numeric" })}`
+          ? `Contest ${new Date(c.starttime) <= new Date() ? "took place" : "is scheduled"} to begin on ${new Date(c.starttime).toLocaleDateString("en-IN", { timeZone: getUserTimeZone(), month: "short", day: "numeric" })}`
           : "Contest registration",
         timestamp: c.starttime || c.created_at || new Date().toISOString(),
         href: `/contests`,

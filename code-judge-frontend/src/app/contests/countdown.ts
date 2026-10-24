@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserTimeZone } from "@/lib/timezone";
+
 import { useEffect, useRef, useState } from "react";
 
 /** Live "now" timestamp that refreshes on an interval — safe for render. */
@@ -65,7 +67,7 @@ export function formatDuration(duration: number | null): string {
 export function formatDate(starttime: string | null): string {
   if (!starttime) return "—";
   return new Date(starttime).toLocaleDateString("en-IN", {
-    timeZone: "Asia/Kolkata",
+    timeZone: getUserTimeZone(),
     month: "short",
     day: "numeric",
     year: "numeric",

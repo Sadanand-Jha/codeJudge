@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/useToast";
 import { useQuizSettings } from "./QuizSettingsContext";
 import { cn } from "@/lib/helpers";
 import { saveQuizDetails } from "@/utils/quizStorage";
+import { zonedDateTimeToISO } from "@/lib/timezone";
 
 export const SETTINGS_SECTIONS = [
   { id: "responses", label: "Responses", icon: BarChart3, href: "responses", tone: "blue" as const },
@@ -123,8 +124,14 @@ export default function QuizSettingsShell({ children }: { children: React.ReactN
         negativeMarking: details.negativeMarking,
         leaderboard: details.leaderboard,
       };
-      if (details.startDate) payload.starttime = details.startDate;
-      if (details.endDate) payload.endtime = details.endDate;
+      if (details.startDate) {
+        const [date, time = "00:00"] = details.startDate.split("T");
+        payload.starttime = zonedDateTimeToISO(date, time.slice(0, 5));
+      }
+      if (details.endDate) {
+        const [date, time = "00:00"] = details.endDate.split("T");
+        payload.endtime = zonedDateTimeToISO(date, time.slice(0, 5));
+      }
 
       await updateQuiz(String(quizId), payload);
       await refresh();

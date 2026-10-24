@@ -39,9 +39,9 @@ const pool = new Pool({
   ssl: isLocalDatabase ? false : { rejectUnauthorized: false },
 });
 
-// Session timezone → Asia/Kolkata so NOW()/timestamps use IST on every connection
+// Migrations run in UTC; legacy naive values are attached to UTC as-is.
 pool.on("connect", (client) => {
-  client.query("SET TIME ZONE 'Asia/Kolkata'").catch(() => {});
+  client.query("SET TIME ZONE 'UTC'").catch(() => {});
 });
 
 // ──────────────────────────────────────────────

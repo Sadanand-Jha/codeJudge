@@ -29,19 +29,23 @@ export function DateTimeField({
         </label>
         {onUseNow && (
           <div className="flex items-center gap-1">
-            {[1, 5].map((minutes) => (
+            {[0, 1, 5].map((minutes) => (
               <button
                 key={minutes}
                 type="button"
                 onClick={() => onUseNow(minutes)}
                 disabled={disabled}
-                aria-label={`Set start time ${minutes} minute${minutes === 1 ? "" : "s"} from now`}
+                aria-label={
+                  minutes === 0
+                    ? "Set start time to now"
+                    : `Set start time ${minutes} minute${minutes === 1 ? "" : "s"} from now`
+                }
                 className={cn(
                   "rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-brand)]",
                   disabled && "cursor-not-allowed opacity-50"
                 )}
               >
-                +{minutes}m
+                {minutes === 0 ? "Now" : `+${minutes}m`}
               </button>
             ))}
           </div>

@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserTimeZone } from "@/lib/timezone";
+
 import { Pencil, BadgeCheck, Settings, Globe } from "lucide-react";
 import { useSavedAvatar } from "@/store/avatarStore";
 import { DEFAULT_AVATAR_URL } from "@/config/dicebear";
@@ -10,7 +12,7 @@ function formatMemberSince(iso: string): string {
   if (!iso) return "";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", month: "short", year: "numeric" });
+  return d.toLocaleDateString("en-IN", { timeZone: getUserTimeZone(), month: "short", year: "numeric" });
 }
 
 export function ProfileHeader({

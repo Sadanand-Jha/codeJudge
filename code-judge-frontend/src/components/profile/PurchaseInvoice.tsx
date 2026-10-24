@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserTimeZone } from "@/lib/timezone";
+
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Download, Calendar, CreditCard } from "lucide-react";
 import { cn } from "@/lib/helpers";
@@ -103,7 +105,7 @@ export default function PurchaseInvoice() {
                     <span className="text-xs text-text-secondary">Invoice date</span>
                     <span className="ml-auto text-sm font-medium text-text-primary">
                       {new Date(order.date).toLocaleDateString("en-IN", {
-                        timeZone: "Asia/Kolkata",
+                        timeZone: getUserTimeZone(),
                         day: "numeric",
                         month: "long",
                         year: "numeric",
@@ -219,12 +221,12 @@ export default function PurchaseInvoice() {
                     {order.status}
                   </span>
                   <span className="text-xs text-text-secondary">
-                    Paid via {order.method} on {new Date(order.date).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}
+                    Paid via {order.method} on {new Date(order.date).toLocaleDateString("en-IN", { timeZone: getUserTimeZone() })}
                   </span>
                 </div>
                 {items[0]?.expiresAt && (
                   <span className="text-xs text-text-secondary">
-                    Access valid until {new Date(items[0].expiresAt).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}
+                    Access valid until {new Date(items[0].expiresAt).toLocaleDateString("en-IN", { timeZone: getUserTimeZone() })}
                   </span>
                 )}
               </div>

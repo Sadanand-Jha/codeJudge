@@ -223,4 +223,86 @@ const lookupUser = async (req: Request, res: Response) => {
   }
 };
 
-export { userRegister, forgetPassword, profile, lookupUser };
+/**
+ * GET /api/v1/user/public/users/:username
+ * Public student profile for classmates. Returns only display-safe fields —
+ * never email, mobile, password hashes, or account preferences.
+ */
+const getPublicUserProfile = async (req: Request, res: Response) => {
+  try {
+    const identifier = String(req.params.username ?? "").trim();
+
+    if (!identifier) {
+      res.status(400).json({
+        success: false,
+        message: "Username is required",
+      });
+      return;
+    }
+
+    const result = await pool.query(
+      `SELECT
+         u.id,
+         u.username,
+         u.display_name,
+         u.first_name,
+         u.last_name,
+         u.bio,
+         u.rating,
+         u.max_rating,
+         u.is_verified,
+         u.created_at,
+         u.avatar_id,
+         a.url AS avatar_url,
+         c.name AS college_name,
+         cn.name AS country_name,
+         s.name AS state_name
+       FROM users u
+       LEFT JOIN avatar a ON u.avatar_id = a.id
+       LEFT JOIN college c ON u.college_id = c.id
+       LEFT JOIN country cn ON u.country_id = cn.id
+       LEFT JOIN state s ON u.state_id = s.id
+       WHERE u.id::text = $1 OR LOWER(u.username) = LOWER($1)
+       LIMIT 1`,
+      [identifier]
+    );
+
+    if (result.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    const user = result.rows[0];
+    res.status(200).json({
+      success: true,
+      data: {
+        id: String(user.id),
+        username: user.username,
+        displayName: user.display_name,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        bio: user.bio,
+        rating: Number(user.rating ?? 0),
+        maxRating: Number(user.max_rating ?? 0),
+        isVerified: Boolean(user.is_verified),
+        memberSince: user.created_at,
+        avatarId: user.avatar_id,
+        avatarUrl: user.avatar_url,
+        college: user.college_name,
+        country: user.country_name,
+        state: user.state_name,
+      },
+    });
+  } catch (error) {
+    console.error("Error looking up public user profile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while looking up user",
+    });
+  }
+};
+
+export { userRegister, forgetPassword, profile, lookupUser, getPublicUserProfile };

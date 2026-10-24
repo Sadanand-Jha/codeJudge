@@ -27,10 +27,11 @@ import type {
   TimingState,
 } from "./types";
 import { isPast, formatTime12, isStartAfterEnd, toISTDateTimeParts } from "./helpers";
+import { zonedDateTimeToISO } from "@/lib/timezone";
 
-/** Combine separate date + time fields into a datetime-local string. */
+/** Combine date + time fields into an absolute ISO instant in the user's timezone. */
 function combineDateTime(date: string, time: string, fallbackTime: string) {
-  return date ? `${date}T${time || fallbackTime}` : "";
+  return date ? zonedDateTimeToISO(date, time || fallbackTime) : "";
 }
 
 export function TimingSection({
@@ -75,27 +76,29 @@ export function TimingSection({
 
     hydratedRef.current = true;
 
-    if (lc === "live" || lc === "ended") {
-      setManual((prev) => ({
-        ...prev,
-        status: lc,
-        startedAt: state.info.startDate || prev.startedAt,
-        endedAt: state.info.endDate || prev.endedAt,
-      }));
-    } else if (lc === "scheduled") {
-      setMode("schedule");
-      setSchedule((prev) => {
-        const start = toISTDateTimeParts(state.info.startDate);
-        const end = toISTDateTimeParts(state.info.endDate);
-        return {
+    queueMicrotask(() => {
+      if (lc === "live" || lc === "ended") {
+        setManual((prev) => ({
           ...prev,
-          startDate: start.date || prev.startDate,
-          startTime: start.time || prev.startTime,
-          endDate: end.date || prev.endDate,
-          endTime: end.time || prev.endTime,
-        };
-      });
-    }
+          status: lc,
+          startedAt: state.info.startDate || prev.startedAt,
+          endedAt: state.info.endDate || prev.endedAt,
+        }));
+      } else if (lc === "scheduled") {
+        setMode("schedule");
+        setSchedule((prev) => {
+          const start = toISTDateTimeParts(state.info.startDate);
+          const end = toISTDateTimeParts(state.info.endDate);
+          return {
+            ...prev,
+            startDate: start.date || prev.startDate,
+            startTime: start.time || prev.startTime,
+            endDate: end.date || prev.endDate,
+            endTime: end.time || prev.endTime,
+          };
+        });
+      }
+    });
     // "draft" → keep defaults
   }, [state.editMode, state.serverQuizId, state.info.title, state.info.quizLifecycle, state.info.startDate, state.info.endDate]);
 
@@ -149,23 +152,18 @@ export function TimingSection({
     const isLiveTransition = patch.status === "live" || (nextManual.status === "live" && (patch.sessionDuration !== undefined || patch.endBehavior !== undefined || patch.startedAt));
     if (isLiveTransition && nextManual.status === "live") {
       const now = new Date();
-      const startStr = now.toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" }).replace(" ", "T");
       if (nextManual.endBehavior === "auto_duration" && nextManual.sessionDuration > 0) {
         const end = new Date(now.getTime() + nextManual.sessionDuration * 60 * 1000);
-        const endStr = end.toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" }).replace(" ", "T");
-        updateInfo({ startDate: startStr, endDate: endStr, quizLifecycle: "live" });
+        updateInfo({ startDate: now.toISOString(), endDate: end.toISOString(), quizLifecycle: "live" });
       } else {
-        updateInfo({ startDate: startStr, endDate: "", quizLifecycle: "live" });
+        updateInfo({ startDate: now.toISOString(), endDate: "", quizLifecycle: "live" });
       }
     } else if (patch.status === "ended" || (nextManual.status === "ended" && patch.endedAt)) {
-      const now = new Date();
-      const endStr = now.toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" }).replace(" ", "T");
-      updateInfo({ endDate: endStr, quizLifecycle: "ended" });
+      updateInfo({ endDate: new Date().toISOString(), quizLifecycle: "ended" });
     } else if (nextManual.status === "live" && nextManual.endBehavior === "auto_duration" && patch.sessionDuration !== undefined) {
       const startedAt = nextManual.startedAt ? new Date(nextManual.startedAt) : new Date();
       const end = new Date(startedAt.getTime() + nextManual.sessionDuration * 60 * 1000);
-      const endStr = end.toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" }).replace(" ", "T");
-      updateInfo({ endDate: endStr });
+      updateInfo({ endDate: end.toISOString() });
     }
   }, [manual, updateInfo]);
 
@@ -339,7 +337,6 @@ export function TimingSection({
                     onChange={handleScheduleChange}
                     manualStatus={manual.status}
                     validationErrors={validationErrors}
-                    allowStartNow={canStartInline}
                   />
                 </motion.div>
               ) : (

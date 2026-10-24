@@ -1,3 +1,5 @@
+import { getUserTimeZone, toZonedDateTimeParts } from "@/lib/timezone";
+
 import apiClient from "@/lib/axios";
 
 /* =============================================
@@ -135,21 +137,27 @@ export function timeAgo(date: string | Date | null | undefined): string {
   if (days < 30) return `${days} day${days === 1 ? "" : "s"} ago`;
   const months = Math.floor(days / 30);
   if (months < 12) return `${months} month${months === 1 ? "" : "s"} ago`;
-  return new Date(date).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", month: "short", year: "numeric" });
+  return new Date(date).toLocaleDateString("en-IN", { timeZone: getUserTimeZone(), month: "short", year: "numeric" });
 }
 
 export function groupLabel(date: string | Date): string {
   const d = new Date(date);
   const now = new Date();
-  const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
-  const diffDays = Math.round((startOfDay(now) - startOfDay(d)) / 86400000);
+  const timeZone = getUserTimeZone();
+  const dayNumber = (value: Date) => {
+    const parts = toZonedDateTimeParts(value.toISOString(), timeZone);
+    return Date.parse(`${parts.date}T00:00:00Z`);
+  };
+  const diffDays = Math.round((dayNumber(now) - dayNumber(d)) / 86400000);
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Yesterday";
   if (diffDays < 7) {
-    return d.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", weekday: "long" });
+    return d.toLocaleDateString("en-IN", { timeZone, weekday: "long" });
   }
-  if (d.getFullYear() === now.getFullYear()) {
-    return d.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", month: "short", day: "numeric" });
+  const current = toZonedDateTimeParts(now.toISOString(), timeZone);
+  const target = toZonedDateTimeParts(d.toISOString(), timeZone);
+  if (target.date.slice(0, 4) === current.date.slice(0, 4)) {
+    return d.toLocaleDateString("en-IN", { timeZone, month: "short", day: "numeric" });
   }
-  return d.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", month: "short", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString("en-IN", { timeZone, month: "short", day: "numeric", year: "numeric" });
 }

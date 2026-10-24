@@ -228,6 +228,30 @@ export const updateUserLocation = async (req: Request, res: Response) => {
       }
     }
 
+    const currentResult = await pool.query(
+      "SELECT country_id, state_id, college_id FROM users WHERE id = $1",
+      [userId]
+    );
+    if (currentResult.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+    const current = currentResult.rows[0] as {
+      country_id: number | null;
+      state_id: number | null;
+      college_id: number | null;
+    };
+
+    // Changing country invalidates the old state/college; changing state
+    // invalidates the old college. Explicit values in the request win.
+    const countryChanged =
+      parsedCountryId !== null && parsedCountryId !== current.country_id;
+    const stateChanged =
+      parsedStateId !== null && parsedStateId !== current.state_id;
+
     // ---- Build the dynamic UPDATE ----
     const sets: string[] = [];
     const values: unknown[] = [];
@@ -240,10 +264,14 @@ export const updateUserLocation = async (req: Request, res: Response) => {
     if (parsedStateId !== null) {
       sets.push(`state_id = $${idx++}`);
       values.push(parsedStateId);
+    } else if (countryChanged) {
+      sets.push(`state_id = NULL`);
     }
     if (parsedCollegeId !== null) {
       sets.push(`college_id = $${idx++}`);
       values.push(parsedCollegeId);
+    } else if (stateChanged || countryChanged) {
+      sets.push(`college_id = NULL`);
     }
 
     sets.push(`updated_at = CURRENT_TIMESTAMP`);

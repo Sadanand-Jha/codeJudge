@@ -434,7 +434,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
 
         {/* Top */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3.5">
+          <div className="flex min-w-0 items-start gap-3.5">
             <Link
               href={basePath}
               aria-label="Back to Rooms"
@@ -442,6 +442,9 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
             >
               <ArrowLeft className="h-4.5 w-4.5 text-[var(--qs-ink)]" />
             </Link>
+            <span className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)]">
+              <Users className="h-[26px] w-[26px]" strokeWidth={2.5} />
+            </span>
             <div className="min-w-0">
               {isRenaming ? (
                 <div className="flex flex-col gap-1.5">
@@ -466,8 +469,22 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                 </div>
               ) : (
                 <>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="truncate text-[28px] font-extrabold leading-none tracking-[-0.02em] text-[var(--qs-ink)] sm:text-[34px]">{room.name}</h1>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="inline-flex items-center rounded-full border-2 border-[var(--qs-brand)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.05em] text-[var(--qs-brand)]">
+                      Creator
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--qs-poly-1)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.05em] text-[var(--qs-ink)]">
+                      <Users className="h-3 w-3" />
+                      {room.students.length} student{room.students.length === 1 ? "" : "s"}
+                    </span>
+                    {room.archived && (
+                      <span className="rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2 py-0.5 text-[10px] font-extrabold text-[#1A1240]">
+                        Archived
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <h1 className="truncate text-[26px] font-extrabold leading-[1.1] tracking-[-0.02em] text-[var(--qs-ink)] sm:text-[30px]">{room.name}</h1>
                     <button
                       type="button"
                       onClick={startRename}
@@ -477,13 +494,8 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                     >
                       <Edit3 className="h-3.5 w-3.5" />
                     </button>
-                    {room.archived && (
-                      <span className="rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2 py-0.5 text-[10px] font-extrabold text-[#1A1240]">
-                        Archived
-                      </span>
-                    )}
                   </div>
-                  <p className="mt-0.5 truncate text-[var(--qs-muted)]">
+                  <p className="mt-1 truncate text-sm text-[var(--qs-muted)]">
                     {room.description || "Student group"}
                     <span className="mx-1">·</span>
                     Updated {timeAgo(room.updatedAt)}

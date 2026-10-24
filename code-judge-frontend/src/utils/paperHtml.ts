@@ -1,3 +1,5 @@
+import { getUserTimeZone } from "@/lib/timezone";
+
 // Print-ready question-paper HTML builder shared by the live preview and the
 // server-side PDF renderer. Everything here is pure string generation so the
 // same output can be shown in an <iframe> preview and printed by headless
@@ -618,6 +620,6 @@ export function formatPaperDate(value?: string | Date | null): string | undefine
     day: "2-digit",
     month: "short",
     year: "numeric",
-    timeZone: "Asia/Kolkata",
+    timeZone: getUserTimeZone(),
   });
 }

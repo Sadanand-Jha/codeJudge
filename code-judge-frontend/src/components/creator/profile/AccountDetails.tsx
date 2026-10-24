@@ -1,7 +1,7 @@
 "use client";
 
 import { Pencil } from "lucide-react";
-import { IST_TIMEZONE } from "@/lib/formatters";
+import { getUserTimeZone } from "@/lib/timezone";
 import type { CreatorProfile } from "@/components/creator/workspace/types";
 import { verificationLabel } from "@/lib/verification";
 
@@ -9,7 +9,7 @@ function formatDateTime(iso?: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("en-IN", { timeZone: IST_TIMEZONE, day: "numeric", month: "short", year: "numeric" });
+  return d.toLocaleDateString("en-IN", { timeZone: getUserTimeZone(), day: "numeric", month: "short", year: "numeric" });
 }
 
 export function AccountDetails({

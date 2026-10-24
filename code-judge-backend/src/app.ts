@@ -11,7 +11,6 @@ import apiRoutes from "./routes/index.routes.ts";
 import { errorHandler } from "./middleware/errorHandler.ts";
 import { globalRateLimit } from "./middleware/globalRateLimit.ts";
 import { observabilityMiddleware } from "./middleware/observability.ts";
-import { kolkataTimestampMiddleware } from "./middleware/kolkataTimestamps.ts";
 import dns from "dns";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,8 +21,8 @@ export { pool };
 
 dns.setDefaultResultOrder("ipv4first");
 
-// Force Asia/Kolkata everywhere: JS Date formatting + Postgres session timezone
-process.env.TZ = "Asia/Kolkata";
+// Server-side dates are UTC; user-facing formatting happens in the client.
+process.env.TZ = "UTC";
 
 // Trust proxy for Vercel (X-Forwarded-For, secure cookies)
 import type { Express } from "express";
@@ -112,10 +111,6 @@ app.use("/me", express.static(path.join(publicDirectory, "me"), {
   immutable: true,
   maxAge: "7d",
 }));
-
-// JSON dates named created_at/updated_at (and camelCase equivalents) are
-// returned with an explicit Kolkata offset instead of Date's default UTC `Z`.
-app.use(kolkataTimestampMiddleware);
 
 // Request/trace IDs and redacted request telemetry. Registered after parsers
 // and before routes/auth so it observes successes, auth failures and errors.

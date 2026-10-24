@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { getUserTimeZone } from "@/lib/timezone";
 import Link from "next/link";
 import { CalendarDays, ClipboardList, Download, FileText, Pencil, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
@@ -11,7 +12,7 @@ import { SavedTestEditDialog } from "./SavedTestEditDialog";
 const formatCreatedAt = (value: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  return date.toLocaleDateString("en-IN", { timeZone: getUserTimeZone(), day: "2-digit", month: "short", year: "numeric" });
 };
 
 export function TestsPage() {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { getUserTimeZone } from "@/lib/timezone";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -103,7 +104,7 @@ function mapDifficulty(raw: string | null): QuestionDifficulty {
 function formatUpdated(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  return date.toLocaleDateString("en-IN", { timeZone: getUserTimeZone(), day: "2-digit", month: "short", year: "numeric" });
 }
 
 function mapBankQuestion(question: UserBankQuestion): BankQuestion {

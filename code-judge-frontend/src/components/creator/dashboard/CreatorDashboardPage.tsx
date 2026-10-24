@@ -18,7 +18,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { formatDate, formatDateTimeIST, IST_TIMEZONE, timeAgo } from "@/lib/formatters";
+import { formatDate, formatDateTimeIST, timeAgo } from "@/lib/formatters";
+import { getUserTimeZone } from "@/lib/timezone";
 import { deriveQuizStatus, type EffectiveQuizStatus } from "@/lib/quizStatus";
 import { useData } from "@/lib/hooks/useData";
 import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
@@ -1055,7 +1056,7 @@ interface DashboardData {
 
 function greetingForNow(): string {
   const hour = Number(
-    new Intl.DateTimeFormat("en-IN", { timeZone: IST_TIMEZONE, hour: "numeric", hour12: false }).format(new Date())
+    new Intl.DateTimeFormat("en-IN", { timeZone: getUserTimeZone(), hour: "numeric", hour12: false }).format(new Date())
   );
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";

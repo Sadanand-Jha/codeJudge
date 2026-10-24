@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Megaphone, Pencil, Trash2, X } from "lucide-react";
+import { getAvatarUrlById } from "@/config/dicebear";
 import { useRoomContentStore, type RoomAnnouncement } from "@/store/roomContentStore";
 import { timeAgo } from "@/lib/formatters";
 import { useToast } from "@/hooks/useToast";
@@ -20,10 +21,17 @@ export default function RoomAnnouncementsPanel({
   roomId,
   roomName,
   readOnly = false,
+  author = null,
 }: {
   roomId: string;
   roomName: string;
   readOnly?: boolean;
+  author?: {
+    name: string;
+    username?: string | null;
+    avatarId?: number | null;
+    avatarUrl?: string | null;
+  } | null;
 }) {
   const toast = useToast();
   const announcements = useRoomContentStore((s) => s.announcements);
@@ -90,6 +98,11 @@ export default function RoomAnnouncementsPanel({
                 : "Updates for this room. Students see them in their room."}
             </p>
           </div>
+          {readOnly && roomAnnouncements.length > 0 ? (
+            <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-muted)]">
+              {roomAnnouncements.length} {roomAnnouncements.length === 1 ? "post" : "posts"}
+            </span>
+          ) : null}
         </header>
 
         <div className="border-t-2 border-[var(--qs-line)] p-4 sm:p-5">
@@ -151,19 +164,41 @@ export default function RoomAnnouncementsPanel({
               {roomAnnouncements.map((announcement) => (
                 <article
                   key={announcement.id}
-                  className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-4"
+                  className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-4 md:p-[18px]"
                 >
+                  {readOnly && author ? (
+                    <div className="mb-2.5 flex items-center gap-2.5">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- teacher avatars may be remote/user-configured */}
+                      <img
+                        src={author.avatarUrl || getAvatarUrlById(author.avatarId ?? 1)}
+                        alt=""
+                        className="h-8 w-8 shrink-0 rounded-full border-2 border-[var(--qs-ink)] object-cover"
+                      />
+                      <p className="min-w-0 truncate text-[13px] text-[var(--qs-muted)]">
+                        <span className="font-extrabold text-[var(--qs-ink)]">{author.name}</span>
+                        {author.username ? (
+                          <span className="font-semibold"> @{author.username}</span>
+                        ) : null}
+                        <span> · Posted {timeAgo(announcement.createdAt)}</span>
+                      </p>
+                    </div>
+                  ) : null}
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h3 className="truncate text-sm font-extrabold text-[var(--qs-ink)]">
+                      <h3 className={cn(
+                        "truncate font-extrabold text-[var(--qs-ink)]",
+                        readOnly ? "text-[17px]" : "text-sm"
+                      )}>
                         {announcement.title}
                       </h3>
-                      <p className="mt-0.5 text-[11px] font-semibold text-[var(--qs-muted)]">
-                        Posted {timeAgo(announcement.createdAt)}
-                        {announcement.updatedAt !== announcement.createdAt
-                          ? ` · edited ${timeAgo(announcement.updatedAt)}`
-                          : ""}
-                      </p>
+                      {!readOnly || !author ? (
+                        <p className="mt-0.5 text-[11px] font-semibold text-[var(--qs-muted)]">
+                          Posted {timeAgo(announcement.createdAt)}
+                          {announcement.updatedAt !== announcement.createdAt
+                            ? ` · edited ${timeAgo(announcement.updatedAt)}`
+                            : ""}
+                        </p>
+                      ) : null}
                     </div>
                     {!readOnly && (
                       <div className="flex shrink-0 items-center gap-1">

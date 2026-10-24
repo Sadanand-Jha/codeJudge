@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserTimeZone } from "@/lib/timezone";
+
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -58,9 +60,9 @@ const SORTS: { value: SortKey; label: string }[] = [
 ];
 
 const formatDate = (ts: number) =>
-  new Date(ts).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" });
+  new Date(ts).toLocaleDateString("en-IN", { timeZone: getUserTimeZone(), day: "numeric", month: "short", year: "numeric" });
 
-const fmt = (n: number) => new Date(n).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric" });
+const fmt = (n: number) => new Date(n).toLocaleDateString("en-IN", { timeZone: getUserTimeZone(), day: "2-digit", month: "short", year: "numeric" });
 
 function StatusChip({ status, item }: { status: PurchaseStatus; item: PurchasedItem }) {
   const days = itemDaysRemaining(item);

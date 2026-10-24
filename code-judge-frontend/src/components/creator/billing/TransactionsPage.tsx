@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { getUserTimeZone } from "@/lib/timezone";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -67,12 +68,13 @@ function addMonths(ts: number, months: number): number {
 
 function fmtDateTime(ts: number): string {
   return new Date(ts).toLocaleString("en-US", {
+    timeZone: getUserTimeZone(),
     month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit",
   });
 }
 
 function fmtDate(ts: number): string {
-  return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return new Date(ts).toLocaleDateString("en-US", { timeZone: getUserTimeZone(), month: "short", day: "numeric", year: "numeric" });
 }
 
 function daysLeft(expiry: number, now: number): number {

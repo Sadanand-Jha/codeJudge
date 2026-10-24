@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserTimeZone } from "@/lib/timezone";
+
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -142,7 +144,7 @@ export default function ProfileOverview() {
   }, [profile]);
 
   const joinedDate = profile?.createdAt
-    ? new Date(profile.createdAt).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", month: "short", year: "numeric" })
+    ? new Date(profile.createdAt).toLocaleDateString("en-IN", { timeZone: getUserTimeZone(), month: "short", year: "numeric" })
     : undefined;
 
   const country = profile?.country ? (typeof profile.country === "string" ? profile.country : profile.country?.name) : undefined;
@@ -152,7 +154,10 @@ export default function ProfileOverview() {
 
   const copyLink = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      const url = profile?.username
+        ? `${window.location.origin}/students/${encodeURIComponent(profile.username)}`
+        : window.location.href;
+      await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -478,6 +483,15 @@ export default function ProfileOverview() {
                 {copied ? <Sparkles className="h-4 w-4 text-[#22C55E]" /> : <Copy className="h-4 w-4" />}
                 {copied ? "Link Copied" : "Copy Profile Link"}
               </button>
+              {profile?.username ? (
+                <Link
+                  href={`/students/${encodeURIComponent(profile.username)}`}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-text-primary transition-colors hover:border-border-hover hover:bg-card-hover"
+                >
+                  <Link2 className="h-4 w-4" />
+                  View Public Profile
+                </Link>
+              ) : null}
               <Link
                 href="/settings"
                 className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"

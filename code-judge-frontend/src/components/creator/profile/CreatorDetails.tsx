@@ -1,11 +1,13 @@
 "use client";
 
+import { getUserTimeZone } from "@/lib/timezone";
+
 import type { CreatorProfile } from "@/components/creator/workspace/types";
 
 export function CreatorDetails({ profile }: { profile: CreatorProfile }) {
   const joinedAt = profile.createdAt ? new Date(profile.createdAt) : null;
   const joinedLabel = joinedAt && !Number.isNaN(joinedAt.getTime())
-    ? joinedAt.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" })
+    ? joinedAt.toLocaleDateString("en-IN", { timeZone: getUserTimeZone(), day: "numeric", month: "short", year: "numeric" })
     : "";
   const rows = [
     profile.location && { label: "Location", value: profile.location },

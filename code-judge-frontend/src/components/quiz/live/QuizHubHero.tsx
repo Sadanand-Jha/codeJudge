@@ -56,14 +56,14 @@ export default function QuizHubHero() {
 
   return (
     <header className="grid items-center gap-10 pt-4 lg:grid-cols-[1.1fr_.9fr] lg:gap-10">
-      <div>
+      <div className="hidden lg:block">
         <span className="inline-flex items-center rounded-full border-2 border-[#1a1240] bg-[var(--qs-sun)] px-2.5 py-[3px] text-[12px] font-extrabold uppercase tracking-[0.05em] text-[#1a1240]">
           For teachers and students
         </span>
 
         <h1 className="mt-4 max-w-[13em] text-[clamp(42px,6vw,76px)] font-extrabold leading-[1.06] tracking-[-0.025em]">
-          Make a quiz in minutes.{" "}
-          <span className="text-[var(--qs-brand)]">Share it with a code.</span>
+          Join a quiz in seconds.{" "}
+          <span className="text-[var(--qs-brand)]">Your class is one code away.</span>
         </h1>
 
         <p className="mb-[22px] mt-4 max-w-[520px] text-[17px] leading-[1.5] text-[var(--qs-ink)] opacity-80">

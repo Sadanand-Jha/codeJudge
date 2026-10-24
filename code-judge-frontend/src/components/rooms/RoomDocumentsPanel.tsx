@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useRef, type ChangeEvent } from "react";
+import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import { FileText, Trash2, Upload } from "lucide-react";
-import { useRoomContentStore } from "@/store/roomContentStore";
+import { useRoomContentStore, type RoomDocument } from "@/store/roomContentStore";
 import { timeAgo } from "@/lib/formatters";
 import { useToast } from "@/hooks/useToast";
+import { cn } from "@/lib/helpers";
 
 const PRIMARY_BTN =
   "inline-flex items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3.5 py-[9px] text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none";
@@ -33,6 +34,7 @@ export default function RoomDocumentsPanel({
   const documents = useRoomContentStore((s) => s.documents);
   const addDocument = useRoomContentStore((s) => s.addDocument);
   const deleteDocument = useRoomContentStore((s) => s.deleteDocument);
+  const [typeFilter, setTypeFilter] = useState("ALL");
 
   const roomDocuments = useMemo(
     () =>
@@ -40,6 +42,30 @@ export default function RoomDocumentsPanel({
         .filter((document) => document.roomId === roomId)
         .sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()),
     [documents, roomId]
+  );
+
+  const fileTypes = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const document of roomDocuments) {
+      const type = fileType(document.name);
+      counts.set(type, (counts.get(type) ?? 0) + 1);
+    }
+    return [
+      { type: "ALL", count: roomDocuments.length },
+      ...Array.from(counts, ([type, count]) => ({ type, count })),
+    ];
+  }, [roomDocuments]);
+
+  const activeType = fileTypes.some((entry) => entry.type === typeFilter)
+    ? typeFilter
+    : "ALL";
+
+  const visibleDocuments = useMemo(
+    () =>
+      activeType === "ALL"
+        ? roomDocuments
+        : roomDocuments.filter((document) => fileType(document.name) === activeType),
+    [activeType, roomDocuments]
   );
 
   const handleFiles = (event: ChangeEvent<HTMLInputElement>) => {
@@ -59,6 +85,41 @@ export default function RoomDocumentsPanel({
     event.target.value = "";
   };
 
+  const renderMobileDocument = (document: RoomDocument) => (
+    <div
+      key={document.id}
+      className="flex items-center gap-3 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3"
+    >
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]">
+        <FileText className="h-4 w-4" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-extrabold text-[var(--qs-ink)]">
+          {document.name}
+        </span>
+        <span className="mt-0.5 block text-[11px] font-semibold text-[var(--qs-muted)]">
+          {document.type} · {document.size} · {timeAgo(document.addedAt)}
+        </span>
+      </span>
+      {!readOnly && (
+        <button
+          type="button"
+          onClick={() => {
+            deleteDocument(document.id);
+            toast.success({
+              title: "Document removed",
+              description: `${document.name} is no longer shared.`,
+            });
+          }}
+          aria-label={`Delete ${document.name}`}
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-surface)] hover:text-[var(--qs-bad)]"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <section className="relative mb-4 mr-4">
       <div aria-hidden className="absolute left-4 top-4 -bottom-4 -right-4 rounded-[30px] bg-[var(--qs-sun)]" />
@@ -75,6 +136,11 @@ export default function RoomDocumentsPanel({
                 : "Notes, sheets and files shared with this room."}
             </p>
           </div>
+          {readOnly && roomDocuments.length > 0 ? (
+            <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-muted)]">
+              {roomDocuments.length} {roomDocuments.length === 1 ? "file" : "files"}
+            </span>
+          ) : null}
           {!readOnly && (
             <>
               <button
@@ -108,42 +174,78 @@ export default function RoomDocumentsPanel({
                   : `Add notes or a practice sheet for ${roomName}.`}
               </p>
             </div>
+          ) : readOnly ? (
+            <>
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                {fileTypes.map((entry) => {
+                  const active = entry.type === activeType;
+                  return (
+                    <button
+                      key={entry.type}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setTypeFilter(entry.type)}
+                      className={cn(
+                        "rounded-full border-2 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.06em] transition-colors",
+                        active
+                          ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
+                          : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
+                      )}
+                    >
+                      {entry.type === "ALL" ? "All" : entry.type}
+                      <span className={cn("ml-1.5", active ? "opacity-70" : "text-[var(--qs-muted)]")}>
+                        {entry.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="hidden md:block">
+                <div className="grid grid-cols-[minmax(0,1fr)_90px_110px_140px] gap-3 px-3.5 text-[11px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-muted)]">
+                  <span>Name</span>
+                  <span>Type</span>
+                  <span>Size</span>
+                  <span>Shared</span>
+                </div>
+                <div className="mt-2 space-y-2">
+                  {visibleDocuments.map((document) => (
+                    <div
+                      key={document.id}
+                      className="grid grid-cols-[minmax(0,1fr)_90px_110px_140px] items-center gap-3 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-3 text-[13px] text-[var(--qs-muted)]"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[13px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]">
+                          <FileText className="h-[18px] w-[18px]" />
+                        </span>
+                        <span className="truncate text-sm font-extrabold text-[var(--qs-ink)]">
+                          {document.name}
+                        </span>
+                      </div>
+                      <span>
+                        <span className="rounded-full bg-[var(--qs-poly-1)] px-2 py-0.5 text-[11px] font-extrabold text-[var(--qs-ink)]">
+                          {document.type}
+                        </span>
+                      </span>
+                      <span className="font-semibold">{document.size}</span>
+                      <span className="font-semibold">{timeAgo(document.addedAt)}</span>
+                    </div>
+                  ))}
+                  {visibleDocuments.length === 0 ? (
+                    <div className="rounded-[14px] border-2 border-dashed border-[var(--qs-line)] px-4 py-8 text-center text-xs font-semibold text-[var(--qs-muted)]">
+                      No documents match this filter.
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="space-y-2.5 md:hidden">
+                {visibleDocuments.map(renderMobileDocument)}
+              </div>
+            </>
           ) : (
             <div className="space-y-2.5">
-              {roomDocuments.map((document) => (
-                <div
-                  key={document.id}
-                  className="flex items-center gap-3 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3"
-                >
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]">
-                    <FileText className="h-4 w-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-extrabold text-[var(--qs-ink)]">
-                      {document.name}
-                    </span>
-                    <span className="mt-0.5 block text-[11px] font-semibold text-[var(--qs-muted)]">
-                      {document.type} · {document.size} · {timeAgo(document.addedAt)}
-                    </span>
-                  </span>
-                  {!readOnly && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        deleteDocument(document.id);
-                        toast.success({
-                          title: "Document removed",
-                          description: `${document.name} is no longer shared.`,
-                        });
-                      }}
-                      aria-label={`Delete ${document.name}`}
-                      className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-surface)] hover:text-[var(--qs-bad)]"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-              ))}
+              {roomDocuments.map(renderMobileDocument)}
             </div>
           )}
         </div>

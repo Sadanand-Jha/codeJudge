@@ -1,3 +1,5 @@
+import { getUserTimeZone } from "@/lib/timezone";
+
 /**
  * Quiz Anti-Copy Protection Utilities
  * 
@@ -136,7 +138,7 @@ export function disablePrint(e: KeyboardEvent): void {
  * Generate dynamic watermark
  */
 export function generateWatermark(username: string, rollNumber: string, quizCode: string): string {
-  const timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+  const timestamp = new Date().toLocaleString('en-IN', { timeZone: getUserTimeZone() });
   const watermarkText = `${username} | ${rollNumber} | ${quizCode} | ${timestamp}`;
   
   return watermarkText;

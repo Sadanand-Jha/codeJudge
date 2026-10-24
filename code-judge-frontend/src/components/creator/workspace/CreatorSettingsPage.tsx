@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getUserTimeZone } from "@/lib/timezone";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -55,7 +56,7 @@ function initialsOf(name: string) {
 function formatMemberSince(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+  return date.toLocaleDateString("en-IN", { timeZone: getUserTimeZone(), month: "short", year: "numeric" });
 }
 
 export function CreatorSettingsPage() {
