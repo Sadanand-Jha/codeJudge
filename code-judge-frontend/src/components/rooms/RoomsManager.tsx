@@ -543,7 +543,6 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
         initialTab={createTab}
         onCreated={() => {
           setCreateOpen(false);
-          toast.success({ title: "Room created", description: "Your room is ready to use." });
         }}
       />
 

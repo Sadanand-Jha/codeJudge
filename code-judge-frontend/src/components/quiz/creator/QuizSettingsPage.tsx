@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserTimeZone, toZonedDateTimeParts, zonedDateTimeToISO } from "@/lib/timezone";
+
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -329,15 +331,20 @@ export default function QuizSettingsPage({
   /* ---- End mode ---- */
   const selectNoFixedEnd = () => update({ availabilityEnd: "" });
 
+  const toAbsoluteISO = (value: string) => {
+    if (!value) return "";
+    const [date, time = "00:00"] = value.split("T");
+    return zonedDateTimeToISO(date, time.slice(0, 5), details.timeZone || getUserTimeZone());
+  };
+
   const selectScheduledEnd = () => {
     if (details.availabilityEnd) return;
-    const base = details.availabilityStart
-      ? new Date(details.availabilityStart)
-      : new Date(Date.now() + 24 * 60 * 60 * 1000);
-    const end = new Date(base.getTime() + 60 * 60 * 1000);
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const local = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`;
-    update({ availabilityEnd: local });
+    const startIso = details.availabilityStart
+      ? toAbsoluteISO(details.availabilityStart)
+      : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const endIso = new Date(new Date(startIso).getTime() + 60 * 60 * 1000).toISOString();
+    const parts = toZonedDateTimeParts(endIso, details.timeZone || getUserTimeZone());
+    update({ availabilityEnd: `${parts.date}T${parts.time}` });
   };
 
   /* ---- Validation ---- */
@@ -447,8 +454,8 @@ export default function QuizSettingsPage({
         code: generateQuizCode(),
         difficulty: details.difficulty,
         visibility: details.visibilityId ?? undefined,
-        starttime: details.availabilityStart || undefined,
-        endtime: details.availabilityEnd || undefined,
+        starttime: toAbsoluteISO(details.availabilityStart) || undefined,
+        endtime: toAbsoluteISO(details.availabilityEnd) || undefined,
         timeZone: details.timeZone,
         randomizeQuestions: details.randomizeQuestions,
         randomizeOptions: details.randomizeOptions,
@@ -463,8 +470,8 @@ export default function QuizSettingsPage({
         passingMarks: details.passingMarks,
         tags: details.tags,
         registrationEnabled: details.registrationEnabled,
-        registrationStart: details.registrationStart || undefined,
-        registrationEnd: details.registrationEnd || undefined,
+        registrationStart: toAbsoluteISO(details.registrationStart) || undefined,
+        registrationEnd: toAbsoluteISO(details.registrationEnd) || undefined,
         emailResults: details.emailResults,
         leaderboard: details.leaderboard,
         leaderboardShowRank: details.leaderboardShowRank,
@@ -1110,10 +1117,10 @@ export default function QuizSettingsPage({
                         </p>
                         <p className="mt-1 text-sm text-text-secondary">
                           {details.availabilityMode === "scheduled"
-                            ? `Students can attempt from ${details.availabilityStart ? new Date(details.availabilityStart).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "scheduled start"} to ${details.availabilityEnd ? new Date(details.availabilityEnd).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "no fixed end"}`
-                            : `Quiz opens immediately after publishing${details.availabilityEnd ? ` and ends ${new Date(details.availabilityEnd).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}` : " with no fixed end"}`
+                            ? `Students can attempt from ${details.availabilityStart ? new Date(toAbsoluteISO(details.availabilityStart)).toLocaleString("en-IN", { timeZone: details.timeZone || getUserTimeZone() }) : "scheduled start"} to ${details.availabilityEnd ? new Date(toAbsoluteISO(details.availabilityEnd)).toLocaleString("en-IN", { timeZone: details.timeZone || getUserTimeZone() }) : "no fixed end"}`
+                            : `Quiz opens immediately after publishing${details.availabilityEnd ? ` and ends ${new Date(toAbsoluteISO(details.availabilityEnd)).toLocaleString("en-IN", { timeZone: details.timeZone || getUserTimeZone() })}` : " with no fixed end"}`
                           }
-                          <span className="ml-2 text-[10px] font-medium text-amber-500">({details.timeZone})</span>
+                          <span className="ml-2 text-[10px] font-medium text-amber-500">({details.timeZone || getUserTimeZone()})</span>
                         </p>
                         <p className="mt-2 text-[10px] text-text-muted">
                           Responses close when the quiz window ends: {details.availabilityEndBehavior === "auto_submit" ? "auto-submit" : details.availabilityEndBehavior === "allow_finish" ? "allow to finish" : "stop immediately"}.

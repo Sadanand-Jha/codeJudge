@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { getUserTimeZone } from "@/lib/timezone";
 import {
   Check,
   ChevronRight,
@@ -398,7 +399,7 @@ function formatRelative(value: string): string {
   if (minutes < 60) return `${minutes} min ago`;
   const hours = Math.round(minutes / 60);
   if (hours < 24) return `${hours} hr ago`;
-  return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+  return date.toLocaleDateString("en-IN", { timeZone: getUserTimeZone(), day: "2-digit", month: "short" });
 }
 
 export function VersionsPanel({

@@ -82,7 +82,8 @@ test("sitemap lists only reachable public pages on the canonical host", () => {
   const urls = entries.map((entry) => entry.url);
   assert.deepEqual(urls, [
     "https://www.quizsupport.com/",
-    "https://www.quizsupport.com/quiz",
+    "https://www.quizsupport.com/about",
+    "https://www.quizsupport.com/contact",
     "https://www.quizsupport.com/privacy",
     "https://www.quizsupport.com/docs",
     "https://www.quizsupport.com/meet-the-developer",
@@ -205,21 +206,21 @@ test("focus-mode client allowlist keeps every indexable public page reachable", 
   }
 });
 
-test("blocked marketing pages redirect to the homepage, not the quiz hub", () => {
-  assert.deepEqual(FOCUS_HOME_REDIRECT_PREFIXES, ["/pricing"]);
-  assert.equal(isHomeRedirectPath("/pricing"), true, "expected /pricing to redirect home");
+test("pricing stays reachable and is never redirected home in focus mode", () => {
+  assert.deepEqual(FOCUS_HOME_REDIRECT_PREFIXES, []);
+  assert.equal(isHomeRedirectPath("/pricing"), false, "pricing is an allowed public page");
   assert.equal(isHomeRedirectPath("/pricing#credits"), false, "only pathnames are checked");
   assert.equal(isHomeRedirectPath("/quiz"), false, "quiz routes keep the quiz-hub flow");
 
   const urls = sitemap().map((entry) => entry.url);
   assert.ok(
     !urls.some((url) => url.includes("/pricing")),
-    "blocked pages must not be listed in the sitemap"
+    "pricing is intentionally excluded from the sitemap"
   );
 
   const proxySource = readFileSync("proxy.ts", "utf8");
   assert.ok(
-    proxySource.includes('FOCUS_HOME_REDIRECT_PREFIXES = ["/pricing"]'),
+    proxySource.includes("const FOCUS_HOME_REDIRECT_PREFIXES: string[] = [];"),
     "proxy.ts must mirror the home-redirect list"
   );
 });

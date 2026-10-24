@@ -18,14 +18,18 @@ export interface UserProfile {
   bio?: string | null;
   mobile?: string | null;
   country?: NamedProfileValue | null;
+  countryId?: number | null;
   state?: NamedProfileValue | null;
+  stateId?: number | null;
   college?: NamedProfileValue | null;
+  collegeId?: number | null;
   company?: NamedProfileValue | null;
   role?: string | null;
   rating?: number;
   maxRating?: number;
   isVerified?: boolean;
   isActive?: boolean;
+  timezone?: string | null;
   lastLogin?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;

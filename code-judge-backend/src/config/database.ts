@@ -17,7 +17,7 @@ const connectionString =
   process.env.DATABASE_URL;
 
 dns.setDefaultResultOrder('ipv4first');
-process.env.TZ = 'Asia/Kolkata';
+process.env.TZ = 'UTC';
 
 declare global {
   // eslint-disable-next-line no-var
@@ -45,9 +45,9 @@ function createPool(): pg.Pool {
     allowExitOnIdle: false, // keep event loop alive in dev, Vercel freezes anyway
   });
 
-  // Set IST timezone for every new connection
+  // Store and compare every timestamp in UTC.
   pool.on('connect', (client) => {
-    client.query("SET TIME ZONE 'Asia/Kolkata'").catch(() => {});
+    client.query("SET TIME ZONE 'UTC'").catch(() => {});
   });
 
   // 4. Error Handling: prevent zombie/idle connections from hanging

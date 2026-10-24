@@ -10,12 +10,16 @@ export interface UserInfo {
   avatarIsMale: boolean | null;
   bio: string | null;
   country: any | null;
+  countryId?: number | null;
   state: any | null;
+  stateId?: number | null;
   college: any | null;
+  collegeId?: number | null;
   company: any | null;
   rating: number;
   maxRating: number;
   role: string | null;
+  timezone?: string | null;
   isVerified: boolean;
   isActive: boolean;
   lastLogin: string | null;
@@ -42,6 +46,7 @@ export interface UserProfile {
   username: string;
   email: string;
   role: string;
+  timezone?: string | null;
   createdat: string;
   updatedat: string;
 }

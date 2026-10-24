@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ChevronLeft, ChevronRight, Download, Mail, Square, Search, X, RefreshCw,
+  ArrowLeft, ChevronLeft, ChevronRight, Mail, Square, Search, X, RefreshCw,
   MoreVertical, Pause, RotateCcw, Timer, TrendingUp, TrendingDown, Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
@@ -259,9 +259,10 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
   const toast = useToast();
   const [students, setStudents] = useState<Student[]>([]);
   const [quizName, setQuizName] = useState("Responses");
+  const [quizStatus, setQuizStatus] = useState<string | null>(null);
+  const quizEnded = quizStatus === "ended" || quizStatus === "completed";
   const [resolvedQuizId, setResolvedQuizId] = useState(quizId);
   const [totalQuestions, setTotalQuestions] = useState(0);
-  const [summary, setSummary] = useState({ total: 0, submitted: 0, notSubmitted: 0, avg: 0, highest: 0, lowest: null as number | null });
   const [timeStats, setTimeStats] = useState<{ avg: number | null; fastest: number | null; slowest: number | null }>({ avg: null, fastest: null, slowest: null });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -300,6 +301,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
       ]);
 
       setQuizName(resp.quiz?.name || "Responses");
+      setQuizStatus(resp.quiz?.status ?? null);
       setResolvedQuizId(numericId);
       const attempts = (resp.students || []).map(mapStudent);
       const questions = attempts.find((s) => s.totalQuestions != null)?.totalQuestions ?? 0;
@@ -316,15 +318,6 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
         });
       }
       setStudents(attempts);
-      const scored = attempts.filter((student) => student.correct !== null);
-      setSummary({
-        total: new Set(attempts.map((student) => student.userId)).size,
-        submitted: attempts.filter((student) => student.status === "SUBMITTED").length,
-        notSubmitted: attempts.filter((student) => student.status !== "SUBMITTED").length,
-        avg: scored.length ? scored.reduce((a, b) => a + (b.correct ?? 0), 0) / scored.length : 0,
-        highest: scored.length ? Math.max(...scored.map((s) => s.correct ?? 0)) : 0,
-        lowest: scored.length ? Math.min(...scored.map((s) => s.correct ?? 0)) : null,
-      });
 
       const st = analytics?.stats;
       const fromAnalytics = {
@@ -432,6 +425,48 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
     setActionMenu({ student, top: rect.bottom + 8, right: window.innerWidth - rect.right });
   }, []);
 
+  const summaryStudents = useMemo(() => {
+    const byUser = new Map<number, Student[]>();
+    students.forEach((student) => {
+      const rows = byUser.get(student.userId);
+      if (rows) rows.push(student);
+      else byUser.set(student.userId, [student]);
+    });
+
+    return [...byUser.values()].map((rows) => {
+      const completed = rows.filter((row) => row.status === "SUBMITTED");
+      const timedOut = rows.filter((row) => row.status === "TIMED_OUT");
+      const inProgress = rows.filter((row) => row.status === "IN_PROGRESS");
+      const status: StudentStatus = completed.length
+        ? "SUBMITTED"
+        : timedOut.length
+          ? "TIMED_OUT"
+          : inProgress.length
+            ? "IN_PROGRESS"
+            : "NOT_STARTED";
+      const scoredRows = rows.filter((row) => row.correct !== null);
+      const completedRows = scoredRows.filter((row) => row.status === "SUBMITTED");
+      const bestAttempt = (completedRows.length ? completedRows : scoredRows)
+        .sort((a, b) =>
+          (b.correct ?? 0) - (a.correct ?? 0) ||
+          (a.timeTakenSec ?? Infinity) - (b.timeTakenSec ?? Infinity)
+        )[0];
+      return { ...(bestAttempt ?? rows[0]), status };
+    });
+  }, [students]);
+
+  const summary = useMemo(() => {
+    const scored = summaryStudents.filter((student) => student.correct !== null);
+    return {
+      total: summaryStudents.length,
+      submitted: summaryStudents.filter((student) => student.status === "SUBMITTED").length,
+      notSubmitted: summaryStudents.filter((student) => student.status !== "SUBMITTED").length,
+      avg: scored.length ? scored.reduce((a, b) => a + (b.correct ?? 0), 0) / scored.length : 0,
+      highest: scored.length ? Math.max(...scored.map((s) => s.correct ?? 0)) : 0,
+      lowest: scored.length ? Math.min(...scored.map((s) => s.correct ?? 0)) : null,
+    };
+  }, [summaryStudents]);
+
   const statusCounts = useMemo(() => {
     const counts: Record<StudentStatus | "ALL", number> = {
       ALL: students.length, SUBMITTED: 0, IN_PROGRESS: 0, NOT_STARTED: 0, TIMED_OUT: 0,
@@ -466,9 +501,9 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
   const pageItems = pageNumbers(currentPage, totalPages);
 
   const liveStudents = useMemo(() => students.filter((student) => isLiveAttempt(student, presenceNow)), [students, presenceNow]);
-  const inProgressCount = useMemo(() => students.filter((s) => s.status === "IN_PROGRESS").length, [students]);
-  const timedOutCount = useMemo(() => students.filter((s) => s.status === "TIMED_OUT").length, [students]);
-  const notStartedCount = useMemo(() => students.filter((student) => student.status === "NOT_STARTED").length, [students]);
+  const inProgressCount = useMemo(() => summaryStudents.filter((s) => s.status === "IN_PROGRESS").length, [summaryStudents]);
+  const timedOutCount = useMemo(() => summaryStudents.filter((s) => s.status === "TIMED_OUT").length, [summaryStudents]);
+  const notStartedCount = useMemo(() => summaryStudents.filter((student) => student.status === "NOT_STARTED").length, [summaryStudents]);
 
   const submissionData = useMemo(() => ([
     { name: "Submitted", value: summary.submitted, color: STATUS_COLORS.SUBMITTED },
@@ -478,7 +513,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
   ]), [summary, inProgressCount, notStartedCount, timedOutCount]);
 
   const donutSegments = useMemo(() => {
-    const total = Math.max(students.length, 1);
+    const total = Math.max(summary.total, 1);
     let off = 0;
     return submissionData
       .filter((d) => d.value > 0)
@@ -489,14 +524,14 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
         off += len;
         return seg;
       });
-  }, [submissionData, students.length]);
+  }, [submissionData, summary.total]);
 
   const scoreData = useMemo(() => {
     const BUCKETS = 5;
     const max = totalQuestions > 0 ? totalQuestions : 100;
     const size = max / BUCKETS;
     const counts = new Array(BUCKETS).fill(0);
-    students.forEach((s) => {
+    summaryStudents.forEach((s) => {
       if (s.correct === null) return;
       const idx = Math.min(BUCKETS - 1, Math.floor(s.correct / size));
       counts[idx] += 1;
@@ -506,7 +541,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
       const hi = Math.round((i + 1) * size);
       return { range: i === BUCKETS - 1 ? `${lo}-${max}` : `${lo}-${hi}`, count };
     });
-  }, [students, totalQuestions]);
+  }, [summaryStudents, totalQuestions]);
 
   const maxBucket = useMemo(() => Math.max(...scoreData.map((s) => s.count), 1), [scoreData]);
 
@@ -515,27 +550,6 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
     { label: "Fastest", value: timeStats.fastest !== null ? formatTaken(timeStats.fastest) ?? "—" : "—", icon: TrendingUp, accent: "bg-[var(--qs-ok)]", sub: "Best performer" },
     { label: "Slowest", value: timeStats.slowest !== null ? formatTaken(timeStats.slowest) ?? "—" : "—", icon: TrendingDown, accent: "bg-[var(--qs-bad)]", sub: "Needs attention" },
   ]), [timeStats]);
-
-  const exportCsv = useCallback(() => {
-    const header = ["Rank", "Student", "Roll no.", "Status", "Correct", "Total questions", "%", "Decoy hits", "Decoy flagged", "Time taken", "Submitted at"];
-    const rows = filtered.map((s) => [
-      s.rank ?? "", nameWithAttempt(s.name, s.attemptNumber), s.rollNo, STATUS_CONFIG[s.status].label,
-      s.correct ?? "", s.totalQuestions ?? "", s.totalQuestions ? Math.round(((s.correct ?? 0) / s.totalQuestions) * 100) : "",
-      s.decoyHits ?? "", s.decoyFlagged ? "YES" : "NO", s.timeTaken ?? "", s.submittedAt ?? "",
-    ]);
-    const csv = [header, ...rows]
-      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
-      .join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${quizName.replace(/[^\w-]+/g, "_")}_responses.csv`;
-    a.click();
-    a.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 0);
-    toast.success({ title: "Exported", description: `${filtered.length} rows downloaded as CSV.` });
-  }, [filtered, quizName, toast]);
 
   const handleDeleteAttempt = useCallback(async () => {
     if (!deleteTarget?.attemptId || deleting) return;
@@ -602,7 +616,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-[28px] font-extrabold leading-none tracking-[-0.02em] text-[var(--qs-ink)] sm:text-[34px]">Responses</h1>
-                {liveStudents.length > 0 && (
+                {liveStudents.length > 0 && !quizEnded && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--qs-ok)]/40 bg-[var(--qs-ok)]/10 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ok)]">
                     <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--qs-ok)]" />
                     Live
@@ -617,10 +631,6 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               <RefreshCw className={cn("h-4 w-4", (refreshing || loading) && "animate-spin")} />
               Refresh
             </button>
-            <button type="button" onClick={() => toast.info({ title: "Coming soon", description: "Downloading results is not available yet." })} className={topBtn}>
-              <Download className="h-4 w-4" />
-              Download Results
-            </button>
             <button
               type="button"
               onClick={() => void handleSendEmail()}
@@ -630,14 +640,16 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               <Mail className={cn("h-4 w-4", sendingEmail && "animate-pulse")} />
               {sendingEmail ? "Sending…" : "Send on Email"}
             </button>
-            <button
-              type="button"
-              onClick={() => setEndOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-bad)] bg-[var(--qs-surface)] px-3.5 py-[9px] text-sm font-bold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-bad)] hover:text-white"
-            >
-              <Square className="h-4 w-4" />
-              End Quiz
-            </button>
+            {!quizEnded && (
+              <button
+                type="button"
+                onClick={() => setEndOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-bad)] bg-[var(--qs-surface)] px-3.5 py-[9px] text-sm font-bold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-bad)] hover:text-white"
+              >
+                <Square className="h-4 w-4" />
+                End Quiz
+              </button>
+            )}
           </div>
         </div>
 
@@ -690,7 +702,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
         </div>
 
         {/* ── Live Now ──────────────────────────────────────────────── */}
-        {liveStudents.length > 0 && (
+        {liveStudents.length > 0 && !quizEnded && (
           <div className="mb-6 rounded-[18px] border-2 border-[var(--qs-ok)]/40 bg-[var(--qs-ok)]/[0.05] p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">
@@ -764,7 +776,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
             <header className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-[19px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-[21px]">Score Distribution</h2>
-                <p className="mt-0.5 text-[13px] text-[var(--qs-muted)]">{summary.submitted} submissions across all ranges</p>
+                <p className="mt-0.5 text-[13px] text-[var(--qs-muted)]">{summary.submitted} completed students across all ranges</p>
               </div>
               <span className="shrink-0 rounded-full bg-[var(--qs-sun)] px-3 py-1 text-xs font-extrabold text-[#1A1240]">
                 Detailed stats →
@@ -794,7 +806,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
           <section className="rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-[22px]">
             <header className="mb-4">
               <h2 className="text-[19px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-[21px]">Submission Status</h2>
-              <p className="mt-0.5 text-[13px] text-[var(--qs-muted)]">Breakdown of {students.length} student attempt records</p>
+              <p className="mt-0.5 text-[13px] text-[var(--qs-muted)]">Breakdown of {summary.total} students</p>
             </header>
             <div className="flex min-h-[200px] flex-wrap items-center justify-center gap-5 sm:gap-[22px]">
               <svg viewBox="0 0 150 150" role="img" aria-label="Submission status" className="h-[150px] w-[150px] shrink-0">
@@ -813,8 +825,8 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                     transform="rotate(-90 75 75)"
                   />
                 ))}
-                <text x="75" y="76" textAnchor="middle" fontWeight="800" fontSize="30" fill="var(--qs-ink)">{students.length}</text>
-                <text x="75" y="94" textAnchor="middle" fontSize="9" fontWeight="800" letterSpacing="1.5" fill="var(--qs-muted)">RECORDS</text>
+                <text x="75" y="76" textAnchor="middle" fontWeight="800" fontSize="30" fill="var(--qs-ink)">{summary.total}</text>
+                <text x="75" y="94" textAnchor="middle" fontSize="9" fontWeight="800" letterSpacing="1.5" fill="var(--qs-muted)">STUDENTS</text>
               </svg>
               <ul className="grid min-w-[150px] flex-1 gap-2.5">
                 {submissionData.map((d) => (
@@ -892,9 +904,6 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
             })}
           </div>
           <div className="flex w-full items-center gap-2 sm:w-auto">
-            <button type="button" onClick={exportCsv} className={cn(topBtn, "flex-1 justify-center sm:flex-none")}>
-              Export
-            </button>
             <button
               type="button"
               onClick={() => {
@@ -1457,7 +1466,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
 
       {/* ── End Quiz Modal ────────────────────────────────────────────── */}
       <AnimatePresence>
-        {endOpen && (
+        {endOpen && !quizEnded && (
           <>
             <motion.div
               initial={{ opacity: 0 }}

@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { CalendarClock, Clock, RotateCcw, Square } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { IST_TIMEZONE, formatDateTimeIST } from "@/lib/formatters";
+import { formatDateTimeIST } from "@/lib/formatters";
+import { getUserTimeZone, zonedDateTimeToISO } from "@/lib/timezone";
 import { useToast } from "@/hooks/useToast";
 import { getQuizById, updateQuiz, updateQuizStatus } from "@/services/quiz";
 
@@ -29,17 +30,17 @@ const EXTEND_PRESETS = [
 const INPUT =
   "w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2.5 text-[13px] font-semibold text-[var(--qs-ink)] outline-none transition-colors focus:border-[var(--qs-brand)] [color-scheme:light]";
 
-/** "YYYY-MM-DDTHH:mm" now in IST wall-clock (backend stores naive IST). */
+/** "YYYY-MM-DDTHH:mm" now in the user's timezone. */
 function nowInputValue(): string {
   return new Date()
-    .toLocaleString("sv-SE", { timeZone: IST_TIMEZONE })
+    .toLocaleString("sv-SE", { timeZone: getUserTimeZone() })
     .replace(" ", "T")
     .slice(0, 16);
 }
 
 /**
- * Normalise a backend timestamp into a `datetime-local` value.
- * Naive IST strings are sliced; values with an offset/Z are converted to IST.
+ * Normalise a backend timestamp into a `datetime-local` value in the user's
+ * timezone. Offset/Z values are converted; legacy naive strings are sliced.
  */
 function toInputValue(raw: string | null | undefined): string {
   if (!raw) return "";
@@ -48,7 +49,7 @@ function toInputValue(raw: string | null | undefined): string {
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return "";
   return date
-    .toLocaleString("sv-SE", { timeZone: IST_TIMEZONE })
+    .toLocaleString("sv-SE", { timeZone: getUserTimeZone() })
     .replace(" ", "T")
     .slice(0, 16);
 }
@@ -128,15 +129,19 @@ export function TimingModal({
     }
     setSaving(true);
     setError(null);
+    const toISO = (value: string) =>
+      value ? zonedDateTimeToISO(value.slice(0, 10), value.slice(11, 16)) : null;
+    const startIso = toISO(start);
+    const endIso = toISO(end);
     try {
       await updateQuiz(quiz.id, {
-        starttime: start || null,
-        endtime: end || null,
+        starttime: startIso,
+        endtime: endIso,
       });
       toast.success({
         title: "Timing updated",
-        description: end
-          ? `“${quiz.title}” now closes ${formatDateTimeIST(`${end}:00+05:30`)}.`
+        description: endIso
+          ? `“${quiz.title}” now closes ${formatDateTimeIST(endIso)}.`
           : `“${quiz.title}” will run until manually closed.`,
       });
       onSaved();
@@ -251,7 +256,7 @@ export function TimingModal({
                 {preset.label}
               </button>
             ))}
-            <span className="ml-auto text-[11px] font-semibold text-[var(--qs-muted)]">IST (Asia/Kolkata)</span>
+            <span className="ml-auto text-[11px] font-semibold text-[var(--qs-muted)]">{getUserTimeZone()}</span>
           </div>
 
           {!end && (

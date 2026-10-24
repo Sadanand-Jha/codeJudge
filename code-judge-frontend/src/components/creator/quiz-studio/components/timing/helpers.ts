@@ -1,3 +1,9 @@
+import {
+  getUserTimeZone,
+  toZonedDateTimeParts,
+  zonedDateTimeToISO,
+} from "@/lib/timezone";
+
 export function toDateString(d: Date): string {
   return toISTDateTimeParts(d.toISOString()).date;
 }
@@ -8,9 +14,9 @@ export function toTimeString(d: Date): string {
 
 export function formatDateTime(date: string, time: string): string {
   if (!date) return "\u2014";
-  const d = new Date(`${date}T${time || "00:00"}`);
+  const d = new Date(`${date}T12:00:00Z`);
   const datePart = d.toLocaleDateString("en-IN", {
-    timeZone: "Asia/Kolkata",
+    timeZone: "UTC",
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -18,45 +24,29 @@ export function formatDateTime(date: string, time: string): string {
   return time ? `${datePart} \u00b7 ${formatTime12(time)}` : datePart;
 }
 
-/** Format an ISO/server datetime in India Standard Time. */
+/** Format an ISO/server datetime in the user's saved timezone. */
 export function formatDateTimeIST(value: string | null | undefined, fallback = "\u2014"): string {
   if (!value) return fallback;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return fallback;
+  const timeZone = getUserTimeZone();
   const datePart = date.toLocaleDateString("en-IN", {
-    timeZone: "Asia/Kolkata",
+    timeZone,
     day: "numeric",
     month: "short",
     year: "numeric",
   });
   const timePart = date.toLocaleTimeString("en-IN", {
-    timeZone: "Asia/Kolkata",
+    timeZone,
     hour: "numeric",
     minute: "2-digit",
   });
-  return `${datePart} \u00b7 ${timePart} IST`;
+  return `${datePart} \u00b7 ${timePart}`;
 }
 
-/** Split an ISO/server datetime into India date (YYYY-MM-DD) and time (HH:mm). */
+/** Split an ISO/server datetime into the user's local date (YYYY-MM-DD) and time (HH:mm). */
 export function toISTDateTimeParts(value: string | null | undefined): { date: string; time: string } {
-  if (!value) return { date: "", time: "" };
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return { date: "", time: "" };
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(date);
-  const get = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((part) => part.type === type)?.value ?? "";
-  return {
-    date: `${get("year")}-${get("month")}-${get("day")}`,
-    time: `${get("hour")}:${get("minute")}`,
-  };
+  return toZonedDateTimeParts(value, getUserTimeZone());
 }
 
 export function formatTime12(time24: string): string {
@@ -84,7 +74,7 @@ export function formatRelativeTime(dateStr: string): string {
 
 export function isPast(date: string, time: string): boolean {
   if (!date) return false;
-  const target = new Date(`${date}T${time || "23:59"}`);
+  const target = new Date(zonedDateTimeToISO(date, time || "23:59"));
   return target.getTime() < Date.now();
 }
 
@@ -95,7 +85,7 @@ export function isStartAfterEnd(
   eTime: string
 ): boolean {
   if (!sDate || !eDate) return false;
-  const a = new Date(`${sDate}T${sTime || "00:00"}`);
-  const b = new Date(`${eDate}T${eTime || "23:59"}`);
+  const a = new Date(zonedDateTimeToISO(sDate, sTime || "00:00"));
+  const b = new Date(zonedDateTimeToISO(eDate, eTime || "23:59"));
   return a.getTime() >= b.getTime();
 }

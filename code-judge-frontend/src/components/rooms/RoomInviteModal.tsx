@@ -255,7 +255,7 @@ export default function RoomInviteModal({
                       ))}
                     </select>
                     <p className="mt-1.5 text-[11px] font-medium text-[var(--qs-muted)]">
-                      Times are shown in IST (Asia/Kolkata).
+                      Times are shown in your timezone.
                     </p>
 
                     <button

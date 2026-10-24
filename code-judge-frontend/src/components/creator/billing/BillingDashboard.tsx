@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { getUserTimeZone } from "@/lib/timezone";
 import type { ReactNode } from "react";
 import {
   ArrowRight,
@@ -46,6 +47,7 @@ function formatTime(ts: number): string {
 
 function formatPurchaseDate(ts: number): string {
   return new Date(ts).toLocaleDateString("en-IN", {
+    timeZone: getUserTimeZone(),
     day: "2-digit",
     month: "short",
     year: "numeric",

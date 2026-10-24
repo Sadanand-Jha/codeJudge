@@ -3,7 +3,7 @@ import "dotenv/config";
 import pg from "pg";
 import type { Client as PgClient, ClientConfig } from "pg";
 
-process.env.TZ ||= "Asia/Kolkata";
+process.env.TZ ||= "UTC";
 
 const { Client } = pg;
 const SCHEMA = "public";
@@ -234,7 +234,7 @@ function resolveTargetConnection(): ConnectionInfo {
 
 async function connectClient(client: PgClient, label: string): Promise<void> {
   await client.connect();
-  await client.query("SET TIME ZONE 'Asia/Kolkata'");
+  await client.query("SET TIME ZONE 'UTC'");
   await client.query("SET statement_timeout = 0");
   console.log(`Connected to ${label}`);
 }

@@ -2,7 +2,8 @@
 
 import { useMemo } from "react";
 import { ClipboardList, UserCheck, Activity } from "lucide-react";
-import { timeAgo, IST_TIMEZONE } from "@/lib/formatters";
+import { timeAgo } from "@/lib/formatters";
+import { getUserTimeZone } from "@/lib/timezone";
 import type { CreatorProfileOverview } from "@/services/creatorProfile";
 
 interface TimelineEvent {
@@ -18,7 +19,7 @@ function exactDate(iso: string | null): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleString("en-IN", {
-    timeZone: IST_TIMEZONE,
+    timeZone: getUserTimeZone(),
     day: "numeric",
     month: "short",
     year: "numeric",

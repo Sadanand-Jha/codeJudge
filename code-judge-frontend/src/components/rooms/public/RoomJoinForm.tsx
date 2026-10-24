@@ -23,6 +23,7 @@ import {
 } from "@/services/rooms";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { cn } from "@/lib/helpers";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import type { RoomRegistrationForm } from "@/types/room";
 import {
   isValidRoomCodeInput,
@@ -756,13 +757,7 @@ export default function RoomJoinForm({
               )}
             >
               <div className={styles.joinedCircle}>
-                <svg className={styles.checkSvg} viewBox="0 0 32 32" aria-hidden="true">
-                  <path
-                    d="M8 16.5 13.5 22 24 10.5"
-                    pathLength={1}
-                    className={cn(styles.checkPath, joinedRevealed && styles.checkPathDrawn)}
-                  />
-                </svg>
+                <SecureLogo variant="mark" size={44} />
               </div>
               <span className="mt-4 inline-block rounded-full border-2 border-[var(--qs-ok)] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ok)]">
                 {alreadyJoined ? "Already joined" : "Joined"}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { getUserTimeZone } from "@/lib/timezone";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
@@ -151,6 +152,7 @@ function formatDateTime(value: string | null | undefined): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString("en-US", {
+    timeZone: getUserTimeZone(),
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -165,6 +167,7 @@ function formatDateTimeShort(value: string | null | undefined): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString("en-US", {
+    timeZone: getUserTimeZone(),
     month: "short",
     day: "numeric",
     hour: "numeric",

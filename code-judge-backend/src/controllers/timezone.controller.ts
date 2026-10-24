@@ -1,4 +1,8 @@
 import type { Request, Response } from "express";
+import {
+  isValidTimeZone,
+  updateUserTimezone,
+} from "../services/entitlements/index.ts";
 
 /**
  * Fallback timezone list used when the runtime does not expose
@@ -54,6 +58,50 @@ export const getTimezones = async (_req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Internal server error while fetching timezones",
+    });
+  }
+};
+
+/**
+ * PATCH /api/v1/user/profile/timezone
+ * Stores the IANA timezone the user chose for date parsing and daily quotas.
+ */
+export const updateTimezone = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized access",
+      });
+      return;
+    }
+
+    const timezone = typeof req.body?.timezone === "string"
+      ? req.body.timezone.trim()
+      : "";
+
+    if (!timezone || !isValidTimeZone(timezone)) {
+      res.status(400).json({
+        success: false,
+        message: "A valid IANA timezone is required",
+      });
+      return;
+    }
+
+    const saved = await updateUserTimezone(userId, timezone);
+
+    res.status(200).json({
+      success: true,
+      message: "Timezone updated successfully",
+      data: { timezone: saved },
+    });
+  } catch (error) {
+    console.error("Error updating user timezone:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while updating timezone",
     });
   }
 };

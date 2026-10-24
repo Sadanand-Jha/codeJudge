@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { getUserTimeZone } from "@/lib/timezone";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -99,7 +100,7 @@ function defaultSettings(quizName: string): QuizSettingsConfig {
     },
     navigation: { allowPrevious: true, allowNext: true, allowJumpToQuestion: true, allowReview: true, lockAfterAnswer: false, sequentialMode: false, freeNavigation: true },
     visibility: { type: "private", restrictions: { verifiedEmail: false, verifiedCollege: false, verifiedCompany: false, minXP: undefined } },
-    scheduling: { timezone: "Asia/Kolkata", lateEntryPolicy: "allowed" },
+    scheduling: { timezone: "UTC", lateEntryPolicy: "allowed" },
     scoring: { positiveMarks: 10, negativeMarks: 0, negativeMarkValue: 0, partialMarking: false, bonusQuestions: false, mandatoryQuestions: false, weightage: false },
     certificates: { enabled: false, minimumPassingPercentage: 60, issueAutomatically: true },
     leaderboard: { enabled: true, showToParticipants: true, showTop10Only: false, showOnlyOwnRank: false, anonymousMode: false, hideUntilEnd: false, showAfterQuizEnds: true, showLiveDuringQuiz: false, showAfterAllSubmitted: false, realtimeRanking: false },
@@ -724,7 +725,7 @@ function ParticipantsTab({ quizId }: { quizId: string }) {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-[10px] text-[#6B7280]">
-                      {p.created_at ? new Date(p.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}
+                      {p.created_at ? new Date(p.created_at).toLocaleDateString("en-IN", { timeZone: getUserTimeZone(), day: "numeric", month: "short", year: "numeric" }) : "—"}
                     </td>
                   </tr>
                 );

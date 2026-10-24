@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserTimeZone } from "@/lib/timezone";
+
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -407,7 +409,7 @@ export default function SettingsPage() {
           ? (() => {
               try {
                 const d = new Date(data.createdAt as string);
-                return isNaN(d.getTime()) ? "March 2024" : d.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", month: "long", year: "numeric" });
+                return isNaN(d.getTime()) ? "March 2024" : d.toLocaleDateString("en-IN", { timeZone: getUserTimeZone(), month: "long", year: "numeric" });
               } catch {
                 return "March 2024";
               }
@@ -542,7 +544,7 @@ export default function SettingsPage() {
                     className="hidden items-center gap-1.5 rounded-full bg-success/10 px-3 py-1.5 text-[10px] font-semibold text-success sm:flex"
                   >
                     <Check className="h-3 w-3" />
-                    {lastSaved ? `Auto saved ${lastSaved.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" })}` : "Auto saved"}
+                    {lastSaved ? `Auto saved ${lastSaved.toLocaleTimeString("en-IN", { timeZone: getUserTimeZone(), hour: "2-digit", minute: "2-digit" })}` : "Auto saved"}
                   </motion.span>
                 )}
                 <button

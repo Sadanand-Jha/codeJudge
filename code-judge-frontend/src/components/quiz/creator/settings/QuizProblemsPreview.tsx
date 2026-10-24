@@ -66,6 +66,7 @@ import { downloadQuizPaperPdf, getPaperPdfErrorMessage, type PaperDownloadKind }
 import { formatPaperDate, type PaperMeta } from "@/utils/paperHtml";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/helpers";
+import { zonedDateTimeToISO } from "@/lib/timezone";
 import PdfConfigModal, { type PaperDownloadConfig } from "@/components/quiz/creator/settings/PdfConfigModal";
 import { computeQuestionsSignature, getSyncedSignature, setSyncedSignature } from "@/utils/quizStorage";
 
@@ -262,7 +263,7 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
     title: details.name || quiz?.name || "Quiz",
     creatorName: quiz?.creator_name ?? undefined,
     subject: details.subject || undefined,
-    date: formatPaperDate(details.startDate || quiz?.starttime) ?? formatPaperDate(new Date()),
+    date: formatPaperDate(details.startDate ? zonedDateTimeToISO(details.startDate.split("T")[0], details.startDate.split("T")[1]?.slice(0, 5) || "00:00") : quiz?.starttime) ?? formatPaperDate(new Date()),
     totalMarks: problems.reduce((sum, q) => sum + (q.marks || 0), 0),
     totalQuestions: problems.length,
     difficulty: details.difficulty || undefined,

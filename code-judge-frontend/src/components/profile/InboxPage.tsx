@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserTimeZone } from "@/lib/timezone";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -128,7 +130,7 @@ export default function InboxPage() {
           ? "You accepted this invitation and are now a collaborator."
           : "You declined this invitation.",
       timeLabel: r.created_at
-        ? new Date(r.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", month: "short", day: "numeric" })
+        ? new Date(r.created_at).toLocaleDateString("en-IN", { timeZone: getUserTimeZone(), month: "short", day: "numeric" })
         : "",
       unread: r.status === "pending",
       status: r.status as RequestStatus,

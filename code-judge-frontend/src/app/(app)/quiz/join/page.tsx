@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserTimeZone } from "@/lib/timezone";
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -218,8 +220,8 @@ export default function JoinQuizPage() {
     return `${d.toLocaleString("en-IN", {
       dateStyle: "medium",
       timeStyle: "short",
-      timeZone: "Asia/Kolkata",
-    })} IST`;
+      timeZone: getUserTimeZone(),
+    })}`;
   };
 
   const getWindowRemaining = () => {

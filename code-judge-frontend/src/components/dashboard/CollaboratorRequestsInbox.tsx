@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserTimeZone } from "@/lib/timezone";
+
 import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SecureLogo } from "@/components/common/SecureLogo";
@@ -149,7 +151,7 @@ export default function CollaboratorRequestsInbox() {
                         <span className="text-[10px] text-text-muted">Invited by @{req.inviter_username}</span>
                       )}
                       <span className="text-[10px] text-text-muted">
-                        {req.created_at ? new Date(req.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" }) : ""}
+                        {req.created_at ? new Date(req.created_at).toLocaleDateString("en-IN", { timeZone: getUserTimeZone() }) : ""}
                       </span>
                     </div>
                   </div>

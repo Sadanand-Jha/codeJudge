@@ -11,24 +11,28 @@ interface StudentPreviewModalProps {
   onClose: () => void;
   questions: CreatorQuestion[];
   quizTitle: string;
+  durationMinutes: number;
 }
 
 function getCorrectIdx(q: CreatorQuestion): number {
   return q.options.findIndex((o) => o.isCorrect);
 }
 
+const CONFETTI_EMOJIS = ["🎉", "🎊", "🌸", "⭐", "🌟", "✨", "💐", "🎀"];
+const CONFETTI_PIECES = Array.from({ length: 24 }, (_, i) => ({
+  emoji: CONFETTI_EMOJIS[i % CONFETTI_EMOJIS.length],
+  left: (i * 37) % 100,
+  delay: (i % 5) * 0.06,
+  duration: 1.2 + (i % 4) * 0.2,
+  xDrift: ((i * 13) % 121) - 60,
+  rotate: (i * 47) % 360,
+}));
+
 function Confetti({ show }: { show: boolean }) {
   if (!show) return null;
-  const emojis = ["🎉", "🎊", "🌸", "⭐", "🌟", "✨", "💐", "🎀"];
   return (
     <div className="pointer-events-none fixed inset-0 z-[90]">
-      {Array.from({ length: 24 }).map((_, i) => {
-        const emoji = emojis[i % emojis.length];
-        const left = Math.random() * 100;
-        const delay = Math.random() * 0.3;
-        const duration = 1.2 + Math.random() * 0.8;
-        const xDrift = (Math.random() - 0.5) * 120;
-        const rotate = Math.random() * 360;
+      {CONFETTI_PIECES.map((piece, i) => {
         return (
           <motion.span
             key={i}
@@ -36,15 +40,15 @@ function Confetti({ show }: { show: boolean }) {
             animate={{
               opacity: [1, 1, 0],
               y: ["0vh", "60vh"],
-              x: [0, xDrift],
+              x: [0, piece.xDrift],
               scale: [0.5, 1.2, 0.8],
-              rotate: [0, rotate],
+              rotate: [0, piece.rotate],
             }}
-            transition={{ duration, delay, ease: "easeOut" }}
+            transition={{ duration: piece.duration, delay: piece.delay, ease: "easeOut" }}
             className="absolute text-2xl"
-            style={{ left: `${left}%`, top: 0 }}
+            style={{ left: `${piece.left}%`, top: 0 }}
           >
-            {emoji}
+            {piece.emoji}
           </motion.span>
         );
       })}
@@ -52,19 +56,19 @@ function Confetti({ show }: { show: boolean }) {
   );
 }
 
-export function StudentPreviewModal({ open, onClose, questions, quizTitle }: StudentPreviewModalProps) {
+export function StudentPreviewModal({ open, onClose, questions, quizTitle, durationMinutes }: StudentPreviewModalProps) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selected, setSelected] = useState<Record<number, number>>({});
   const [answered, setAnswered] = useState<Record<number, boolean>>({});
   const [showConfetti, setShowConfetti] = useState(false);
+  const [remainingSec, setRemainingSec] = useState(() => Math.max(0, Math.round(durationMinutes * 60)));
 
   useEffect(() => {
-    if (open) {
-      setCurrentIdx(0);
-      setSelected({});
-      setAnswered({});
-      setShowConfetti(false);
-    }
+    if (!open) return;
+    const interval = window.setInterval(() => {
+      setRemainingSec((value) => (value > 0 ? value - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(interval);
   }, [open]);
 
   const triggerConfetti = useCallback(() => {
@@ -80,7 +84,7 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
   const correctIdx = getCorrectIdx(q);
   const isAnswered = answered[currentIdx];
   const selectedIdx = selected[currentIdx];
-  const isCorrect = selectedIdx === correctIdx;
+  const timerLabel = `${String(Math.floor(remainingSec / 60)).padStart(2, "0")}:${String(remainingSec % 60).padStart(2, "0")}`;
 
   const optionLabels = ["A", "B", "C", "D", "E", "F"];
 
@@ -111,7 +115,7 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
             <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
               <div className="flex items-center gap-1 rounded-full border-2 border-[#a85d00]/40 bg-[#fff3d6] px-2 py-1">
                 <Clock className="h-3.5 w-3.5 text-[#a85d00]" />
-                <span className="font-mono text-xs font-extrabold tabular-nums text-[#a85d00]">10:00</span>
+                <span className="font-mono text-xs font-extrabold tabular-nums text-[#a85d00]">{timerLabel}</span>
               </div>
               <span className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--qs-brand)]/30 bg-[var(--qs-poly-1)] px-2 py-1 text-[10px] font-extrabold text-[var(--qs-brand)]">
                 <Eye className="h-3 w-3" /> PREVIEW

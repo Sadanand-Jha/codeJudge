@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserTimeZone } from "@/lib/timezone";
+
 import { useState, useEffect, useMemo, use } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -295,8 +297,8 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <InfoItem icon={Hash} label="Quiz Code" value={quizCode} mono />
                       <InfoItem icon={Star} label="Difficulty" value={quiz.difficulty_name || (quiz.difficulty ? `Level ${quiz.difficulty}` : "Not specified")} />
-                      <InfoItem icon={Clock} label="Start Time" value={quiz.starttime ? new Date(quiz.starttime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "TBD"} />
-                      <InfoItem icon={Clock} label="End Time" value={quiz.endtime ? new Date(quiz.endtime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "TBD"} />
+                      <InfoItem icon={Clock} label="Start Time" value={quiz.starttime ? new Date(quiz.starttime).toLocaleString("en-IN", { timeZone: getUserTimeZone() }) : "TBD"} />
+                      <InfoItem icon={Clock} label="End Time" value={quiz.endtime ? new Date(quiz.endtime).toLocaleString("en-IN", { timeZone: getUserTimeZone() }) : "TBD"} />
                       <InfoItem icon={Timer} label="Responses" value={quizDuration} />
                     </div>
                   </motion.div>

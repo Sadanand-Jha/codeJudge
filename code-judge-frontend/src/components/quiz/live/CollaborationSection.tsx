@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserTimeZone } from "@/lib/timezone";
+
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -50,7 +52,7 @@ function collabStatus(quiz: CollaborationProject): StatusInfo {
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", month: "short", day: "numeric", year: "numeric" });
+  return new Date(dateStr).toLocaleDateString("en-IN", { timeZone: getUserTimeZone(), month: "short", day: "numeric", year: "numeric" });
 }
 
 function adminName(quiz: CollaborationProject): string {

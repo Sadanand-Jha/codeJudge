@@ -59,11 +59,21 @@ export class userRepository {
                 r.name AS role_name,
                 a.url AS avatar_url,
                 a.is_male AS avatar_is_male,
+                u.timezone,
+                u.country_id,
+                cn.name AS country_name,
+                u.state_id,
+                s.name AS state_name,
+                u.college_id,
+                c.name AS college_name,
                 u.CreatedAt, 
                 u.UpdatedAt
             FROM users u
             LEFT JOIN role r ON u.Role_ID = r.id
             LEFT JOIN avatar a ON u.avatar_id = a.id
+            LEFT JOIN country cn ON u.country_id = cn.id
+            LEFT JOIN state s ON u.state_id = s.id
+            LEFT JOIN college c ON u.college_id = c.id
             WHERE u.id = $1
         `;
         const result = await pool.query(query, [userId]);
@@ -88,6 +98,7 @@ export class userRepository {
                 u.first_name,
                 u.last_name,
                 u.display_name as display_name,
+                u.timezone,
                 u.mobile,
                 u.bio,
                 u.rating,
@@ -159,13 +170,17 @@ export class userRepository {
             firstName: user.first_name || null,
             lastName: user.last_name || null,
             displayName: user.display_name || null,
+            timezone: user.timezone || null,
             mobile: user.mobile || null,
             avatarUrl: user.avatar_url || null,
             avatarIsMale: user.avatar_is_male ?? null,
             bio: user.bio || null,
             country: user.country_name || null,
+            countryId: user.country_id ?? null,
             state: user.state_name || null,
+            stateId: user.state_id ?? null,
             college: user.college_name || null,
+            collegeId: user.college_id ?? null,
             company: user.company_name || null,
             rating: user.rating || 0,
             maxRating: user.max_rating || 0,

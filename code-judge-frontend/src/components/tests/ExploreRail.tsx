@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, CalendarClock, Flame, Megaphone, Sparkles, Trophy, Users } from "lucide-react";
+import { ArrowRight, ArrowUpRight, CalendarClock, Flame, Sparkles, Trophy, Users } from "lucide-react";
 import { TRENDING_TESTS, CONTESTS_PREVIEW, SERIES_MAP, EXAM_MAP } from "./mockData";
 import { FreeBadge, PriceTag, Stars } from "./ui";
 import { cn } from "@/lib/helpers";
@@ -177,41 +177,6 @@ function TopSeries() {
 }
 
 /* ============================================
-   Advertisement slot — clearly labeled, column-oriented, integrated.
-   ============================================ */
-function AdSlot() {
-  return (
-    <div className="rounded-2xl border border-border bg-gradient-to-br from-pink-500/10 via-violet-600/10 to-ai-accent/10 p-4">
-      <div className="mb-2 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-text-muted">
-        <Megaphone className="h-3 w-3" /> Advertisement
-      </div>
-      <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-card/80 p-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-violet-600 text-white">
-          <Sparkles className="h-5 w-5" />
-        </span>
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <div className="text-[12px] font-extrabold leading-tight text-text-primary">QuizSupport Pro</div>
-            <span className="shrink-0 rounded-full bg-pink-500 px-1.5 py-0.5 text-[8px] font-extrabold uppercase leading-none tracking-wider text-white">
-              25% off
-            </span>
-          </div>
-          <div className="mt-0.5 text-[10px] leading-snug text-text-secondary">
-            Unlimited mocks, AI analytics & rank tracking for all exams.
-          </div>
-        </div>
-      </div>
-      <Link
-        href="/pricing"
-        className="mt-3 inline-flex h-8 w-full items-center justify-center rounded-lg bg-gradient-to-r from-pink-500 to-violet-600 text-[11px] font-bold text-white transition-transform hover:-translate-y-0.5"
-      >
-        Go Pro
-      </Link>
-    </div>
-  );
-}
-
-/* ============================================
    Explore rail — the right column of the "Explore Tests" section.
    Fills the desktop viewport with useful content instead of empty space.
    ============================================ */
@@ -222,7 +187,6 @@ export function ExploreRail({ className }: { className?: string }) {
         <TrendingTests />
         <UpcomingContest />
         <TopSeries />
-        <AdSlot />
       </div>
     </aside>
   );

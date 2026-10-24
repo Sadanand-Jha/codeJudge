@@ -204,7 +204,7 @@ export const DEFAULT_QUIZ_DETAILS: QuizDetails = {
   timeLimit: 30,
   startDate: "",
   endDate: "",
-  timeZone: "Asia/Kolkata",
+  timeZone: "UTC",
   randomizeQuestions: true,
   randomizeOptions: true,
   passingPercentage: 40,

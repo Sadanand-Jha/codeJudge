@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { getUserTimeZone } from "@/lib/timezone";
 import { CalendarDays, Clock, Globe, MapPin, Pencil } from "lucide-react";
 import { BillButton, EmptyState, PageHeader, Panel } from "@/components/creator/billing/ui";
 import { creatorProfileFromUser } from "@/components/creator/profile/creatorProfile";
@@ -12,7 +13,7 @@ function memberSinceLabel(value: string) {
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  return `Member since ${date.toLocaleDateString("en-IN", { month: "short", year: "numeric" })}`;
+  return `Member since ${date.toLocaleDateString("en-IN", { timeZone: getUserTimeZone(), month: "short", year: "numeric" })}`;
 }
 
 export function PublicProfilePage() {

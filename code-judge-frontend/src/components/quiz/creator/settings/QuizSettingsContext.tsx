@@ -7,16 +7,14 @@ import { QuizDetails, DEFAULT_QUIZ_DETAILS, DEFAULT_QUIZ_AUDIENCE } from "@/comp
 import { loadQuizState, saveQuizDetails, computeQuestionsSignature, getSyncedSignature } from "@/utils/quizStorage";
 import { useQuizProblemsStore } from "@/store/quizProblemsStore";
 import { useToast } from "@/hooks/useToast";
+import { toZonedDateTimeParts } from "@/lib/timezone";
 
 export type QuizStatus = "draft" | "scheduled" | "registration_open" | "live" | "ended" | "completed";
 
-/** Convert a backend ISO timestamp to a datetime-local value (YYYY-MM-DDTHH:mm). */
+/** Convert a backend timestamp to the user's local datetime-local value. */
 function toLocalInput(value?: string | null): string {
-  if (!value) return "";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const parts = toZonedDateTimeParts(value);
+  return parts.date ? `${parts.date}T${parts.time}` : "";
 }
 
 function deriveQuizStatus(opts: {

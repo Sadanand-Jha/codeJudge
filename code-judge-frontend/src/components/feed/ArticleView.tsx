@@ -7,7 +7,6 @@ import { cn } from "@/lib/helpers";
 import { toast } from "@/lib/toast";
 import type { FeedPost } from "@/data/developerFeed";
 import { getArticleToc } from "./article";
-import AdBanner from "./AdBanner";
 import ArticleHero, { StatsStrip } from "./ArticleHero";
 import ArticleToc from "./ArticleToc";
 import ArticleLeftRail from "./ArticleLeftRail";
@@ -190,18 +189,16 @@ export default function ArticleView({
             </div>
           </article>
 
-          {/* Right column — sticky ad + contextual cards (desktop only) */}
+          {/* Right column — contextual cards (desktop only) */}
           <aside className="hidden lg:block">
             <div className="sticky top-[4.5rem] max-h-[calc(100vh-6rem)] space-y-4 overflow-y-auto pb-4">
-              <AdBanner />
               <ArticleSidebar post={post} following={following} onToggleFollow={() => setFollowing((v) => !v)} />
             </div>
           </aside>
         </div>
 
-        {/* Advertisement + sidebar (tablet & mobile, below the article) */}
+        {/* Sidebar (tablet & mobile, below the article) */}
         <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:hidden">
-          <AdBanner />
           <ArticleSidebar post={post} following={following} onToggleFollow={() => setFollowing((v) => !v)} />
         </div>
 

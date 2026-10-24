@@ -40,11 +40,12 @@ function statusLabel(status: string | null): string {
   return "Not Started";
 }
 
-function formatDate(value: string | Date | null): string {
+function formatDate(value: string | Date | null, timeZone = "UTC"): string {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleString("en-IN", {
+    timeZone,
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -85,7 +86,7 @@ function registrationValue(value: unknown): string {
 
 export async function generateResponsesReport(quizId: number): Promise<ResponsesReportResult> {
   const quizResult = await pool.query(
-    `SELECT q.id, q.name, q.code, q.registration_fields, u.username AS creator_username
+    `SELECT q.id, q.name, q.code, q.registration_fields, u.username AS creator_username, u.timezone AS creator_timezone
        FROM quiz q
        LEFT JOIN users u ON u.id = q.createdby
       WHERE q.id = $1 AND q.deleted_at IS NULL`,
@@ -147,7 +148,36 @@ export async function generateResponsesReport(quizId: number): Promise<Responses
     ["roll number", "roll no", "rollno", "enrollment number", "enrollment no"].includes(normalizeFieldName(field))
   );
 
-  const scored = rows.filter((row) => row.attempt_id !== null);
+  const participantRows = new Map<number, (typeof rows)[number]>();
+  for (const row of rows) {
+    const userId = Number(row.user_id);
+    if (!Number.isInteger(userId)) continue;
+    const current = participantRows.get(userId);
+    if (!current) {
+      participantRows.set(userId, row);
+      continue;
+    }
+
+    const currentCompleted = String(current.attempt_status ?? "").toLowerCase() === "completed";
+    const nextCompleted = String(row.attempt_status ?? "").toLowerCase() === "completed";
+    if (nextCompleted !== currentCompleted) {
+      if (nextCompleted) participantRows.set(userId, row);
+      continue;
+    }
+
+    const currentCorrect = current.attempt_id === null ? -1 : Number(current.correct_answers) || 0;
+    const nextCorrect = row.attempt_id === null ? -1 : Number(row.correct_answers) || 0;
+    const currentTime = current.attempt_id === null ? Infinity : Number(current.time_taken) || Infinity;
+    const nextTime = row.attempt_id === null ? Infinity : Number(row.time_taken) || Infinity;
+    if (nextCorrect > currentCorrect || (nextCorrect === currentCorrect && nextTime < currentTime)) {
+      participantRows.set(userId, row);
+    }
+  }
+  const participants = [...participantRows.values()];
+
+  const scored = participants.filter(
+    (row) => row.attempt_id !== null && row.correct_answers !== null && row.correct_answers !== undefined
+  );
   const totalQuestions = rows.reduce((max, row) => Math.max(max, Number(row.total_questions) || 0), 0);
   const averageCorrect = scored.length
     ? scored.reduce((sum, row) => sum + (Number(row.correct_answers) || 0), 0) / scored.length
@@ -162,11 +192,17 @@ export async function generateResponsesReport(quizId: number): Promise<Responses
   const highestCorrect = scored.length
     ? Math.max(...scored.map((row) => Number(row.correct_answers) || 0))
     : 0;
-  const submitted = rows.filter((row) => String(row.attempt_status ?? "").toLowerCase() === "completed").length;
-  const flaggedCount = rows.filter((row) => Number(row.violations) > 0).length;
+  const submitted = participants.filter((row) => String(row.attempt_status ?? "").toLowerCase() === "completed").length;
+  const flaggedUsers = new Set(
+    rows
+      .filter((row) => Number(row.violations) > 0)
+      .map((row) => Number(row.user_id))
+      .filter((userId) => Number.isInteger(userId))
+  );
+  const flaggedCount = flaggedUsers.size;
 
   const stats: ResponsesReportStats = {
-    totalParticipants: rows.length,
+    totalParticipants: participants.length,
     submitted,
     averageCorrect: Math.round(averageCorrect * 100) / 100,
     averagePercentage: Math.round(averagePercentage * 100) / 100,
@@ -250,7 +286,7 @@ export async function generateResponsesReport(quizId: number): Promise<Responses
 
   worksheet.mergeCells(3, 1, 3, lastColumn);
   const metaCell = worksheet.getCell(3, 1);
-  metaCell.value = `Code ${quiz.code}   |   ${stats.totalParticipants} participants   |   ${stats.submitted} submitted   |   Generated ${formatDate(new Date())}`;
+  metaCell.value = `Code ${quiz.code}   |   ${stats.totalParticipants} participants   |   ${stats.submitted} submitted   |   Generated ${formatDate(new Date(), quiz.creator_timezone || "UTC")}`;
   metaCell.font = { size: 10, color: { argb: MUTED } };
   metaCell.alignment = { vertical: "middle", horizontal: "left" };
   worksheet.getRow(3).height = 18;
@@ -330,7 +366,7 @@ export async function generateResponsesReport(quizId: number): Promise<Responses
       status: statusLabel(row.attempt_status),
       flags,
       flagReason: reason,
-      submittedAt: formatDate(row.completed_at),
+      submittedAt: formatDate(row.completed_at, quiz.creator_timezone || "UTC"),
       timeTaken: formatMinutes(row.time_taken),
       totalQuestions: totalQuestionsValue,
       correct,

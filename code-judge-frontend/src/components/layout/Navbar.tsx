@@ -4,9 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Globe, User, LogOut, Search, LogIn } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
-import NavbarPromoWidget from "./NavbarPromoWidget";
 // import NotificationBell from "./NotificationBell"; // hidden for now
-import { toast } from "@/lib/toast";
 import { useAuthStore } from "@/store/authStore";
 import { logout } from "@/services/auth";
 
@@ -50,9 +48,6 @@ export default function Navbar() {
           <SecureLogo size={28} />
         </Link>
 
-        {/* Pro/Ultimate Promo Widget — always visible, auto-rotates between plans */}
-        {/* <NavbarPromoWidget className="mr-6" /> */}
-        
 
         {/* User Utility Menu */}
         <div className="flex items-center gap-3 text-xs text-text-secondary">
