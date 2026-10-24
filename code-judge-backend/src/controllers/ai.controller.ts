@@ -307,6 +307,7 @@ export const generateQuestionsFromUpload = async (req: Request, res: Response) =
         if (!closed) send("error", { message: error instanceof Error ? error.message : "Failed to generate questions" });
       } finally {
         req.off("close", onClose);
+        if (!res.writableEnded) res.end();
       }
       return;
     }
