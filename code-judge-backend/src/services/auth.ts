@@ -333,7 +333,7 @@ export async function verifyOtp(email: string, otp: string): Promise<ServiceResp
       );
     }
 
-    // 5. Validate OTP match (Upstash may return number, so string-compare)
+    // 5. Validate OTP match (Redis may return number, so string-compare)
     if (String(cachedOtp).trim() !== String(otp).trim()) {
       // Wrong OTP — decrement remaining attempts
       const newRemaining = await decrementAttempts(normalizedEmail);

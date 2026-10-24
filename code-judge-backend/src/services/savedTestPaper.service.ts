@@ -163,6 +163,30 @@ export async function saveTestPaper(userId: number, input: SavedTestPaperInput) 
   return toSavedPaper(rows[0]);
 }
 
+export async function updateSavedTestPaper(
+  userId: number,
+  paperId: number,
+  input: { title?: unknown; meta?: unknown }
+) {
+  const title = String(input.title ?? "").trim().slice(0, 200);
+  if (!title) throw new Error("Test title is required.");
+
+  const meta = input.meta == null ? null : asObject(input.meta, "Paper header details are invalid.");
+  if (meta && jsonBytes(meta) > MAX_META_BYTES) throw new Error("Paper header details are too large.");
+
+  const { rows } = await pool.query(
+    `UPDATE saved_test_papers
+        SET title = $3,
+            meta_json = COALESCE($4::jsonb, meta_json),
+            updated_at = NOW()
+      WHERE id = $1 AND user_id = $2
+      RETURNING ${SUMMARY_COLUMNS}`,
+    [paperId, userId, title, meta ? JSON.stringify(meta) : null]
+  );
+  if (!rows[0]) throw new Error("Saved test was not found.");
+  return toSummary(rows[0]);
+}
+
 export async function deleteSavedTestPaper(userId: number, paperId: number) {
   const result = await pool.query(
     `DELETE FROM saved_test_papers WHERE id = $1 AND user_id = $2`,

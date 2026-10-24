@@ -54,7 +54,15 @@ const MAX_BANK_QUESTIONS = 25;
 const MAX_QUIZ_QUESTIONS = 25;
 const FILE_GENERATION_COUNT = 20;
 
-/** Turn the model's raw JSON stream into readable text while it is writing. */
+const THINKING_PHASES = [
+  "AI is thinking…",
+  "AI is planning…",
+  "AI is mapping topics…",
+  "AI is structuring questions…",
+  "AI is double-checking…",
+] as const;
+
+/** Turn the model's raw JSON stream into readable text while it is streaming. */
 function readableStreamText(raw: string): string {
   return raw
     .replace(/```(?:json)?/gi, "")
@@ -198,11 +206,10 @@ export function AiGenerateModal({
     defaultSubjectId != null &&
     catalogState?.subjectId !== defaultSubjectId &&
     catalogErrorState?.subjectId !== defaultSubjectId;
-  const [tokenRate, setTokenRate] = useState<number | null>(null);
+  const [thinkingPhaseIndex, setThinkingPhaseIndex] = useState(0);
   const [thinking, setThinking] = useState("");
   const [streamContent, setStreamContent] = useState("");
   const [liveUsage, setLiveUsage] = useState<LiveUsage | undefined>(undefined);
-  const generationStartedAtRef = useRef(0);
   const fileGenerationAbortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -240,17 +247,21 @@ export function AiGenerateModal({
   useEffect(() => {
     if (!generating) return;
     const startedAt = Date.now();
-    const estimatedTotalTokens = (mode === "bank" ? bankNumber : FILE_GENERATION_COUNT) * 220;
     const timer = window.setInterval(() => {
       const elapsed = Date.now() - startedAt;
       const nextProgress = Math.min(90, Math.max(1, Math.floor((elapsed / 32_000) * 88)));
       setProgress((current) => Math.min(90, Math.max(current, nextProgress)));
-      setTokenRate(
-        Math.max(1, Math.round((estimatedTotalTokens * (nextProgress / 100)) / Math.max(0.3, elapsed / 1000)))
-      );
     }, 500);
     return () => window.clearInterval(timer);
-  }, [generating, mode, bankNumber]);
+  }, [generating]);
+
+  useEffect(() => {
+    if (!generating || thinking || streamContent) return;
+    const timer = window.setInterval(() => {
+      setThinkingPhaseIndex((index) => (index + 1) % THINKING_PHASES.length);
+    }, 1800);
+    return () => window.clearInterval(timer);
+  }, [generating, thinking, streamContent]);
 
   const chapterOptions = useMemo(
     () => catalog?.chapters.filter((chapter) => chapter.subjectId === bankSubjectId) ?? [],
@@ -359,7 +370,7 @@ export function AiGenerateModal({
     setProgress(0);
     setDone(false);
     setAddedCount(0);
-    setTokenRate(null);
+    setThinkingPhaseIndex(0);
     setThinking("");
     setStreamContent("");
     setLiveUsage(undefined);
@@ -433,11 +444,10 @@ export function AiGenerateModal({
     setGenerating(true);
     setGenerationFailed(false);
     setProgress(6);
-    setTokenRate(null);
+    setThinkingPhaseIndex(0);
     setThinking("");
     setStreamContent("");
     setLiveUsage(undefined);
-    generationStartedAtRef.current = Date.now();
     setError("");
 
     let streamedQuestions: RawAIGeneratedQuestion[] = [];
@@ -463,12 +473,7 @@ export function AiGenerateModal({
             streamedQuestions = questions;
           },
           onUsage: ({ usage }) => {
-            if (!usage) return;
-            setLiveUsage(usage);
-            const tokens = usage.outputTokens ?? usage.totalTokens;
-            if (!tokens) return;
-            const seconds = Math.max(0.3, (Date.now() - generationStartedAtRef.current) / 1000);
-            setTokenRate(Math.round(tokens / seconds));
+            if (usage) setLiveUsage(usage);
           },
           onError: (message) => setError(message),
         },
@@ -479,7 +484,6 @@ export function AiGenerateModal({
         setError("The AI returned no questions. Try a smaller file or add more detail.");
         setGenerationFailed(true);
         setGenerating(false);
-        setTokenRate(null);
         return;
       }
       setProgress(100);
@@ -492,7 +496,6 @@ export function AiGenerateModal({
       setError((err as Error).message || "AI generation failed. Please try again.");
       setGenerationFailed(true);
       setGenerating(false);
-      setTokenRate(null);
     }
     fileGenerationAbortRef.current = null;
   };
@@ -536,9 +539,8 @@ export function AiGenerateModal({
     setGenerating(true);
     setGenerationFailed(false);
     setProgress(6);
-    setTokenRate(null);
-    generationStartedAtRef.current = Date.now();
     setError("");
+    setThinkingPhaseIndex(0);
     setThinking("");
     setStreamContent("");
     setLiveUsage(undefined);
@@ -567,12 +569,7 @@ export function AiGenerateModal({
             streamedQuestions = questions;
           },
           onUsage: ({ usage }) => {
-            if (!usage) return;
-            setLiveUsage(usage);
-            const tokens = usage.outputTokens ?? usage.totalTokens;
-            if (!tokens) return;
-            const seconds = Math.max(0.3, (Date.now() - generationStartedAtRef.current) / 1000);
-            setTokenRate(Math.round(tokens / seconds));
+            if (usage) setLiveUsage(usage);
           },
           onError: (message) => setError(message),
         }
@@ -582,7 +579,6 @@ export function AiGenerateModal({
         setError("The AI returned no questions. Try again or widen the chapter/topic scope.");
         setGenerationFailed(true);
         setGenerating(false);
-        setTokenRate(null);
         return;
       }
       setProgress(100);
@@ -594,7 +590,6 @@ export function AiGenerateModal({
       setError((err as Error).message || "Question generation failed. Please try again.");
       setGenerationFailed(true);
       setGenerating(false);
-      setTokenRate(null);
     }
   };
 
@@ -668,7 +663,7 @@ export function AiGenerateModal({
     setReviewQuestions([]);
     setReviewOpen(false);
     setProgress(0);
-    setTokenRate(null);
+    setThinkingPhaseIndex(0);
     setThinking("");
     setStreamContent("");
     setLiveUsage(undefined);
@@ -756,6 +751,12 @@ export function AiGenerateModal({
     }
   );
   const reviewReady = !generating && reviewQuestions.length > 0;
+  const hasLiveStream = Boolean(thinking || streamContent);
+  const thinkingPhase = THINKING_PHASES[thinkingPhaseIndex % THINKING_PHASES.length];
+  const liveTokenCount =
+    liveUsage?.outputTokens ??
+    liveUsage?.totalTokens ??
+    Math.round((thinking.length + streamContent.length) / 4);
   const liveCount = done
     ? addedCount || liveTotal
     : reviewReady
@@ -770,7 +771,9 @@ export function AiGenerateModal({
       : reviewReady
         ? "✓ Ready — review and add"
         : generating
-          ? "AI is writing…"
+          ? hasLiveStream
+            ? "AI is thinking…"
+            : thinkingPhase
           : "Live preview · ready";
 
   return (
@@ -1278,7 +1281,7 @@ export function AiGenerateModal({
                         {liveTitle}
                       </span>
                       <span className="ml-auto shrink-0 rounded-[6px] bg-[var(--qs-sun)]/30 px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-[var(--qs-ink)]">
-                        ⚡ {tokenRate ?? 0} tok/s{done && tokenRate != null ? " avg" : ""}
+                        {liveTokenCount.toLocaleString()} tokens
                       </span>
                       <span className="shrink-0 text-[10px] font-semibold tabular-nums text-[var(--qs-muted)]">
                         {liveCount}/{liveTotal}
@@ -1296,21 +1299,17 @@ export function AiGenerateModal({
                           <div className="flex shrink-0 items-center gap-2 border-b border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2">
                             <Sparkles className={cn("h-3.5 w-3.5 text-[var(--qs-brand)]", generating && "animate-pulse")} />
                             <span className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ink)]">
-                              {thinking
-                                ? generating
-                                  ? "Thinking…"
-                                  : "Thinking · completed"
-                                : generating
-                                  ? "Writing questions…"
-                                  : "AI stream · completed"}
+                              {generating ? "AI is thinking…" : "AI is thinking · completed"}
                             </span>
                             <span className="ml-auto text-[9px] font-semibold tabular-nums text-[var(--qs-muted)]">
-                              {liveUsage?.reasoningTokens != null
-                                ? `${liveUsage.reasoningTokens} thinking tokens`
-                                : `${Math.round((thinking || streamContent).length / 4)} tokens`}
+                              {liveTokenCount.toLocaleString()} tokens
                             </span>
                           </div>
-                          <div ref={streamScrollRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
+                          <div
+                            ref={streamScrollRef}
+                            aria-hidden="true"
+                            className="pointer-events-none min-h-0 flex-1 select-none overflow-hidden overscroll-none px-3 py-2"
+                          >
                             {thinking ? (
                               <div className="[&_.markdown-body]:text-[7px] [&_.markdown-body]:leading-[1.4]">
                                 <MarkdownRenderer content={thinking} />
@@ -1378,6 +1377,10 @@ export function AiGenerateModal({
                         </div>
                       ) : generating ? (
                         <div className="absolute inset-x-0 bottom-0 flex max-h-full flex-col justify-end gap-1.5 overflow-hidden p-3">
+                          <p className="flex items-center gap-1.5 text-[10px] font-extrabold text-[var(--qs-brand)]">
+                            <Sparkles className="h-3 w-3 animate-pulse" />
+                            {thinkingPhase}
+                          </p>
                           {liveCards.map((card) => (
                             <div key={card.index} className="rounded-[9px] border border-[var(--qs-line)] bg-[var(--qs-bg)] p-2">
                               <div className="flex items-center gap-1 text-[8.5px] font-bold">

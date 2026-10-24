@@ -1,3 +1,7 @@
+"use client";
+
+import { useTheme } from "@/context/ThemeContext";
+
 type Pt = [number, number];
 type Tri = [Pt, Pt, Pt];
 
@@ -84,13 +88,49 @@ function buildPolygons(): Poly[] {
 
 const POLYGONS = buildPolygons();
 
+const LIGHT_PALETTE = ["#f6f3ff", "#f0ebff", "#e8e0ff", "#ddd2ff", "#d0c2ff"];
+const DARK_PALETTE = ["#150f33", "#1a1240", "#21175a", "#2a1e73", "#34268a"];
+const LIGHT_ACCENT = "#ffe9a3";
+const DARK_ACCENT = "#4b2a7b";
+
 export default function QuizHubBackdrop() {
+  const { theme } = useTheme();
+  const palette = theme === "dark" ? DARK_PALETTE : LIGHT_PALETTE;
+  const accent = theme === "dark" ? DARK_ACCENT : LIGHT_ACCENT;
+
   return (
-    <div className="quiz-hub-bg" aria-hidden="true">
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" width="100%" height="100%">
-        {POLYGONS.map((poly, index) => (
-          <polygon key={index} className={poly.cls} points={poly.points} />
-        ))}
+    <div
+      className="quiz-hub-bg"
+      aria-hidden="true"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 0,
+        pointerEvents: "none",
+        background: palette[0],
+      }}
+    >
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="xMidYMid slice"
+        width="100%"
+        height="100%"
+        style={{ display: "block", width: "100%", height: "100%" }}
+      >
+        {POLYGONS.map((poly, index) => {
+          const color =
+            poly.cls === "qzba"
+              ? accent
+              : palette[Number(poly.cls.slice(3))] ?? palette[0];
+          return (
+            <polygon
+              key={index}
+              className={poly.cls}
+              points={poly.points}
+              style={{ fill: color, stroke: color, strokeWidth: 1.2 }}
+            />
+          );
+        })}
       </svg>
     </div>
   );

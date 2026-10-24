@@ -75,6 +75,17 @@ export async function saveTestRecord(record: SaveTestRecordInput): Promise<Saved
   return data.test;
 }
 
+export async function updateSavedTest(
+  id: number,
+  input: { title: string; meta: PaperHeaderMeta }
+): Promise<SavedTestSummary> {
+  const data = await savedTestsRequest(`/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+  return data.test;
+}
+
 export async function removeSavedTest(id: number): Promise<void> {
   await savedTestsRequest(`/${id}`, { method: "DELETE" });
 }

@@ -1,7 +1,7 @@
 // BullMQ worker for the quiz-submissions queue.
 // Long-lived processes (local dev server, VPS worker) call
 // startQuizSubmissionWorker() once at boot. Serverless (Vercel) cannot host
-// a worker — there the Upstash REST recovery queue provides backpressure.
+// a worker — there the durable Redis recovery payload provides backpressure.
 import { Worker, type Job } from "bullmq";
 import { getBullmqConnection } from "./connection.ts";
 import {

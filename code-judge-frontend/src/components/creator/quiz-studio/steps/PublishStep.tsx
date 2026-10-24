@@ -9,11 +9,23 @@ import { SecureLogo } from "@/components/common/SecureLogo";
 import { buildShareMessage, WhatsAppIcon } from "@/components/creator/common/ShareQuizDialog";
 import { copyQuizCode } from "@/services/quiz";
 import { useStudio } from "../StudioProvider";
+import { useAuthStore } from "@/store/authStore";
+import { useSavedAvatar } from "@/store/avatarStore";
 import { toast } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { StudioStepLayout } from "../primitives";
 import { formatDateTimeIST } from "../components/timing/helpers";
 import { cn } from "@/lib/helpers";
+
+const TILE_TONES = [
+  { bg: "bg-[var(--qs-brand)]", text: "text-[var(--qs-on-brand)]" },
+  { bg: "bg-[var(--qs-ok)]", text: "text-[var(--qs-on-brand)]" },
+  { bg: "bg-[var(--qs-sun)]", text: "text-[#1a1240]" },
+  { bg: "bg-[var(--qs-bad)]", text: "text-[var(--qs-on-brand)]" },
+  { bg: "bg-[var(--qs-blue)]", text: "text-[var(--qs-on-brand)]" },
+  { bg: "bg-[var(--qs-warn)]", text: "text-[var(--qs-on-brand)]" },
+  { bg: "bg-[var(--qs-ink)]", text: "text-[var(--qs-bg)]" },
+];
 
 function buildJoinLink(code: string): string {
   const normalized = code.replace(/\s+/g, "");
@@ -32,6 +44,10 @@ export function PublishStep({
   bare?: boolean;
 }) {
   const { state, summary, saveToServer, editMode } = useStudio();
+  const creatorAvatar = useSavedAvatar();
+  const creatorName = useAuthStore(
+    (s) => s.user?.displayName || s.user?.username || null
+  );
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -62,7 +78,7 @@ export function PublishStep({
     try {
       const { code } = await saveToServer({ publish: true });
       const link = buildJoinLink(code);
-      navigator.clipboard.writeText(link);
+      await navigator.clipboard.writeText(link).catch(() => {});
       toast.success({
         title: state.info.title || "Quiz published",
         description: "Quiz saved and join link copied to clipboard.",
@@ -86,7 +102,7 @@ export function PublishStep({
       label: "Responses",
       value: isScheduled ? "Open during the scheduled window" : "Open until you end the quiz",
     },
-    { label: "Audience", value: state.audience.mode },
+    { label: "Audience", value: state.audience.mode === "classroom" ? "Room" : "Anyone" },
     {
       label: "Price",
       value: state.pricing.mode === "paid" ? "₹" + state.pricing.price : "Free",
@@ -123,6 +139,13 @@ export function PublishStep({
           <div className="flex items-center gap-4 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-4">
             {state.branding.logoUrl ? (
               <img src={state.branding.logoUrl} alt="thumb" className="h-14 w-20 rounded-[10px] border-2 border-[var(--qs-line)] object-cover" />
+            ) : creatorAvatar ? (
+              <img
+                src={creatorAvatar.url}
+                alt={`${creatorName || "Quiz creator"} avatar`}
+                title={creatorName || "Quiz creator"}
+                className="h-14 w-14 shrink-0 rounded-full border-2 border-[var(--qs-line)] object-cover"
+              />
             ) : (
               <div className="flex h-14 w-20 items-center justify-center rounded-[10px] border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-surface)] text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
                 No cover
@@ -136,16 +159,30 @@ export function PublishStep({
             </div>
           </div>
 
-          <dl className="mt-5 divide-y-2 divide-[var(--qs-line)] rounded-[14px] border-2 border-[var(--qs-line)]">
-            {rows.map((r) => (
-              <div key={r.label} className="flex items-center justify-between px-3.5 py-2.5 text-xs">
-                <dt className="font-bold text-[var(--qs-muted)]">{r.label}</dt>
-                <dd className="max-w-[65%] break-words text-right font-bold text-[var(--qs-ink)]">{r.value}</dd>
+          <dl className="mt-5 grid grid-cols-3 gap-2">
+            {rows.map((r, index) => (
+              <div
+                key={r.label}
+                className={cn(
+                  "flex min-h-[84px] min-w-0 flex-col justify-between rounded-[12px] border-2 border-black/10 px-2.5 py-2.5 shadow-[2px_2px_0_rgba(26,18,64,0.18)] sm:px-3",
+                  TILE_TONES[index % TILE_TONES.length].bg,
+                  TILE_TONES[index % TILE_TONES.length].text
+                )}
+              >
+                <dt className="text-[9px] font-extrabold uppercase tracking-[0.08em] opacity-70">{r.label}</dt>
+                <dd className="mt-1 break-words text-[11px] font-bold leading-snug">{r.value}</dd>
               </div>
             ))}
           </dl>
 
-          <div className="mt-6 flex items-center justify-end gap-2">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t-2 border-[var(--qs-line)] pt-4">
+            <p className="text-[11px] font-medium text-[var(--qs-muted)]">
+              {editMode
+                ? "Save the latest details to your account."
+                : isScheduled
+                  ? "Your quiz will be saved and scheduled."
+                  : "Your quiz will be saved and made live."}
+            </p>
             {editMode ? (
               <button
                 type="button"
@@ -159,7 +196,7 @@ export function PublishStep({
                   </>
                 ) : (
                   <>
-                    <Check className="h-4 w-4" /> Save changes
+                    <Check className="h-4 w-4" /> Save
                   </>
                 )}
               </button>

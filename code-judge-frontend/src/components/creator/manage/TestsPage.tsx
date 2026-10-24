@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, ClipboardList, Download, FileText, Plus, Trash2 } from "lucide-react";
+import { CalendarDays, ClipboardList, Download, FileText, Pencil, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { getSavedTest, getSavedTests, migrateLegacySavedTests, removeSavedTest, type SavedTestSummary } from "@/utils/savedTests";
 import { downloadPaperPdf } from "@/utils/questionSetExport";
+import { SavedTestEditDialog } from "./SavedTestEditDialog";
 
 const formatCreatedAt = (value: string) => {
   const date = new Date(value);
@@ -20,6 +21,7 @@ export function TestsPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [editingTest, setEditingTest] = useState<SavedTestSummary | null>(null);
 
   const loadTests = useCallback(async () => {
     setLoading(true);
@@ -69,6 +71,10 @@ export function TestsPage() {
     },
     [toast]
   );
+
+  const handleSaved = useCallback((updated: SavedTestSummary) => {
+    setTests((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+  }, []);
 
   const handleDownload = useCallback(
     async (test: SavedTestSummary) => {
@@ -197,6 +203,15 @@ export function TestsPage() {
                 </button>
                 <button
                   type="button"
+                  onClick={() => setEditingTest(test)}
+                  className="b sm gap-1.5"
+                  aria-label={`Edit details for ${test.title}`}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit details
+                </button>
+                <button
+                  type="button"
                   onClick={() => void handleDelete(test)}
                   disabled={deletingId === test.id}
                   className="b b-icon sm text-[var(--qs-bad)] disabled:cursor-not-allowed disabled:opacity-50"
@@ -208,6 +223,15 @@ export function TestsPage() {
             </article>
           ))}
         </div>
+      )}
+
+      {editingTest && (
+        <SavedTestEditDialog
+          key={editingTest.id}
+          test={editingTest}
+          onClose={() => setEditingTest(null)}
+          onSaved={handleSaved}
+        />
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Eye } from "lucide-react";
+import { Eye, Save } from "lucide-react";
 import { StudioStepHeader, StudioStepLayout } from "../primitives";
 import { TimingSection } from "../components/timing";
 import { useStudio } from "../StudioProvider";
@@ -10,6 +10,7 @@ import { QuizCodeCard } from "./SettingsStep";
 import { PublishStep } from "./PublishStep";
 import { useQuizProblemsStore } from "@/store/quizProblemsStore";
 import { useToast } from "@/hooks/useToast";
+import { cn } from "@/lib/helpers";
 
 export function ReviewPublishStep({ onPublish }: { onPublish: () => void }) {
   const { editMode, state } = useStudio();
@@ -76,13 +77,38 @@ export function ReviewPublishStep({ onPublish }: { onPublish: () => void }) {
         </div>
 
         <div className="px-5 py-5 sm:px-6">
-          <TimingSection variant="availability" allowInlineStart={false} flat />
+          <TimingSection variant="availability" allowInlineStart={editMode} flat />
 
-          <div className="mt-6 border-t-2 border-[var(--qs-line)] pt-5">
-            <h3 className="text-sm font-extrabold text-[var(--qs-ink)]">
-              {editMode ? "Ready to save?" : "Ready to publish?"}
-            </h3>
-            <div className="mt-3">
+          <div className="mt-6 overflow-hidden rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-3">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1a1240]">
+                  <Save className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-extrabold text-[var(--qs-ink)]">
+                    {editMode ? "Ready to save?" : "Ready to publish?"}
+                  </h3>
+                  <p className="mt-0.5 text-[11px] font-medium text-[var(--qs-muted)]">
+                    {editMode
+                      ? "Review the final details, then save your changes."
+                      : "Review the final details before publishing."}
+                  </p>
+                </div>
+              </div>
+              <span
+                className={cn(
+                  "shrink-0 rounded-full border-2 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em]",
+                  state.info.quizLifecycle === "live" && "border-[var(--qs-ink)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]",
+                  state.info.quizLifecycle === "scheduled" && "border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1a1240]",
+                  state.info.quizLifecycle === "ended" && "border-[var(--qs-ink)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]",
+                  state.info.quizLifecycle === "draft" && "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)]"
+                )}
+              >
+                {state.info.quizLifecycle}
+              </span>
+            </div>
+            <div className="p-4">
               <PublishStep onPublish={onPublish} embedded bare />
             </div>
           </div>

@@ -8,6 +8,7 @@ import {
   getSavedTests,
   removeSavedTest,
   saveTest,
+  updateSavedTest,
 } from "../../../controllers/savedTestPaper.controller.ts";
 
 const router = Router();
@@ -17,6 +18,7 @@ router.use(authenticate);
 router.get("/", getSavedTests);
 router.post("/", saveTest);
 router.get("/:paperId", getSavedTest);
+router.patch("/:paperId", updateSavedTest);
 router.delete("/:paperId", removeSavedTest);
 
 export default router;
