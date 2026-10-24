@@ -1,9 +1,9 @@
 // Shared ioredis connection for BullMQ (Queue + Worker).
-// NOTE: BullMQ needs a real Redis over RESP — the Upstash REST client in
-// config/redis.ts cannot be used here. Configure via REDIS_URL
+// BullMQ needs a dedicated RESP connection, so it does not reuse the node-redis
+// client from config/redis.ts. Configure via REDIS_URL
 // (e.g. local redis://127.0.0.1:6379 or a hosted RESP endpoint).
 // On serverless (Vercel) there is no long-lived worker; the submit endpoint
-// falls back to the durable Upstash REST recovery queue.
+// falls back to the durable recovery payload stored in Redis.
 import { Redis } from "ioredis";
 
 declare global {

@@ -44,7 +44,7 @@ export function TimingSection({
   /** Render without the outer card so it can sit inside a combined panel. */
   flat?: boolean;
 }) {
-  const { state, updateInfo, setHelpExtra } = useStudio();
+  const { state, updateInfo, setHelpExtra, saveToServer } = useStudio();
   const quizId = state.serverQuizId ?? undefined;
 
   const [mode, setMode] = useState<TimingMode>("manual");
@@ -355,6 +355,7 @@ export function TimingSection({
                     onManualChange={handleManualChange}
                     quizId={quizId}
                     allowStart={canStartInline}
+                    onBeforeStart={state.editMode ? async () => { await saveToServer(); } : undefined}
                   />
                 </motion.div>
               )}

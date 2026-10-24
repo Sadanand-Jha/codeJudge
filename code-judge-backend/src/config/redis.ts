@@ -1,336 +1,153 @@
-// @upstash/redis — HTTP-based Redis for Vercel Serverless
-// Uses REST API (no TCP), so no persistent socket hangs on lambdas.
-// Initialized via Redis.fromEnv() (reads UPSTASH_REDIS_REST_URL / TOKEN).
-// Fallback to in-memory store if env missing (local dev without Upstash).
+// Redis client setup (node-redis over RESP).
+// Configure via REDIS_URL (defaults to localhost for local development).
+// Used for OTPs, sessions, rate limits, caching, and quiz recovery payloads.
+import { createClient } from "redis";
 
-import { Redis } from "@upstash/redis";
+const REDIS_URL = process.env.REDIS_URL?.trim() || "redis://127.0.0.1:6379";
+
+function createRedisClient() {
+  const client = createClient({ url: REDIS_URL });
+  client.on("error", (err) => console.error("Redis Client Error", err));
+  return client;
+}
+
+type RawRedis = ReturnType<typeof createRedisClient>;
 
 declare global {
   // eslint-disable-next-line no-var
-  var __upstashRedis: any | undefined;
-  var __upstashWrapper: any | undefined;
+  var __redisClient: RawRedis | undefined;
+  var __redisWrapper: RedisCompatWrapper | undefined;
 }
 
-// ---------- In-memory fallback for local dev / build without Upstash ----------
-class MemoryRedis {
-  private kv = new Map<string, { value: string; expireAt?: number }>();
-  private hashes = new Map<string, Map<string, string>>();
+// Singleton via globalThis so hot reloads and serverless warm invocations reuse
+// the same socket.
+const rawClient: RawRedis = global.__redisClient ?? createRedisClient();
+if (!global.__redisClient) global.__redisClient = rawClient;
 
-  private isExpired(entry: { expireAt?: number } | undefined): boolean {
-    return !!entry?.expireAt && Date.now() > entry.expireAt;
+let connectPromise: Promise<void> | null = null;
+
+async function ensureConnected(): Promise<RawRedis> {
+  if (rawClient.isOpen) return rawClient;
+  if (!connectPromise) {
+    connectPromise = rawClient
+      .connect()
+      .then(() => {
+        console.log("Connected to Redis!");
+      })
+      .finally(() => {
+        connectPromise = null;
+      });
   }
-
-  private getEntry(key: string): { value: string; expireAt?: number } | undefined {
-    const e = this.kv.get(key);
-    if (e && this.isExpired(e)) {
-      this.kv.delete(key);
-      return undefined;
-    }
-    return e;
-  }
-
-  async get(key: string): Promise<string | null> {
-    const e = this.getEntry(key);
-    return e ? e.value : null;
-  }
-
-  async set(key: string, value: string, opts?: any): Promise<string | null> {
-    if ((opts?.NX ?? opts?.nx) && this.getEntry(key)) return null;
-    let expireAt: number | undefined;
-    if (opts?.EX ?? opts?.ex) expireAt = Date.now() + (opts.EX ?? opts.ex) * 1000;
-    else if (opts?.PX ?? opts?.px) expireAt = Date.now() + (opts.PX ?? opts.px);
-    this.kv.set(key, { value: String(value), expireAt });
-    return "OK";
-  }
-
-  async setEx(key: string, seconds: number, value: string): Promise<string | null> {
-    return this.set(key, value, { ex: seconds });
-  }
-
-  async del(...keys: string[]): Promise<number> {
-    let c = 0;
-    for (const k of keys.flat()) {
-      if (this.kv.delete(k)) c++;
-      if (this.hashes.delete(k)) c++;
-    }
-    return c;
-  }
-
-  async expire(key: string, seconds: number): Promise<number> {
-    const e = this.kv.get(key);
-    const h = this.hashes.get(key);
-    if (e) {
-      e.expireAt = Date.now() + seconds * 1000;
-      return 1;
-    }
-    if (h) {
-      // Upstash hashes don't use expire per se, but we treat similarly
-      // For memory, we store expiry in kv? simplified: not implemented
-      return 1;
-    }
-    return 0;
-  }
-
-  async incr(key: string): Promise<number> {
-    const e = this.getEntry(key);
-    const cur = e ? parseInt(e.value, 10) || 0 : 0;
-    const next = cur + 1;
-    // preserve expiry if exists
-    this.kv.set(key, { value: String(next), expireAt: e?.expireAt });
-    return next;
-  }
-
-  async decr(key: string): Promise<number> {
-    const e = this.getEntry(key);
-    const cur = e ? parseInt(e.value, 10) || 0 : 0;
-    const next = cur - 1;
-    this.kv.set(key, { value: String(next), expireAt: e?.expireAt });
-    return next;
-  }
-
-  async ttl(key: string): Promise<number> {
-    const e = this.kv.get(key);
-    if (!e) return -2;
-    if (!e.expireAt) return -1;
-    if (this.isExpired(e)) {
-      this.kv.delete(key);
-      return -2;
-    }
-    return Math.ceil((e.expireAt - Date.now()) / 1000);
-  }
-
-  async hset(key: string, fieldOrObj: any, value?: any): Promise<number> {
-    let map = this.hashes.get(key);
-    if (!map) {
-      map = new Map<string, string>();
-      this.hashes.set(key, map);
-    }
-    if (typeof fieldOrObj === "object" && value === undefined) {
-      for (const [f, v] of Object.entries(fieldOrObj)) map.set(f, String(v));
-      return Object.keys(fieldOrObj).length;
-    }
-    map.set(String(fieldOrObj), String(value));
-    return 1;
-  }
-
-  async hget(key: string, field: string): Promise<string | null> {
-    return this.hashes.get(key)?.get(field) ?? null;
-  }
-
-  async hincrby(key: string, field: string, incr: number): Promise<number> {
-    let map = this.hashes.get(key);
-    if (!map) {
-      map = new Map<string, string>();
-      this.hashes.set(key, map);
-    }
-    const cur = parseInt(map.get(field) || "0", 10) || 0;
-    const next = cur + incr;
-    map.set(field, String(next));
-    return next;
-  }
-
-  // compat aliases
-  hSet = this.hset;
-  hGet = this.hget;
-  hIncrBy = this.hincrby;
-
-  get isOpen() {
-    return true;
-  }
-  async connect() {}
-  on() {}
-  async quit() {}
+  await connectPromise;
+  return rawClient;
 }
-
-// ---------- Factory: real Upstash or memory fallback ----------
-function createUpstashClient(): any {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-
-  // Use the explicit serverless credentials when both are present.
-  if (url && token) {
-    try {
-      console.log("✅ Upstash Redis initialized via UPSTASH_REDIS_REST_URL (serverless HTTP)");
-      return new Redis({ url, token });
-    } catch (e: any) {
-      console.warn("⚠️ Upstash explicit init failed:", e.message);
-    }
-  }
-
-  // Redis.fromEnv() no longer throws when variables are missing; it creates a
-  // client that fails only when the first command runs. Detect absence here so
-  // local development gets the intended functional fallback.
-  console.warn(
-    "⚠️ UPSTASH_REDIS_REST_URL / TOKEN missing — using in-memory Redis fallback. " +
-      "Set both variables on Vercel for persistent submission recovery."
-  );
-  return new MemoryRedis();
-}
-
-// Singleton via globalThis (Vercel reuses global across warm invocations)
-const rawClient: any = global.__upstashRedis ?? createUpstashClient();
-if (!global.__upstashRedis) global.__upstashRedis = rawClient;
 
 // ---------- Compatibility wrapper ----------
-// Translates node-redis camelCase calls (hSet/hGet/setEx) to Upstash lowercase
-// and normalises option shapes {EX: ttl} → {ex: ttl}.
+// Keeps the node-redis camelCase API used across the app and accepts the
+// lowercase option shapes (`{ ex }`, `{ nx }`) used by older call sites.
 class RedisCompatWrapper {
-  constructor(private client: any) {}
-
-  // For old checks: `if (!client.isOpen) await client.connect()`
   get isOpen(): boolean {
-    // HTTP has no socket — always open; memory also open
-    if (typeof this.client.isOpen === "boolean") return this.client.isOpen;
-    return true;
+    return rawClient.isOpen;
   }
+
   async connect(): Promise<void> {
-    if (typeof this.client.connect === "function" && !this.isOpen) {
-      try {
-        await this.client.connect();
-      } catch {}
-    }
+    await ensureConnected();
   }
-  on(..._args: any[]) {
-    // Upstash has no events — no-op for compat
+
+  on(...args: any[]): void {
+    rawClient.on(...(args as Parameters<RawRedis["on"]>));
   }
 
   async get(key: string): Promise<string | null> {
-    try {
-      return await this.client.get(key);
-    } catch (e: any) {
-      console.warn("Redis GET failed:", e.message);
-      return null;
-    }
+    const client = await ensureConnected();
+    return client.get(key);
   }
 
   async set(key: string, value: string, opts?: any): Promise<string | null> {
-    try {
-      if (opts && typeof opts === "object") {
-        const normalized = {
-          ...(opts.EX !== undefined || opts.ex !== undefined ? { ex: opts.EX ?? opts.ex } : {}),
-          ...(opts.PX !== undefined || opts.px !== undefined ? { px: opts.PX ?? opts.px } : {}),
-          ...(opts.NX === true || opts.nx === true ? { nx: true } : {}),
-          ...(opts.XX === true || opts.xx === true ? { xx: true } : {}),
-        };
-        return Object.keys(normalized).length
-          ? await this.client.set(key, value, normalized)
-          : await this.client.set(key, value);
-      }
-      return await this.client.set(key, value);
-    } catch (e: any) {
-      console.warn("Redis SET failed:", e.message);
-      return null;
+    const client = await ensureConnected();
+    if (!opts || typeof opts !== "object") {
+      return client.set(key, value);
     }
+    const normalized: Record<string, unknown> = {};
+    if (opts.EX !== undefined || opts.ex !== undefined) normalized.EX = opts.EX ?? opts.ex;
+    if (opts.PX !== undefined || opts.px !== undefined) normalized.PX = opts.PX ?? opts.px;
+    if (opts.NX === true || opts.nx === true) normalized.NX = true;
+    if (opts.XX === true || opts.xx === true) normalized.XX = true;
+    if (Object.keys(normalized).length === 0) {
+      return client.set(key, value);
+    }
+    return client.set(key, value, normalized as any);
   }
 
   async setEx(key: string, seconds: number, value: string): Promise<string | null> {
-    try {
-      return await this.client.set(key, value, { ex: seconds });
-    } catch (e: any) {
-      console.warn("Redis SETEX failed:", e.message);
-      return null;
-    }
+    const client = await ensureConnected();
+    return client.setEx(key, seconds, value);
   }
 
   async del(...keys: (string | string[])[]): Promise<number> {
-    try {
-      const flat = keys.flat() as string[];
-      if (flat.length === 0) return 0;
-      // Upstash del can take ...keys
-      return await this.client.del(...flat);
-    } catch (e: any) {
-      console.warn("Redis DEL failed:", e.message);
-      return 0;
-    }
+    const client = await ensureConnected();
+    const flat = keys.flat() as string[];
+    if (flat.length === 0) return 0;
+    return (client as any).del(flat);
   }
 
   async expire(key: string, seconds: number): Promise<number> {
-    try {
-      return await this.client.expire(key, seconds);
-    } catch (e: any) {
-      console.warn("Redis EXPIRE failed:", e.message);
-      return 0;
-    }
+    const client = await ensureConnected();
+    return client.expire(key, seconds);
   }
 
   async incr(key: string): Promise<number> {
-    try {
-      return await this.client.incr(key);
-    } catch (e: any) {
-      console.warn("Redis INCR failed:", e.message);
-      return 0;
-    }
+    const client = await ensureConnected();
+    return client.incr(key);
   }
 
   async decr(key: string): Promise<number> {
-    try {
-      return await this.client.decr(key);
-    } catch (e: any) {
-      console.warn("Redis DECR failed:", e.message);
-      return 0;
-    }
+    const client = await ensureConnected();
+    return client.decr(key);
   }
 
   async ttl(key: string): Promise<number> {
-    try {
-      // Upstash supports TTL, node-redis also
-      if (typeof this.client.ttl === "function") {
-        return await this.client.ttl(key);
-      }
-      return -1;
-    } catch (e: any) {
-      console.warn("Redis TTL failed:", e.message);
-      return -1;
-    }
+    const client = await ensureConnected();
+    return client.ttl(key);
   }
 
-  // Hash helpers — support both camelCase (node-redis) and lowercase (Upstash)
   async hSet(key: string, field: string | Record<string, any>, value?: any): Promise<number> {
-    try {
-      if (typeof field === "object" && value === undefined) {
-        // hSet(key, {field: value})
-        return await this.client.hset(key, field);
-      }
-      // hSet(key, field, value) -> Upstash expects object
-      return await this.client.hset(key, { [field as string]: value });
-    } catch (e: any) {
-      console.warn("Redis HSET failed:", e.message);
-      return 0;
+    const client = await ensureConnected();
+    if (typeof field === "object" && value === undefined) {
+      return (client as any).hSet(key, field);
     }
+    return (client as any).hSet(key, field as string, value);
   }
 
   async hGet(key: string, field: string): Promise<string | null> {
-    try {
-      return await this.client.hget(key, field);
-    } catch (e: any) {
-      console.warn("Redis HGET failed:", e.message);
-      return null;
-    }
+    const client = await ensureConnected();
+    return (client as any).hGet(key, field);
   }
 
   async hIncrBy(key: string, field: string, increment: number): Promise<number> {
-    try {
-      return await this.client.hincrby(key, field, increment);
-    } catch (e: any) {
-      console.warn("Redis HINCRBY failed:", e.message);
-      return 0;
-    }
+    const client = await ensureConnected();
+    return (client as any).hIncrBy(key, field, increment);
   }
 
-  // Lowercase aliases for code that already uses Upstash style
+  // Lowercase aliases for call sites that use the redis command names.
   hset = this.hSet.bind(this);
   hget = this.hGet.bind(this);
   hincrby = this.hIncrBy.bind(this);
   setex = this.setEx.bind(this);
+
+  async quit(): Promise<void> {
+    if (rawClient.isOpen) {
+      await rawClient.quit();
+    }
+  }
 }
 
-// Export singleton wrapper (serverless-safe, no top-level connect)
-const redisClient: RedisCompatWrapper = global.__upstashWrapper ?? new RedisCompatWrapper(rawClient);
-if (!global.__upstashWrapper) global.__upstashWrapper = redisClient;
+// Export singleton wrapper (lazy connection, no top-level await).
+const redisClient: RedisCompatWrapper = global.__redisWrapper ?? new RedisCompatWrapper();
+if (!global.__redisWrapper) global.__redisWrapper = redisClient;
 
-// Optional helper — ensures client ready (no-op for HTTP, useful for compat)
 export async function getRedisClient(): Promise<RedisCompatWrapper> {
-  // HTTP needs no connect; memory also ready
+  await ensureConnected();
   return redisClient;
 }
 

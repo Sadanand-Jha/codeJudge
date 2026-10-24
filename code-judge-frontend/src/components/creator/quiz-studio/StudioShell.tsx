@@ -84,10 +84,13 @@ export function StudioHeader() {
       <div className="ml-auto flex w-full min-w-0 items-center gap-2 border-t-2 border-[var(--qs-line)] pt-2 lg:hidden">
         <button
           type="button"
-          onClick={() => void prevMobileStep()}
-          disabled={mobileStepIndex <= 0}
-          title="Previous step"
-          aria-label="Previous step"
+          onClick={() => {
+            if (mobileStepIndex === 0) router.push("/creator/quizzes");
+            else void prevMobileStep();
+          }}
+          disabled={mobileStepIndex < 0}
+          title={mobileStepIndex === 0 ? "Back to My Quizzes" : "Previous step"}
+          aria-label={mobileStepIndex === 0 ? "Back to My Quizzes" : "Previous step"}
           className="b b-icon sm shrink-0"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -150,6 +153,7 @@ export function StudioHeader() {
 }
 
 export function StudioStepper() {
+  const router = useRouter();
   const { goToStep, prevStep, nextStep, stepIndex, steps, questionsValid } = useStudio();
 
   return (
@@ -158,17 +162,29 @@ export function StudioStepper() {
         <p className="sr-only">
           Step {stepIndex + 1} of {steps.length}: {steps[stepIndex]?.label}
         </p>
-        <button
-          type="button"
-          onClick={() => void prevStep()}
-          disabled={stepIndex === 0}
-          aria-label="Previous step"
-          title="Previous step"
-          className="group inline-flex h-8 shrink-0 items-center gap-1 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 text-[10px] font-extrabold uppercase tracking-[0.04em] text-[var(--qs-ink)] shadow-[2px_2px_0_var(--qs-line)] transition-all hover:-translate-y-0.5 hover:border-[var(--qs-brand)] hover:shadow-[3px_3px_0_var(--qs-sun)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:pointer-events-none disabled:opacity-40 sm:h-9 sm:px-2.5 sm:text-[11px]"
-        >
-          <ChevronLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
-          <span className="hidden md:inline">Previous</span>
-        </button>
+        {stepIndex === 0 ? (
+          <button
+            type="button"
+            onClick={() => router.push("/creator/quizzes")}
+            aria-label="Back to My Quizzes"
+            title="Back to My Quizzes"
+            className="group inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 text-[10px] font-extrabold uppercase tracking-[0.04em] text-[var(--qs-ink)] shadow-[2px_2px_0_var(--qs-line)] transition-all hover:-translate-y-0.5 hover:border-[var(--qs-brand)] hover:shadow-[3px_3px_0_var(--qs-sun)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none sm:h-9 sm:px-2.5 sm:text-[11px] md:w-[104px]"
+          >
+            <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+            <span className="hidden md:inline">Back</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void prevStep()}
+            aria-label="Previous step"
+            title="Previous step"
+            className="group inline-flex h-8 shrink-0 items-center gap-1 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 text-[10px] font-extrabold uppercase tracking-[0.04em] text-[var(--qs-ink)] shadow-[2px_2px_0_var(--qs-line)] transition-all hover:-translate-y-0.5 hover:border-[var(--qs-brand)] hover:shadow-[3px_3px_0_var(--qs-sun)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none sm:h-9 sm:px-2.5 sm:text-[11px]"
+          >
+            <ChevronLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+            <span className="hidden md:inline">Previous</span>
+          </button>
+        )}
         <ol className="flex min-w-0 flex-1 items-stretch gap-1.5 sm:gap-2">
           {steps.map((step, index) => {
             const done = index < stepIndex;
@@ -311,8 +327,10 @@ export function StudioFooter() {
     <footer className="hidden h-14 shrink-0 items-center justify-between gap-3 border-t-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 lg:flex">
       <button
         type="button"
-        onClick={() => void prevStep()}
-        disabled={stepIndex === 0}
+        onClick={() => {
+          if (stepIndex === 0) router.push("/creator/quizzes");
+          else void prevStep();
+        }}
         className="b b-ghost sm"
       >
         <ArrowLeft className="h-3.5 w-3.5" /> Back

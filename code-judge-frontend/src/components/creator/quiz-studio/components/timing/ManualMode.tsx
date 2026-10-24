@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Play, Square, RotateCcw } from "lucide-react";
+import { Clock, Flag, Play, Square, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { ConfirmModal } from "./ConfirmModal";
 import { EndQuizModal } from "./EndQuizModal";
@@ -10,6 +10,7 @@ import { DurationPicker } from "./DurationPicker";
 import { formatRelativeTime } from "./helpers";
 import { updateQuizStatus } from "@/services/quiz";
 import { toast } from "@/lib/toast";
+import { isQuestionValidationError } from "../../StudioProvider";
 import type { ManualConfig } from "./types";
 import { SESSION_DURATION_PRESETS } from "./types";
 
@@ -18,11 +19,13 @@ export function ManualMode({
   onManualChange,
   quizId,
   allowStart = true,
+  onBeforeStart,
 }: {
   manual: ManualConfig;
   onManualChange: (patch: Partial<ManualConfig>) => void;
   quizId?: string;
   allowStart?: boolean;
+  onBeforeStart?: () => Promise<void>;
 }) {
   const [startOpen, setStartOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
@@ -69,7 +72,7 @@ export function ManualMode({
                 className="inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-ok)] px-4 text-sm font-extrabold text-white shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none sm:w-auto"
               >
                 <Play className="h-4 w-4" />
-                Start Quiz
+                {onBeforeStart ? "Save and Start Quiz Now" : "Start Quiz"}
               </button>
             ) : (
               <p className="shrink-0 rounded-[12px] border-2 border-dashed border-[var(--qs-line)] px-3 py-2 text-center text-[11px] font-bold text-[var(--qs-muted)] sm:max-w-[170px]">
@@ -124,7 +127,7 @@ export function ManualMode({
         >
           <div className="flex min-w-0 flex-1 items-center gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-badbg)]">
-            <Square className="h-4 w-4 text-[var(--qs-bad)]" fill="currentColor" />
+            <Flag className="h-4 w-4 text-[var(--qs-bad)]" />
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-black text-[var(--qs-ink)]">Ended</p>
@@ -144,7 +147,7 @@ export function ManualMode({
             className="inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-ok)] px-4 text-sm font-extrabold text-white shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none sm:w-auto"
           >
             <RotateCcw className="h-4 w-4" />
-            Restart Quiz
+            {onBeforeStart ? "Save and Restart Quiz" : "Restart Quiz"}
           </button>
         </motion.div>
       )}
@@ -155,6 +158,19 @@ export function ManualMode({
         open={startOpen}
         onClose={() => setStartOpen(false)}
         onConfirm={async () => {
+          if (onBeforeStart) {
+            try {
+              await onBeforeStart();
+            } catch (error) {
+              if (!isQuestionValidationError(error)) {
+                toast.error({
+                  title: "Could not save quiz",
+                  description: error instanceof Error ? error.message : "Please try again.",
+                });
+              }
+              return;
+            }
+          }
           if (quizId) {
             try {
               await updateQuizStatus(quizId, "live", {
@@ -272,6 +288,19 @@ export function ManualMode({
         open={restartOpen}
         onClose={() => setRestartOpen(false)}
         onConfirm={async () => {
+          if (onBeforeStart) {
+            try {
+              await onBeforeStart();
+            } catch (error) {
+              if (!isQuestionValidationError(error)) {
+                toast.error({
+                  title: "Could not save quiz",
+                  description: error instanceof Error ? error.message : "Please try again.",
+                });
+              }
+              return;
+            }
+          }
           if (quizId) {
             try {
               await updateQuizStatus(quizId, "live", {
@@ -295,7 +324,7 @@ export function ManualMode({
         }}
         title="Restart this quiz?"
         description="This will make the quiz live again. Participants will be able to start new attempts."
-        confirmLabel="Restart Quiz"
+        confirmLabel={onBeforeStart ? "Save and Restart" : "Restart Quiz"}
         confirmColor="emerald"
       >
         <div className="space-y-3">

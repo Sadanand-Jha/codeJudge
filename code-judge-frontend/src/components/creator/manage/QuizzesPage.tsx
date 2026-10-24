@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -16,15 +16,15 @@ import {
 } from "lucide-react";
 import { MaskedCopyCode } from "@/components/creator/common/MaskedCopyCode";
 import {
+  ShareQuizDialog,
   WhatsAppIcon,
-  buildShareMessage,
 } from "@/components/creator/common/ShareQuizDialog";
 import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
 import { useData } from "@/lib/hooks/useData";
 import { Skeleton } from "@/components/creator/billing/ui";
 import { cn } from "@/lib/helpers";
 import { deriveQuizStatus, type EffectiveQuizStatus } from "@/lib/quizStatus";
-import { copyQuizCode, deleteQuiz, getMyCreatedQuizzes, type Quiz } from "@/services/quiz";
+import { deleteQuiz, getMyCreatedQuizzes, type Quiz } from "@/services/quiz";
 import { toast } from "@/lib/toast";
 import { WHOLE_QUIZ_AI_ENABLED } from "@/config/creatorFeatures";
 
@@ -566,53 +566,7 @@ function QuizCardItem({
   // onDelete: () => void;
 }) {
   const hasAttempts = quiz.attempts > 0;
-  const [shareCode, setShareCode] = useState(quiz.code);
-  const [sharing, setSharing] = useState(false);
-
-  useEffect(() => {
-    if (shareCode) return;
-    let active = true;
-    copyQuizCode(quiz.id)
-      .then((code) => {
-        if (active && code) setShareCode(code);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, [shareCode, quiz.id]);
-
-  const shareOnWhatsApp = async () => {
-    if (sharing) return;
-    let code = shareCode || quiz.code;
-    let pendingWindow: Window | null = null;
-    if (!code) {
-      pendingWindow = window.open("", "_blank");
-      if (pendingWindow) pendingWindow.opener = null;
-      setSharing(true);
-      try {
-        code = await copyQuizCode(quiz.id);
-        setShareCode(code);
-      } catch {
-        pendingWindow?.close();
-        toast.error({
-          title: "Could not load join code",
-          description: "The quiz join code could not be loaded. Please try again.",
-        });
-        return;
-      } finally {
-        setSharing(false);
-      }
-    }
-    if (!code) {
-      pendingWindow?.close();
-      toast.error({ title: "Join code unavailable", description: "Please try again in a moment." });
-      return;
-    }
-    const href = `https://wa.me/?text=${encodeURIComponent(buildShareMessage({ ...quiz, code }, "clean"))}`;
-    if (pendingWindow) pendingWindow.location.href = href;
-    else window.open(href, "_blank", "noopener,noreferrer");
-  };
+  const [shareOpen, setShareOpen] = useState(false);
 
   return (
     <motion.article
@@ -701,16 +655,28 @@ function QuizCardItem({
         </button>
         <button
           type="button"
-          onClick={() => void shareOnWhatsApp()}
-          disabled={sharing}
+          onClick={() => setShareOpen(true)}
           aria-label={`Share ${quiz.title} on WhatsApp`}
           title="Share on WhatsApp"
-          className="inline-flex items-center justify-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-line)] px-3.5 py-2 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[#25d366] hover:bg-[#25d366]/10 disabled:cursor-wait disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-line)] px-3.5 py-2 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[#25d366] hover:bg-[#25d366]/10"
         >
           <WhatsAppIcon className="h-4 w-4 text-[#25d366]" />
           Share on WhatsApp
         </button>
       </div>
+
+      {shareOpen && (
+        <ShareQuizDialog
+          quiz={{
+            id: quiz.id,
+            title: quiz.title,
+            code: quiz.code,
+            questions: quiz.questions,
+            status: quiz.status,
+          }}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
     </motion.article>
   );
 }

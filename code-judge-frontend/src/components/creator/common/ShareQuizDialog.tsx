@@ -250,15 +250,15 @@ interface ShareQuizDialogProps {
 export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
   const [styleId, setStyleId] = useState<ShareStyleId>("clean");
   const [code, setCode] = useState(quiz.code);
+  const [customMessage, setCustomMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [copying, setCopying] = useState(false);
   const copyTimerRef = useRef<number | null>(null);
 
   const activeStyle = SHARE_STYLES.find((style) => style.id === styleId) ?? SHARE_STYLES[0];
-  const message = buildShareMessage({ ...quiz, code }, styleId);
-  const whatsappHref = styleId === "hype"
-    ? buildQuizMessage({ title: quiz.title, count: quiz.questions, code, url: joinLink(code) })
-    : `https://wa.me/?text=${encodeURIComponent(message)}`;
+  const generatedMessage = buildShareMessage({ ...quiz, code }, styleId);
+  const message = customMessage ?? generatedMessage;
+  const whatsappHref = `https://wa.me/?text=${encodeURIComponent(message)}`;
   const sentAt = useMemo(
     () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     []
@@ -302,7 +302,7 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
         targetCode = await copyQuizCode(quiz.id);
         setCode(targetCode);
       }
-      await copyText(buildShareMessage({ ...quiz, code: targetCode }, styleId));
+      await copyText(customMessage ?? buildShareMessage({ ...quiz, code: targetCode }, styleId));
       setCopied(true);
       if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
       copyTimerRef.current = window.setTimeout(() => setCopied(false), 2000);
@@ -334,7 +334,7 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
               Share on WhatsApp
             </h2>
             <p className="mt-1 text-[13px] leading-5 text-[var(--qs-muted)]">
-              Pick a style. Students get the message with a tap-to-join link.
+              Pick a style, tweak the message, and share. Students get a tap-to-join link.
             </p>
           </div>
           <button
@@ -359,6 +359,7 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
                   aria-selected={selected}
                   onClick={() => {
                     setStyleId(style.id);
+                    setCustomMessage(null);
                     setCopied(false);
                   }}
                   className={cn(
@@ -376,6 +377,41 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
           <p className="mt-2 min-h-[2.6em] text-[12px] leading-[1.4] text-[var(--qs-muted)]">
             {activeStyle.description}
           </p>
+
+          <div className="mt-1">
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <label
+                htmlFor="share-quiz-message"
+                className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ink)]"
+              >
+                Your message
+              </label>
+              {customMessage !== null && (
+                <button
+                  type="button"
+                  onClick={() => setCustomMessage(null)}
+                  className="text-[11px] font-bold text-[var(--qs-brand)] underline underline-offset-2 hover:no-underline"
+                >
+                  Reset to template
+                </button>
+              )}
+            </div>
+            <textarea
+              id="share-quiz-message"
+              value={message}
+              onChange={(event) => setCustomMessage(event.target.value)}
+              rows={5}
+              spellCheck={false}
+              className="w-full resize-y rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2 text-[12.5px] leading-[1.5] text-[var(--qs-ink)] outline-none transition-colors focus:border-[var(--qs-brand)]"
+            />
+          </div>
+
+          <div className="mb-1.5 mt-4 flex items-center justify-between gap-2">
+            <span className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+              Preview
+            </span>
+            <span className="text-[11px] text-[var(--qs-muted)]">Updates as you type</span>
+          </div>
 
           <div className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[#efeae2] p-4 dark:bg-[#0b141a]">
             <div className="max-w-[95%] rounded-[10px] rounded-bl-[2px] bg-[#d9fdd3] p-1 text-[#111b21] shadow-[0_1px_1px_rgba(0,0,0,0.15)] dark:bg-[#005c4b] dark:text-[#e9edef]">

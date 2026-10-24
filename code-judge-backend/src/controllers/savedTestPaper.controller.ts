@@ -4,6 +4,7 @@ import {
   getSavedTestPaper,
   listSavedTestPapers,
   saveTestPaper,
+  updateSavedTestPaper,
 } from "../services/savedTestPaper.service.js";
 
 const authenticatedUserId = (req: Request): number => {
@@ -58,6 +59,21 @@ export const saveTest = async (req: Request, res: Response) => {
     const message = error instanceof Error ? error.message : "Unable to save the test.";
     const isValidation = /required|invalid|must|too large|not found|at least one/i.test(message);
     res.status(message === "Unauthorized" ? 401 : isValidation ? 400 : 500).json({ success: false, message });
+  }
+};
+
+export const updateSavedTest = async (req: Request, res: Response) => {
+  try {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const test = await updateSavedTestPaper(authenticatedUserId(req), paperId(req), {
+      title: body.title,
+      meta: body.meta,
+    });
+    res.status(200).json({ success: true, data: { test } });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to update the saved test.";
+    const isValidation = /required|invalid|too large/i.test(message);
+    res.status(message === "Unauthorized" ? 401 : /not found/i.test(message) ? 404 : isValidation ? 400 : 500).json({ success: false, message });
   }
 };
 
