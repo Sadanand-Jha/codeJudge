@@ -254,6 +254,44 @@ export const generateQuestionsFromFiles = async (
   return payload.data?.questions ?? [];
 };
 
+/**
+ * Upload study material files and stream AI-generated questions over SSE.
+ * The backend emits `reasoning`/`content`/`questions`/`usage`/`done` events,
+ * each forwarded to the matching callback as it arrives.
+ */
+export const generateQuestionsFromFilesStream = async (
+  files: File[],
+  options: GenerateFromFilesOptions,
+  callbacks: StreamCallbacks,
+  signal?: AbortSignal
+): Promise<void> => {
+  const formData = new FormData();
+  files.forEach((file) => formData.append("files", file));
+
+  formData.append("numberOfQuestions", String(options.numberOfQuestions));
+  formData.append("questionTypes", JSON.stringify(options.questionTypes));
+  formData.append("difficulty", JSON.stringify(options.difficulty));
+  formData.append("bloomsLevel", options.bloomsLevel);
+  formData.append("includeExplanations", String(options.includeExplanations));
+  formData.append("includeHints", String(options.includeHints));
+  formData.append("includeReferenceNotes", String(options.includeReferenceNotes));
+  formData.append("includeTags", String(options.includeTags));
+  if (options.subjectId != null) formData.append("subjectId", String(options.subjectId));
+  if (options.chapterId != null) formData.append("chapterId", String(options.chapterId));
+  if (options.topicId != null) formData.append("topicId", String(options.topicId));
+  if (options.quizId != null) formData.append("quizId", String(options.quizId));
+
+  const response = await fetch(`${API_BASE}/v1/user/ai/generate-questions?stream=1`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: formData,
+    credentials: "include",
+    signal,
+  });
+
+  return consumeSSEResponse(response, callbacks);
+};
+
 export interface GenerateFromBankOptions {
   numberOfQuestions: number;
   easyCount?: number;

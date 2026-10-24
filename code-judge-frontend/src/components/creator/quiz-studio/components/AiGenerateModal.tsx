@@ -23,6 +23,7 @@ import {
 import { cn } from "@/lib/helpers";
 import {
   generateQuestionsFromFiles,
+  generateQuestionsFromFilesStream,
   generateFromQuestionBank,
   generateFromQuestionBankStream,
   mapRawQuestionsToPreview,
@@ -202,6 +203,7 @@ export function AiGenerateModal({
   const [streamContent, setStreamContent] = useState("");
   const [liveUsage, setLiveUsage] = useState<LiveUsage | undefined>(undefined);
   const generationStartedAtRef = useRef(0);
+  const fileGenerationAbortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
 
@@ -415,6 +417,11 @@ export function AiGenerateModal({
       setError(limitError);
       return;
     }
+    // Cancel any in-flight file-generation stream before starting a new one.
+    fileGenerationAbortRef.current?.abort();
+    const abortController = new AbortController();
+    fileGenerationAbortRef.current = abortController;
+
     setLastAction("own");
     setGenerating(true);
     setGenerationFailed(false);
@@ -426,21 +433,41 @@ export function AiGenerateModal({
     generationStartedAtRef.current = Date.now();
     setError("");
 
+    let streamedQuestions: RawAIGeneratedQuestion[] = [];
     try {
-      const rawQuestions = await generateQuestionsFromFiles(files, {
-        numberOfQuestions: FILE_GENERATION_COUNT,
-        questionTypes: ["mcq"],
-        difficulty: ["easy", "medium", "hard"],
-        bloomsLevel: "understand",
-        includeExplanations: true,
-        includeHints: true,
-        includeReferenceNotes: false,
-        includeTags: true,
-        subjectId: defaultSubjectId,
-        quizId,
-      });
-
-      const previews = mapRawQuestionsToPreview(rawQuestions);
+      await generateQuestionsFromFilesStream(
+        files,
+        {
+          numberOfQuestions: FILE_GENERATION_COUNT,
+          questionTypes: ["mcq"],
+          difficulty: ["easy", "medium", "hard"],
+          bloomsLevel: "understand",
+          includeExplanations: true,
+          includeHints: true,
+          includeReferenceNotes: false,
+          includeTags: true,
+          subjectId: defaultSubjectId,
+          quizId,
+        },
+        {
+          onReasoning: (chunk) => setThinking((prev) => prev + chunk),
+          onContent: (chunk) => setStreamContent((prev) => prev + chunk),
+          onQuestions: (questions) => {
+            streamedQuestions = questions;
+          },
+          onUsage: ({ usage }) => {
+            if (!usage) return;
+            setLiveUsage(usage);
+            const tokens = usage.outputTokens ?? usage.totalTokens;
+            if (!tokens) return;
+            const seconds = Math.max(0.3, (Date.now() - generationStartedAtRef.current) / 1000);
+            setTokenRate(Math.round(tokens / seconds));
+          },
+          onError: (message) => setError(message),
+        },
+        abortController.signal
+      );
+      const previews = mapRawQuestionsToPreview(streamedQuestions);
       if (previews.length === 0) {
         setError("The AI returned no questions. Try a smaller file or add more detail.");
         setGenerationFailed(true);
@@ -454,11 +481,13 @@ export function AiGenerateModal({
       setReviewOpen(true);
       toast.success(`Generated ${previews.length} questions — review before adding`);
     } catch (err) {
+      if ((err as Error).name === "AbortError") return;
       setError((err as Error).message || "AI generation failed. Please try again.");
       setGenerationFailed(true);
       setGenerating(false);
       setTokenRate(null);
     }
+    fileGenerationAbortRef.current = null;
   };
 
   const getScopedChapterIds = () =>

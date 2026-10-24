@@ -238,8 +238,13 @@ export const generateQuestionsFromUpload = async (req: Request, res: Response) =
     const subjectId = optionalId(req.body.subjectId);
     const chapterId = optionalId(req.body.chapterId);
     const topicId = optionalId(req.body.topicId);
+    const quizId = optionalId(req.body.quizId);
 
-    const result = await generateQuestionsFromFiles({
+    const wantsStream =
+      req.query.stream === "1" ||
+      (typeof req.headers.accept === "string" && req.headers.accept.includes("text/event-stream"));
+
+    const baseRequest = {
       files: files.map((f) => ({ name: f.originalname, buffer: f.buffer })),
       numberOfQuestions,
       questionTypes: parseList(req.body.questionTypes),
@@ -252,7 +257,62 @@ export const generateQuestionsFromUpload = async (req: Request, res: Response) =
       subjectId,
       chapterId,
       topicId,
-    });
+    };
+
+    if (wantsStream) {
+      res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+      res.setHeader("Cache-Control", "no-cache, no-transform");
+      res.setHeader("Connection", "keep-alive");
+      res.setHeader("X-Accel-Buffering", "no");
+      res.flushHeaders?.();
+
+      const startedAt = Date.now();
+      const controller = new AbortController();
+      let closed = false;
+      const onClose = () => {
+        closed = true;
+        controller.abort();
+      };
+      req.on("close", onClose);
+      const send = (type: string, data: Record<string, unknown>) => {
+        if (closed || res.writableEnded) return;
+        res.write(`data: ${JSON.stringify({ type, ...data })}\n\n`);
+      };
+
+      try {
+        const result = await generateQuestionsFromFiles({
+          ...baseRequest,
+          onReasoning: (chunk) => send("reasoning", { chunk }),
+          onContent: (chunk) => send("content", { chunk }),
+          onUsage: (usage) => send("usage", { usage }),
+          signal: controller.signal,
+        });
+
+        if (subjectId != null) {
+          await persistGeneratedQuestions(result.questions, {
+            quizId,
+            createdBy: req.user?.userId ? Number(req.user.userId) : null,
+            subjectId,
+            chapterId,
+            topicId,
+            source: "ai_material",
+            ownershipDays: 30,
+          });
+        }
+
+        send("questions", { questions: result.questions });
+        if (result.usage) send("usage", { usage: result.usage, time_ms: Date.now() - startedAt });
+        send("done", {});
+      } catch (error) {
+        if (!closed) send("error", { message: error instanceof Error ? error.message : "Failed to generate questions" });
+      } finally {
+        req.off("close", onClose);
+      }
+      return;
+    }
+
+    // Non-streaming path (existing behavior)
+    const result = await generateQuestionsFromFiles(baseRequest);
 
     // Material-derived questions belong to the creator for 30 days (longer
     // than topic-only AI generation) before joining the shared system bank.

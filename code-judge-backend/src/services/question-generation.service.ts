@@ -20,7 +20,7 @@
  * what to persist.
  */
 import ExcelJS from "exceljs";
-import { chatWithAI } from "./ai.service.js";
+import { chatWithAI, streamChatWithAI } from "./ai.service.js";
 import type { LiveUsage } from "./ai.service.js";
 import {
   extractTextWithDocling,
@@ -83,6 +83,12 @@ export interface QuestionGenerationRequest {
   subjectId?: number | null;
   chapterId?: number | null;
   topicId?: number | null;
+  /** Streaming callbacks — when provided, the model response is streamed
+   *  chunk-by-chunk instead of returned as a single one-shot reply. */
+  onReasoning?: (chunk: string) => void;
+  onContent?: (chunk: string) => void;
+  onUsage?: (usage: LiveUsage) => void;
+  signal?: AbortSignal;
 }
 
 /**
@@ -533,7 +539,30 @@ Rules:
 STUDY MATERIAL:
 ${truncated}`;
 
-  const { content, usage } = await chatWithAI(prompt);
+  let content = "";
+  let usage: LiveUsage | undefined;
+  let reasoning = "";
+  if (request.onReasoning || request.onContent || request.signal) {
+    for await (const chunk of streamChatWithAI(prompt, request.signal)) {
+      if (chunk.reasoning) {
+        reasoning += chunk.reasoning;
+        request.onReasoning?.(chunk.reasoning);
+      }
+      if (chunk.content) {
+        content += chunk.content;
+        request.onContent?.(chunk.content);
+      }
+      if (chunk.usage) {
+        usage = chunk.usage;
+        request.onUsage?.(chunk.usage);
+      }
+    }
+  } else {
+    const response = await chatWithAI(prompt, request.signal);
+    content = response.content;
+    usage = response.usage;
+    reasoning = response.reasoning ?? "";
+  }
 
   const questions = parseQuestionsJSON(content).map((question) => {
     if (!scopeCatalog) return question;
