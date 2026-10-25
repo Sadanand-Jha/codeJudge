@@ -55,7 +55,7 @@ export default function QuizHubHero() {
   };
 
   return (
-    <header className="grid items-center gap-10 pt-4 lg:grid-cols-[1.1fr_.9fr] lg:gap-10">
+    <header className="grid items-center gap-6 lg:grid-cols-[1.1fr_.9fr] lg:gap-10 lg:pt-4">
       <div className="hidden lg:block">
         <span className="inline-flex items-center rounded-full border-2 border-[#1a1240] bg-[var(--qs-sun)] px-2.5 py-[3px] text-[12px] font-extrabold uppercase tracking-[0.05em] text-[#1a1240]">
           For teachers and students
@@ -85,13 +85,26 @@ export default function QuizHubHero() {
 
       </div>
 
-      <div className="relative mr-4 mb-4">
+      <div className="relative mr-1 mb-1 lg:mr-4 lg:mb-4">
         <div
           aria-hidden="true"
-          className="absolute inset-0 translate-x-4 translate-y-4 rounded-[30px] bg-[var(--qs-sun)]"
+          className="absolute inset-0 translate-x-1 translate-y-1 rounded-[18px] bg-[var(--qs-sun)] lg:translate-x-4 lg:translate-y-4 lg:rounded-[30px]"
         />
-        <div className="relative overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
-          <div className="flex items-center gap-3.5 border-b-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-[22px] py-[18px] text-[var(--qs-on-brand)]">
+        <div className="relative overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] lg:rounded-[26px]">
+          <div className="flex items-center gap-3 border-b-2 border-[var(--qs-line)] px-4 pb-3 pt-4 lg:hidden">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[13px] border-2 border-[var(--qs-ink)] bg-[var(--qs-poly-1)] text-[var(--qs-brand)]">
+              <Zap className="h-5 w-5" strokeWidth={2.4} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[22px] font-extrabold leading-none tracking-tight text-[var(--qs-ink)]">Join a quiz</p>
+              <p className="mt-1 text-[13px] leading-none text-[var(--qs-muted)]">Quiz code or room password</p>
+            </div>
+            <span className="ml-auto inline-flex shrink-0 items-center rounded-full bg-[var(--qs-poly-1)] px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-muted)]">
+              Live
+            </span>
+          </div>
+
+          <div className="hidden items-center gap-3.5 border-b-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-[22px] py-[18px] text-[var(--qs-on-brand)] lg:flex">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[13px] border-2 border-[#1a1240] bg-[var(--qs-sun)] text-[#1a1240]">
               <Zap className="h-5 w-5" strokeWidth={2.4} />
             </span>
@@ -104,7 +117,7 @@ export default function QuizHubHero() {
             </span>
           </div>
 
-          <div className="p-[22px]">
+          <div className="p-4 lg:p-[22px]">
             <div role="tablist" aria-label="Join type" className="mb-4 flex gap-1.5">
               {(["quiz", "room"] as const).map((item) => (
                 <button
@@ -114,7 +127,7 @@ export default function QuizHubHero() {
                   aria-selected={tab === item}
                   onClick={() => setTab(item)}
                   className={cn(
-                    "flex-1 rounded-full border-2 px-3 py-[9px] text-sm font-bold transition-colors",
+                    "flex-1 rounded-full border-2 px-3 py-[9px] text-[13px] font-bold transition-colors lg:text-sm",
                     tab === item
                       ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
                       : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"

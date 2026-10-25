@@ -1,7 +1,12 @@
-import HistoryPage from "@/components/profile/HistoryPage";
+import ProfileComingSoon from "@/components/profile/ProfileComingSoon";
 
 export const metadata = { title: "History" };
 
 export default function Page() {
-  return <HistoryPage />;
+  return (
+    <ProfileComingSoon
+      title="History"
+      description="Submission history is not connected yet. This section will be available soon."
+    />
+  );
 }

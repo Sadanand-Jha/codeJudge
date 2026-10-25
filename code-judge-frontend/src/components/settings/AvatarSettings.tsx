@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
-import { SettingsCard } from "@/components/ui/settings";
+import { Camera, Check } from "lucide-react";
 import { DEFAULT_AVATAR_URL, getPredefinedAvatarByUrl } from "@/config/dicebear";
+import SettingsPanel from "./SettingsPanel";
 import AvatarSelectionModal, { PROFILE_IMAGES } from "./AvatarSelectionModal";
 
 interface AvatarSettingsProps {
@@ -18,67 +18,52 @@ export default function AvatarSettings({
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const effectiveAvatarUrl = currentAvatarUrl || DEFAULT_AVATAR_URL;
-  // Resolve the display name from the modal's image list first (image1, hero2, …),
-  // then fall back to the predefined avatar set so a saved URL always shows its name.
-  const matchedImage = PROFILE_IMAGES.find((i) => i.src === effectiveAvatarUrl);
+  const matchedImage = PROFILE_IMAGES.find((image) => image.src === effectiveAvatarUrl);
   const avatarData = matchedImage
     ? { label: matchedImage.label }
     : getPredefinedAvatarByUrl(effectiveAvatarUrl);
 
   return (
     <>
-      <SettingsCard
-        title="Profile Picture"
+      <SettingsPanel
+        title="Profile picture"
         description="Choose an avatar for your QuizSupport profile."
-        icon={<Sparkles className="h-4 w-4" />}
+        icon={Camera}
       >
-        <div className="space-y-4">
-          {/* ===== Current Avatar ===== */}
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:gap-6">
-            <div className="relative shrink-0">
-              {/* Soft glow */}
-              <div className="absolute -inset-2 rounded-full bg-gradient-to-br from-[#7C3AED]/40 to-[#3B82F6]/30 blur-lg" />
-
-              {/* Avatar ring */}
-              <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] opacity-60 blur-[2px]" />
-
-              {/* Avatar */}
-              <div className="relative h-[100px] w-[100px] overflow-hidden rounded-full border-2 border-white/10 bg-background shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-                <img
-                  src={effectiveAvatarUrl}
-                  alt="Current avatar"
-                  className="h-full w-full object-cover"
-                />
-              </div>
-            </div>
-
-            <div className="flex min-w-0 flex-1 flex-col items-center text-center sm:items-start sm:text-left">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-white/[0.03] px-3 py-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" />
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Current Avatar
-                </span>
-              </div>
-              <p className="mt-2 text-sm font-semibold text-white">
-                {avatarData?.label || "Default Avatar"}
-              </p>
-              <p className="mt-1 text-xs text-[#6B7280]">
-                Click the button below to change your avatar
-              </p>
-            </div>
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+          <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[20px] border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)] shadow-[4px_4px_0_var(--qs-sun)]">
+            {/* eslint-disable-next-line @next/next/no-img-element -- avatar URLs are user-configured */}
+            <img
+              src={effectiveAvatarUrl}
+              alt="Current avatar"
+              className="h-full w-full object-cover"
+            />
           </div>
 
-          {/* ===== Change Avatar Button ===== */}
+          <div className="min-w-0 flex-1">
+            <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ok)]">
+              <Check className="h-3 w-3" />
+              Current avatar
+            </span>
+            <p className="mt-2 text-sm font-extrabold text-[var(--qs-ink)]">
+              {avatarData?.label || "Default avatar"}
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-[var(--qs-muted)]">
+              Pick a new look from the avatar library. Locked avatars are coming soon.
+            </p>
+          </div>
+
           <button
+            type="button"
             onClick={() => setIsModalOpen(true)}
-            className="w-full rounded-xl border border-border-hover bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:border-[#7C3AED]/40 hover:bg-[#7C3AED]/10"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_var(--qs-sun)]"
           >
-            Change Avatar
+            <Camera className="h-4 w-4" />
+            Change avatar
           </button>
         </div>
-      </SettingsCard>
+      </SettingsPanel>
 
-      {/* ===== Avatar Selection Modal (rendered outside card to avoid clipping) ===== */}
       <AvatarSelectionModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

@@ -24,6 +24,9 @@ function createConnection(): Redis {
       return Math.min(times * 500, 3000);
     },
   });
+  connection.on("ready", () => {
+    console.log("[bullmq] Redis connected");
+  });
   connection.on("error", (err: Error) => {
     console.error("[bullmq] redis connection error:", err.message);
   });

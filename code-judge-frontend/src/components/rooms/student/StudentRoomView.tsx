@@ -202,7 +202,7 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
 
   return (
     <div className="min-h-full bg-[var(--qs-bg)]">
-      <div className="mx-auto w-full max-w-[1280px] px-4 py-6 pb-20 sm:px-6">
+      <div className="mx-auto w-full max-w-[1280px] px-4 py-4 pb-20 sm:px-6 sm:pb-10 sm:pt-7">
         <header className="flex flex-wrap items-start justify-between gap-4 xl:items-center">
           <div className="flex min-w-0 items-start gap-3.5">
             <span className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] md:h-16 md:w-16 md:rounded-[16px]">
@@ -210,7 +210,7 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
             </span>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--qs-ok)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-ok)] md:text-[11px]">
+                <span className="inline-flex items-center gap-1 rounded-[8px] border-2 border-[var(--qs-ok)] px-2 py-[2px] text-[10px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-ok)] md:px-2.5 md:text-[11px]">
                   Joined
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--qs-poly-1)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-ink)] md:text-[11px]">
@@ -218,10 +218,10 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
                   {room.memberCount} classmate{room.memberCount === 1 ? "" : "s"}
                 </span>
               </div>
-              <h1 className="mt-2 text-[26px] font-extrabold leading-[1.1] tracking-[-0.02em] text-[var(--qs-ink)] sm:text-[30px] md:text-[34px]">
+              <h1 className="mt-1.5 text-[26px] font-extrabold leading-[1.1] tracking-[-0.02em] text-[var(--qs-ink)] sm:text-[30px] md:mt-2 md:text-[34px]">
                 {room.name}
               </h1>
-              <p className="mt-1 max-w-2xl text-sm text-[var(--qs-muted)]">
+              <p className="mt-1 max-w-2xl text-[13px] leading-[1.45] text-[var(--qs-muted)] sm:text-sm">
                 {room.description || "Your classroom space for classmates, updates and shared notes."}
                 <span className="hidden md:inline">
                   <span className="mx-1">·</span>
@@ -232,7 +232,7 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
                   ) : null}
                 </span>
               </p>
-              <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs font-semibold text-[var(--qs-muted)] md:hidden">
+              <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] font-semibold text-[var(--qs-muted)] md:hidden">
                 <span>Taught by</span>
                 <span className="font-extrabold text-[var(--qs-ink)]">{teacherDisplay}</span>
                 {room.owner?.username ? (
@@ -242,7 +242,7 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
             </div>
           </div>
 
-          <div className="grid w-full grid-cols-2 gap-2.5 sm:grid-cols-4 lg:w-auto">
+          <div className="hidden w-full grid-cols-2 gap-2.5 sm:grid-cols-4 md:grid lg:w-auto">
             <RoomStat label="Classmates" value={room.memberCount} />
             <RoomStat label="Documents" value={roomDocuments.length} />
             <RoomStat label="Announcements" value={roomAnnouncements.length} />
@@ -253,14 +253,8 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
           </div>
         </header>
 
-        {section === "overview" && teacher ? (
-          <div className="mt-5">
-            <TeacherPublicCard teacher={teacher} className="bg-[var(--qs-surface)]" />
-          </div>
-        ) : null}
-
-        <div className="mt-5 grid gap-5 md:mt-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:gap-6">
-          <div className="min-w-0">
+        <div className="mt-4 grid gap-4 sm:mt-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-6">
+          <div className="min-w-0 lg:flex lg:flex-col">
             {section === "documents" ? (
               <RoomDocumentsPanel roomId={room.id} roomName={room.name} readOnly />
             ) : section === "announcements" ? (
@@ -293,24 +287,41 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
                 documents={roomDocuments}
               />
             )}
+
+            {(section === "overview" || section === "students") && teacher ? (
+              <div className="lg:hidden">
+                <TeacherPublicCard teacher={teacher} className="bg-[var(--qs-surface)]" />
+              </div>
+            ) : null}
           </div>
 
-          <aside className="min-w-0 space-y-4">
-            <section className="rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">
-              <h2 className="text-sm font-extrabold text-[var(--qs-ink)]">Room details</h2>
-              <dl className="mt-3 space-y-2.5 text-sm">
-                <div className="flex items-center justify-between gap-3 border-b-2 border-[var(--qs-line)] pb-2.5">
-                  <dt className="font-semibold text-[var(--qs-muted)]">Room code</dt>
-                  <dd className="rounded-[8px] bg-[var(--qs-poly-1)] px-2 py-0.5 font-mono text-xs font-bold tracking-[0.08em] text-[var(--qs-brand)]">
+          <aside
+            className={cn(
+              "min-w-0 space-y-4",
+              section !== "overview" && section !== "students" && "hidden lg:block"
+            )}
+          >
+            {teacher ? (
+              <div className="hidden lg:block">
+                <TeacherPublicCard teacher={teacher} className="bg-[var(--qs-surface)]" />
+              </div>
+            ) : null}
+
+            <section className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 pb-1">
+              <h2 className="text-[15px] font-extrabold text-[var(--qs-ink)]">Room details</h2>
+              <dl className="mt-2 text-[14px]">
+                <div className="flex items-center justify-between gap-3 border-t-2 border-[var(--qs-line)] py-2.5">
+                  <dt className="text-[var(--qs-muted)]">Room code</dt>
+                  <dd className="rounded-full bg-[var(--qs-poly-1)] px-2 py-0.5 font-mono text-[12px] font-bold tracking-[0.08em] text-[var(--qs-brand)]">
                     {room.room_code}
                   </dd>
                 </div>
-                <div className="flex items-center justify-between gap-3 border-b-2 border-[var(--qs-line)] pb-2.5">
-                  <dt className="font-semibold text-[var(--qs-muted)]">Classmates</dt>
+                <div className="flex items-center justify-between gap-3 border-t-2 border-[var(--qs-line)] py-2.5">
+                  <dt className="text-[var(--qs-muted)]">Classmates</dt>
                   <dd className="font-extrabold text-[var(--qs-ink)]">{room.memberCount}</dd>
                 </div>
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="font-semibold text-[var(--qs-muted)]">You joined</dt>
+                <div className="flex items-center justify-between gap-3 border-t-2 border-[var(--qs-line)] py-2.5">
+                  <dt className="text-[var(--qs-muted)]">You joined</dt>
                   <dd className="font-extrabold text-[var(--qs-ink)]">
                     {myMembership?.joinedAt ? timeAgo(myMembership.joinedAt) : "—"}
                   </dd>
@@ -326,7 +337,7 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
 
 function RoomStat({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="min-w-0 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5 sm:px-3.5 lg:w-[112px] xl:w-[128px]">
+    <div className="min-w-0 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5 sm:px-3.5 lg:w-[128px]">
       <p className="truncate text-[10px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-muted)] md:text-[11px]">
         {label}
       </p>
@@ -354,22 +365,22 @@ function StudentsPanel({
   setQuery: (value: string) => void;
 }) {
   return (
-    <section className="relative mb-4 mr-4 min-w-0">
-      <div aria-hidden className="absolute left-4 top-4 -bottom-4 -right-4 rounded-[30px] bg-[var(--qs-sun)]" />
-      <div className="relative overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
-        <header className="flex flex-wrap items-start justify-between gap-3 px-4 pb-4 pt-5 sm:px-[26px] md:items-center">
+    <section className="relative mb-4 mr-1 min-w-0 lg:flex lg:flex-col">
+      <div aria-hidden className="absolute left-1 top-1 -bottom-1 -right-1 rounded-[18px] bg-[var(--qs-sun)]" />
+      <div className="relative overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] lg:flex lg:flex-1 lg:flex-col">
+        <header className="flex flex-col items-start gap-2 px-4 pb-3 pt-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-3 md:items-center">
           <div>
             <h2 className="flex items-center gap-2 text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)]">
               Students
-              <span className="rounded-full bg-[var(--qs-poly-1)] px-2 py-0.5 text-[11px] font-extrabold text-[var(--qs-brand)]">
+              <span className="rounded-full bg-[var(--qs-poly-1)] px-2 py-0.5 text-[12px] font-extrabold text-[var(--qs-brand)]">
                 {classmates.length}
               </span>
             </h2>
-            <p className="mt-0.5 text-sm text-[var(--qs-muted)]">
+            <p className="mt-0.5 text-[13px] leading-[1.4] text-[var(--qs-muted)]">
               Classmates in this room.
             </p>
           </div>
-          <div className="relative w-full md:w-[280px]">
+          <div className="relative hidden w-full md:block md:w-[280px]">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
             <input
               value={query}
@@ -381,7 +392,7 @@ function StudentsPanel({
           </div>
         </header>
 
-        <div className="border-t-2 border-[var(--qs-line)] p-4">
+        <div className="border-t-2 border-[var(--qs-line)] p-3 sm:p-4 lg:flex-1">
           {filteredClassmates.length === 0 ? (
             <div className="rounded-[16px] border-2 border-dashed border-[var(--qs-line)] px-4 py-10 text-center">
               <Users className="mx-auto h-7 w-7 text-[var(--qs-muted)]" />
@@ -390,13 +401,13 @@ function StudentsPanel({
               </p>
             </div>
           ) : (
-            <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {filteredClassmates.map((member) => (
                 <Link
                   key={member.id}
                   href={`/students/${encodeURIComponent(member.username || member.id)}`}
                   className={cn(
-                    "group flex min-w-0 items-center gap-3 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 transition-colors hover:border-[var(--qs-brand)] hover:bg-[var(--qs-bg)]",
+                    "flex min-w-0 items-center gap-3 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5 transition-colors hover:border-[var(--qs-brand)]",
                     member.is_you && "border-[var(--qs-brand)] bg-[var(--qs-poly-1)]"
                   )}
                 >
@@ -417,7 +428,7 @@ function StudentsPanel({
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] font-semibold text-[var(--qs-muted)]">
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12px] font-semibold text-[var(--qs-muted)]">
                       <span>@{member.username}</span>
                       {member.joinedAt ? (
                         <>
@@ -430,13 +441,12 @@ function StudentsPanel({
                       ) : null}
                     </p>
                   </div>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-[var(--qs-muted)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--qs-brand)]" />
                 </Link>
               ))}
             </div>
           )}
         </div>
-        <div className="border-t-2 border-[var(--qs-line)] px-4 py-3.5 text-sm font-medium text-[var(--qs-muted)] sm:px-[26px]">
+        <div className="border-t-2 border-[var(--qs-line)] px-4 py-3 text-[13px] font-medium text-[var(--qs-muted)]">
           Showing {filteredClassmates.length} of {classmates.length} students
         </div>
       </div>
@@ -457,36 +467,36 @@ function RecentUpdatesPanel({
   const latestDocuments = documents.slice(0, 3);
 
   return (
-    <section className="relative mb-4 mr-4 min-w-0">
-      <div aria-hidden className="absolute left-4 top-4 -bottom-4 -right-4 rounded-[30px] bg-[var(--qs-sun)]" />
-      <div className="relative overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
-        <header className="flex flex-wrap items-start justify-between gap-3 px-4 pb-4 pt-5 sm:px-[26px]">
+    <section className="relative mb-4 mr-1 min-w-0 lg:flex lg:flex-col">
+      <div aria-hidden className="absolute left-1 top-1 -bottom-1 -right-1 rounded-[18px] bg-[var(--qs-sun)]" />
+      <div className="relative flex flex-col overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] lg:flex-1">
+        <header className="flex flex-col items-start gap-2 px-4 pb-3 pt-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-3">
           <div>
-            <h2 className="text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-2xl">
+            <h2 className="text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)]">
               Recent updates
             </h2>
-            <p className="mt-0.5 text-sm text-[var(--qs-muted)]">
+            <p className="mt-0.5 text-[13px] leading-[1.4] text-[var(--qs-muted)]">
               Announcements and documents shared by your teacher.
             </p>
           </div>
-          <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-muted)]">
+          <span className="rounded-full bg-[var(--qs-poly-1)] px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-muted)]">
             {announcements.length + documents.length} total
           </span>
         </header>
 
-        <div className="border-t-2 border-[var(--qs-line)] md:grid md:grid-cols-2">
-          <div className="p-4 sm:p-5 md:border-r-2 md:border-[var(--qs-line)]">
+        <div className="border-t-2 border-[var(--qs-line)] md:grid md:grid-cols-2 lg:flex-1">
+          <div className="p-3 md:border-r-2 md:border-[var(--qs-line)]">
             <div className="flex items-center justify-between gap-3">
               <h3 className="flex items-center gap-2 text-sm font-extrabold text-[var(--qs-ink)]">
                 <Megaphone className="h-4 w-4 text-[var(--qs-brand)]" />
                 Announcements
-                <span className="rounded-full bg-[var(--qs-bg)] px-2 py-px text-[10px] font-bold text-[var(--qs-muted)]">
+                <span className="rounded-full bg-[var(--qs-poly-1)] px-2 py-px text-[11px] font-bold text-[var(--qs-muted)]">
                   {announcements.length}
                 </span>
               </h3>
               <Link
                 href={`/rooms/${room.id}?tab=announcements`}
-                className="inline-flex shrink-0 items-center gap-1 text-[11px] font-bold text-[var(--qs-brand)] hover:underline"
+                className="inline-flex shrink-0 items-center gap-1 text-[12px] font-bold text-[var(--qs-brand)] hover:underline"
               >
                 View all <ArrowRight className="h-3 w-3" />
               </Link>
@@ -500,17 +510,17 @@ function RecentUpdatesPanel({
                 latestAnnouncements.map((announcement) => (
                   <article
                     key={announcement.id}
-                    className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5"
+                    className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <p className="text-sm font-bold text-[var(--qs-ink)]">
+                      <p className="text-[15px] font-extrabold text-[var(--qs-ink)]">
                         {announcement.title}
                       </p>
-                      <span className="shrink-0 text-[10px] font-semibold text-[var(--qs-muted)]">
+                      <span className="shrink-0 text-[12px] font-semibold text-[var(--qs-muted)]">
                         {timeAgo(announcement.createdAt)}
                       </span>
                     </div>
-                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--qs-muted)]">
+                    <p className="mt-1.5 line-clamp-2 text-[13px] leading-[1.45] text-[var(--qs-muted)]">
                       {announcement.body}
                     </p>
                   </article>
@@ -519,18 +529,18 @@ function RecentUpdatesPanel({
             </div>
           </div>
 
-          <div className="border-t-2 border-[var(--qs-line)] p-4 sm:p-5 md:border-t-0">
+          <div className="border-t-2 border-[var(--qs-line)] p-3 md:border-t-0">
             <div className="flex items-center justify-between gap-3">
               <h3 className="flex items-center gap-2 text-sm font-extrabold text-[var(--qs-ink)]">
                 <FileText className="h-4 w-4 text-[var(--qs-brand)]" />
                 Documents
-                <span className="rounded-full bg-[var(--qs-bg)] px-2 py-px text-[10px] font-bold text-[var(--qs-muted)]">
+                <span className="rounded-full bg-[var(--qs-poly-1)] px-2 py-px text-[11px] font-bold text-[var(--qs-muted)]">
                   {documents.length}
                 </span>
               </h3>
               <Link
                 href={`/rooms/${room.id}?tab=documents`}
-                className="inline-flex shrink-0 items-center gap-1 text-[11px] font-bold text-[var(--qs-brand)] hover:underline"
+                className="inline-flex shrink-0 items-center gap-1 text-[12px] font-bold text-[var(--qs-brand)] hover:underline"
               >
                 View all <ArrowRight className="h-3 w-3" />
               </Link>
@@ -544,16 +554,16 @@ function RecentUpdatesPanel({
                 latestDocuments.map((document) => (
                   <div
                     key={document.id}
-                    className="flex items-center gap-3 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3"
+                    className="flex items-center gap-3 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5"
                   >
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]">
-                      <FileText className="h-4 w-4" />
+                    <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]">
+                      <FileText className="h-[18px] w-[18px]" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-xs font-extrabold text-[var(--qs-ink)]">
+                      <span className="block truncate text-[14px] font-extrabold text-[var(--qs-ink)]">
                         {document.name}
                       </span>
-                      <span className="mt-0.5 block text-[10px] font-semibold text-[var(--qs-muted)]">
+                      <span className="mt-0.5 block text-[12px] font-semibold text-[var(--qs-muted)]">
                         {document.type} · {document.size} · {timeAgo(document.addedAt)}
                       </span>
                     </span>

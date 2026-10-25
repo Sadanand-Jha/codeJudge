@@ -39,11 +39,13 @@ function QuizHome() {
   const missionMode = theme === "dark";
 
   return (
-    <div className="qs-ui relative min-h-[calc(100dvh-3.5rem)]">
-      <QuizHubBackdrop />
+    <div className="qs-ui relative min-h-[calc(100dvh-3.5rem)] max-lg:bg-[var(--qs-bg)]">
+      <div className="hidden lg:block">
+        <QuizHubBackdrop />
+      </div>
       <QuizPageReady>
-        <div className="qs-wrap relative z-10 pb-12 pt-4 sm:pt-6">
-          <main className="w-full space-y-8">
+        <div className="qs-wrap relative z-10 pb-12 pt-4 max-lg:mx-auto max-lg:w-full max-lg:max-w-[1280px] max-lg:px-4 max-lg:pb-20 lg:pt-6">
+          <main className="w-full space-y-8 max-lg:space-y-6">
             <QuizHubHero />
 
             <TrustStrip />

@@ -2,6 +2,7 @@
 // HTTP server plus background workers on long-lived hosts (VPS/local). On
 // Vercel, the app is imported via api/index.js and workers are skipped.
 import app from './app.ts';
+import redisClient from './config/redis.ts';
 import { startQuizSubmissionWorker } from './queues/quizSubmission.worker.ts';
 import { startQuizRecalculationWorker } from './queues/quizRecalculation.worker.ts';
 import { startQuizResultScheduler } from './queues/quizResult.scheduler.ts';
@@ -16,6 +17,10 @@ if (!isVercel) {
   app.listen(PORT, () => {
     console.log(`✅ Server is running on port ${PORT}`);
     console.log(`   → http://localhost:${PORT}/health`);
+  });
+
+  redisClient.connect().catch((err: Error) => {
+    console.error('⚠️ Redis connection failed:', err.message);
   });
 }
 

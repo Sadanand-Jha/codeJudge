@@ -21,8 +21,7 @@ export interface SettingsNavItem {
   id: string;
   label: string;
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-  /** Icon gradient tone for the resting/active chip */
-  tone: string;
+  comingSoon?: boolean;
   danger?: boolean;
 }
 
@@ -30,32 +29,36 @@ export const SETTINGS_NAV_GROUPS: { label: string; items: SettingsNavItem[] }[] 
   {
     label: "General",
     items: [
-      { id: "profile", label: "Profile", icon: User, tone: "from-[#F59E0B] to-[#F97316]" },
-      { id: "personal", label: "Personal Info", icon: IdCard, tone: "from-[#3B82F6] to-[#06B6D4]" },
-      { id: "competitive", label: "Competitive", icon: Trophy, tone: "from-[#FBBF24] to-[#F59E0B]" },
-      { id: "coding", label: "Coding Prefs", icon: Code2, tone: "from-[#22C55E] to-[#10B981]" },
+      { id: "profile", label: "Profile", icon: User },
+      { id: "personal", label: "Personal Info", icon: IdCard, comingSoon: true },
+      { id: "competitive", label: "Competitive", icon: Trophy, comingSoon: true },
+      { id: "coding", label: "Coding Prefs", icon: Code2, comingSoon: true },
     ],
   },
   {
     label: "Account",
     items: [
-      { id: "account", label: "Account", icon: Shield, tone: "from-[#8B5CF6] to-[#6366F1]" },
-      { id: "privacy", label: "Privacy", icon: Lock, tone: "from-[#06B6D4] to-[#3B82F6]" },
-      { id: "notifications", label: "Notifications", icon: Bell, tone: "from-[#F59E0B] to-[#F97316]" },
-      { id: "appearance", label: "Appearance", icon: Palette, tone: "from-[#F97316] to-[#F59E0B]" },
-      { id: "connected", label: "Connected", icon: Link2, tone: "from-[#3B82F6] to-[#06B6D4]" },
+      { id: "account", label: "Account", icon: Shield, comingSoon: true },
+      { id: "privacy", label: "Privacy", icon: Lock, comingSoon: true },
+      { id: "notifications", label: "Notifications", icon: Bell, comingSoon: true },
+      { id: "appearance", label: "Appearance", icon: Palette },
+      { id: "connected", label: "Connected", icon: Link2, comingSoon: true },
     ],
   },
   {
     label: "Danger",
-    items: [{ id: "danger", label: "Danger Zone", icon: AlertTriangle, tone: "from-[#EF4444] to-[#DC2626]", danger: true }],
+    items: [
+      {
+        id: "danger",
+        label: "Danger Zone",
+        icon: AlertTriangle,
+        comingSoon: true,
+        danger: true,
+      },
+    ],
   },
 ];
 
-/**
- * Settings navigation links — mirrors the profile sidebar treatment:
- * gradient icon chips, tinted active state and a spring-animated dot.
- */
 function SettingsNavLinks({
   activeSection,
   onSelect,
@@ -69,10 +72,10 @@ function SettingsNavLinks({
     <div className="space-y-5">
       {SETTINGS_NAV_GROUPS.map((group) => (
         <div key={group.label}>
-          <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-text-muted">
+          <p className="px-2 pb-2 text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--qs-muted)]">
             {group.label}
           </p>
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             {group.items.map((item) => {
               const Icon = item.icon;
               const isActive = activeSection === item.id;
@@ -84,48 +87,55 @@ function SettingsNavLinks({
                     onSelect(item.id);
                     onNavigate?.();
                   }}
+                  aria-current={isActive ? "true" : undefined}
                   className={cn(
-                    "group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all duration-200",
+                    "group relative flex w-full items-center gap-3 rounded-[12px] border-2 px-3 py-2.5 text-left text-sm font-bold transition-all duration-150",
                     isActive
                       ? item.danger
-                        ? "bg-danger/10 text-danger shadow-[inset_0_0_0_1px_rgba(239,68,68,0.2)]"
-                        : "bg-[#F59E0B]/10 text-text-primary shadow-[inset_0_0_0_1px_rgba(245,158,11,0.25)]"
-                      : "text-text-secondary hover:bg-accent/5 hover:text-text-primary"
+                        ? "border-[var(--qs-bad)] bg-[var(--qs-badbg)] text-[var(--qs-bad)] shadow-[2px_2px_0_var(--qs-sun)]"
+                        : "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)]"
+                      : "border-transparent text-[var(--qs-muted)] hover:border-[var(--qs-line)] hover:bg-[var(--qs-bg)] hover:text-[var(--qs-ink)]"
                   )}
                 >
                   <span
                     className={cn(
-                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gradient-to-br transition-transform duration-200",
-                      item.tone,
-                      isActive ? "opacity-100" : "opacity-40 group-hover:opacity-100 group-hover:scale-110"
-                    )}
-                  >
-                    <Icon className="h-3.5 w-3.5 text-white" strokeWidth={2.2} />
-                  </span>
-                  <span
-                    className={cn(
-                      "transition-colors",
+                      "grid h-7 w-7 shrink-0 place-items-center rounded-[9px] border-2 transition-colors",
                       isActive
                         ? item.danger
-                          ? "font-semibold text-danger"
-                          : "font-semibold text-text-primary"
-                        : "text-text-secondary"
+                          ? "border-[var(--qs-bad)] bg-[var(--qs-bad)]/10 text-[var(--qs-bad)]"
+                          : "border-white/25 bg-white/15 text-[var(--qs-on-brand)]"
+                        : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-brand)] group-hover:border-[var(--qs-brand)]"
                     )}
                   >
-                    {item.label}
+                    <Icon className="h-3.5 w-3.5" strokeWidth={2.4} />
                   </span>
-                  {isActive && (
+                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                  {item.comingSoon ? (
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-full border px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-[0.04em]",
+                        isActive
+                          ? item.danger
+                            ? "border-[var(--qs-bad)]/30 bg-[var(--qs-bad)]/10 text-[var(--qs-bad)]"
+                            : "border-white/30 bg-white/15 text-[var(--qs-on-brand)]"
+                          : "border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)]"
+                      )}
+                    >
+                      Soon
+                    </span>
+                  ) : null}
+                  {isActive ? (
                     <motion.span
                       layoutId="settingsNavActive"
                       className={cn(
                         "absolute right-2 h-1.5 w-1.5 rounded-full",
                         item.danger
-                          ? "bg-danger shadow-[0_0_8px_rgba(239,68,68,0.8)]"
-                          : "bg-[#F59E0B] shadow-[0_0_8px_rgba(249,115,22,0.8)]"
+                          ? "bg-[var(--qs-bad)]"
+                          : "bg-[var(--qs-sun)] shadow-[0_0_8px_rgba(255,210,63,0.8)]"
                       )}
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
-                  )}
+                  ) : null}
                 </button>
               );
             })}
@@ -136,9 +146,6 @@ function SettingsNavLinks({
   );
 }
 
-/**
- * Desktop settings sidebar — sticky below the app navbar.
- */
 export default function SettingsSidebar({
   activeSection,
   onSelect,
@@ -147,20 +154,25 @@ export default function SettingsSidebar({
   onSelect: (id: string) => void;
 }) {
   return (
-    <aside className="sticky top-0 z-20 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 self-start border-r border-border bg-card lg:block">
-      <nav className="settings-scroll h-full overflow-y-auto p-4">
-        <div className="mb-3 flex items-center gap-2 px-3 pt-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#F59E0B] to-[#F97316]">
-            <Settings className="h-3.5 w-3.5 text-white" strokeWidth={2.2} />
+    <aside className="sticky top-14 z-20 hidden h-[calc(100dvh-3.5rem)] w-[264px] shrink-0 self-start overflow-hidden border-r-2 border-[var(--qs-line)] bg-[var(--qs-surface)] lg:block">
+      <nav className="settings-scroll h-full overflow-y-auto px-3 py-4">
+        <div className="mb-5 flex items-center gap-2.5 px-2">
+          <span className="grid h-9 w-9 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)]">
+            <Settings className="h-4 w-4" strokeWidth={2.4} />
           </span>
-          <p className="text-sm font-bold tracking-tight text-text-primary">Settings</p>
+          <div>
+            <p className="text-sm font-extrabold tracking-tight text-[var(--qs-ink)]">Settings</p>
+            <p className="text-[9px] font-extrabold uppercase tracking-[0.16em] text-[var(--qs-brand)]">
+              Your account
+            </p>
+          </div>
         </div>
 
         <SettingsNavLinks activeSection={activeSection} onSelect={onSelect} />
 
-        <div className="mt-6 rounded-xl border border-border bg-card-hover/60 p-4">
-          <p className="text-[10px] font-medium leading-relaxed text-text-muted">
-            Settings sync across your whole QuizSupport account — profile, editor and notifications.
+        <div className="mt-6 rounded-[16px] border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-bg)] p-3.5">
+          <p className="text-[11px] font-semibold leading-relaxed text-[var(--qs-muted)]">
+            Update profile details, avatar and theme here. More account controls are coming soon.
           </p>
         </div>
       </nav>
@@ -168,9 +180,6 @@ export default function SettingsSidebar({
   );
 }
 
-/**
- * Mobile settings navigation drawer.
- */
 export function SettingsMobileNav({
   onClose,
   activeSection,
@@ -193,25 +202,26 @@ export function SettingsMobileNav({
         animate={{ x: 0 }}
         exit={{ x: "-100%" }}
         transition={{ type: "spring", stiffness: 320, damping: 32 }}
-        className="absolute left-0 top-0 h-full w-72 max-w-[85vw] border-r border-border bg-card shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+        className="absolute left-0 top-0 h-full w-72 max-w-[85vw] border-r-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+        <div className="flex items-center justify-between border-b-2 border-[var(--qs-line)] px-4 py-3.5">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#F59E0B] to-[#F97316]">
-              <Settings className="h-3.5 w-3.5 text-white" />
+            <span className="grid h-8 w-8 place-items-center rounded-[9px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+              <Settings className="h-4 w-4" strokeWidth={2.4} />
             </span>
-            <span className="text-sm font-bold text-text-primary">Settings</span>
+            <span className="text-sm font-extrabold text-[var(--qs-ink)]">Settings</span>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-text-secondary hover:bg-accent/5 hover:text-text-primary"
+            className="grid h-8 w-8 place-items-center rounded-[9px] border-2 border-[var(--qs-line)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
             aria-label="Close settings navigation"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
-        <nav className="settings-scroll h-[calc(100%-4rem)] overflow-y-auto p-4">
+        <nav className="settings-scroll h-[calc(100%-3.75rem)] overflow-y-auto px-3 py-4">
           <SettingsNavLinks activeSection={activeSection} onSelect={onSelect} onNavigate={onClose} />
         </nav>
       </motion.div>

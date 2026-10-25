@@ -11,6 +11,10 @@ export interface RoomsSubNavItem {
   href: string;
   active: boolean;
   disabled?: boolean;
+  /** Show the leading status dot. Defaults to true; active tabs always show one. */
+  dot?: boolean;
+  /** Show the dot below the `sm` breakpoint. Defaults to true. */
+  dotMobile?: boolean;
 }
 
 interface RoomsSubNavbarProps {
@@ -66,54 +70,52 @@ export default function RoomsSubNavbar({
         className
       )}
     >
-      <div className="mx-auto flex w-full max-w-[1280px] items-center gap-2 px-3 py-2 sm:px-4">
+      <div className="mx-auto flex w-full max-w-[1280px] items-center gap-2 px-3.5 py-[9px] sm:gap-2.5 sm:px-6 sm:py-2.5">
         <Link
           href={homeHref}
           aria-current={homeActive ? "page" : undefined}
           className={cn(
-            "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border-2 px-3 text-xs font-extrabold transition-colors",
+            "inline-flex h-[38px] shrink-0 items-center gap-1.5 rounded-full border-2 px-3 text-[13px] font-extrabold transition-colors",
             homeActive
-              ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
+              ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-surface)]"
               : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
           )}
         >
-          <LayoutGrid className="h-3.5 w-3.5" strokeWidth={2.5} />
+          <LayoutGrid className="h-[15px] w-[15px]" strokeWidth={2.5} />
           <span>My Rooms</span>
         </Link>
 
-        <span aria-hidden className="h-5 w-0.5 shrink-0 rounded-full bg-[var(--qs-line)]" />
-
         <div
           ref={scrollRef}
-          className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overscroll-x-contain py-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto overscroll-x-contain py-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:gap-2.5"
         >
           {loading ? (
             Array.from({ length: 4 }).map((_, index) => (
-              <span key={index} className="app-skeleton h-9 w-28 shrink-0 rounded-full" />
+              <span key={index} className="app-skeleton h-[38px] w-28 shrink-0 rounded-full" />
             ))
           ) : error ? (
             <button
               type="button"
               onClick={onRetry}
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border-2 border-dashed border-[var(--qs-bad)] px-3 text-xs font-bold text-[var(--qs-bad)]"
+              className="inline-flex h-[38px] shrink-0 items-center gap-1.5 rounded-full border-2 border-dashed border-[var(--qs-bad)] px-3 text-[13px] font-bold text-[var(--qs-bad)]"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               Retry
             </button>
           ) : items.length === 0 ? (
-            <span className="inline-flex h-9 shrink-0 items-center gap-1.5 px-2 text-xs font-semibold text-[var(--qs-muted)]">
+            <span className="inline-flex h-[38px] shrink-0 items-center gap-1.5 px-2 text-[13px] font-semibold text-[var(--qs-muted)]">
               <Users className="h-3.5 w-3.5" />
               No rooms yet
             </span>
           ) : (
             items.map((item) => {
               const className = cn(
-                "inline-flex h-9 max-w-[190px] shrink-0 items-center gap-1.5 rounded-full border-2 px-3 text-xs font-bold transition-colors",
+                "inline-flex h-[38px] max-w-[190px] shrink-0 items-center gap-1.5 rounded-full border-2 px-3 text-[13px] font-extrabold transition-colors",
                 item.active
                   ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)]"
                   : item.disabled
                     ? "cursor-not-allowed border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)] opacity-70"
-                    : "border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
+                    : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
               );
 
               if (item.disabled) {
@@ -138,12 +140,15 @@ export default function RoomsSubNavbar({
                   aria-current={item.active ? "page" : undefined}
                   className={className}
                 >
-                  <span
-                    className={cn(
-                      "h-1.5 w-1.5 shrink-0 rounded-full",
-                      item.active ? "bg-[var(--qs-on-brand)]" : "bg-[var(--qs-ok)]"
-                    )}
-                  />
+                  {(item.dot ?? true) || item.active ? (
+                    <span
+                      className={cn(
+                        "h-1.5 w-1.5 shrink-0 rounded-full",
+                        item.active ? "bg-[var(--qs-on-brand)]" : "bg-[var(--qs-ok)]",
+                        !item.active && item.dotMobile === false && "hidden sm:block"
+                      )}
+                    />
+                  ) : null}
                   <span className="truncate">{item.name}</span>
                 </Link>
               );

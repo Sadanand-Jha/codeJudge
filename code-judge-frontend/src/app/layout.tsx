@@ -5,6 +5,7 @@ import "katex/dist/katex.min.css";
 import { Toaster } from "@/components/ui/toast";
 import { ThemeProvider } from "@/context/ThemeContext";
 import AuthHydrator from "@/components/providers/AuthHydrator";
+import ModalScrollLock from "@/components/providers/ModalScrollLock";
 import { STORAGE_KEYS, LEGACY_STORAGE_KEYS } from "@/utils/storageKeys";
 import {
   SITE_URL,
@@ -185,6 +186,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${inter.className} ${bricolage.variable} min-h-screen bg-[var(--background)]`} suppressHydrationWarning>
         <ThemeProvider>
           <AuthHydrator />
+          <ModalScrollLock />
           {children}
         </ThemeProvider>
         <Toaster />

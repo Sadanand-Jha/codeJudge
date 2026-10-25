@@ -10,28 +10,16 @@ import {
   ArrowLeft,
   BadgeCheck,
   CalendarDays,
+  Code2,
   GraduationCap,
   MapPin,
-  Star,
-  Target,
-  Trophy,
 } from "lucide-react";
-import { cn } from "@/lib/helpers";
 import { getAvatarUrlById } from "@/config/dicebear";
 import { getApiErrorMessage } from "@/lib/apiError";
 import {
   getPublicStudentProfile,
   type PublicStudentProfile as PublicStudentProfileData,
 } from "@/services/user";
-
-function ratingLabel(rating: number): string {
-  if (rating >= 2100) return "Grandmaster";
-  if (rating >= 1900) return "Master";
-  if (rating >= 1600) return "Expert";
-  if (rating >= 1400) return "Specialist";
-  if (rating >= 1200) return "Pupil";
-  return "Newbie";
-}
 
 function displayName(profile: PublicStudentProfileData): string {
   const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(" ").trim();
@@ -124,8 +112,6 @@ export default function PublicStudentProfile({ username }: { username: string })
   const name = displayName(profile);
   const memberSince = memberSinceLabel(profile.memberSince);
   const avatar = profile.avatarUrl || getAvatarUrlById(profile.avatarId ?? 1);
-  const rating = Math.round(profile.rating || 0);
-  const maxRating = Math.round(profile.maxRating || 0);
 
   return (
     <div className="min-h-full bg-[var(--qs-bg)]">
@@ -149,7 +135,7 @@ export default function PublicStudentProfile({ username }: { username: string })
             className="h-24 border-b-2 border-[var(--qs-line)] bg-[linear-gradient(110deg,var(--qs-brand)_0%,#9b7cf6_45%,var(--qs-sun)_100%)] sm:h-28"
             aria-hidden="true"
           />
-          <div className="px-5 pb-6 sm:px-7 sm:pb-7">
+          <div className="px-5 pb-6 pt-6 sm:px-7 sm:pb-7">
             <div className="-mt-12 flex flex-col gap-4 sm:-mt-14 sm:flex-row sm:items-end sm:justify-between">
               <div className="flex items-end gap-4">
                 <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)] shadow-[4px_4px_0_var(--qs-sun)]">
@@ -170,10 +156,6 @@ export default function PublicStudentProfile({ username }: { username: string })
                   </p>
                 </div>
               </div>
-              <span className="inline-flex w-fit items-center gap-1.5 rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)] px-3 py-1.5 text-xs font-extrabold text-[var(--qs-ink)]">
-                <Star className="h-3.5 w-3.5 text-[#C98A00]" />
-                {ratingLabel(rating)} · {rating}
-              </span>
             </div>
 
             <p className="mt-5 max-w-2xl text-sm leading-relaxed text-[var(--qs-muted)]">
@@ -230,39 +212,20 @@ export default function PublicStudentProfile({ username }: { username: string })
           </section>
 
           <section className="rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-5">
-            <h2 className="text-sm font-extrabold text-[var(--qs-ink)]">Coding profile</h2>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3.5">
-                <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
-                  <Trophy className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
-                  Rating
-                </p>
-                <p className="mt-1.5 text-2xl font-extrabold text-[var(--qs-ink)]">{rating}</p>
-                <p className="mt-0.5 text-[11px] font-semibold text-[var(--qs-muted)]">
-                  {ratingLabel(rating)}
-                </p>
-              </div>
-              <div className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3.5">
-                <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
-                  <Target className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
-                  Peak rating
-                </p>
-                <p className="mt-1.5 text-2xl font-extrabold text-[var(--qs-ink)]">
-                  {maxRating || "—"}
-                </p>
-                <p className="mt-0.5 text-[11px] font-semibold text-[var(--qs-muted)]">
-                  Personal best
-                </p>
-              </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-sm font-extrabold text-[var(--qs-ink)]">Coding profile</h2>
+              <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+                Coming soon
+              </span>
             </div>
-            <div className="mt-3 flex items-center justify-between rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3.5 py-3 text-sm">
-              <span className="flex items-center gap-2 font-semibold text-[var(--qs-muted)]">
-                <BadgeCheck className={cn("h-4 w-4", profile.isVerified ? "text-[var(--qs-ok)]" : "text-[var(--qs-muted)]")} />
-                Account status
+            <div className="mt-4 flex flex-col items-center justify-center rounded-[16px] border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-8 text-center">
+              <span className="grid h-11 w-11 place-items-center rounded-[13px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)]">
+                <Code2 className="h-5 w-5" />
               </span>
-              <span className={cn("font-extrabold", profile.isVerified ? "text-[var(--qs-ok)]" : "text-[var(--qs-muted)]")}>
-                {profile.isVerified ? "Verified" : "Member"}
-              </span>
+              <p className="mt-3 text-sm font-extrabold text-[var(--qs-ink)]">Coding stats are on the way</p>
+              <p className="mt-1 max-w-xs text-xs leading-relaxed text-[var(--qs-muted)]">
+                Linked platform profiles, ratings and problem-solving stats will appear here soon.
+              </p>
             </div>
           </section>
         </div>

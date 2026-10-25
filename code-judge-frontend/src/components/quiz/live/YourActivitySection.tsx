@@ -143,16 +143,16 @@ function StatCard({
   accent: string;
 }) {
   return (
-    <div className="group relative flex min-h-[116px] flex-col justify-between overflow-hidden rounded-2xl border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 shadow-[4px_4px_0_var(--qs-sun)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_var(--qs-sun)] sm:p-4.5">
+    <div className="group relative min-w-0 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-2.5 lg:flex lg:min-h-[116px] lg:flex-col lg:justify-between lg:overflow-hidden lg:rounded-2xl lg:border-[var(--qs-ink)] lg:p-4.5 lg:shadow-[4px_4px_0_var(--qs-sun)] lg:transition-all lg:duration-200 lg:hover:-translate-y-0.5 lg:hover:shadow-[6px_6px_0_var(--qs-sun)]">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--qs-muted)]">{label}</span>
-        <span className="grid h-8 w-8 place-items-center rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)]">
+        <p className="truncate text-[11px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-muted)] lg:font-bold lg:tracking-[0.08em]">{label}</p>
+        <span className="hidden h-8 w-8 place-items-center rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)] lg:grid">
           <Icon className={cn("h-4 w-4", accent)} strokeWidth={1.8} />
         </span>
       </div>
       <div>
-        <p className="qs-display text-[26px] font-extrabold leading-none tracking-tight text-[var(--qs-ink)] tabular-nums sm:text-[28px]">{value}</p>
-        <p className="mt-1.5 text-[11px] text-[var(--qs-muted)]">{hint}</p>
+        <p className="mt-0.5 truncate text-[20px] font-extrabold leading-[1.15] text-[var(--qs-ink)] tabular-nums lg:mt-0 lg:text-[28px] lg:leading-none lg:tracking-tight lg:[font-family:var(--font-bricolage),var(--font-inter),system-ui,sans-serif]">{value}</p>
+        <p className="mt-0.5 truncate text-[11px] text-[var(--qs-muted)] lg:mt-1.5">{hint}</p>
       </div>
     </div>
   );
@@ -168,7 +168,7 @@ function FilterSelect({ icon: Icon, value, options, onChange, label }: { icon: R
         aria-label={label}
         aria-expanded={open}
         className={cn(
-          "b sm inline-flex min-h-11 w-full items-center justify-start gap-1.5 px-2.5 text-[var(--qs-muted)] hover:text-[var(--qs-ink)] sm:w-auto",
+          "b sm inline-flex min-h-11 w-full items-center justify-start gap-1.5 px-2.5 text-[var(--qs-muted)] hover:text-[var(--qs-ink)] sm:w-auto max-lg:h-8 max-lg:min-h-8 max-lg:rounded-full max-lg:text-[12px]",
           open && "border-[var(--qs-brand)] text-[var(--qs-ink)]"
         )}
       >
@@ -242,7 +242,7 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
   const skippedPct = Math.max(0, 100 - correctPct - wrongPct);
 
   return (
-    <div className="group/row relative transition-all duration-200 hover:bg-[var(--qs-brand)]/[0.04]">
+    <div className="group/row relative transition-all duration-200 hover:bg-[var(--qs-brand)]/[0.04] max-lg:overflow-hidden max-lg:rounded-[14px] max-lg:border-2 max-lg:border-[var(--qs-line)] max-lg:bg-[var(--qs-surface)] max-lg:transition-colors max-lg:hover:border-[var(--qs-brand)] max-lg:hover:bg-[var(--qs-surface)]">
       <span className={cn("absolute bottom-3 left-0 top-3 w-[3px] scale-y-50 rounded-r-full opacity-0 transition-all duration-200 group-hover/row:scale-y-100 group-hover/row:opacity-100", scoreBar(pct))} />
       {/* Mobile: stacked multi-line card — one piece of info per line */}
       <div className="space-y-2.5 px-4 py-3.5 lg:hidden">
@@ -456,7 +456,7 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
    ═══════════════════════════════════════════════════════════════ */
 function EmptyState({ missionMode = false }: { missionMode?: boolean }) {
   return (
-    <div className="flex flex-col items-center px-6 py-10 text-center">
+    <div className="flex flex-col items-center px-6 py-10 text-center max-lg:rounded-[14px] max-lg:border-2 max-lg:border-dashed max-lg:border-[var(--qs-line)]">
       <span className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)]">
         <History className="h-5 w-5 text-[var(--qs-brand)]" strokeWidth={1.8} />
       </span>
@@ -478,7 +478,7 @@ function EmptyState({ missionMode = false }: { missionMode?: boolean }) {
 
 function SkeletonRow() {
   return (
-    <div className="px-4 py-3 sm:px-5" role="status" aria-label="Loading quiz activity">
+    <div className="px-4 py-3 sm:px-5 max-lg:rounded-[14px] max-lg:border-2 max-lg:border-[var(--qs-line)] max-lg:bg-[var(--qs-surface)]" role="status" aria-label="Loading quiz activity">
       <div className="flex items-center gap-3">
         <div className="app-skeleton h-8 w-8 rounded-lg" />
         <div className="flex-1 space-y-1.5">
@@ -582,7 +582,7 @@ export default function YourActivitySection({
       </div>
 
       {/* ── Stat cards (compact, 100–120px) ── */}
-      {!isAllAttemptsView && <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {!isAllAttemptsView && <div className="mt-4 grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
         <StatCard icon={BookOpen} label={missionMode ? "Total Missions" : "Total Attempts"} value={overview.totalAttempts} hint={missionMode ? "missions attempted" : "quizzes attempted"} accent={TONE_BRAND} />
         <StatCard icon={CheckCircle2} label={missionMode ? "Successful Landings" : "Completed"} value={overview.completed} hint={missionMode ? "completed missions" : "finished attempts"} accent={TONE_OK} />
         <StatCard icon={Trophy} label={missionMode ? "Best Mission Score" : "Best Score"} value={overview.bestScore === null ? "—" : `${overview.bestScore}%`} hint="highest score" accent={TONE_BRAND} />
@@ -590,9 +590,9 @@ export default function YourActivitySection({
       </div>}
 
       {/* ── Recent attempts: full-width table (no narrow side column) ── */}
-      <div className="relative mt-5 min-w-0 overflow-hidden rounded-2xl border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[5px_5px_0_var(--qs-sun)]">
+      <div className="relative mt-5 min-w-0 overflow-hidden rounded-2xl border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[5px_5px_0_var(--qs-sun)] max-lg:mr-1 max-lg:mb-1 max-lg:mt-4 max-lg:rounded-[18px] max-lg:shadow-[4px_4px_0_var(--qs-sun)]">
         {/* Desktop column labels */}
-        {filtered.length > 0 && (
+        {!recentLoading && filtered.length > 0 && (
           <div className="relative hidden grid-cols-[minmax(0,1fr)_120px_112px_72px_84px_150px] gap-3 border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.13em] text-[var(--qs-muted)] lg:grid">
             <span>{missionMode ? "Mission" : "Quiz"}</span>
             <span>Status</span>
@@ -603,7 +603,7 @@ export default function YourActivitySection({
           </div>
         )}
 
-        <div className="relative divide-y-2 divide-[var(--qs-line)]">
+        <div className="relative divide-y-2 divide-[var(--qs-line)] max-lg:space-y-2 max-lg:divide-y-0 max-lg:p-3">
           {recentLoading
             ? Array.from({ length: isAllAttemptsView ? 10 : 5 }).map((_, i) => <SkeletonRow key={i} />)
             : filtered.length === 0

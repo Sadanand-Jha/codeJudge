@@ -88,16 +88,16 @@ export default function RoomDocumentsPanel({
   const renderMobileDocument = (document: RoomDocument) => (
     <div
       key={document.id}
-      className="flex items-center gap-3 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3"
+      className="flex items-center gap-3 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5"
     >
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]">
-        <FileText className="h-4 w-4" />
+      <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]">
+        <FileText className="h-[18px] w-[18px]" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-extrabold text-[var(--qs-ink)]">
+        <span className="block truncate text-[15px] font-extrabold text-[var(--qs-ink)]">
           {document.name}
         </span>
-        <span className="mt-0.5 block text-[11px] font-semibold text-[var(--qs-muted)]">
+        <span className="mt-0.5 block text-[12px] font-semibold text-[var(--qs-muted)]">
           {document.type} · {document.size} · {timeAgo(document.addedAt)}
         </span>
       </span>
@@ -121,23 +121,23 @@ export default function RoomDocumentsPanel({
   );
 
   return (
-    <section className="relative mb-4 mr-4">
-      <div aria-hidden className="absolute left-4 top-4 -bottom-4 -right-4 rounded-[30px] bg-[var(--qs-sun)]" />
-      <div className="relative overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
-        <header className="flex flex-wrap items-start justify-between gap-3 px-4 pb-4 pt-5 sm:px-[26px]">
+    <section className="relative mb-4 mr-1 lg:flex lg:flex-col">
+      <div aria-hidden className="absolute left-1 top-1 -bottom-1 -right-1 rounded-[18px] bg-[var(--qs-sun)]" />
+      <div className="relative overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] lg:flex lg:flex-1 lg:flex-col">
+        <header className="flex flex-wrap items-start justify-between gap-3 px-4 pb-3 pt-4">
           <div>
-            <h2 className="flex items-center gap-2 text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-2xl">
-              <FileText className="h-5 w-5 text-[var(--qs-brand)]" />
+            <h2 className="flex items-center gap-2 text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)]">
+              <FileText className="h-[22px] w-[22px] text-[var(--qs-brand)]" />
               Documents
             </h2>
-            <p className="mt-0.5 text-sm text-[var(--qs-muted)]">
+            <p className="mt-0.5 text-[13px] leading-[1.4] text-[var(--qs-muted)]">
               {readOnly
                 ? "Notes, sheets and files shared by your teacher."
                 : "Notes, sheets and files shared with this room."}
             </p>
           </div>
           {readOnly && roomDocuments.length > 0 ? (
-            <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-muted)]">
+            <span className="hidden rounded-full bg-[var(--qs-poly-1)] px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-muted)] sm:inline-flex">
               {roomDocuments.length} {roomDocuments.length === 1 ? "file" : "files"}
             </span>
           ) : null}
@@ -163,7 +163,7 @@ export default function RoomDocumentsPanel({
           )}
         </header>
 
-        <div className="border-t-2 border-[var(--qs-line)] p-4 sm:p-5">
+        <div className="border-t-2 border-[var(--qs-line)] p-3 lg:flex-1">
           {roomDocuments.length === 0 ? (
             <div className="rounded-[16px] border-2 border-dashed border-[var(--qs-line)] px-4 py-10 text-center">
               <FileText className="mx-auto h-7 w-7 text-[var(--qs-muted)]" />
@@ -176,7 +176,7 @@ export default function RoomDocumentsPanel({
             </div>
           ) : readOnly ? (
             <>
-              <div className="mb-4 flex flex-wrap items-center gap-2">
+              <div className="mb-3 hidden flex-wrap items-center gap-2 sm:flex">
                 {fileTypes.map((entry) => {
                   const active = entry.type === activeType;
                   return (
@@ -186,7 +186,7 @@ export default function RoomDocumentsPanel({
                       aria-pressed={active}
                       onClick={() => setTypeFilter(entry.type)}
                       className={cn(
-                        "rounded-full border-2 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.06em] transition-colors",
+                        "inline-flex h-8 items-center rounded-full border-2 px-3 text-[12px] font-extrabold uppercase tracking-[0.06em] transition-colors",
                         active
                           ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
                           : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
@@ -215,10 +215,10 @@ export default function RoomDocumentsPanel({
                       className="grid grid-cols-[minmax(0,1fr)_90px_110px_140px] items-center gap-3 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-3 text-[13px] text-[var(--qs-muted)]"
                     >
                       <div className="flex min-w-0 items-center gap-3">
-                        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[13px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]">
+                        <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]">
                           <FileText className="h-[18px] w-[18px]" />
                         </span>
-                        <span className="truncate text-sm font-extrabold text-[var(--qs-ink)]">
+                        <span className="truncate text-[15px] font-extrabold text-[var(--qs-ink)]">
                           {document.name}
                         </span>
                       </div>

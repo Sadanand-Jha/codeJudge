@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuthStore } from "@/store/authStore";
 
-const AUTH_REQUIRED_PREFIXES = ["/quiz"];
+const AUTH_REQUIRED_PREFIXES = ["/quiz", "/profile", "/settings"];
 
 export default function AppGroupLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

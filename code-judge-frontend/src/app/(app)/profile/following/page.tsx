@@ -1,7 +1,12 @@
-import SocialPage from "@/components/profile/SocialPage";
+import ProfileComingSoon from "@/components/profile/ProfileComingSoon";
 
 export const metadata = { title: "Following" };
 
 export default function Page() {
-  return <SocialPage mode="following" />;
+  return (
+    <ProfileComingSoon
+      title="Following"
+      description="Following lists are not connected yet. This section will be available soon."
+    />
+  );
 }

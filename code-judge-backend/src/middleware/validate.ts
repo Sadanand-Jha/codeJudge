@@ -65,6 +65,34 @@ export const authRegisterSchema = z.object({
   account_type: z.enum(["student", "teacher"]),
 }).strict();
 
+/** Profile update. Only the editable identity fields are accepted; username
+ * and email keep the same normalization rules as registration. */
+export const profileUpdateSchema = z.object({
+  displayName: z
+    .string()
+    .trim()
+    .max(80, "Display name must be at most 80 characters")
+    .optional(),
+  username: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(3, "Username must be at least 3 characters")
+    .max(20, "Username must be at most 20 characters")
+    .regex(/^[a-z0-9]+$/, "Username can only contain lowercase letters and numbers")
+    .optional(),
+  email: z
+    .string()
+    .trim()
+    .min(5, "Email must be at least 5 characters")
+    .max(255, "Email must be at most 255 characters")
+    .email("Invalid email format")
+    .transform((value) => value.toLowerCase())
+    .optional(),
+}).strict().refine((data) => Object.keys(data).length > 0, {
+  message: "At least one profile field is required",
+});
+
 /** Email-or-username login. The repository still binds this value as a SQL
  * parameter; format validation is an additional boundary, not SQL escaping. */
 export const loginSchema = z.object({

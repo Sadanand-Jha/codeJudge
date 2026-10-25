@@ -7,6 +7,29 @@ export async function getProfile(): Promise<UserProfile> {
 }
 
 /* =============================================
+   Editable Profile Fields
+   ============================================= */
+
+export interface UpdateProfilePayload {
+  displayName?: string;
+  username?: string;
+  email?: string;
+}
+
+export interface UpdateProfileResult {
+  username: string;
+  email: string;
+  displayName: string | null;
+  token?: string;
+}
+
+/** PATCH /api/v1/user/profile — updates display name, username and email. */
+export async function updateProfile(payload: UpdateProfilePayload): Promise<UpdateProfileResult> {
+  const response = await apiClient.patch<UpdateProfileResult>("/v1/user/profile", payload);
+  return response.data;
+}
+
+/* =============================================
    Profile Location — Country / State / College
    ============================================= */
 

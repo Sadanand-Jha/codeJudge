@@ -5,7 +5,7 @@ import { queueDueQuizResponsesEmails } from "../services/quizResultsEmail.servic
 import { isQuizSubmissionQueueConfigured } from "./quizSubmission.queue.ts";
 import { schedulerLog } from "../utils/schedulerLog.ts";
 
-const SCHEDULER_INTERVAL_MS = 15_000;
+const SCHEDULER_INTERVAL_MS = 60_000;
 
 declare global {
   // eslint-disable-next-line no-var

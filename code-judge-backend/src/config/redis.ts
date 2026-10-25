@@ -32,7 +32,7 @@ async function ensureConnected(): Promise<RawRedis> {
     connectPromise = rawClient
       .connect()
       .then(() => {
-        console.log("Connected to Redis!");
+        console.log("✅ Redis connected");
       })
       .finally(() => {
         connectPromise = null;

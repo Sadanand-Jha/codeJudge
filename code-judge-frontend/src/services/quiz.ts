@@ -1061,6 +1061,8 @@ export interface PreviousQuiz {
   correct_answers: number;
   wrong_answers: number;
   skipped_questions: number;
+  /** False while the result is hidden until quiz end + 1 hour. */
+  result_available?: boolean;
 }
 
 /**

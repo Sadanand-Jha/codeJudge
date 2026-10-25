@@ -134,41 +134,41 @@ export default function StudentRoomsPage() {
 
   return (
     <div className="min-h-full bg-[var(--qs-bg)]">
-      <div className="mx-auto w-full max-w-[1280px] px-4 py-6 pb-20 sm:px-6">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+      <div className="mx-auto w-full max-w-[1280px] px-4 py-4 pb-20 sm:px-6 sm:py-6">
+        <div className="mb-5 flex flex-col items-start gap-3.5 sm:mb-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <h1 className="text-[28px] font-extrabold leading-none tracking-[-0.02em] text-[var(--qs-ink)] sm:text-[34px]">
+            <h1 className="text-[30px] font-extrabold leading-none tracking-[-0.02em] text-[var(--qs-ink)] sm:text-[34px]">
               My Rooms
             </h1>
-            <p className="mt-0.5 truncate text-[var(--qs-muted)]">
-              Your joined classrooms — open a room to meet your teacher and classmates.
+            <p className="mt-1 text-sm leading-[1.4] text-[var(--qs-muted)] sm:mt-0.5 sm:text-[15px]">
+              Your joined classrooms — open a room to see classmates and updates.
             </p>
           </div>
           <Link
             href="/rooms"
-            className={cn(QS_PRIMARY_BTN, "rounded-[12px] px-3.5 py-[9px]")}
+            className={cn(QS_PRIMARY_BTN, "shrink-0 rounded-[12px] px-4 py-2.5")}
           >
-            <UserPlus className="h-4 w-4" strokeWidth={3} />
+            <UserPlus className="h-[18px] w-[18px]" strokeWidth={2.5} />
             Join a Room
           </Link>
         </div>
 
         {loading ? (
           <>
-            <div className="mb-4 flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:mb-5 sm:grid sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-4">
+            <div className="mb-4 grid grid-cols-2 gap-2.5 sm:mb-5 sm:gap-3.5 lg:grid-cols-4">
               {Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={index}
-                  className="min-w-[132px] flex-1 shrink-0 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 sm:min-w-0 sm:rounded-[18px] sm:p-4"
+                  className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 px-3 sm:rounded-[18px] sm:p-4"
                 >
                   <div className="app-skeleton h-3 w-16 rounded sm:w-20" />
                   <div className="app-skeleton mt-3 h-6 w-12 rounded sm:h-7 sm:w-14" />
                 </div>
               ))}
             </div>
-            <div className="relative mb-4 mr-4">
-              <div aria-hidden className="absolute left-4 top-4 -bottom-4 -right-4 rounded-[30px] bg-[var(--qs-sun)]" />
-              <div className="relative rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4">
+            <div className="relative mb-4 mr-1">
+              <div aria-hidden className="absolute left-1 top-1 -bottom-1 -right-1 rounded-[18px] bg-[var(--qs-sun)]" />
+              <div className="relative rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4">
                 <div className="app-skeleton h-5 w-28 rounded" />
                 <div className="app-skeleton mt-2 h-4 w-72 max-w-full rounded" />
                 <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -188,7 +188,7 @@ export default function StudentRoomsPage() {
             </div>
           </>
         ) : error ? (
-          <div className="rounded-[26px] border-2 border-dashed border-[var(--qs-bad)] bg-[var(--qs-surface)] px-6 py-14 text-center">
+          <div className="rounded-[18px] border-2 border-dashed border-[var(--qs-bad)] bg-[var(--qs-surface)] px-6 py-14 text-center">
             <AlertCircle className="mx-auto h-8 w-8 text-[var(--qs-bad)]" />
             <h2 className="mt-3 text-lg font-black text-[var(--qs-ink)]">
               Couldn&apos;t load your rooms
@@ -205,25 +205,25 @@ export default function StudentRoomsPage() {
           </div>
         ) : (
           <>
-            <div className="mb-4 flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:mb-5 sm:grid sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-4">
+            <div className="mb-4 grid grid-cols-2 gap-2.5 sm:mb-5 sm:gap-3.5 lg:grid-cols-4">
               {statCards.map((kpi) => (
                 <div
                   key={kpi.label}
                   className={cn(
-                    "min-w-[136px] flex-1 shrink-0 rounded-[16px] border-2 p-3 sm:min-w-0 sm:rounded-[18px] sm:p-4 sm:px-[18px]",
+                    "rounded-[14px] border-2 p-2.5 px-3 sm:rounded-[18px] sm:p-4 sm:px-[18px]",
                     kpi.hi
-                      ? "border-[var(--qs-ink)] bg-[var(--qs-sun)]"
+                      ? "border-[var(--qs-ink)] bg-[var(--qs-sun)] shadow-[3px_3px_0_var(--qs-ink)]"
                       : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
                   )}
                 >
                   <small
                     className={cn(
-                      "flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] sm:gap-2 sm:text-xs",
+                      "flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.06em] sm:gap-2 sm:text-xs sm:tracking-[0.08em]",
                       kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-muted)]"
                     )}
                   >
                     <span
-                      className="h-2 w-2 shrink-0 rounded-full sm:h-2.5 sm:w-2.5"
+                      className="h-[7px] w-[7px] shrink-0 rounded-full sm:h-2.5 sm:w-2.5"
                       style={{ background: kpi.color }}
                     />
                     {kpi.label}
@@ -248,15 +248,15 @@ export default function StudentRoomsPage() {
               ))}
             </div>
 
-            <div className="mb-5 flex flex-wrap items-center gap-2.5">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2.5">
               <div className="relative w-full sm:w-auto sm:min-w-[220px] sm:flex-[0_1_290px]">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
+                <Search className="absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--qs-muted)]" />
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search rooms or teachers…"
                   aria-label="Search your rooms"
-                  className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-2.5 pl-9 pr-3.5 text-sm text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
+                  className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-[11px] pl-10 pr-3.5 text-[15px] leading-5 text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] sm:py-2.5 sm:text-sm"
                 />
               </div>
               <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-1">
@@ -269,7 +269,7 @@ export default function StudentRoomsPage() {
                       aria-pressed={active}
                       onClick={() => setFilter(item.id)}
                       className={cn(
-                        "rounded-full border-2 px-[13px] py-1.5 text-xs font-extrabold uppercase tracking-[0.06em] transition-colors",
+                        "rounded-full border-2 px-[13px] py-1.5 text-[13px] leading-[18px] font-extrabold uppercase tracking-[0.06em] transition-colors",
                         active
                           ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
                           : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
@@ -292,7 +292,7 @@ export default function StudentRoomsPage() {
                 value={sort}
                 onChange={(event) => setSort(event.target.value as RoomSort)}
                 aria-label="Sort rooms"
-                className="w-full shrink-0 cursor-pointer rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-[9px] text-sm font-bold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)] focus:border-[var(--qs-brand)] sm:w-auto"
+                className="w-full shrink-0 cursor-pointer rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-[11px] text-sm font-extrabold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)] focus:border-[var(--qs-brand)] sm:w-auto sm:py-[9px]"
               >
                 {SORTS.map((item) => (
                   <option key={item.id} value={item.id}>
@@ -302,19 +302,19 @@ export default function StudentRoomsPage() {
               </select>
             </div>
 
-            <div className="relative mb-4 mr-4">
-              <div aria-hidden className="absolute left-4 top-4 -bottom-4 -right-4 rounded-[30px] bg-[var(--qs-sun)]" />
-              <div className="relative overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
-                <header className="flex flex-wrap items-start justify-between gap-3 px-4 pb-4 pt-5 sm:px-[26px]">
+            <div className="relative mb-4 mr-1">
+              <div aria-hidden className="absolute left-1 top-1 -bottom-1 -right-1 rounded-[18px] bg-[var(--qs-sun)]" />
+              <div className="relative overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
+                <header className="flex flex-col gap-2 px-4 pb-3 pt-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-3">
                   <div>
-                    <h2 className="text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-2xl">
+                    <h2 className="text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)]">
                       Rooms
                     </h2>
-                    <p className="mt-0.5 text-sm text-[var(--qs-muted)]">
+                    <p className="mt-0.5 text-[13px] leading-[1.4] text-[var(--qs-muted)]">
                       Your classrooms — open a room to see classmates and updates.
                     </p>
                   </div>
-                  <p className="text-sm font-medium text-[var(--qs-muted)]">
+                  <p className="text-[13px] font-medium text-[var(--qs-muted)]">
                     {filtered.length} of {stats.rooms}
                   </p>
                 </header>
@@ -356,29 +356,29 @@ export default function StudentRoomsPage() {
                 ) : (
                   <>
                     {/* Mobile cards */}
-                    <div className="space-y-2.5 border-t-2 border-[var(--qs-line)] p-4 md:hidden">
+                    <div className="space-y-2.5 border-t-2 border-[var(--qs-line)] p-3 sm:p-4 md:hidden">
                       {filtered.map((room) => {
                         const count = room.member_count;
                         const body = (
                           <div className="flex items-start gap-3">
-                            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
-                              <Users className="h-4 w-4" strokeWidth={2.5} />
+                            <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+                              <Users className="h-5 w-5" strokeWidth={2.5} />
                             </span>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-start justify-between gap-2">
-                                <p className="truncate font-bold text-[var(--qs-ink)]">{room.name}</p>
+                                <p className="truncate text-[16px] font-extrabold text-[var(--qs-ink)]">{room.name}</p>
                                 <RoomStatus active={room.is_active} />
                               </div>
                               <p className="mt-0.5 truncate text-xs text-[var(--qs-muted)]">
                                 {teacherName(room)} · <b className="font-extrabold text-[var(--qs-ink)]">{count}</b> member{count === 1 ? "" : "s"}
                               </p>
-                              <p className="mt-1.5 flex min-w-0 items-center gap-1.5 truncate text-[11px] font-medium text-[var(--qs-muted)]">
+                              <p className="mt-1 flex min-w-0 items-center gap-1.5 truncate text-[12px] font-medium text-[var(--qs-muted)]">
                                 <Clock className="h-3 w-3 shrink-0" />
                                 {joinedLabel(room)}
                               </p>
                             </div>
                             {room.is_active && (
-                              <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-[var(--qs-muted)]" />
+                              <ArrowRight className="mt-1 h-[18px] w-[18px] shrink-0 text-[var(--qs-muted)]" />
                             )}
                           </div>
                         );
@@ -387,14 +387,14 @@ export default function StudentRoomsPage() {
                           <Link
                             key={room.id}
                             href={`/rooms/${room.id}`}
-                            className="block rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 transition-colors active:bg-[var(--qs-bg)]"
+                            className="block rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 transition-colors active:bg-[var(--qs-bg)]"
                           >
                             {body}
                           </Link>
                         ) : (
                           <div
                             key={room.id}
-                            className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 opacity-70"
+                            className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 opacity-70"
                           >
                             {body}
                           </div>
@@ -480,7 +480,7 @@ export default function StudentRoomsPage() {
                   </>
                 )}
 
-                <div className="border-t-2 border-[var(--qs-line)] px-4 py-3.5 text-sm font-medium text-[var(--qs-muted)] sm:px-[26px]">
+                <div className="border-t-2 border-[var(--qs-line)] px-4 py-3 text-[13px] font-medium text-[var(--qs-muted)]">
                   Showing {filtered.length} of {stats.rooms} room{stats.rooms === 1 ? "" : "s"}
                 </div>
               </div>
@@ -496,7 +496,7 @@ function RoomStatus({ active }: { active: boolean }) {
   return (
     <span
       className={cn(
-        "shrink-0 rounded-full border-2 border-current px-2 py-px text-[10px] font-extrabold uppercase tracking-[0.05em] sm:px-[11px] sm:text-xs",
+        "shrink-0 rounded-[8px] border-2 border-current px-2 py-[2px] text-[11px] font-extrabold uppercase tracking-[0.05em]",
         active ? "text-[var(--qs-ok)]" : "text-[#a85d00]"
       )}
     >

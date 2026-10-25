@@ -11,8 +11,6 @@ const FOCUS_BLOCKED_STUDENT_PREFIXES = [
   "/problems",
   "/preparation",
   "/editor",
-  "/profile",
-  "/settings",
   "/tests",
   "/dashboard",
   "/analytics",
@@ -30,6 +28,9 @@ const FOCUS_BLOCKED_STUDENT_PREFIXES = [
 const FOCUS_ALLOWED_PREFIXES = [
   "/quiz",
   "/rooms",
+  "/profile",
+  "/settings",
+  "/students",
   "/platform",
   "/creator",
   "/login",
@@ -53,7 +54,7 @@ const FOCUS_ALLOWED_EXACT = ["/", "/robots.txt", "/sitemap.xml"];
 // Authenticated workspaces and account-only screens: never index, even when
 // they are reachable through the focus-mode allowlist. Mirrors the `robots`
 // metadata exported by the (auth), quiz and creator layouts.
-const NOINDEX_NOFOLLOW_PREFIXES = ["/quiz", "/rooms", "/creator", "/platform"];
+const NOINDEX_NOFOLLOW_PREFIXES = ["/quiz", "/rooms", "/profile", "/settings", "/creator", "/platform"];
 const NOINDEX_FOLLOW_PREFIXES = ["/login", "/register", "/forgot-password"];
 
 function matchesPrefix(pathname: string, prefixes: string[]): boolean {

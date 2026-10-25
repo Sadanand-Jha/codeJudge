@@ -11,6 +11,19 @@ A robust backend service for the QuizSupport platform, handling code execution, 
 - **AI Hints Integration**: AI-powered hints for problem solving
 - **Real-time Updates**: Redis-based caching and job queuing
 
+## Quiz Grading
+
+See [QUIZ_GRADING_README.md](./QUIZ_GRADING_README.md) for the complete,
+current description of how quiz attempts are graded, including scoring rules,
+question-type behavior, recalculation, visibility, reports, and known gaps.
+
+Related documentation:
+
+- [QUIZ_MODULE_BACKEND.md](./QUIZ_MODULE_BACKEND.md) - quiz module/API overview
+- [QUIZ_STUDENT_FLOW.md](./QUIZ_STUDENT_FLOW.md) - student attempt flow
+- [QUIZ_CREATION_FLOW.md](./QUIZ_CREATION_FLOW.md) - creator flow
+- [QUIZ_STUDENT_CALL_MAP.md](./QUIZ_STUDENT_CALL_MAP.md) - frontend/backend call map
+
 ## Tech Stack
 
 - **Runtime**: Node.js with TypeScript

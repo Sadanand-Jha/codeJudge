@@ -21,8 +21,6 @@ export const FOCUS_BLOCKED_STUDENT_PREFIXES: string[] = [
   "/problems",
   "/preparation",
   "/editor",
-  "/profile",
-  "/settings",
   "/tests",
   "/dashboard",
   "/analytics",
@@ -47,6 +45,11 @@ export const FOCUS_ALLOWED_PREFIXES: string[] = [
   "/quiz",
   // Join-by-code classrooms shared over WhatsApp
   "/rooms",
+  // Account pages reachable from the profile avatar
+  "/profile",
+  "/settings",
+  // Public student profiles
+  "/students",
   // Separate non-student workspaces
   "/creator",
   "/platform",

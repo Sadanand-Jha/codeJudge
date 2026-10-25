@@ -4846,9 +4846,10 @@ svg {
 [data-theme="light"] .bg-\[\#FF4D5D\] .text-white { color: #FFFFFF !important; }
 
 /* ============================================
-   Profile workspace — party / mission surfaces
-   Shared rules make every profile sub-page inherit the same visual language
-   without changing the behavior of its cards, lists, drawers, or forms.
+   Profile workspace — quiz surface overrides
+   Profile sub-pages share the same lavender, indigo and sun language as the
+   student quiz and rooms surfaces. These rules only retheme existing cards;
+   layout and behaviour stay untouched.
    ============================================ */
 .profile-theme {
   transition-property: background-color, border-color, color, box-shadow, opacity;
@@ -4856,40 +4857,32 @@ svg {
   transition-timing-function: cubic-bezier(.22, 1, .36, 1);
 }
 
-[data-theme="light"] .profile-theme .bg-card {
-  background-color: rgba(255, 255, 255, .78) !important;
+[data-theme="light"] .profile-theme .bg-card,
+[data-theme="dark"] .profile-theme .bg-card {
+  background-color: color-mix(in srgb, var(--qs-surface) 90%, transparent) !important;
   backdrop-filter: blur(18px);
 }
 
 [data-theme="light"] .profile-theme .bg-card\/50,
-[data-theme="light"] .profile-theme .bg-card\/85 {
-  background-color: rgba(255, 255, 255, .66) !important;
+[data-theme="light"] .profile-theme .bg-card\/85,
+[data-theme="dark"] .profile-theme .bg-card\/50,
+[data-theme="dark"] .profile-theme .bg-card\/85 {
+  background-color: color-mix(in srgb, var(--qs-surface) 82%, transparent) !important;
   backdrop-filter: blur(16px);
 }
 
 [data-theme="light"] .profile-theme .bg-card-hover,
 [data-theme="light"] .profile-theme .bg-card-hover\/50,
-[data-theme="light"] .profile-theme .bg-card-hover\/60 {
-  background-color: rgba(255, 240, 247, .68) !important;
-}
-
-[data-theme="light"] .profile-theme .border-border {
-  border-color: rgba(244, 114, 182, .24) !important;
-}
-
-[data-theme="dark"] .profile-theme .bg-card {
-  background-color: rgba(17, 22, 36, .82) !important;
-  backdrop-filter: blur(18px);
-}
-
+[data-theme="light"] .profile-theme .bg-card-hover\/60,
 [data-theme="dark"] .profile-theme .bg-card-hover,
 [data-theme="dark"] .profile-theme .bg-card-hover\/50,
 [data-theme="dark"] .profile-theme .bg-card-hover\/60 {
-  background-color: rgba(139, 124, 255, .055) !important;
+  background-color: var(--qs-bg) !important;
 }
 
+[data-theme="light"] .profile-theme .border-border,
 [data-theme="dark"] .profile-theme .border-border {
-  border-color: rgba(255, 255, 255, .085) !important;
+  border-color: var(--qs-line) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

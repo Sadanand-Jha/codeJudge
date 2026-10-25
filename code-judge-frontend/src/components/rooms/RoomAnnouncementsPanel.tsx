@@ -83,29 +83,29 @@ export default function RoomAnnouncementsPanel({
   };
 
   return (
-    <section className="relative mb-4 mr-4">
-      <div aria-hidden className="absolute left-4 top-4 -bottom-4 -right-4 rounded-[30px] bg-[var(--qs-sun)]" />
-      <div className="relative overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
-        <header className="flex flex-wrap items-start justify-between gap-3 px-4 pb-4 pt-5 sm:px-[26px]">
+    <section className="relative mb-4 mr-1 lg:flex lg:flex-col">
+      <div aria-hidden className="absolute left-1 top-1 -bottom-1 -right-1 rounded-[18px] bg-[var(--qs-sun)]" />
+      <div className="relative overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] lg:flex lg:flex-1 lg:flex-col">
+        <header className="flex flex-wrap items-start justify-between gap-3 px-4 pb-3 pt-4">
           <div>
-            <h2 className="flex items-center gap-2 text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-2xl">
-              <Megaphone className="h-5 w-5 text-[var(--qs-brand)]" />
+            <h2 className="flex items-center gap-2 text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)]">
+              <Megaphone className="h-[22px] w-[22px] text-[var(--qs-brand)]" />
               Announcements
             </h2>
-            <p className="mt-0.5 text-sm text-[var(--qs-muted)]">
+            <p className="mt-0.5 text-[13px] leading-[1.4] text-[var(--qs-muted)]">
               {readOnly
                 ? "Updates from your teacher for this room."
                 : "Updates for this room. Students see them in their room."}
             </p>
           </div>
           {readOnly && roomAnnouncements.length > 0 ? (
-            <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-muted)]">
+            <span className="hidden rounded-full bg-[var(--qs-poly-1)] px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-muted)] sm:inline-flex">
               {roomAnnouncements.length} {roomAnnouncements.length === 1 ? "post" : "posts"}
             </span>
           ) : null}
         </header>
 
-        <div className="border-t-2 border-[var(--qs-line)] p-4 sm:p-5">
+        <div className="border-t-2 border-[var(--qs-line)] p-3 sm:p-4 lg:flex-1">
           {!readOnly && formOpen && (
             <div className="mb-4 rounded-[16px] border-2 border-[var(--qs-brand)] bg-[var(--qs-bg)] p-4">
               <div className="flex items-center justify-between gap-2">
@@ -160,34 +160,34 @@ export default function RoomAnnouncementsPanel({
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {roomAnnouncements.map((announcement) => (
                 <article
                   key={announcement.id}
-                  className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-4 md:p-[18px]"
+                  className={cn(
+                    "rounded-[14px] border-2 border-[var(--qs-line)] p-3.5 sm:px-[18px] sm:py-4",
+                    readOnly ? "bg-[var(--qs-surface)]" : "bg-[var(--qs-bg)]"
+                  )}
                 >
                   {readOnly && author ? (
-                    <div className="mb-2.5 flex items-center gap-2.5">
+                    <div className="mb-2.5 hidden items-center gap-2.5 md:flex">
                       {/* eslint-disable-next-line @next/next/no-img-element -- teacher avatars may be remote/user-configured */}
                       <img
                         src={author.avatarUrl || getAvatarUrlById(author.avatarId ?? 1)}
                         alt=""
-                        className="h-8 w-8 shrink-0 rounded-full border-2 border-[var(--qs-ink)] object-cover"
+                        className="h-[30px] w-[30px] shrink-0 rounded-full border-2 border-[var(--qs-ink)] object-cover"
                       />
                       <p className="min-w-0 truncate text-[13px] text-[var(--qs-muted)]">
                         <span className="font-extrabold text-[var(--qs-ink)]">{author.name}</span>
-                        {author.username ? (
-                          <span className="font-semibold"> @{author.username}</span>
-                        ) : null}
                         <span> · Posted {timeAgo(announcement.createdAt)}</span>
                       </p>
                     </div>
                   ) : null}
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <h3 className={cn(
                         "truncate font-extrabold text-[var(--qs-ink)]",
-                        readOnly ? "text-[17px]" : "text-sm"
+                        readOnly ? "text-[15px] md:text-[17px]" : "text-sm"
                       )}>
                         {announcement.title}
                       </h3>
@@ -200,6 +200,11 @@ export default function RoomAnnouncementsPanel({
                         </p>
                       ) : null}
                     </div>
+                    {readOnly && author ? (
+                      <span className="shrink-0 text-[12px] font-semibold text-[var(--qs-muted)] md:hidden">
+                        {timeAgo(announcement.createdAt)}
+                      </span>
+                    ) : null}
                     {!readOnly && (
                       <div className="flex shrink-0 items-center gap-1">
                         <button
@@ -221,7 +226,7 @@ export default function RoomAnnouncementsPanel({
                       </div>
                     )}
                   </div>
-                  <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[var(--qs-ink)] opacity-80">
+                  <p className="mt-1.5 whitespace-pre-line text-[13px] leading-[1.45] text-[var(--qs-muted)] md:mt-2 md:text-[14px] md:leading-[1.5]">
                     {announcement.body}
                   </p>
                 </article>

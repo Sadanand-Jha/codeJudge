@@ -34,24 +34,32 @@ export default function StudentRoomsNavbar() {
           name: "Overview",
           href: `/rooms/${activeRoomId}`,
           active: !isStudents && !isDocuments && !isAnnouncements,
+          dot: true,
+          dotMobile: false,
         },
         {
           id: "students",
           name: "Students",
           href: `/rooms/${activeRoomId}?tab=students`,
           active: isStudents,
+          dot: true,
+          dotMobile: false,
         },
         {
           id: "documents",
           name: "Documents",
           href: `/rooms/${activeRoomId}?tab=documents`,
           active: isDocuments,
+          dot: true,
+          dotMobile: false,
         },
         {
           id: "announcements",
           name: "Announcements",
           href: `/rooms/${activeRoomId}?tab=announcements`,
           active: isAnnouncements,
+          dot: true,
+          dotMobile: false,
         },
       ];
     }

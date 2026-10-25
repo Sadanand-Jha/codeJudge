@@ -2,6 +2,7 @@
 
 import { UserPlus } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 // import NotificationBell from "./NotificationBell"; // hidden for now
 import WorkspaceSwitcher from "./WorkspaceSwitcher";
@@ -27,10 +28,11 @@ export default function NavbarRightActions() {
       {/* <NotificationBell /> hidden for now */}
       {isAuthenticated ? (
 <div className="flex shrink-0 items-center gap-2">
-          <div
-            className="w-8 h-8 rounded-full overflow-hidden border border-ai-border bg-ai-accent flex items-center justify-center text-xs font-bold text-accent-foreground"
-            title={user?.username || "Student"}
-            aria-label={user?.username || "Student account"}
+          <Link
+            href="/profile"
+            className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-ai-border bg-ai-accent text-xs font-bold text-accent-foreground transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ai-accent"
+            title="Open profile"
+            aria-label="Open your profile"
           >
             {savedAvatar ? (
               <Image
@@ -43,7 +45,7 @@ export default function NavbarRightActions() {
             ) : (
               (user?.username || "U").charAt(0).toUpperCase()
             )}
-          </div>
+          </Link>
           {/* PRO badge hidden for now (commented out on request)
           {isPremium && (
             <span
