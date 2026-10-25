@@ -1,24 +1,99 @@
-version: '3.8'
-
 services:
-  redis:
-    image: redis:7-alpine
-    container_name: quizsupport-redis
+  postgres:
+    image: postgres:16.15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-quizsupport}
+      POSTGRES_USER: ${POSTGRES_USER:-quizsupport}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-quizsupport}
+      TZ: UTC
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  redis:
+    image: redis:7.4.11-alpine
+    restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
-  docling:
-    image: quay.io/docling-project/docling-serve
-    container_name: docling-server
-    ports:
-      - "5001:5001"
+  migrate:
+    image: code-judge-backend:${IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["sh", "-c", "node dist/scripts/ensureBaseSchema.js && node dist/migrate.js"]
+    env_file:
+      - .env
+    environment: &backend-env
+      NODE_ENV: production
+      PORT: "8000"
+      TZ: UTC
+      DATABASE_URL: postgresql://${POSTGRES_USER:-quizsupport}:${POSTGRES_PASSWORD:-quizsupport}@postgres:5432/${POSTGRES_DB:-quizsupport}
+      DATABASE_SSL: "false"
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB:-quizsupport}
+      PGUSER: ${POSTGRES_USER:-quizsupport}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-quizsupport}
+      REDIS_URL: redis://redis:6379
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      SECURE_MEDIA_DIR: /app/secure-media
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    image: code-judge-backend:${IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["node", "dist/server.js"]
+    env_file:
+      - .env
     environment:
-      - DOCLING_SERVE_ENABLE_UI=1
+      <<: *backend-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - ./secure-media:/app/secure-media
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8000/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    init: true
+    shm_size: 512mb
     restart: unless-stopped
 
 volumes:
+  postgres_data:
   redis-data:
