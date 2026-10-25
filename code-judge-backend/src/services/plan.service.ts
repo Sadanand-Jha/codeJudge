@@ -96,6 +96,12 @@ function validatePrices(prices: PlanPriceInput[]): PlanPriceInput[] {
     if (!Number.isInteger(price.amount) || price.amount < 0) {
       throw new PlanServiceError(400, "INVALID_PRICE_AMOUNT", "Price amount must be a non-negative integer in paise.");
     }
+    if (
+      price.mrp_amount != null &&
+      (!Number.isInteger(price.mrp_amount) || price.mrp_amount < 0)
+    ) {
+      throw new PlanServiceError(400, "INVALID_MRP_AMOUNT", "MRP amount must be a non-negative integer in paise.");
+    }
   }
   return prices;
 }
@@ -130,6 +136,11 @@ export class PlanService {
       name: string;
       slug?: string;
       description?: string | null;
+      tagline?: string | null;
+      cta?: string | null;
+      offer?: string | null;
+      featured?: boolean;
+      features?: string[];
       status?: "draft" | "active";
       is_public?: boolean;
       sort_order?: number;
@@ -155,6 +166,11 @@ export class PlanService {
       name: input.name.trim(),
       slug,
       description: input.description ?? null,
+      tagline: input.tagline ?? null,
+      cta: input.cta ?? null,
+      offer: input.offer ?? null,
+      featured: input.featured ?? false,
+      features: input.features ?? [],
       status: input.status ?? "draft",
       is_public: input.is_public ?? false,
       sort_order: input.sort_order ?? 0,
@@ -192,6 +208,11 @@ export class PlanService {
       name?: string;
       slug?: string;
       description?: string | null;
+      tagline?: string | null;
+      cta?: string | null;
+      offer?: string | null;
+      featured?: boolean;
+      features?: string[];
       is_public?: boolean;
       sort_order?: number;
       trial_days?: number;
@@ -250,8 +271,8 @@ export class PlanService {
       action: "plan.update",
       entityType: "plan",
       entityId: planId,
-      before: { name: before.name, slug: before.slug, is_public: before.is_public, trial_days: before.trial_days, prices: before.prices, entitlements: before.entitlements },
-      after: { name: after.name, slug: after.slug, is_public: after.is_public, trial_days: after.trial_days, prices: after.prices, entitlements: after.entitlements },
+      before: { name: before.name, slug: before.slug, is_public: before.is_public, trial_days: before.trial_days, tagline: before.tagline, cta: before.cta, offer: before.offer, featured: before.featured, features: before.features, prices: before.prices, entitlements: before.entitlements },
+      after: { name: after.name, slug: after.slug, is_public: after.is_public, trial_days: after.trial_days, tagline: after.tagline, cta: after.cta, offer: after.offer, featured: after.featured, features: after.features, prices: after.prices, entitlements: after.entitlements },
       reason:
         priceChanges.length > 0
           ? `${result.migratedSubscribers} subscriber(s) migrated to new prices: ${JSON.stringify(priceChanges)}`
@@ -272,6 +293,11 @@ export class PlanService {
       name: `${source.name} (copy)`,
       slug,
       description: source.description,
+      tagline: source.tagline,
+      cta: source.cta,
+      offer: source.offer,
+      featured: false,
+      features: source.features,
       status: "draft",
       is_public: false,
       sort_order: source.sort_order,
@@ -282,6 +308,7 @@ export class PlanService {
           billing_period: price.billing_period as BillingPeriod,
           custom_days: price.custom_days,
           amount: price.amount,
+          mrp_amount: price.mrp_amount,
           tax_inclusive: price.tax_inclusive,
           gateway_price_id: null,
           is_active: true,

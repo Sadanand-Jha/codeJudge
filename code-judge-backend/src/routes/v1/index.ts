@@ -5,11 +5,16 @@ import { Router } from "express";
 import adminRoutes from "./admin/index.ts"
 import userRoutes from "./user/index.ts"
 import platformRoutes from "./platform.routes.ts"
+import pricingRoutes from "./pricing.routes.ts"
 import { getAvatar } from "../../controllers/avatar.controller.ts";
 import { getSecureMedia } from "../../controllers/secureMedia.controller.ts";
 import { authenticate } from "../../middleware/auth.ts";
 
 const protectedRouter = Router();
+
+// Public pricing catalog. Prices and packs are owned by /platform and read by
+// the marketing pages, so this must stay ahead of the regular-user guard.
+protectedRouter.use("/pricing", pricingRoutes)
 
 // The platform console uses its own isolated owner session and performs its
 // authorization inside platformRoutes. Keep it ahead of the regular-user

@@ -19,6 +19,8 @@ export interface CreatorOption {
   id: string;
   label: string;
   content: string;
+  /** Sanitized HTML rendering of the option, used for display/persistence. */
+  contentHtml?: string;
   isCorrect: boolean;
   imageUrl?: string;
   caption?: string;

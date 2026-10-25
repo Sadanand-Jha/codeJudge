@@ -17,6 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
+import { resolveDatabaseSsl } from './config/databaseSsl.ts';
 
 const { Pool } = pg;
 
@@ -30,13 +31,12 @@ const TRACKING_TABLE = 'schema_migration';
 // 1. Database connection
 // ──────────────────────────────────────────────
 const databaseUrl = process.env.DATABASE_URL;
-const isLocalDatabase = databaseUrl?.includes('localhost') || databaseUrl?.includes('127.0.0.1');
 
 // Keep migration connectivity consistent with the application pool. Hosted
 // PostgreSQL providers commonly require TLS while local development does not.
 const pool = new Pool({
   ...(databaseUrl ? { connectionString: databaseUrl } : {}),
-  ssl: isLocalDatabase ? false : { rejectUnauthorized: false },
+  ssl: resolveDatabaseSsl(databaseUrl),
 });
 
 // Migrations run in UTC; legacy naive values are attached to UTC as-is.

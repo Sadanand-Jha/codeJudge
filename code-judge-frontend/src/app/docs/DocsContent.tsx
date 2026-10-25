@@ -518,7 +518,7 @@ export default function DocsContent() {
   }, [activeStep, isLastStep, role, totalSteps]);
 
   return (
-    <div className="qs-ui relative min-h-[calc(100dvh-3.5rem)] overflow-hidden bg-[var(--qs-bg)]">
+    <div className="qs-ui relative min-h-[calc(100dvh-3.5rem)] overflow-x-clip bg-[var(--qs-bg)]">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 opacity-50"

@@ -21,6 +21,7 @@ import type { RawAIGeneratedQuestion, AIQuestionPreview } from "@/services/ai";
 import AIQuestionReviewOverlay, {
   type PreviewQuestion,
 } from "@/components/quiz/creator/AIQuestionReviewOverlay";
+import { QuizRichText } from "@/components/quiz/QuizRichText";
 import { QuestionBankFilters } from "@/components/creator/tests/sections/QuestionBankFilters";
 
 /* ============================================
@@ -47,7 +48,8 @@ interface GeneratedQuestion {
   type: QuestionType;
   title: string;
   content: string;
-  options?: { id: string; content: string; isCorrect: boolean }[];
+  questionHtml?: string;
+  options?: { id: string; content: string; contentHtml?: string; isCorrect: boolean }[];
   correctAnswer?: string | number;
   explanation?: string;
   hint?: string;
@@ -1079,12 +1081,10 @@ export default function AIStudio({
                               {DIFFICULTY_LABELS[q.difficulty]}
                             </span>
                           </div>
-                          <h4 className="text-[12px] font-semibold text-text-primary">
-                            {q.title}
-                          </h4>
-                          <p className="text-[11px] text-text-secondary mt-1">
-                            {q.content}
-                          </p>
+                          <QuizRichText
+                            html={q.questionHtml || q.content || q.title}
+                            className="text-[12px] font-semibold text-text-primary"
+                          />
                         </div>
                       </div>
 
@@ -1100,7 +1100,8 @@ export default function AIStudio({
                                   : "bg-card-hover text-text-secondary"
                               }`}
                             >
-                              {opt.id}. {opt.content}
+                              <span className="mr-1">{opt.id}.</span>
+                              <QuizRichText as="span" html={opt.contentHtml || opt.content} />
                             </div>
                           ))}
                         </div>

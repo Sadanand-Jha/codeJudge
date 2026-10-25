@@ -1,7 +1,13 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { getCreatorPlan, getCreatorPlanDiscount } from "@/config/creatorPlans";
+import { usePricingCatalog } from "@/hooks/usePricingCatalog";
+import { getPlanDiscount } from "@/services/pricing";
+import { useAICreditsStore } from "@/store/aiCreditsStore";
+import { useAuthStore } from "@/store/authStore";
 
 interface TrialOfferBannerProps {
   className?: string;
@@ -13,11 +19,33 @@ interface TrialOfferBannerProps {
 export function TrialOfferBanner({
   className,
   ctaHref = "/register",
-  ctaLabel = "Start free trial",
+  ctaLabel = "Start quiz-only trial",
   showBasicOffer = false,
 }: TrialOfferBannerProps) {
-  const basicPlan = getCreatorPlan("basic");
-  const basicDiscount = basicPlan ? getCreatorPlanDiscount(basicPlan) : 0;
+  const { catalog } = usePricingCatalog();
+  const basicPlan = catalog.plans.find((plan) => plan.slug === "basic");
+  const basicDiscount = basicPlan ? getPlanDiscount(basicPlan) : 0;
+  const user = useAuthStore((state) => state.user);
+  const balance = useAICreditsStore((state) => state.balance);
+  const purchases = useAICreditsStore((state) => state.purchases);
+
+  const [now] = useState(() => Date.now());
+  const createdAt = user?.createdAt ? Date.parse(user.createdAt) : NaN;
+  const trialDays = basicPlan?.trialDays ?? 7;
+  const isNewAccount =
+    Number.isFinite(createdAt) &&
+    now - createdAt < trialDays * 24 * 60 * 60 * 1000;
+  const hasNoPurchases =
+    purchases.length === 0 &&
+    balance.purchasedCredits === 0 &&
+    balance.purchasedCreditsConsumed === 0;
+  const isTrialEligible =
+    isNewAccount &&
+    hasNoPurchases &&
+    balance.planId === "free" &&
+    !balance.hasActiveSubscription;
+
+  if (!isTrialEligible) return null;
 
   return (
     <section
@@ -38,13 +66,13 @@ export function TrialOfferBanner({
         <div className="min-w-0">
           <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[#1a1240] bg-[#1a1240] px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-[var(--qs-sun)]">
             <Sparkles className="h-3 w-3" />
-            Limited 2026 offer
+            New account offer
           </span>
           <p className="qs-display mt-3 text-[clamp(34px,6vw,62px)] font-extrabold leading-[0.92] tracking-[-0.04em]">
             7-day free trial
           </p>
           <p className="mt-2 text-[clamp(16px,2vw,21px)] font-extrabold">
-            2 quizzes + 1 room. No card required.
+            Quiz-only trial. No AI credits. No card required.
           </p>
           {showBasicOffer && basicPlan && basicDiscount > 0 && (
             <p className="mt-2 flex flex-wrap items-center gap-2 text-[14px] font-bold">

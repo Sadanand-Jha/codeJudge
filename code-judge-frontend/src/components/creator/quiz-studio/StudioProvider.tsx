@@ -29,6 +29,7 @@ import {
   type QuizProblemWithOptions,
 } from "@/services/quiz";
 import { syncQuizQuestions, computeChangedQuestions, buildQuestionSnapshot } from "@/utils/quizQuestionSync";
+import { containsHtml, htmlToPlainText } from "@/utils/htmlText";
 import { useRoomStore } from "@/store/roomStore";
 import {
   type StudioState,
@@ -180,12 +181,17 @@ function mapBackendProblem(
     ];
     correctAnswer = -1 as any;
   } else if (isChoiceType && p.options && p.options.length > 0) {
-    options = p.options.map((o, i) => ({
-      id: String(o.id),
-      label: String.fromCharCode(65 + i),
-      content: o.option_statement ?? "",
-      isCorrect: o.iscorrect ?? false,
-    }));
+    options = p.options.map((o, i) => {
+      const raw = o.option_statement ?? "";
+      const hasHtml = containsHtml(raw);
+      return {
+        id: String(o.id),
+        label: String.fromCharCode(65 + i),
+        content: hasHtml ? htmlToPlainText(raw) : raw,
+        contentHtml: hasHtml ? raw : undefined,
+        isCorrect: o.iscorrect ?? false,
+      };
+    });
     const correctOpts = options.filter((o) => o.isCorrect);
     correctAnswer =
       type === "multiple_choice"

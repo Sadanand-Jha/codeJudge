@@ -5,6 +5,7 @@ import {
   type CreatorQuestion,
   type CreatorQuestionType,
 } from "@/components/quiz/creator/types";
+import { containsHtml, htmlToPlainText } from "@/utils/htmlText";
 
 /**
  * Map an AI Question type to the quiz creator's native question type.
@@ -82,12 +83,18 @@ export const mapToCreatorQuestions = (previews: AIQuestionPreview[]): CreatorQue
     let correctAnswer: string | number | number[] = base.correctAnswer;
 
     if (hasOptions && p.options) {
-      options = p.options.map((opt, oi) => ({
-        id: opt.id || `opt_${Date.now()}_${i}_${oi}`,
-        label: OPTION_LABELS[oi] ?? String.fromCharCode(65 + oi),
-        content: opt.content,
-        isCorrect: !!opt.isCorrect,
-      }));
+      options = p.options.map((opt, oi) => {
+        const raw = opt.content ?? "";
+        const contentHtml = opt.contentHtml?.trim() || (containsHtml(raw) ? raw : "");
+        const content = raw && !containsHtml(raw) ? raw : htmlToPlainText(raw || contentHtml);
+        return {
+          id: opt.id || `opt_${Date.now()}_${i}_${oi}`,
+          label: OPTION_LABELS[oi] ?? String.fromCharCode(65 + oi),
+          content,
+          contentHtml: contentHtml || undefined,
+          isCorrect: !!opt.isCorrect,
+        };
+      });
       const correctIndex = options.findIndex((o) => o.isCorrect);
 
       if (type === "true_false") {

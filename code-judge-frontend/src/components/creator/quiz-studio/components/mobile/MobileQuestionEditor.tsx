@@ -120,7 +120,17 @@ export function MobileQuestionEditor({
   };
 
   const updateOption = (id: string, patch: Partial<CreatorOption>) =>
-    update({ options: q.options.map((o) => (o.id === id ? { ...o, ...patch } : o)) });
+    update({
+      options: q.options.map((o) =>
+        o.id === id
+          ? {
+              ...o,
+              ...patch,
+              ...(patch.content !== undefined ? { contentHtml: undefined } : {}),
+            }
+          : o
+      ),
+    });
 
   const addOption = () => {
     if (q.options.length >= 6) return;

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Wallet, ArrowLeftRight, CalendarClock, CreditCard, Sparkles } from "lucide-react";
+import { Wallet, ArrowLeftRight, CalendarClock, Sparkles } from "lucide-react";
 import { cn } from "@/lib/helpers";
 
 const BILLING_TABS = [
@@ -17,7 +17,7 @@ const BILLING_TABS = [
   // { label: "Refunds", href: "/creator/billing/refunds", icon: RotateCcw },
   // { label: "Tax", href: "/creator/billing/tax", icon: Scale },
   // { label: "Documents", href: "/creator/billing/documents", icon: FolderOpen },
-  { label: "Payment settings", href: "/creator/billing/settings", icon: CreditCard },
+  // { label: "Payment settings", href: "/creator/billing/settings", icon: CreditCard },
 ];
 
 export function BillingSubnav() {

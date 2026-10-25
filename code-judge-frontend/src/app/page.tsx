@@ -33,8 +33,10 @@ import ThemeToggle from "@/components/ui/ThemeToggle";
 import GeneratorStudio from "@/components/marketing/landing/GeneratorStudio";
 import FeatureTabs from "@/components/marketing/landing/FeatureTabs";
 import { SecureLogo } from "@/components/common/SecureLogo";
-import { CREDIT_PURCHASE_PACKS } from "@/config/aiCredits";
-import { CREATOR_PLANS, getCreatorPlanDiscount } from "@/config/creatorPlans";
+import {
+  getPricingCatalogServer,
+  getPlanDiscount,
+} from "@/services/pricing";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
 
 export const metadata: Metadata = buildPublicPageMetadata({
@@ -284,7 +286,7 @@ const FAQS = [
   },
   {
     q: "Is there a subscription?",
-    a: "The free plan is a 7-day trial with 2 quiz creations and 1 room. Basic and Pro add more creations, rooms and monthly AI credits; extra credits are one-time packs.",
+    a: "Basic starts with a 7-day quiz-only trial. After the trial, Basic and Pro include monthly quiz creations, rooms and AI credits; extra credits are one-time packs.",
   },
   {
     q: "Can I get results out of the platform?",
@@ -296,15 +298,17 @@ const FAQS = [
   },
 ];
 
-const BASE_RATE = CREDIT_PURCHASE_PACKS[0]
-  ? CREDIT_PURCHASE_PACKS[0].price / CREDIT_PURCHASE_PACKS[0].credits
-  : 0;
+export default async function HomePage() {
+  const catalog = await getPricingCatalogServer();
+  const creditPacks = catalog.creditPacks;
+  const creditValidityMonths =
+    creditPacks.length > 0
+      ? Math.max(...creditPacks.map((pack) => pack.validityMonths))
+      : 6;
+  const baseRate = creditPacks[0]
+    ? creditPacks[0].price / creditPacks[0].credits
+    : 0;
 
-const CREDIT_VALIDITY_MONTHS = Math.max(
-  ...CREDIT_PURCHASE_PACKS.map((pack) => pack.validityMonths)
-);
-
-export default function HomePage() {
   return (
     <div className="qs-ui qs-lp min-h-screen">
       <nav aria-label="Main">
@@ -341,19 +345,19 @@ export default function HomePage() {
           <div className="wrap trial-banner-wrap">
             <div className="trial-banner">
               <div className="trial-copy">
-                <span className="trial-kicker">Limited 2026 offer</span>
+                <span className="trial-kicker">New creator offer</span>
                 <strong>7-day free trial</strong>
                 <span className="trial-includes">
-                  2 quizzes + 1 room. No card required.
+                  Quiz-only trial. No AI credits. No card required.
                 </span>
               </div>
               <Link href="/register" className="btn trial-cta">
-                Start free trial
+                Start quiz-only trial
                 <ArrowRight size={16} aria-hidden />
               </Link>
             </div>
           </div>
-          <header className="wrap hero">
+          <header className="wrap hero hero-compact">
             <div>
               <p className="eb">AI paper studio</p>
               <h1>Pick a scope. The paper writes itself.</h1>
@@ -591,7 +595,7 @@ export default function HomePage() {
         <section className="s" id="plans">
           <div className="wrap">
             <p className="eb">Monthly plans</p>
-            <h2 className="t">Start free. Upgrade at the 2026 offer price.</h2>
+            <h2 className="t">Start with a 7-day quiz-only trial. Upgrade at the 2026 offer price.</h2>
             <p className="d">
               Every plan includes the builder, codes, instant results and
               leaderboards. Paid plans add more creations and AI credits.
@@ -601,14 +605,14 @@ export default function HomePage() {
               <div>
                 <b>Basic and Pro are available at the limited 2026 offer price.</b>
                 <small>
-                  Start with a 7-day free trial: 2 quizzes and 1 room. Upgrade
-                  only when you need more.
+                  Start with a 7-day quiz-only trial. Upgrade only when you need
+                  more.
                 </small>
               </div>
             </div>
             <div className="lp-plans">
-              {CREATOR_PLANS.map((plan) => {
-                const discount = getCreatorPlanDiscount(plan);
+              {catalog.plans.map((plan) => {
+                const discount = getPlanDiscount(plan);
                 return (
                   <div className={plan.featured ? "pk hot" : "pk"} key={plan.id}>
                     {plan.featured && <span className="tag">★ Most popular</span>}
@@ -631,9 +635,7 @@ export default function HomePage() {
                       {discount > 0 && plan.originalPrice ? (
                         <s className="was">₹{plan.originalPrice}</s>
                       ) : null}
-                      <small>
-                        {plan.price === 0 ? ` for ${plan.trialDays} days` : " / month"}
-                      </small>
+                      <small> / month</small>
                     </div>
                     <div className="cr cr-plans">
                       <span className="cr-plans-main">
@@ -669,7 +671,7 @@ export default function HomePage() {
           <div className="wrap">
             <p className="eb">AI credits</p>
             <h2 className="t">
-              Pay once. Use your credits for up to {CREDIT_VALIDITY_MONTHS} months.
+              Pay once. Use your credits for up to {creditValidityMonths} months.
             </h2>
             <p className="d">
               Paid monthly plans include AI credits. Extra packs are one-time
@@ -683,7 +685,7 @@ export default function HomePage() {
                 <span className="pay-tag">One-time payment</span>
                 <b>No auto-renew. No surprise charges.</b>
                 <small>
-                  Buy once. Use for up to {CREDIT_VALIDITY_MONTHS} months. UPI,
+                  Buy once. Use for up to {creditValidityMonths} months. UPI,
                   cards or net banking.
                 </small>
               </div>
@@ -694,9 +696,9 @@ export default function HomePage() {
               </div>
             </div>
             <div className="pk3">
-              {CREDIT_PURCHASE_PACKS.map((pack) => {
+              {creditPacks.map((pack) => {
                 const rate = pack.price / pack.credits;
-                const save = BASE_RATE ? Math.round((1 - rate / BASE_RATE) * 100) : 0;
+                const save = baseRate ? Math.round((1 - rate / baseRate) * 100) : 0;
                 return (
                   <div className={pack.popular ? "pk hot" : "pk"} key={pack.id}>
                     {pack.popular && <span className="tag">★ Most Popular</span>}

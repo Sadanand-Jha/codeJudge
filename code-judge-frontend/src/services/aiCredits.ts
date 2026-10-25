@@ -41,8 +41,11 @@ export interface PackOrderSummary {
 }
 
 /** Build the checkout summary for a pack. */
-export function buildOrderSummary(packId: string): PackOrderSummary {
-  const pack = CREDIT_PURCHASE_PACKS.find((p) => p.id === packId);
+export function buildOrderSummary(
+  packId: string,
+  packs: CreditPurchasePack[] = CREDIT_PURCHASE_PACKS
+): PackOrderSummary {
+  const pack = packs.find((p) => p.id === packId);
   if (!pack) throw new Error("Unknown credit pack.");
   return { pack, price: pack.price, total: pack.price, credits: pack.credits };
 }
@@ -85,9 +88,9 @@ export interface VerifiedCreditPurchase {
  */
 export async function createCreditOrder(
   packId: string,
-  opts?: { coupon?: string; amountPaise?: number }
+  opts?: { coupon?: string; amountPaise?: number; packs?: CreditPurchasePack[] }
 ): Promise<CreditOrder> {
-  const summary = buildOrderSummary(packId);
+  const summary = buildOrderSummary(packId, opts?.packs);
   const response = await apiClient.post<CreditOrder>("/v1/billing/credits/orders", {
     pack_id: summary.pack.id,
     amount_paise: opts?.amountPaise ?? summary.total * 100,

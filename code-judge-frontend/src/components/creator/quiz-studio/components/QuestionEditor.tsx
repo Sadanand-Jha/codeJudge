@@ -336,7 +336,7 @@ export function QuestionEditor() {
                       </span>
                       <textarea
                         value={o.content}
-                        onChange={(e) => { if (e.target.value.length <= 250) update({ options: q.options.map((x) => (x.id === o.id ? { ...x, content: e.target.value } : x)) }); }}
+                        onChange={(e) => { if (e.target.value.length <= 250) update({ options: q.options.map((x) => (x.id === o.id ? { ...x, content: e.target.value, contentHtml: undefined } : x)) }); }}
                         placeholder={`Option ${o.label}`}
                         maxLength={250}
                         rows={Math.max(1, Math.ceil(Math.max(o.content.length, 1) / 48))}

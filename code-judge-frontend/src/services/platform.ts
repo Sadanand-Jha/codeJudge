@@ -315,6 +315,110 @@ export interface UserFeedbackData {
   unavailable?: boolean;
 }
 
+export interface PlatformPlanPrice {
+  id: number;
+  plan_id: number;
+  billing_period: "monthly" | "quarterly" | "yearly" | "lifetime" | "custom_days";
+  custom_days: number | null;
+  amount: number;
+  mrp_amount: number | null;
+  currency: string;
+  tax_inclusive: boolean;
+  gateway_price_id: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlatformPlan {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  tagline: string | null;
+  cta: string | null;
+  offer: string | null;
+  featured: boolean;
+  features: string[];
+  status: "draft" | "active" | "archived";
+  is_public: boolean;
+  is_default_free: boolean;
+  sort_order: number;
+  trial_days: number;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+  prices: PlatformPlanPrice[];
+  subscriber_count: number;
+  active_subscriber_count: number;
+  entitlements: Record<string, number | boolean>;
+}
+
+export interface EntitlementDefinition {
+  key: string;
+  label: string;
+  description: string;
+  type: "number" | "boolean";
+  category: string;
+  default: number | boolean;
+  unit?: string;
+}
+
+export interface PlatformCreditPack {
+  id: number;
+  code: string;
+  name: string;
+  price_inr: number;
+  credits: number;
+  validity_days: number;
+  description: string | null;
+  is_popular: boolean;
+  save_percent: number;
+  is_active: boolean;
+  cta: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface SubscriptionPlanUpdate {
+  name?: string;
+  slug?: string;
+  description?: string | null;
+  tagline?: string | null;
+  cta?: string | null;
+  offer?: string | null;
+  featured?: boolean;
+  features?: string[];
+  is_public?: boolean;
+  sort_order?: number;
+  trial_days?: number;
+  prices?: Array<{
+    billing_period: PlatformPlanPrice["billing_period"];
+    custom_days?: number | null;
+    amount: number;
+    mrp_amount?: number | null;
+    tax_inclusive?: boolean;
+    gateway_price_id?: string | null;
+    is_active?: boolean;
+  }>;
+  entitlements?: Record<string, number | boolean>;
+  expectedUpdatedAt?: string;
+}
+
+export interface CreditPackUpdate {
+  code?: string;
+  name?: string;
+  price_inr?: number;
+  credits?: number;
+  validity_days?: number;
+  description?: string | null;
+  is_popular?: boolean;
+  save_percent?: number;
+  is_active?: boolean;
+  cta?: string | null;
+  sort_order?: number;
+}
+
 async function get<T>(path: string, params?: Record<string, string | number>): Promise<T> {
   const key = `${path}?${new URLSearchParams(
     Object.entries(params ?? {}).map(([name, value]) => [name, String(value)])
@@ -446,4 +550,51 @@ export const platformApi = {
   growth: (range: PlatformRange, days?: number) => get<{ points: { date: string; new_users: number; new_quizzes: number; attempts: number }[] | null }>("/growth", days ? { range, days } : { range }),
   search: (q: string) => get<{ users: { id: number; username: string; email: string }[]; quizzes: { id: number; name: string; code: string }[]; attempts: { id: number; quiz_id: number; user_id: number; status: string; username: string | null }[] }>("/search", { q }),
   alerts: () => get<{ items: { severity: string; message: string; link: string }[] }>("/alerts"),
+  subscriptionPlans: () => get<{ plans: PlatformPlan[] }>("/subscriptions/plans"),
+  subscriptionRegistry: () =>
+    get<{ registry: EntitlementDefinition[] }>("/subscriptions/registry"),
+  updateSubscriptionPlan: (planId: number, payload: SubscriptionPlanUpdate) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.put<PlatformPlan>(
+        `/v1/platform/subscriptions/plans/${planId}`,
+        payload
+      );
+      return response.data;
+    }),
+  createSubscriptionPlan: (payload: SubscriptionPlanUpdate) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<PlatformPlan>(
+        "/v1/platform/subscriptions/plans",
+        payload
+      );
+      return response.data;
+    }),
+  activateSubscriptionPlan: (planId: number) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<PlatformPlan>(
+        `/v1/platform/subscriptions/plans/${planId}/activate`
+      );
+      return response.data;
+    }),
+  creditPacks: () => get<{ packs: PlatformCreditPack[] }>("/subscriptions/packs"),
+  createCreditPack: (payload: CreditPackUpdate) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<PlatformCreditPack>(
+        "/v1/platform/subscriptions/packs",
+        payload
+      );
+      return response.data;
+    }),
+  updateCreditPack: (packId: number, payload: CreditPackUpdate) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.put<PlatformCreditPack>(
+        `/v1/platform/subscriptions/packs/${packId}`,
+        payload
+      );
+      return response.data;
+    }),
+  deleteCreditPack: (packId: number) =>
+    schedulePlatformRequest(async () => {
+      await platformClient.delete(`/v1/platform/subscriptions/packs/${packId}`);
+    }),
 };

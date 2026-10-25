@@ -12,6 +12,7 @@ export interface PlanPriceInput {
   billing_period: BillingPeriod;
   custom_days?: number | null;
   amount: number;
+  mrp_amount?: number | null;
   tax_inclusive?: boolean;
   gateway_price_id?: string | null;
   is_active?: boolean;
@@ -31,6 +32,11 @@ export interface PlanRow {
   name: string;
   slug: string;
   description: string | null;
+  tagline: string | null;
+  cta: string | null;
+  offer: string | null;
+  featured: boolean;
+  features: string[];
   status: PlanStatus;
   is_public: boolean;
   is_default_free: boolean;
@@ -55,6 +61,11 @@ export interface CreatePlanData {
   name: string;
   slug: string;
   description?: string | null;
+  tagline?: string | null;
+  cta?: string | null;
+  offer?: string | null;
+  featured?: boolean;
+  features?: string[];
   status?: PlanStatus;
   is_public?: boolean;
   sort_order?: number;
@@ -70,7 +81,8 @@ function lifecycleStatusList(): string {
 }
 
 const PLAN_WITH_STATS_SELECT = `
-  SELECT p.id, p.name, p.slug, p.description, p.status, p.is_public,
+  SELECT p.id, p.name, p.slug, p.description, p.tagline, p.cta, p.offer,
+         p.featured, p.features, p.status, p.is_public,
          p.is_default_free, p.sort_order, p.trial_days, p.archived_at,
          p.created_at, p.updated_at,
          COALESCE(prices.rows, '[]'::json) AS prices,
@@ -150,13 +162,20 @@ export class PlanRepository {
       await client.query("BEGIN");
 
       const planResult = await client.query(
-        `INSERT INTO plans (name, slug, description, status, is_public, sort_order, trial_days)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO plans
+           (name, slug, description, tagline, cta, offer, featured, features,
+            status, is_public, sort_order, trial_days)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12)
          RETURNING id`,
         [
           data.name,
           data.slug,
           data.description ?? null,
+          data.tagline ?? null,
+          data.cta ?? null,
+          data.offer ?? null,
+          data.featured ?? false,
+          JSON.stringify(data.features ?? []),
           data.status ?? "draft",
           data.is_public ?? false,
           data.sort_order ?? 0,
@@ -167,13 +186,14 @@ export class PlanRepository {
 
       for (const price of data.prices) {
         await client.query(
-          `INSERT INTO plan_prices (plan_id, billing_period, custom_days, amount, currency, tax_inclusive, gateway_price_id, is_active)
-           VALUES ($1, $2, $3, $4, 'INR', $5, $6, $7)`,
+          `INSERT INTO plan_prices (plan_id, billing_period, custom_days, amount, mrp_amount, currency, tax_inclusive, gateway_price_id, is_active)
+           VALUES ($1, $2, $3, $4, $5, 'INR', $6, $7, $8)`,
           [
             planId,
             price.billing_period,
             price.custom_days ?? null,
             price.amount,
+            price.mrp_amount ?? null,
             price.tax_inclusive ?? true,
             price.gateway_price_id ?? null,
             price.is_active ?? true,
@@ -215,6 +235,11 @@ export class PlanRepository {
       name?: string;
       slug?: string;
       description?: string | null;
+      tagline?: string | null;
+      cta?: string | null;
+      offer?: string | null;
+      featured?: boolean;
+      features?: string[];
       is_public?: boolean;
       sort_order?: number;
       trial_days?: number;
@@ -260,6 +285,11 @@ export class PlanRepository {
       if (data.name !== undefined) assign("name", data.name);
       if (data.slug !== undefined) assign("slug", data.slug);
       if (data.description !== undefined) assign("description", data.description);
+      if (data.tagline !== undefined) assign("tagline", data.tagline);
+      if (data.cta !== undefined) assign("cta", data.cta);
+      if (data.offer !== undefined) assign("offer", data.offer);
+      if (data.featured !== undefined) assign("featured", data.featured);
+      if (data.features !== undefined) assign("features", JSON.stringify(data.features));
       if (data.is_public !== undefined) assign("is_public", data.is_public);
       if (data.sort_order !== undefined) assign("sort_order", data.sort_order);
       if (data.trial_days !== undefined) assign("trial_days", data.trial_days);
@@ -290,6 +320,7 @@ export class PlanRepository {
           const current = existingByKey.get(key);
           const normalized = {
             amount: incoming.amount,
+            mrp_amount: incoming.mrp_amount ?? null,
             tax_inclusive: incoming.tax_inclusive ?? true,
             gateway_price_id: incoming.gateway_price_id ?? null,
             is_active: incoming.is_active ?? true,
@@ -299,6 +330,7 @@ export class PlanRepository {
             current &&
             current.is_active &&
             current.amount === normalized.amount &&
+            (current.mrp_amount ?? null) === normalized.mrp_amount &&
             current.tax_inclusive === normalized.tax_inclusive &&
             (current.gateway_price_id ?? null) === normalized.gateway_price_id &&
             current.is_active === normalized.is_active
@@ -313,14 +345,15 @@ export class PlanRepository {
           }
 
           const inserted = await client.query(
-            `INSERT INTO plan_prices (plan_id, billing_period, custom_days, amount, currency, tax_inclusive, gateway_price_id, is_active)
-             VALUES ($1, $2, $3, $4, 'INR', $5, $6, $7)
+            `INSERT INTO plan_prices (plan_id, billing_period, custom_days, amount, mrp_amount, currency, tax_inclusive, gateway_price_id, is_active)
+             VALUES ($1, $2, $3, $4, $5, 'INR', $6, $7, $8)
              RETURNING id`,
             [
               planId,
               incoming.billing_period,
               incoming.custom_days ?? null,
               normalized.amount,
+              normalized.mrp_amount,
               normalized.tax_inclusive,
               normalized.gateway_price_id,
               normalized.is_active,

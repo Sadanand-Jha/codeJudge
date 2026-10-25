@@ -13,7 +13,10 @@ import {
 } from "lucide-react";
 import { PricingFooter, PricingNav } from "@/components/pricing/PricingChrome";
 import { CREDIT_VALIDITY_MONTHS } from "@/config/aiCredits";
-import { CREATOR_PLANS, getCreatorPlanDiscount } from "@/config/creatorPlans";
+import {
+  getPricingCatalogServer,
+  getPlanDiscount,
+} from "@/services/pricing";
 
 const PLAN_INCLUDES: Array<{ title: string; icon: LucideIcon }> = [
   { title: "Access codes", icon: LockKeyhole },
@@ -35,11 +38,11 @@ const FAQS = [
   },
   {
     q: "Do plans include AI credits?",
-    a: "Yes. Basic includes 20 AI credits a month and Pro includes 50. Free users can buy a one-time top-up separately.",
+    a: "Yes. Basic includes 20 AI credits a month and Pro includes 50. Need more? Buy a one-time top-up separately.",
   },
   {
-    q: "Is there a free plan?",
-    a: "Yes. Free is a 7-day trial with 2 quiz creations, 1 room, access codes, instant results and leaderboards.",
+    q: "Is there a free trial?",
+    a: "Yes. Basic includes a 7-day quiz-only trial. AI credits are not included. No card required.",
   },
   {
     q: "Are prices inclusive of taxes?",
@@ -51,7 +54,13 @@ function inr(value: number): string {
   return `₹${value.toLocaleString("en-IN")}`;
 }
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const catalog = await getPricingCatalogServer();
+  const creditValidityMonths =
+    catalog.creditPacks.length > 0
+      ? Math.max(...catalog.creditPacks.map((pack) => pack.validityMonths))
+      : CREDIT_VALIDITY_MONTHS;
+
   return (
     <div className="qs-ui qs-lp qp-page min-h-screen">
       <PricingNav active="plans" />
@@ -61,14 +70,14 @@ export default function PricingPage() {
           <p className="eb">Monthly plans</p>
           <h1>Plans that grow with your quiz load</h1>
           <p className="lead">
-            Start with a 7-day free trial: 2 quizzes and 1 room. Move up when
-            your quiz load grows. Every plan includes the full quiz builder,
-            access codes and instant results. Paid plans also include monthly AI
-            credits at the limited 2026 offer price.
+            Start with a 7-day quiz-only trial. Move up when your quiz load grows.
+            Every plan includes the full quiz builder, access codes and instant
+            results. Paid plans also include monthly AI credits at the limited
+            2026 offer price.
           </p>
           <div className="qp-actions">
             <Link href="/register" className="btn pri">
-              Start free <ArrowRight size={16} />
+              Start quiz-only trial <ArrowRight size={16} />
             </Link>
             <a href="#plans" className="btn">
               Compare plans
@@ -76,7 +85,7 @@ export default function PricingPage() {
           </div>
           <div className="qp-meta" aria-label="Pricing highlights">
             <span>No card required</span>
-            <span>7-day free trial · 2 quizzes · 1 room</span>
+            <span>Quiz-only trial</span>
             <span>Limited 2026 offer</span>
             <span>GST included</span>
           </div>
@@ -95,8 +104,8 @@ export default function PricingPage() {
             </div>
 
             <div className="qp-grid">
-              {CREATOR_PLANS.map((plan) => {
-                const discount = getCreatorPlanDiscount(plan);
+              {catalog.plans.map((plan) => {
+                const discount = getPlanDiscount(plan);
                 return (
                   <article
                     key={plan.id}
@@ -111,8 +120,6 @@ export default function PricingPage() {
                         <span className="qp-pill">{plan.trialDays}-day trial</span>
                       ) : discount > 0 ? (
                         <span className="qp-pill">{discount}% off</span>
-                      ) : plan.price === 0 ? (
-                        <span className="qp-pill">Free forever</span>
                       ) : null}
                     </div>
                     {plan.offer && <p className="qp-offer">{plan.offer}</p>}
@@ -123,7 +130,7 @@ export default function PricingPage() {
                       {discount > 0 && plan.originalPrice ? (
                         <s>{inr(plan.originalPrice)}</s>
                       ) : null}
-                      <span>{plan.price === 0 ? "to start" : "/ month"}</span>
+                      <span>/ month</span>
                     </div>
 
                     <p
@@ -181,7 +188,7 @@ export default function PricingPage() {
                 <h3>Need extra AI credits?</h3>
                 <p>
                   Paid plans include a monthly allowance. Additional credits are
-                  one-time packs, valid for {CREDIT_VALIDITY_MONTHS} months, and
+                  one-time packs, valid for {creditValidityMonths} months, and
                   work with every plan.
                 </p>
               </div>
@@ -210,7 +217,7 @@ export default function PricingPage() {
             <div className="cta">
               <div>
                 <p className="eb">Start today</p>
-                <h2>Your first 2 quizzes and 1 room are free for 7 days.</h2>
+                <h2>Start your 7-day quiz-only trial today.</h2>
               </div>
               <div className="qp-cta-actions">
                 <Link href="/register" className="btn">

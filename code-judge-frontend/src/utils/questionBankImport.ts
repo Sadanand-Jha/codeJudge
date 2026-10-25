@@ -1,5 +1,6 @@
 import type { CreatorQuestion, CreatorQuestionType } from "@/components/quiz/creator/types";
 import type { UserBankQuestion } from "@/services/ai";
+import { containsHtml, htmlToPlainText } from "@/utils/htmlText";
 
 /**
  * The quiz problem editor supports single choice, multiple choice, true/false,
@@ -26,12 +27,18 @@ function toDifficulty(raw: string | null): CreatorQuestion["difficulty"] {
 export function bankQuestionToCreatorQuestion(question: UserBankQuestion): CreatorQuestion {
   const timestamp = new Date().toISOString();
   const type = toCreatorType(question.question_type);
-  const options = (Array.isArray(question.options) ? question.options : []).map((option, index) => ({
-    id: `bank_${question.id}_opt_${index}`,
-    label: String.fromCharCode(65 + index),
-    content: option.text ?? "",
-    isCorrect: Boolean(option.isCorrect),
-  }));
+  const options = (Array.isArray(question.options) ? question.options : []).map((option, index) => {
+    const rawText = option.text ?? "";
+    const html = option.html?.trim() || (containsHtml(rawText) ? rawText : "");
+    const plain = rawText && !containsHtml(rawText) ? rawText : htmlToPlainText(rawText || html);
+    return {
+      id: `bank_${question.id}_opt_${index}`,
+      label: String.fromCharCode(65 + index),
+      content: plain,
+      contentHtml: html || undefined,
+      isCorrect: Boolean(option.isCorrect),
+    };
+  });
   const answers = Array.isArray(question.answers) ? question.answers : [];
   const tags = Array.from(new Set([question.topic, question.chapter].filter(Boolean) as string[]));
   const correctIndex = options.findIndex((option) => option.isCorrect);

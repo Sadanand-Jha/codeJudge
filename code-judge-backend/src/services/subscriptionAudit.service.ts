@@ -9,7 +9,7 @@ export interface SubscriptionAuditInput {
   /** "platform_admin" | "platform_support" | "system" | "user". */
   actorRole?: string;
   action: string;
-  entityType: "plan" | "price" | "subscription" | "override" | "payment" | "coupon" | "settings" | "entitlement";
+  entityType: "plan" | "price" | "subscription" | "override" | "payment" | "coupon" | "settings" | "entitlement" | "credit_pack";
   entityId?: string | number | null;
   before?: unknown;
   after?: unknown;

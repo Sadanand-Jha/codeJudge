@@ -1,0 +1,15 @@
+node_modules
+dist
+.git
+.gitignore
+.env
+.env.*
+*.log
+*.tsbuildinfo
+dump.rdb
+redis-stable
+redis-stable*
+*.tar.gz
+api
+e2e_smoke.mts
+probe-usage.mjs

@@ -6,6 +6,7 @@ import { AnimatePresence } from "framer-motion";
 import { CalendarClock, History } from "lucide-react";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { useToast } from "@/hooks/useToast";
+import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { useBillingData } from "./hooks";
@@ -21,7 +22,6 @@ import { QS_OUTLINE_BTN } from "./credits/styles";
 import {
   buildOrderSummary,
   createCreditOrder,
-  getPurchasePacks,
   openRazorpayCheckout,
   verifyCreditPayment,
   type CreditOrder,
@@ -46,22 +46,28 @@ export function AICreditsPage({
   const balance = useAICreditsStore((s) => s.balance);
   const refreshCredits = useAICreditsStore((s) => s.refresh);
   const purchasePack = useAICreditsStore((s) => s.purchasePack);
+  const { catalog } = usePricingCatalog();
+  const packs = catalog.creditPacks;
 
-  const { state, data, retry } = useBillingData(() => ({ packs: getPurchasePacks() }), {
+  const { state, data, retry } = useBillingData(() => ({ packs }), {
     demoState,
   });
 
-  const [packId, setPackId] = useState<string | null>(() =>
-    initialPackId && getPurchasePacks().some((pack) => pack.id === initialPackId)
-      ? initialPackId
-      : null
-  );
+  const [packId, setPackId] = useState<string | null>(initialPackId ?? null);
   const [phase, setPhase] = useState<PurchasePhase>("summary");
   const [phaseError, setPhaseError] = useState<string | null>(null);
   const [processingNote, setProcessingNote] = useState("Creating your order…");
   const [receipt, setReceipt] = useState<PurchaseReceipt | null>(null);
 
-  const selected: PackOrderSummary | null = packId ? buildOrderSummary(packId) : null;
+  const selectedPackId =
+    packId && packs.some((pack) => pack.id === packId)
+      ? packId
+      : initialPackId && packs.some((pack) => pack.id === initialPackId)
+        ? initialPackId
+        : null;
+  const selected: PackOrderSummary | null = selectedPackId
+    ? buildOrderSummary(selectedPackId, packs)
+    : null;
 
   const openSummary = (pack: CreditPurchasePack) => {
     setPackId(pack.id);
@@ -83,8 +89,10 @@ export function AICreditsPage({
     setReceipt(null);
     try {
       setProcessingNote("Creating your order…");
-      const summary = buildOrderSummary(args.packId);
-      const order: CreditOrder = await createCreditOrder(summary.pack.id);
+      const summary = buildOrderSummary(args.packId, packs);
+      const order: CreditOrder = await createCreditOrder(summary.pack.id, {
+        packs,
+      });
       setProcessingNote("Waiting for payment…");
       const payment = await openRazorpayCheckout({
         order,
@@ -128,7 +136,7 @@ export function AICreditsPage({
     <div className="space-y-5 pb-2">
       <PageHeader
         title="AI Credits"
-        subtitle="Monthly plans include credits; one-time top-up packs add more whenever you need them."
+        subtitle="Top up credits whenever you need them."
         actions={
           <>
             <Link
@@ -181,7 +189,13 @@ export function AICreditsPage({
           <div id="credit-packs">
             <CreditPacks packs={data.packs} onSelect={openSummary} />
           </div>
-          <HowCreditsWork />
+          <HowCreditsWork
+            validityMonths={
+              packs.length > 0
+                ? Math.max(...packs.map((pack) => pack.validityMonths))
+                : undefined
+            }
+          />
         </>
       )}
 

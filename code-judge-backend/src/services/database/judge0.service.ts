@@ -1,16 +1,24 @@
-// Judge0 API client. Creates a pre-configured Axios instance pointing at
-// localhost:2358 for code execution requests.
+// Judge0 API client. The URL and optional auth token are read from the
+// environment so a self-hosted instance (default) or a remote Judge0
+// deployment can be used without changing code.
 import axios from "axios";
 
+const baseURL = process.env.JUDGE0_API_URL?.trim() || "http://localhost:2358";
+const apiKey = process.env.JUDGE0_API_KEY?.trim();
+
+const headers: Record<string, string> = {
+  "Content-Type": "application/json",
+};
+
+if (apiKey) {
+  headers["X-Auth-Token"] = apiKey;
+}
+
 const judge0 = axios.create({
-    baseURL: "http://localhost:2358",
-    headers: {
-        "Content-Type": "application/json",
-    },
+  baseURL,
+  headers,
 });
 
 export default judge0;
 
-
-// it is just creating a custom axios instance with the base URL of the Judge0 API and setting the content type to JSON. This allows you to make requests to the Judge0 API using this instance without having to specify the base URL and headers every time.
-// when you write judge0.get("/languages"); it is equivalent to writing axios.get("http://localhost:2358/languages", { headers: { "Content-Type": "application/json" } });
+// when you write judge0.get("/languages"); it is equivalent to axios.get("http://localhost:2358/languages", { headers: { "Content-Type": "application/json" } });

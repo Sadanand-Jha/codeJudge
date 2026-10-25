@@ -379,8 +379,16 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
     );
   }
 
+  const usesDefaultHeader = !header && !isEditorPath(pathname);
+
   return (
-    <div className="flex min-h-dvh w-full min-w-0 flex-col bg-ai-bg" data-ai-scope>
+    <div
+      className={cn(
+        "flex min-h-dvh w-full min-w-0 flex-col bg-ai-bg",
+        usesDefaultHeader && "pt-14"
+      )}
+      data-ai-scope
+    >
       {/* Mobile overlay (starts below the topbar so the menu toggle stays usable) */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -404,7 +412,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
           onCopy={(e) => e.preventDefault()}
           onCut={(e) => e.preventDefault()}
           className={cn(
-            "app-topbar sticky top-0 z-30 flex h-14 min-w-0 w-full select-none items-center gap-2 border-b border-ai-border bg-ai-sidebar px-3 sm:gap-4 sm:px-4"
+            "app-topbar fixed inset-x-0 top-0 z-30 flex h-14 min-w-0 w-full select-none items-center gap-2 border-b border-ai-border bg-ai-sidebar px-3 sm:gap-4 sm:px-4"
           )}
         >
           {/* Left: sidebar toggle + brand + page title */}
@@ -447,13 +455,18 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
       ) : null}
 
       {/* ===== WORKSPACE (sidebar starts below the navbar) ===== */}
-      <div className="flex w-full min-w-0 flex-1">
+      <div
+        className={cn(
+          "flex w-full min-w-0 flex-1",
+          !isStudioRoute && !sidebarCollapsed && "lg:pl-64"
+        )}
+      >
         {/* ===== STUDENT SIDEBAR (permanent on desktop, drawer on phones) ===== */}
         {!isStudioRoute && (
           <Sidebar
             dataSidebar="true"
             className={cn(
-              "app-sidebar-rail fixed left-0 top-14 z-50 flex h-[calc(100dvh-3.5rem)] w-64 shrink-0 flex-col overflow-hidden border-r-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] transition-transform duration-200 ease-out lg:sticky lg:top-14",
+              "app-sidebar-rail fixed left-0 top-14 z-50 flex h-[calc(100dvh-3.5rem)] w-64 shrink-0 flex-col overflow-hidden border-r-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] transition-transform duration-200 ease-out",
               sidebarOpen && "app-sidebar-mobile-open",
               sidebarCollapsed && "lg:hidden"
             )}

@@ -15,15 +15,23 @@ export const planPriceSchema = z.object({
   billing_period: billingPeriodSchema,
   custom_days: z.number().int().positive().nullable().optional(),
   amount: z.number().int().min(0).max(100_000_000),
+  mrp_amount: z.number().int().min(0).max(100_000_000).nullable().optional(),
   tax_inclusive: z.boolean().optional(),
   gateway_price_id: z.string().max(120).nullable().optional(),
   is_active: z.boolean().optional(),
 });
 
+const planFeaturesSchema = z.array(z.string().trim().min(1).max(200)).max(20);
+
 export const createPlanBodySchema = z.object({
   name: z.string().trim().min(1).max(120),
   slug: z.string().trim().min(1).max(120).optional(),
   description: z.string().max(2000).nullable().optional(),
+  tagline: z.string().max(300).nullable().optional(),
+  cta: z.string().max(80).nullable().optional(),
+  offer: z.string().max(160).nullable().optional(),
+  featured: z.boolean().optional(),
+  features: planFeaturesSchema.optional(),
   status: z.enum(["draft", "active"]).optional(),
   is_public: z.boolean().optional(),
   sort_order: z.number().int().min(0).max(10_000).optional(),
@@ -36,6 +44,11 @@ export const updatePlanBodySchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
   slug: z.string().trim().min(1).max(120).optional(),
   description: z.string().max(2000).nullable().optional(),
+  tagline: z.string().max(300).nullable().optional(),
+  cta: z.string().max(80).nullable().optional(),
+  offer: z.string().max(160).nullable().optional(),
+  featured: z.boolean().optional(),
+  features: planFeaturesSchema.optional(),
   is_public: z.boolean().optional(),
   sort_order: z.number().int().min(0).max(10_000).optional(),
   trial_days: z.number().int().min(0).max(365).optional(),
@@ -53,3 +66,20 @@ export const archivePlanBodySchema = z.object({
 export const reorderPlansBodySchema = z.object({
   planIds: z.array(z.number().int().positive()).min(1).max(200),
 });
+
+const creditPackBaseSchema = z.object({
+  code: z.string().trim().min(1).max(20),
+  name: z.string().trim().min(1).max(50),
+  price_inr: z.number().int().min(0).max(10_000_000),
+  credits: z.number().int().positive().max(10_000_000),
+  validity_days: z.number().int().positive().max(3650),
+  description: z.string().max(255).nullable().optional(),
+  is_popular: z.boolean().optional(),
+  save_percent: z.number().int().min(0).max(100).optional(),
+  is_active: z.boolean().optional(),
+  cta: z.string().max(80).nullable().optional(),
+  sort_order: z.number().int().min(0).max(10_000).optional(),
+});
+
+export const createCreditPackBodySchema = creditPackBaseSchema;
+export const updateCreditPackBodySchema = creditPackBaseSchema.partial();

@@ -25,11 +25,13 @@ import { useToast } from "@/hooks/useToast";
 import { useData } from "@/lib/hooks/useData";
 import { deleteMyQuestionBankQuestion, getMyQuestionBank, type UserBankQuestion } from "@/services/ai";
 import { QuestionHtml } from "@/components/creator/questions/QuestionHtml";
+import { QuizRichText } from "@/components/quiz/QuizRichText";
 
 type QuestionType = "single" | "multiple" | "integer" | "true-false" | "subjective";
 type QuestionDifficulty = "easy" | "medium" | "hard" | "unrated";
 interface BankOption {
   text: string;
+  html?: string | null;
   isCorrect: boolean;
 }
 
@@ -124,6 +126,7 @@ function mapBankQuestion(question: UserBankQuestion): BankQuestion {
     updated: formatUpdated(question.created_at),
     options: (Array.isArray(question.options) ? question.options : []).map((option) => ({
       text: option.text,
+      html: option.html,
       isCorrect: Boolean(option.isCorrect),
     })),
     answers: Array.isArray(question.answers) ? question.answers : [],
@@ -289,14 +292,13 @@ function QuestionPreviewDrawer({
                   >
                     {String.fromCharCode(65 + index)}
                   </span>
-                  <p
+                  <QuizRichText
+                    html={option.html || option.text || "—"}
                     className={cn(
                       "min-w-0 flex-1 text-sm font-medium leading-relaxed",
                       option.isCorrect ? "font-bold text-[var(--qs-ok)]" : "text-[var(--qs-ink)]"
                     )}
-                  >
-                    {option.text || "—"}
-                  </p>
+                  />
                   {option.isCorrect && <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[var(--qs-ok)]" />}
                 </div>
               ))

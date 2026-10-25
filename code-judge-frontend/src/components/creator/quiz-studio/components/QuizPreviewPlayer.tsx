@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, ChevronLeft, ChevronRight, Eye, ShieldCheck, Target, X } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
+import { QuizRichText } from "@/components/quiz/QuizRichText";
 import type { CreatorQuestion } from "../types";
 
 interface QuizPreviewPlayerProps {
@@ -18,23 +19,6 @@ type PreviewAnswer = {
   options?: string[];
   textAnswer?: string;
 };
-
-function plainText(html: string | null | undefined): string {
-  if (!html) return "";
-  return html
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/(p|div|li|h[1-6])>/gi, "\n")
-    .replace(/<li[^>]*>/gi, "• ")
-    .replace(/<[^>]*>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "’")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
 
 export function QuizPreviewPlayer({ open, onClose, questions, quizTitle }: QuizPreviewPlayerProps) {
   const [index, setIndex] = useState(0);
@@ -156,9 +140,10 @@ export function QuizPreviewPlayer({ open, onClose, questions, quizTitle }: QuizP
                         {current.type === "multiple_choice" ? "Select all that apply" : current.options.length ? "Choose one answer" : "Written response"}
                       </span>
                     </div>
-                    <h2 className="relative mt-4 whitespace-pre-wrap text-base font-semibold leading-7 tracking-[-0.01em] text-[var(--qs-ink)] sm:text-lg">
-                      {plainText(current.title) || "Untitled question"}
-                    </h2>
+                    <QuizRichText
+                      html={current.title || "Untitled question"}
+                      className="relative mt-4 whitespace-pre-wrap text-base font-semibold leading-7 tracking-[-0.01em] text-[var(--qs-ink)] sm:text-lg"
+                    />
 
                     {current.options.length > 0 ? (
                       <div className="relative mt-5 grid gap-3 sm:grid-cols-2">
@@ -200,7 +185,11 @@ export function QuizPreviewPlayer({ open, onClose, questions, quizTitle }: QuizP
                               >
                                 {optionLabel}
                               </span>
-                              <span className="flex-1">{plainText(option.content)}</span>
+                              <QuizRichText
+                                as="span"
+                                html={option.contentHtml || option.content}
+                                className="flex-1"
+                              />
                               <CheckCircle2 className={`h-4 w-4 shrink-0 transition-opacity ${selected ? "text-[var(--qs-brand)] opacity-100" : "opacity-0"}`} />
                             </button>
                           );

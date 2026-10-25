@@ -211,7 +211,7 @@ export default function DeveloperPortfolio() {
   const spotlight = useMotionTemplate`radial-gradient(580px circle at ${smoothX}% ${smoothY}%, ${glow}, transparent 68%)`;
 
   return (
-    <div onMouseMove={animated ? (event) => { pointerX.set((event.clientX / window.innerWidth) * 100); pointerY.set((event.clientY / window.innerHeight) * 100); } : undefined} className={`${styles.page} relative min-h-dvh overflow-x-hidden bg-[var(--dev-bg)] text-[var(--dev-text)] selection:bg-violet-500/30`}>
+    <div onMouseMove={animated ? (event) => { pointerX.set((event.clientX / window.innerWidth) * 100); pointerY.set((event.clientY / window.innerHeight) * 100); } : undefined} className={`${styles.page} relative min-h-dvh overflow-x-clip bg-[var(--dev-bg)] text-[var(--dev-text)] selection:bg-violet-500/30`}>
       <div className={`${styles.desktopEffects} pointer-events-none fixed inset-0 hidden lg:block`} aria-hidden="true">
         <motion.div className="absolute inset-0" style={{ background: spotlight }} />
         <div className={`${styles.grid} absolute inset-0`} />

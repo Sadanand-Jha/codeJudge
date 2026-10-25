@@ -8,7 +8,7 @@ import { getStudentResponseDetail } from "@/services/quiz";
 import type { StudentResponseDetail } from "@/services/quiz";
 import { EmptyNote, OutlinePill } from "./ui";
 import type { StudentRow } from "./types";
-import { clampPercent, fmtSec, initialsOf, nameHue, toNumber } from "./utils";
+import { clampPercent, cleanStatement, fmtSec, initialsOf, nameHue, toNumber } from "./utils";
 
 type SortKey = "rank" | "score" | "time";
 
@@ -35,7 +35,7 @@ function ReviewChips({ detail }: { detail: StudentResponseDetail }) {
       {detail.review.map((r) => (
         <span
           key={r.problem_id}
-          title={r.problem_statement}
+          title={cleanStatement(r.problem_statement)}
           className={cn("inline-flex items-center gap-1 rounded-full border-2 bg-[var(--qs-surface)] px-2 py-0.5 text-xs font-extrabold", tone[r.status])}
         >
           Q{r.question_number} {glyph[r.status]}

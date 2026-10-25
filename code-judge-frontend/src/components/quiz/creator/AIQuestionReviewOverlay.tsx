@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { QuestionHtml } from "@/components/creator/questions/QuestionHtml";
+import { QuizRichText } from "@/components/quiz/QuizRichText";
 
 export interface PreviewQuestion {
   id: string;
@@ -29,7 +30,7 @@ export interface PreviewQuestion {
   title: string;
   content: string;
   questionHtml?: string;
-  options?: { id: string; content: string; isCorrect: boolean }[];
+  options?: { id: string; content: string; contentHtml?: string; isCorrect: boolean }[];
   correctAnswer?: string | number;
   explanation?: string;
   hint?: string;
@@ -210,7 +211,7 @@ export default function AIQuestionReviewOverlay({
     // Plain-text edits replace the HTML stem; keep the table markup only when
     // the creator did not touch the question text.
     const next =
-      current && editDraft.title !== current.title
+      current && (editDraft.title !== current.title || editDraft.content !== current.content)
         ? { ...editDraft, questionHtml: undefined }
         : editDraft;
     onEditOne?.(next);
@@ -376,16 +377,15 @@ export default function AIQuestionReviewOverlay({
                             >
                               {opt.label}
                             </span>
-                            <span
+                            <QuizRichText
+                              html={opt.contentHtml || opt.content}
                               className={cn(
                                 "min-w-0 flex-1 text-[13px] leading-relaxed",
                                 opt.isCorrect
                                   ? "font-semibold text-[var(--qs-ok)]"
                                   : "text-[var(--qs-muted)]"
                               )}
-                            >
-                              {opt.content}
-                            </span>
+                            />
                             {opt.isCorrect && (
                               <span className="mt-0.5 flex shrink-0 items-center gap-1 rounded-full bg-[var(--qs-okbg)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--qs-ok)]">
                                 <Check className="h-3 w-3" />
@@ -607,9 +607,21 @@ function QuestionEditForm({
   const hasOptions = (draft.options?.length ?? 0) > 0;
   const showOptionsEditor = hasOptions || draft.type === "mcq" || draft.type === "true_false";
 
-  const updateOption = (id: string, patch: Partial<{ content: string; isCorrect: boolean }>) => {
+  const updateOption = (
+    id: string,
+    patch: Partial<{ content: string; contentHtml?: string; isCorrect: boolean }>
+  ) => {
     onChange({
-      options: draft.options?.map((o) => (o.id === id ? { ...o, ...patch } : o)),
+      options: draft.options?.map((o) =>
+        o.id === id
+          ? {
+              ...o,
+              ...patch,
+              // A manual edit invalidates the AI-provided HTML for this option.
+              ...(patch.content !== undefined ? { contentHtml: undefined } : {}),
+            }
+          : o
+      ),
     });
   };
 

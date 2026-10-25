@@ -16,24 +16,6 @@ export interface CreatorPlan {
 
 export const CREATOR_PLANS: CreatorPlan[] = [
   {
-    id: "free",
-    name: "Free",
-    price: 0,
-    quizzes: 2,
-    rooms: 1,
-    credits: 0,
-    trialDays: 7,
-    tagline: "Try the full quiz builder for 7 days.",
-    features: [
-      "Up to 2 quiz creations",
-      "7-day free trial",
-      "1 room",
-      "Access codes and instant results",
-      "Question bank and practice sets",
-    ],
-    cta: "Start free trial",
-  },
-  {
     id: "basic",
     name: "Basic",
     price: 99,
@@ -41,16 +23,17 @@ export const CREATOR_PLANS: CreatorPlan[] = [
     quizzes: 30,
     rooms: 5,
     credits: 20,
+    trialDays: 7,
     offer: "Limited 2026 offer price",
     tagline: "For regular quizzes and assessments.",
     features: [
+      "7-day quiz-only trial",
       "Up to 30 quiz creations",
       "Up to 5 rooms",
-      "Everything in Free",
       "PDF and Word exports",
       "Email results to creator",
     ],
-    cta: "Choose Basic",
+    cta: "Start 7-day free trial",
     featured: true,
   },
   {

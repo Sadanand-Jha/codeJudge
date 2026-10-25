@@ -84,6 +84,8 @@ export interface RawAIGeneratedQuestion {
   type?: string;
   difficulty?: string;
   options?: string[];
+  /** Sanitized HTML rendering of each option, aligned with `options` by index. */
+  optionsHtml?: string[];
   answer?: string;
   correctAnswer?: string;
   correctOptionIndex?: number;
@@ -104,7 +106,7 @@ export interface AIQuestionPreview {
   title: string;
   content: string;
   questionHtml?: string;
-  options?: { id: string; content: string; isCorrect: boolean }[];
+  options?: { id: string; content: string; contentHtml?: string; isCorrect: boolean }[];
   correctAnswer?: string | number;
   explanation?: string;
   hint?: string;
@@ -164,6 +166,7 @@ export const mapRawQuestionsToPreview = (
       ? raw.options.map((content, oi) => ({
           id: String.fromCharCode(65 + oi),
           content,
+          contentHtml: raw.optionsHtml?.[oi]?.trim() || undefined,
           isCorrect: oi === resolvedCorrectIndex,
         }))
       : undefined;
@@ -573,7 +576,7 @@ export interface UserBankQuestion {
   question_type: string;
   question_text: string;
   question_html: string | null;
-  options: Array<{ text: string; isCorrect?: boolean }>;
+  options: Array<{ text: string; html?: string | null; isCorrect?: boolean }>;
   answers: string[];
   explanation: string | null;
   hint: string | null;

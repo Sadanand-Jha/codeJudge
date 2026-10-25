@@ -83,7 +83,12 @@ function hashQuestion(q: CreatorQuestion): string {
   const payload = {
     type: q.type,
     title: q.title,
-    options: q.options.map((o) => ({ content: o.content, isCorrect: o.isCorrect, caption: o.caption })),
+    options: q.options.map((o) => ({
+      content: o.content,
+      contentHtml: o.contentHtml,
+      isCorrect: o.isCorrect,
+      caption: o.caption,
+    })),
     correctAnswer: q.correctAnswer,
     explanation: q.explanation,
     hint: q.hint,
@@ -228,7 +233,7 @@ export async function syncQuizQuestions(
             .filter((o) => o.content.trim().length > 0)
             .map((o) => ({
               id: serverOptionId(o.id),
-              optionStatement: o.content,
+              optionStatement: o.contentHtml?.trim() || o.content,
               optionDescription: o.caption,
               isCorrect: o.isCorrect,
             }))

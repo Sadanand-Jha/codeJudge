@@ -40,30 +40,14 @@ import { getApiErrorMessage } from "@/lib/apiError";
 import { QuizStateScreen } from "./StudentQuizShell";
 import { useQuizSounds } from "@/hooks/useQuizSounds";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { QuizRichText } from "@/components/quiz/QuizRichText";
+import { htmlToPlainText } from "@/utils/htmlText";
 
 type QuestionStatus = "correct" | "wrong" | "skipped" | "answered";
 type RatingCategory = "quiz" | "questions" | "teacher" | "platform";
 type RatingSelection = Record<RatingCategory, number>;
 
 const EMPTY_RATINGS: RatingSelection = { quiz: 0, questions: 0, teacher: 0, platform: 0 };
-
-/* Import pipeline stores statements as HTML (<p>, <b>…). Strip for plain display. */
-function plainText(html: string | null | undefined): string {
-  if (!html) return "";
-  return html
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/(p|div|li|h[1-6])>/gi, "\n")
-    .replace(/<li[^>]*>/gi, "• ")
-    .replace(/<[^>]*>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "’")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
 
 /** All answer shapes the attempt screen persists (see attempt page restore logic). */
 type SelectedAnswer =
@@ -249,9 +233,9 @@ function buildAttemptReviewData(result: QuizResult, review: QuestionReview[]): A
     if (selected?.kind === "text") {
       const submitted = selected.text.trim().toLowerCase();
       const accepted = options
-        .map((option) => option.option_statement)
+        .map((option) => htmlToPlainText(option.option_statement))
         .filter(Boolean)
-        .map((value) => String(value).trim().toLowerCase());
+        .map((value) => value.trim().toLowerCase());
       textMatched = accepted.includes(submitted);
     }
     const built: AttemptReviewQuestion = {
@@ -261,18 +245,18 @@ function buildAttemptReviewData(result: QuizResult, review: QuestionReview[]): A
       // order rather than the student's attempt order. The UI must always
       // present a simple 1, 2, 3… sequence.
       number: index + 1,
-      statement: plainText(row.problem_statement),
+      statement: row.problem_statement,
       difficulty: normalizeDifficulty(row.difficulty),
       options: options.map((option, optionIndex) => ({
         id: String(option.id),
         label: OPTION_LABELS[optionIndex] ?? String(optionIndex + 1),
-        text: plainText(option.option_statement),
+        text: option.option_statement,
       })),
       correctOptionId,
       correctOptionIds: correctIds,
       selected,
       textMatched,
-      explanation: plainText(row.explaination) || undefined,
+      explanation: row.explaination || undefined,
       marksObtained: 0,
       maxMarks: perQuestionMarks,
       // Per-question time is not tracked by the backend (time_spent_seconds
@@ -717,9 +701,10 @@ export default function AttemptReviewExperience({
               {!collapsed && (
                 // No inner scroll here — the page itself scrolls.
                 <div>
-                  <h3 className="mt-3 text-[18px] font-semibold leading-snug text-[var(--qs-ink)] sm:text-[22px]">
-                    {currentQuestion.statement}
-                  </h3>
+                  <QuizRichText
+                    html={currentQuestion.statement}
+                    className="mt-3 text-[18px] font-semibold leading-snug text-[var(--qs-ink)] sm:text-[22px]"
+                  />
 
                   <div className="mt-4 space-y-2.5">
                     {currentQuestion.selected?.kind === "text" && (
@@ -764,15 +749,15 @@ export default function AttemptReviewExperience({
                             {option.label}
                           </span>
                           <div className="min-w-0 flex-1">
-                            <p className="flex flex-wrap items-center gap-2 break-words text-[14px] font-medium leading-relaxed text-[var(--qs-ink)] sm:text-[15px]">
-                              <span className="min-w-0 break-words">{option.text}</span>
+                            <div className="flex flex-wrap items-center gap-2 break-words text-[14px] font-medium leading-relaxed text-[var(--qs-ink)] sm:text-[15px]">
+                              <QuizRichText html={option.text} className="min-w-0 break-words" />
                               {isCorrect && (
                                 <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--qs-ok)]" aria-label="Correct option" />
                               )}
                               {selectedWrong && (
                                 <XCircle className="h-4 w-4 shrink-0 text-[var(--qs-bad)]" aria-label="Your incorrect selection" />
                               )}
-                            </p>
+                            </div>
                             <div className="mt-2 flex flex-wrap gap-1.5">
                               {isSelected && (
                                 <span
@@ -855,9 +840,10 @@ export default function AttemptReviewExperience({
                         <BookOpen className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
                         Explanation
                       </div>
-                      <p className="break-words text-[13px] leading-relaxed text-[var(--qs-muted)] sm:text-sm">
-                        {currentQuestion.explanation}
-                      </p>
+                      <QuizRichText
+                        html={currentQuestion.explanation}
+                        className="break-words text-[13px] leading-relaxed text-[var(--qs-muted)] sm:text-sm"
+                      />
                     </div>
                   )}
                 </div>

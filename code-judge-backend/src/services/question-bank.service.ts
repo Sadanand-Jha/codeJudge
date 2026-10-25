@@ -10,6 +10,7 @@ import { chatWithAI, streamChatWithAI } from "./ai.service.js";
 import type { LiveUsage } from "./ai.service.js";
 import { parseQuestionsJSON } from "./question-generation.service.js";
 import type { GeneratedQuestionPayload } from "./question-generation.service.js";
+import { sanitizeQuestionHtml } from "./subjectiveQuestionImport.service.js";
 import { pool } from "../config/database.js";
 import {
   formatQuestionScope,
@@ -95,6 +96,7 @@ Return ONLY valid JSON (no markdown fences, no commentary) matching exactly this
       "type": "mcq",
       "difficulty": "easy" | "medium" | "hard",
       "options": ["option A text", "option B text", "option C text", "option D text"],
+      "optionsHtml": ["option A rendered as clean HTML", "option B rendered as clean HTML", "option C rendered as clean HTML", "option D rendered as clean HTML"],
       "correctAnswer": "exact text of the correct option",
       "correctOptionIndex": 0,
       "explanation": "1-2 sentence explanation",
@@ -112,6 +114,7 @@ Rules:
 * Every question MUST include integer "chapterId" and "topicId" chosen from the scope catalogue supplied in the request. Never invent ids.
 * Always include "questionHtml". Use simple semantic HTML only (<p>, <ul>, <ol>, <li>, <strong>, <em>, <pre>, <code>, <table>, <thead>, <tbody>, <tr>, <th>, <td>). No scripts, styles, classes or inline attributes.
 * If a question includes tabular data (schedules, process tables, comparisons), render it as a real HTML <table> in "questionHtml". Never leave pipe-separated rows as plain text.
+* For every option include a matching "optionsHtml" entry (same order and length as "options") rendered as clean HTML with the same allowed tags. Never leave pipe-separated table data inside an option as plain text.
 * Do not add option labels like "A." inside option text.
 * Do not invent facts outside the supplied scope.
 * Do not return commentary or markdown around the JSON.`;
@@ -129,6 +132,16 @@ const normalizeDifficulty = (value: unknown): "easy" | "medium" | "hard" => {
 
 const normalizeText = (value: string) => value.replace(/\s+/g, " ").trim().toLocaleLowerCase();
 
+/** Keep only safe structural HTML; drop the field instead of failing the question. */
+function cleanQuestionHtml(raw: unknown): string | undefined {
+  if (typeof raw !== "string" || !raw.trim()) return undefined;
+  try {
+    return sanitizeQuestionHtml(raw).html || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Validate a raw model question and normalize it into the canonical payload.
  * Returns null when the question is not a usable 4-option MCQ.
@@ -142,17 +155,23 @@ function normalizeQuestion(
   if (!question) return null;
 
   const seenOptions = new Set<string>();
-  const options = (raw.options ?? [])
-    .map((option) => String(option).replace(OPTION_LABEL_PATTERN, "").replace(/\s+/g, " ").trim())
-    .filter((option) => {
-      if (!option) return false;
-      const numeric = Number(option);
-      const key = Number.isFinite(numeric) ? `n:${numeric}` : `t:${option.toLocaleLowerCase()}`;
-      if (seenOptions.has(key)) return false;
-      seenOptions.add(key);
-      return true;
-    });
+  const keptOptionIndexes: number[] = [];
+  const options: string[] = [];
+  (raw.options ?? []).forEach((rawOption, index) => {
+    const option = String(rawOption).replace(OPTION_LABEL_PATTERN, "").replace(/\s+/g, " ").trim();
+    if (!option) return;
+    const numeric = Number(option);
+    const key = Number.isFinite(numeric) ? `n:${numeric}` : `t:${option.toLocaleLowerCase()}`;
+    if (seenOptions.has(key)) return;
+    seenOptions.add(key);
+    keptOptionIndexes.push(index);
+    options.push(option);
+  });
   if (options.length !== 4) return null;
+
+  const rawOptionsHtml = Array.isArray(raw.optionsHtml) ? raw.optionsHtml : [];
+  const optionsHtml = keptOptionIndexes.map((index) => cleanQuestionHtml(rawOptionsHtml[index]) ?? "");
+  const hasOptionsHtml = optionsHtml.some(Boolean);
 
   const candidateAnswer = String(raw.answer ?? raw.correctAnswer ?? "").trim();
   let correctIndex = options.findIndex(
@@ -174,10 +193,11 @@ function normalizeQuestion(
 
   return {
     question,
-    questionHtml: raw.questionHtml?.trim() || undefined,
+    questionHtml: cleanQuestionHtml(raw.questionHtml),
     type: "mcq",
     difficulty,
     options,
+    optionsHtml: hasOptionsHtml ? optionsHtml : undefined,
     answer: options[correctIndex],
     correctAnswer: options[correctIndex],
     correctOptionIndex: correctIndex,
@@ -247,6 +267,7 @@ export async function persistGeneratedQuestions(
     for (const question of questions) {
       const options = question.options.map((text, index) => ({
         text,
+        html: question.optionsHtml?.[index] || null,
         isCorrect: index === question.correctOptionIndex,
       }));
       const answers = question.answer ? [question.answer] : [];

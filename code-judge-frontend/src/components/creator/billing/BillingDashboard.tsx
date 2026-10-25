@@ -16,7 +16,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { getCreatorPlan } from "@/config/creatorPlans";
+import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { useBillingData } from "./hooks";
 import { ErrorState, Skeleton, formatINR } from "./ui";
 import { checkLowCreditWarning, useAICreditsStore } from "@/store/aiCreditsStore";
@@ -145,7 +145,10 @@ function CreditsCard({
   const monthlyTotal = Math.max(balance.monthlyCredits, 0);
   const monthlyUsed = Math.min(Math.max(balance.monthlyCreditsConsumed, 0), monthlyTotal || balance.monthlyCreditsConsumed);
   const monthlyPct = monthlyTotal > 0 ? Math.min(100, (monthlyUsed / monthlyTotal) * 100) : 0;
-  const planName = getCreatorPlan(balance.planId)?.name ?? "Current";
+  const { catalog } = usePricingCatalog();
+  const isTrial = balance.planId === "free";
+  const planName =
+    catalog.plans.find((plan) => plan.slug === balance.planId)?.name ?? "Current";
 
   return (
     <div className="relative mb-4 mr-4">
@@ -171,9 +174,18 @@ function CreditsCard({
           <span className="ml-2.5 align-middle text-[15px] font-bold text-[var(--qs-muted)]">credits left</span>
         </p>
         <p className="mt-2 text-[13px] text-[var(--qs-muted)]">
-          {balance.planId === "free" ? "Free plan" : `${planName} plan`} ·{" "}
-          {balance.monthlyCredits.toLocaleString("en-IN")} included ·{" "}
-          {balance.purchasedCredits.toLocaleString("en-IN")} purchased
+          {isTrial ? (
+            <>
+              Basic trial · no monthly AI credits ·{" "}
+              {balance.purchasedCredits.toLocaleString("en-IN")} purchased
+            </>
+          ) : (
+            <>
+              {planName} plan · {balance.monthlyCredits.toLocaleString("en-IN")}{" "}
+              included · {balance.purchasedCredits.toLocaleString("en-IN")}{" "}
+              purchased
+            </>
+          )}
         </p>
 
         <div className="mt-5">
@@ -426,8 +438,10 @@ function PlanSummaryStrip({
   planId: string;
   purchasedCredits: number;
 }) {
-  const plan = getCreatorPlan(planId) ?? getCreatorPlan("free");
-  if (!plan) return null;
+  const { catalog } = usePricingCatalog();
+  const isTrial = planId === "free";
+  const plan = catalog.plans.find((candidate) => candidate.slug === planId);
+  if (!isTrial && !plan) return null;
 
   return (
     <section
@@ -441,8 +455,8 @@ function PlanSummaryStrip({
         <div className="min-w-0">
           <span className={cn(PILL, "text-[var(--qs-brand)]")}>Monthly plan</span>
           <p className="mt-1.5 truncate text-[15px] font-extrabold text-[var(--qs-ink)]">
-            {plan.name}
-            {plan.price > 0 && (
+            {isTrial ? "Basic trial" : plan?.name}
+            {!isTrial && plan && plan.price > 0 && (
               <span className="ml-1.5 font-semibold text-[var(--qs-muted)]">
                 · {formatINR(plan.price)} / month
               </span>
@@ -454,9 +468,11 @@ function PlanSummaryStrip({
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] font-semibold text-[var(--qs-muted)]">
         <span className="inline-flex items-center gap-1.5">
           <Sparkles className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
-          {plan.credits > 0
-            ? `${plan.credits.toLocaleString("en-IN")} credits / month`
-            : "No monthly credits"}
+          {isTrial
+            ? "Quizzes only · no AI credits"
+            : plan && plan.credits > 0
+              ? `${plan.credits.toLocaleString("en-IN")} credits / month`
+              : "No monthly credits"}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <Coins className="h-3.5 w-3.5 text-[var(--qs-brand)]" />

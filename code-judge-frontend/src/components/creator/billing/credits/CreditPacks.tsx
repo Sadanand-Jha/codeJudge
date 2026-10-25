@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { ArrowRight, Check, Lock, Sparkles } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { CREATOR_PLANS, getCreatorPlan, type CreatorPlan } from "@/config/creatorPlans";
+import { usePricingCatalog } from "@/hooks/usePricingCatalog";
+import { type PricingPlan } from "@/services/pricing";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import type { CreditPurchasePack } from "@/services/aiCredits";
 
@@ -24,7 +25,7 @@ function savingsPercent(pack: CreditPurchasePack, base?: CreditPurchasePack): nu
 }
 
 
-function CurrentPlanCard({ plan }: { plan: CreatorPlan }) {
+function CurrentPlanCard({ plan }: { plan: PricingPlan }) {
   const included = plan.credits > 0;
   const features = included
     ? [
@@ -58,9 +59,7 @@ function CurrentPlanCard({ plan }: { plan: CreatorPlan }) {
 
       <p className="my-5 mb-2.5 text-[64px] font-black leading-none tracking-tight">
         ₹{plan.price}
-        {plan.price > 0 && (
-          <span className="ml-2 text-base font-bold text-[var(--qs-muted)]">/ month</span>
-        )}
+        <span className="ml-2 text-base font-bold text-[var(--qs-muted)]">/ month</span>
       </p>
       <p className="text-base font-bold">
         {included ? `${plan.credits} AI credits included` : "No monthly credits"}
@@ -190,55 +189,53 @@ export function CreditPacks({
   onSelect: (pack: CreditPurchasePack) => void;
 }) {
   const balance = useAICreditsStore((state) => state.balance);
-  const currentPlan = getCreatorPlan(balance.planId) ?? CREATOR_PLANS[0];
+  const { catalog } = usePricingCatalog();
+  const isTrial = balance.planId === "free";
+  const currentPlan = catalog.plans.find((plan) => plan.slug === balance.planId);
+  const displayPlan = currentPlan ?? catalog.plans[0];
   const basePack = packs.reduce<CreditPurchasePack | undefined>(
     (highest, pack) =>
       !highest || pack.price / pack.credits > highest.price / highest.credits ? pack : highest,
     undefined
   );
+  // The trial has no paid plan card. Keep this page focused on purchasable
+  // packs and show the trial state in the heading instead.
+  const showCurrentPlan = !isTrial && Boolean(currentPlan);
 
   return (
     <div>
-      <div className="mb-6 mt-2 max-w-2xl">
-        <h2 className="qs-display text-[26px] font-extrabold tracking-tight text-[var(--qs-ink)]">
-          Plans &amp; credits
-        </h2>
-        <p className="mt-1 text-[14px] text-[var(--qs-muted)]">
-          You&apos;re on the {currentPlan.name} plan.{" "}
-          {currentPlan.credits > 0
-            ? `${currentPlan.credits} AI credits are included each month; add a pack when you need more.`
-            : "Buy a one-time pack when you need AI credits."}
-        </p>
-      </div>
+      <p className="mb-6 mt-2 text-[14px] text-[var(--qs-muted)]">
+        {isTrial ? (
+          "Basic trial · quizzes only · no AI credits."
+        ) : (
+          <>
+            {displayPlan?.name ?? "Current plan"}
+            {displayPlan && displayPlan.credits > 0
+              ? ` · ${displayPlan.credits} credits/month · add a pack anytime.`
+              : " · buy a one-time pack when you need credits."}
+          </>
+        )}
+      </p>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
-        <section aria-labelledby="monthly-plan-heading">
-          <div className="mb-4">
+      <div
+        className={cn(
+          "grid items-start gap-6",
+          showCurrentPlan && "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]"
+        )}
+      >
+        {showCurrentPlan && currentPlan && (
+          <section aria-labelledby="monthly-plan-heading">
             <h3
               id="monthly-plan-heading"
-              className="text-[18px] font-extrabold tracking-tight text-[var(--qs-ink)]"
+              className="mb-4 text-[18px] font-extrabold tracking-tight text-[var(--qs-ink)]"
             >
               Monthly plan
             </h3>
-            <p className="mt-1 text-[13px] font-medium text-[var(--qs-muted)]">
-              Your current subscription and monthly AI allowance.
-            </p>
-          </div>
-          <CurrentPlanCard plan={currentPlan} />
-        </section>
+            <CurrentPlanCard plan={currentPlan} />
+          </section>
+        )}
 
-        <section aria-labelledby="ai-credits-heading">
-          <div className="mb-4">
-            <h3
-              id="ai-credits-heading"
-              className="text-[18px] font-extrabold tracking-tight text-[var(--qs-ink)]"
-            >
-              AI credits
-            </h3>
-            <p className="mt-1 text-[13px] font-medium text-[var(--qs-muted)]">
-              One-time top-up packs. No subscription required.
-            </p>
-          </div>
+        <section aria-label="AI credit packs">
           <div className="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-2">
             {packs.map((pack) => (
               <CreditPackCard key={pack.id} pack={pack} basePack={basePack} onSelect={onSelect} />

@@ -535,7 +535,7 @@ html {
    Creator Studio layout instead of the old hover-to-expand icon rail. */
 @media (min-width: 1024px) {
   .app-sidebar-rail {
-    position: sticky;
+    position: fixed;
     transform: translate3d(0, 0, 0);
   }
 }
@@ -5827,6 +5827,65 @@ textarea {
     margin: 22px 0 28px;
   }
 
+  @media (min-width: 961px) {
+    .qs-lp .hero-compact {
+      gap: 47px;
+      padding: 54px 24px 81px;
+    }
+
+    .qs-lp .hero-compact .qs-shadow {
+      width: 84%;
+      justify-self: end;
+    }
+
+    .qs-lp .hero-compact h1 {
+      font-size: clamp(35px, 5vw, 64px);
+    }
+
+    .qs-lp .hero-compact .lead {
+      font-size: 17px;
+      margin: 18px 0 24px;
+    }
+
+    .qs-lp .hero-compact .qs-input {
+      font-size: 15px;
+      padding: 12px 13px;
+    }
+
+    .qs-lp .hero-compact .btn {
+      font-size: 13px;
+      padding: 10px 17px;
+    }
+
+    .qs-lp .hero-compact .qs-card {
+      padding: 22px;
+      border-radius: 20px;
+    }
+
+    .qs-lp .hero-compact .qs-shadow::before {
+      inset: 15px -13px -13px 15px;
+      border-radius: 22px;
+    }
+
+    .qs-lp .hero-compact .qs-card h3 {
+      font-size: 21px;
+    }
+
+    .qs-lp .hero-compact .qs-meta {
+      font-size: 12px;
+    }
+
+    .qs-lp .hero-compact .qs-opt {
+      font-size: 14px;
+      padding: 11px 13px;
+      border-radius: 10px;
+    }
+
+    .qs-lp .hero-compact .qs-bar {
+      height: 5px;
+    }
+  }
+
   .qs-lp .sub {
     margin: 0;
     color: var(--muted);
@@ -6533,8 +6592,8 @@ textarea {
   }
 
   .qs-lp .lp-plans {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    max-width: 1080px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 820px;
   }
 
   .qs-lp .pk {
@@ -9141,10 +9200,11 @@ textarea {
 
 .qs-lp .qp-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: stretch;
   gap: 24px;
-  margin-top: 46px;
+  max-width: 820px;
+  margin: 46px auto 0;
 }
 
 .qs-lp .qp-plan {

@@ -29,27 +29,9 @@ import {
 import { useQuizSounds, type QuizSound } from "@/hooks/useQuizSounds";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
+import { QuizRichText } from "@/components/quiz/QuizRichText";
 
 type AnswerValue = StoredAttemptAnswer;
-
-/* Question-import stores statements as formatted HTML (<p>, <b>, lists…).
-   The attempt view is plain text, so strip tags + decode entities. */
-function plainText(html: string | null | undefined): string {
-  if (!html) return "";
-  return html
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/(p|div|li|h[1-6])>/gi, "\n")
-    .replace(/<li[^>]*>/gi, "• ")
-    .replace(/<[^>]*>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "’")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
 
 function responsesToAnswers(responses: Array<{ problem_id: number; answer: unknown }>): Record<number, AnswerValue> {
   const restored: Record<number, AnswerValue> = {};
@@ -467,8 +449,16 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
               {current.quiz_problem_type === 2 ? "Select all that apply" : current.options.length ? "Choose one answer" : "Written response"}
             </span>
           </div>
-          <h2 className="relative mt-4 whitespace-pre-wrap text-base font-semibold leading-7 tracking-[-0.01em] text-[var(--qs-ink)] sm:text-lg">{plainText(current.problem_statement)}</h2>
-          {current.problem_description && <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--qs-muted)]">{plainText(current.problem_description)}</p>}
+          <QuizRichText
+            html={current.problem_statement}
+            className="relative mt-4 text-base font-semibold leading-7 tracking-[-0.01em] text-[var(--qs-ink)] sm:text-lg"
+          />
+          {current.problem_description && (
+            <QuizRichText
+              html={current.problem_description}
+              className="mt-2 text-sm leading-6 text-[var(--qs-muted)]"
+            />
+          )}
 
           <div className="relative mt-5 grid gap-3 sm:grid-cols-2">
             {current.options.map((option, optionIndex) => {
@@ -500,7 +490,11 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
                   <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl border-2 text-[11px] font-bold transition-colors ${selected ? "border-[var(--qs-brand)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] group-hover:border-[var(--qs-brand)]/50 group-hover:text-[var(--qs-brand)]"}`}>
                     {optionLabel}
                   </span>
-                  <span className="flex-1">{plainText(option.option_statement)}</span>
+                  <QuizRichText
+                    as="span"
+                    html={option.option_statement}
+                    className="flex-1"
+                  />
                   <CheckCircle2 className={`h-4 w-4 shrink-0 transition-opacity ${selected ? "text-[var(--qs-brand)] opacity-100" : "opacity-0"}`} />
                 </button>
               );

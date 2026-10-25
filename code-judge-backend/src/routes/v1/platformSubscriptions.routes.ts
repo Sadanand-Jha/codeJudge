@@ -5,8 +5,10 @@ import { Router } from "express";
 import { validate } from "../../middleware/validate.ts";
 import {
   archivePlanBodySchema,
+  createCreditPackBodySchema,
   createPlanBodySchema,
   reorderPlansBodySchema,
+  updateCreditPackBodySchema,
   updatePlanBodySchema,
 } from "../../middleware/subscription.validate.ts";
 import {
@@ -22,6 +24,12 @@ import {
   reorderPlansHandler,
   updatePlanHandler,
 } from "../../controllers/platformSubscription.controller.ts";
+import {
+  createCreditPackHandler,
+  deleteCreditPackHandler,
+  listCreditPacksHandler,
+  updateCreditPackHandler,
+} from "../../controllers/platformCreditPack.controller.ts";
 
 const router = Router();
 
@@ -37,5 +45,10 @@ router.post("/plans/:planId/duplicate", duplicatePlanHandler);
 router.post("/plans/:planId/archive", validate(archivePlanBodySchema), archivePlanHandler);
 router.post("/plans/:planId/activate", activatePlanHandler);
 router.delete("/plans/:planId", deletePlanHandler);
+
+router.get("/packs", listCreditPacksHandler);
+router.post("/packs", validate(createCreditPackBodySchema), createCreditPackHandler);
+router.put("/packs/:packId", validate(updateCreditPackBodySchema), updateCreditPackHandler);
+router.delete("/packs/:packId", deleteCreditPackHandler);
 
 export default router;

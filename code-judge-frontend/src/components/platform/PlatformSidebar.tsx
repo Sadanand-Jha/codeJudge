@@ -34,6 +34,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Quiz analytics", href: "/platform/quizzes", icon: FlaskConical },
       { label: "Top quizzes", href: "/platform/quizzes/top", icon: ListOrdered },
+      { label: "Pricing", href: "/platform/pricing", icon: CreditCard },
       { label: "User analytics", href: "/platform/users", icon: Users },
       { label: "Student progress", href: "/platform/users/progress", icon: Users },
     ],

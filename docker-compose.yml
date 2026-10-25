@@ -1,0 +1,227 @@
+name: quizsupport
+
+# Production backend stack for QuizSupport.
+#
+# The frontend stays on its existing host (e.g. Vercel) and reaches this API
+# through the domain tunnel. Only the API publishes a port, bound to
+# 127.0.0.1, so the tunnel is the single public ingress. PostgreSQL and Redis
+# stay on the private Compose network with no host ports.
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-backend-build: &backend-build
+  context: ./code-judge-backend
+  dockerfile: Dockerfile
+
+x-backend-env: &backend-env
+  NODE_ENV: production
+  PORT: "8000"
+  TZ: UTC
+  DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+  DATABASE_SSL: ${DATABASE_SSL:-false}
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+  SECURE_MEDIA_DIR: /app/secure-media
+  FRONTEND_URL: ${FRONTEND_URL:?Set FRONTEND_URL in .env}
+  JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+  AES_SECRET_KEY: ${AES_SECRET_KEY:?Set AES_SECRET_KEY in .env}
+
+services:
+  postgres:
+    image: postgres:16.15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      TZ: UTC
+    command:
+      - postgres
+      - -c
+      - max_connections=150
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - effective_cache_size=768MB
+      - -c
+      - work_mem=8MB
+      - -c
+      - maintenance_work_mem=64MB
+      - -c
+      - wal_compression=on
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    shm_size: 256mb
+    stop_grace_period: 30s
+    mem_limit: 1g
+    mem_reservation: 256m
+    cpus: 1.0
+    pids_limit: 256
+    logging: *default-logging
+    networks:
+      - internal
+
+  redis:
+    image: redis:7.4.11-alpine
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --maxmemory
+      - 256mb
+      - --maxmemory-policy
+      - noeviction
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    stop_grace_period: 15s
+    mem_limit: 384m
+    mem_reservation: 64m
+    cpus: 0.5
+    pids_limit: 128
+    logging: *default-logging
+    networks:
+      - internal
+
+  # One-shot migration runner. ensureBaseSchema applies init.sql on a fresh
+  # database (or records it on an existing one), then the runner applies the
+  # remaining .sql files in filename order. Compose starts the API and worker
+  # only after this exits successfully.
+  migrate:
+    image: quizsupport-api:${IMAGE_TAG:-local}
+    restart: "no"
+    command: ["sh", "-c", "node dist/scripts/ensureBaseSchema.js && node dist/migrate.js"]
+    env_file:
+      - path: .env
+        required: true
+    environment: *backend-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: 512m
+    cpus: 1.0
+    logging: *default-logging
+    networks:
+      - internal
+
+  api:
+    image: quizsupport-api:${IMAGE_TAG:-local}
+    build: *backend-build
+    restart: unless-stopped
+    command: ["node", "dist/server.js"]
+    env_file:
+      - path: .env
+        required: true
+    environment:
+      <<: *backend-env
+      DISABLE_BACKGROUND_WORKERS: "1"
+      NODE_OPTIONS: --max-old-space-size=1536
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    init: true
+    stop_grace_period: 30s
+    shm_size: 256mb
+    mem_limit: 2g
+    mem_reservation: 384m
+    cpus: 1.5
+    pids_limit: 512
+    security_opt:
+      - no-new-privileges:true
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging: *default-logging
+    networks:
+      - internal
+
+  # Single owner of BullMQ consumers and the end-of-quiz scheduler. The API has
+  # DISABLE_BACKGROUND_WORKERS=1 so jobs are never processed twice.
+  worker:
+    image: quizsupport-api:${IMAGE_TAG:-local}
+    restart: unless-stopped
+    command: ["node", "dist/queues/startWorker.js"]
+    env_file:
+      - path: .env
+        required: true
+    environment:
+      <<: *backend-env
+      DISABLE_BACKGROUND_WORKERS: "0"
+      NODE_OPTIONS: --max-old-space-size=1024
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - --input-type=module
+        - -e
+        - "import { Queue } from 'bullmq'; import { Redis } from 'ioredis'; const c=new Redis(process.env.REDIS_URL,{maxRetriesPerRequest:null}); try { const q=new Queue('quiz-submissions',{connection:c}); const n=await q.getWorkersCount(); await q.close(); await c.quit(); process.exit(n>0?0:1); } catch { try { c.disconnect(); } catch {} process.exit(1); }"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    init: true
+    stop_grace_period: 60s
+    # Chromium renders up to PDF_QUEUE_CONCURRENCY (default 2) papers here.
+    shm_size: 512mb
+    mem_limit: 2g
+    mem_reservation: 384m
+    cpus: 1.5
+    pids_limit: 1024
+    security_opt:
+      - no-new-privileges:true
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging: *default-logging
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

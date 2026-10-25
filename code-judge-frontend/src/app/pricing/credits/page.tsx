@@ -12,11 +12,8 @@ import {
 } from "lucide-react";
 import { PricingFooter, PricingNav } from "@/components/pricing/PricingChrome";
 import { ScrollThemeSection } from "@/components/pricing/ScrollThemeSection";
-import {
-  CREDIT_PURCHASE_PACKS,
-  CREDIT_VALIDITY_MONTHS,
-} from "@/config/aiCredits";
-import { CREATOR_PLANS } from "@/config/creatorPlans";
+import { CREDIT_VALIDITY_MONTHS } from "@/config/aiCredits";
+import { getPricingCatalogServer } from "@/services/pricing";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
 
 export const metadata = buildPublicPageMetadata({
@@ -36,15 +33,22 @@ function inr(value: number): string {
   return `₹${value.toLocaleString("en-IN")}`;
 }
 
-export default function AICreditsPricingPage() {
-  const credits = CREDIT_PURCHASE_PACKS.map((pack) => pack.credits);
-  const validity = Math.max(...CREDIT_PURCHASE_PACKS.map((pack) => pack.validityMonths));
-  const minCredits = Math.min(...credits);
-  const maxCredits = Math.max(...credits);
+export default async function AICreditsPricingPage() {
+  const catalog = await getPricingCatalogServer();
+  const creditPacks = catalog.creditPacks;
+  const credits = creditPacks.map((pack) => pack.credits);
+  const validity =
+    creditPacks.length > 0
+      ? Math.max(...creditPacks.map((pack) => pack.validityMonths))
+      : CREDIT_VALIDITY_MONTHS;
+  const minCredits = credits.length > 0 ? Math.min(...credits) : 0;
+  const maxCredits = credits.length > 0 ? Math.max(...credits) : 0;
   const featuredPack =
-    CREDIT_PURCHASE_PACKS.find((pack) => pack.popular) ?? CREDIT_PURCHASE_PACKS[0];
-  const basicCredits = CREATOR_PLANS.find((plan) => plan.id === "basic")?.credits ?? 0;
-  const proCredits = CREATOR_PLANS.find((plan) => plan.id === "pro")?.credits ?? 0;
+    creditPacks.find((pack) => pack.popular) ?? creditPacks[0];
+  const basicCredits =
+    catalog.plans.find((plan) => plan.slug === "basic")?.credits ?? 0;
+  const proCredits =
+    catalog.plans.find((plan) => plan.slug === "pro")?.credits ?? 0;
 
   const steps = [
     {
@@ -53,7 +57,7 @@ export default function AICreditsPricingPage() {
     },
     {
       title: "Stack it on any plan",
-      body: "Packs add to your included plan credits and work with Free, Basic and Pro.",
+      body: "Packs add to your included plan credits and work with Basic and Pro.",
     },
     {
       title: `Use them within ${validity} months`,
@@ -72,7 +76,7 @@ export default function AICreditsPricingPage() {
     },
     {
       q: "Do I need a paid plan to buy credits?",
-      a: "No. AI credits work with the Free plan too. You can buy a pack without upgrading your monthly plan.",
+      a: "No. AI credits work alongside any active Basic or Pro subscription. You can buy a pack whenever your included allowance runs low.",
     },
     {
       q: "What can I use AI credits for?",
@@ -177,7 +181,7 @@ export default function AICreditsPricingPage() {
             </div>
 
             <div className="qp-packs">
-              {CREDIT_PURCHASE_PACKS.map((pack) => (
+              {creditPacks.map((pack) => (
                 <article
                   key={pack.id}
                   className={`qp-pack${pack.popular ? " is-popular" : ""}`}
@@ -207,7 +211,7 @@ export default function AICreditsPricingPage() {
                       <span className="qp-tick" aria-hidden="true">
                         <Check size={12} strokeWidth={3.5} />
                       </span>
-                      Works with Free, Basic and Pro
+                      Works with Basic and Pro
                     </li>
                     <li>
                       <span className="qp-tick" aria-hidden="true">
@@ -246,7 +250,7 @@ export default function AICreditsPricingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {CREDIT_PURCHASE_PACKS.map((pack) => (
+                  {creditPacks.map((pack) => (
                     <tr key={pack.id}>
                       <td>
                         <strong>{inr(pack.price)}</strong>

@@ -4,6 +4,7 @@
 import 'dotenv/config';
 import pg from 'pg';
 import dns from 'dns';
+import { resolveDatabaseSsl } from './databaseSsl.ts';
 
 const { Pool } = pg;
 
@@ -29,9 +30,9 @@ declare global {
 function createPool(): pg.Pool {
   const pool = new Pool({
     ...(connectionString ? { connectionString } : {}),
-    ssl: connectionString?.includes('localhost') || connectionString?.includes('127.0.0.1')
-      ? false
-      : { rejectUnauthorized: false }, // Required for Neon/Supabase/RDS on Vercel
+    // TLS is required by hosted providers (Neon/Supabase/RDS) but the bundled
+    // Compose PostgreSQL runs without TLS on the private network.
+    ssl: resolveDatabaseSsl(connectionString),
     // 2. Limit Pool Size: max 50 connections per container
     max: 50,
     // 3. Timeout Configs: close idle quickly, fail fast on connect

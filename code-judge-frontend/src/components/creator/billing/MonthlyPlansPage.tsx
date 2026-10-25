@@ -9,14 +9,9 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import {
-  CREATOR_PLANS,
-  getCreatorPlan,
-  getCreatorPlanDiscount,
-  type CreatorPlan,
-} from "@/config/creatorPlans";
+import { usePricingCatalog } from "@/hooks/usePricingCatalog";
+import { getPlanDiscount, type PricingPlan } from "@/services/pricing";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
-import { TrialOfferBanner } from "@/components/marketing/TrialOfferBanner";
 import { PageHeader } from "./ui";
 
 const OUTLINE_BTN =
@@ -34,17 +29,17 @@ function PlanCard({
   plan,
   currentPlanId,
 }: {
-  plan: CreatorPlan;
+  plan: PricingPlan;
   currentPlanId: string;
 }) {
-  const isCurrent = plan.id === currentPlanId;
+  const isCurrent = plan.slug === currentPlanId;
   const isHot = plan.featured && !isCurrent;
   const includedCredits = plan.credits > 0;
-  const discount = getCreatorPlanDiscount(plan);
+  const discount = getPlanDiscount(plan);
 
   return (
     <article
-      aria-labelledby={`studio-plan-${plan.id}`}
+      aria-labelledby={`studio-plan-${plan.slug}`}
       className={cn(
         "relative flex flex-col rounded-[26px] border-2 border-[var(--qs-ink)] p-6",
         isHot
@@ -67,7 +62,7 @@ function PlanCard({
 
       <div className="flex items-center justify-between gap-2.5">
         <h2
-          id={`studio-plan-${plan.id}`}
+          id={`studio-plan-${plan.slug}`}
           className="text-[22px] font-extrabold tracking-tight"
         >
           {plan.name}
@@ -80,11 +75,9 @@ function PlanCard({
               : "bg-[var(--qs-bg)] text-[var(--qs-muted)]"
           )}
         >
-          {plan.price === 0
-            ? plan.trialDays
-              ? `${plan.trialDays}-day trial`
-              : "Free forever"
-            : plan.id === "basic" && discount > 0
+          {plan.trialDays
+            ? `${plan.trialDays}-day trial`
+            : plan.slug === "basic" && discount > 0
               ? `Limited ${discount}% off`
               : discount > 0
                 ? `${discount}% off`
@@ -113,16 +106,14 @@ function PlanCard({
             {inr(plan.originalPrice)}
           </s>
         )}
-        {plan.price > 0 && (
-          <span
-            className={cn(
-              "ml-1.5 align-middle text-[13px] font-bold tracking-normal",
-              isHot ? "text-[var(--qs-on-brand)]/80" : "text-[var(--qs-muted)]"
-            )}
-          >
-            / month
-          </span>
-        )}
+        <span
+          className={cn(
+            "ml-1.5 align-middle text-[13px] font-bold tracking-normal",
+            isHot ? "text-[var(--qs-on-brand)]/80" : "text-[var(--qs-muted)]"
+          )}
+        >
+          / month
+        </span>
       </p>
 
       <p
@@ -176,7 +167,7 @@ function PlanCard({
         </span>
       ) : (
         <Link
-          href="/pricing#plans"
+          href={plan.trialDays ? "/register" : "/pricing#plans"}
           className={cn(
             "flex w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] py-[13px] text-[14px] font-extrabold transition-all",
             isHot
@@ -184,11 +175,7 @@ function PlanCard({
               : "bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:bg-[var(--qs-ink)] hover:text-[var(--qs-bg)]"
           )}
         >
-          {plan.price === 0
-            ? plan.trialDays
-              ? "Start free trial"
-              : "Switch to Free"
-            : `Upgrade to ${plan.name}`}
+          {plan.trialDays ? `Start ${plan.trialDays}-day free trial` : `Upgrade to ${plan.name}`}
           <ArrowRight className="h-4 w-4" />
         </Link>
       )}
@@ -198,13 +185,17 @@ function PlanCard({
 
 export function MonthlyPlansPage() {
   const balance = useAICreditsStore((state) => state.balance);
-  const currentPlan = getCreatorPlan(balance.planId) ?? CREATOR_PLANS[0];
+  const { catalog } = usePricingCatalog();
+  const isTrial = balance.planId === "free";
+  const currentPlan = catalog.plans.find((plan) => plan.slug === balance.planId);
+  const displayPlan = currentPlan ?? catalog.plans[0];
+  const currentPlanName = isTrial ? "Basic trial" : displayPlan?.name ?? "Current plan";
 
   return (
     <div className="space-y-5 pb-2">
       <PageHeader
         title="Monthly plans"
-        subtitle="Start with a 7-day free trial: 2 quizzes and 1 room. Paid plans include monthly AI credits."
+        subtitle="Basic starts with a 7-day quiz-only trial. Paid plans include monthly AI credits."
         actions={
           <>
             <Link href="/creator/billing/credits" className={OUTLINE_BTN}>
@@ -217,12 +208,6 @@ export function MonthlyPlansPage() {
             </Link>
           </>
         }
-      />
-
-      <TrialOfferBanner
-        showBasicOffer
-        ctaHref="/pricing#plans"
-        ctaLabel="Choose Basic"
       />
 
       <section
@@ -238,10 +223,10 @@ export function MonthlyPlansPage() {
               Current plan
             </span>
             <p className="mt-1.5 truncate text-[15px] font-extrabold text-[var(--qs-ink)]">
-              {currentPlan.name}
-              {currentPlan.price > 0 && (
+              {currentPlanName}
+              {!isTrial && displayPlan && displayPlan.price > 0 && (
                 <span className="ml-1.5 font-semibold text-[var(--qs-muted)]">
-                  · {inr(currentPlan.price)} / month
+                  · {inr(displayPlan.price)} / month
                 </span>
               )}
             </p>
@@ -251,9 +236,11 @@ export function MonthlyPlansPage() {
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] font-semibold text-[var(--qs-muted)]">
           <span className="inline-flex items-center gap-1.5">
             <Sparkles className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
-            {currentPlan.credits > 0
-              ? `${currentPlan.credits.toLocaleString("en-IN")} AI credits / month`
-              : "No monthly credits"}
+            {isTrial
+              ? "Quizzes only · no AI credits"
+              : displayPlan && displayPlan.credits > 0
+                ? `${displayPlan.credits.toLocaleString("en-IN")} AI credits / month`
+                : "No monthly credits"}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Coins className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
@@ -269,9 +256,13 @@ export function MonthlyPlansPage() {
         </div>
       </section>
 
-      <div className="grid items-stretch gap-6 lg:grid-cols-3">
-        {CREATOR_PLANS.map((plan) => (
-          <PlanCard key={plan.id} plan={plan} currentPlanId={currentPlan.id} />
+      <div className="mx-auto grid w-full max-w-4xl items-stretch gap-6 lg:grid-cols-2">
+        {catalog.plans.map((plan) => (
+          <PlanCard
+            key={plan.slug}
+            plan={plan}
+            currentPlanId={displayPlan?.slug ?? ""}
+          />
         ))}
       </div>
 

@@ -201,7 +201,7 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle, durat
                                showWrong ? <XCircle className="h-4 w-4" /> :
                                optionLabels[idx]}
                             </span>
-                            <span className="min-w-0 flex-1 break-words text-sm font-medium leading-snug text-[var(--qs-ink)] sm:text-base" dangerouslySetInnerHTML={{ __html: opt.content }} />
+                            <span className="min-w-0 flex-1 break-words text-sm font-medium leading-snug text-[var(--qs-ink)] sm:text-base" dangerouslySetInnerHTML={{ __html: opt.contentHtml || opt.content }} />
                             {showCorrect && (
                               <span className="mt-1 shrink-0 text-[11px] font-extrabold text-[var(--qs-ok)]">
                                 Correct! 🎉

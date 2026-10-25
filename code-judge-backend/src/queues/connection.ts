@@ -39,3 +39,15 @@ export function getBullmqConnection(): Redis {
   }
   return global.__bullmqRedis;
 }
+
+/** Close the shared BullMQ connection during graceful shutdown. */
+export async function closeBullmqConnection(): Promise<void> {
+  const connection = global.__bullmqRedis;
+  if (!connection) return;
+  global.__bullmqRedis = undefined;
+  try {
+    await connection.quit();
+  } catch {
+    connection.disconnect();
+  }
+}

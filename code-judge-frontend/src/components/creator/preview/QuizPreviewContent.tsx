@@ -68,18 +68,6 @@ function isChoiceType(type: QuestionType): boolean {
   return type === "single_choice" || type === "multiple_choice" || type === "true_false";
 }
 
-function decodeHtml(str: string): string {
-  if (!str) return "";
-  if (typeof document === "undefined") return str;
-  try {
-    const txt = document.createElement("textarea");
-    txt.innerHTML = str;
-    return txt.value;
-  } catch {
-    return str;
-  }
-}
-
 /* ── Mechanic Icon/Color Map ── */
 const MECHANIC_META: Record<string, { icon: string; title: string; desc: string; color: string }> = {
   FIFTY_FIFTY: { icon: "50:50", title: "50 - 50", desc: "Eliminate 2 wrong options", color: "bg-pink-50 dark:bg-pink-500/10 border border-pink-200 dark:border-pink-500/30 text-pink-600 dark:text-pink-400" },
@@ -136,16 +124,16 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
         setQuiz(quizData);
         const mapped = problemsData.map((p, idx) => ({
           id: p.id,
-          q: decodeHtml(p.problem_statement),
+          q: p.problem_statement,
           type: TYPE_MAP[p.quiz_problem_type ?? 1] ?? "single_choice",
           options: p.options.map((o, oi) => ({
             label: String.fromCharCode(65 + oi),
-            text: decodeHtml(o.option_statement),
+            text: o.option_statement,
             correct: false,
           })),
           marks: (p as PublicQuizProblem & { marks?: number }).marks ?? 10,
           difficulty: p.difficulty_name ?? "Medium",
-          explanation: decodeHtml(p.explaination ?? ""),
+          explanation: p.explaination ?? "",
           questionNumber: p.question_number ?? idx + 1,
         }));
         setQuestions(mapped);

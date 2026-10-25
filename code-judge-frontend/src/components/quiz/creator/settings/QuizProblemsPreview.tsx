@@ -46,6 +46,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
+import { EditableContent } from "@/components/creator/quiz-studio/components/RichToolbar";
 import { useQuizProblemsStore } from "@/store/quizProblemsStore";
 import {
   syncQuizQuestions,
@@ -753,14 +754,18 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
                     </motion.div>
                   )}
                 </AnimatePresence>
-                <textarea
-                  value={current.title}
-                  onChange={(e) => updateProblem(current.id, { title: e.target.value })}
+                <div
                   onFocus={() => setEditorFocused(true)}
                   onBlur={() => setEditorFocused(false)}
-                  placeholder="Write your question..."
-                  className="w-full min-h-[140px] p-5 bg-transparent text-[17px] leading-relaxed text-zinc-900 placeholder:text-zinc-400 focus:outline-none resize-none"
-                />
+                  className="px-2 py-2"
+                >
+                  <EditableContent
+                    value={current.title}
+                    onChange={(html) => updateProblem(current.id, { title: html })}
+                    placeholder="Write your question..."
+                    minHeight="min-h-[140px]"
+                  />
+                </div>
                 <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
               </div>
               {current.images.length > 0 && (
@@ -843,7 +848,7 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
                           {isCorrect ? <Check className="w-3.5 h-3.5" /> : <span className="w-2 h-2 rounded-full bg-transparent" />}
                         </button>
                         <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 border ${isCorrect ? "bg-emerald-500 text-white border-emerald-500" : "bg-zinc-50 text-zinc-700 border-zinc-200"}`}>{opt.label}</span>
-                        <input value={opt.content} onChange={(e) => updateProblem(current.id, { options: current.options.map((o, i) => (i === idx ? { ...o, content: e.target.value } : o)) })} placeholder={`Option ${opt.label}`} className="flex-1 bg-transparent text-[14px] text-zinc-900 placeholder:text-zinc-400 focus:outline-none" />
+                        <input value={opt.content} onChange={(e) => updateProblem(current.id, { options: current.options.map((o, i) => (i === idx ? { ...o, content: e.target.value, contentHtml: undefined } : o)) })} placeholder={`Option ${opt.label}`} className="flex-1 bg-transparent text-[14px] text-zinc-900 placeholder:text-zinc-400 focus:outline-none" />
                         {isCorrect && <span className="hidden sm:inline text-xs font-medium text-emerald-700">Correct</span>}
                         <div className="hidden sm:flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => handleOptionImage(idx)} className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-500">
