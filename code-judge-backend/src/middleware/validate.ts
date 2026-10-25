@@ -169,6 +169,7 @@ export const quizStatusSchema = z.object({
   status: z.enum(["scheduled", "live", "ended"]),
   sessionDuration: z.number().int().positive().optional(),
   endBehavior: z.enum(["manual", "auto_duration"]).optional(),
+  attemptDuration: z.number().int().positive().max(1440).optional(),
 });
 
 /**

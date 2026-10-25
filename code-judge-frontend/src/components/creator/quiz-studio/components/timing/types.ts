@@ -23,6 +23,8 @@ export interface ManualConfig {
   endedAt: string | null;
   endBehavior: EndBehavior;
   sessionDuration: number;
+  /** Per-attempt time limit in minutes, applied from each student's own start. */
+  perStudentDuration: number;
 }
 
 export interface AdvancedConfig {
@@ -53,6 +55,7 @@ export const DEFAULT_MANUAL: ManualConfig = {
   endedAt: null,
   endBehavior: "manual",
   sessionDuration: 120,
+  perStudentDuration: 60,
 };
 
 export const DEFAULT_ADVANCED: AdvancedConfig = {
@@ -63,6 +66,7 @@ export const DEFAULT_ADVANCED: AdvancedConfig = {
 };
 
 export const DURATION_PRESETS = [15, 30];
+export const ATTEMPT_DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
 export const SESSION_DURATION_PRESETS = [30, 60, 90, 120, 180, 240];
 
 export const LIFECYCLE_META: Record<

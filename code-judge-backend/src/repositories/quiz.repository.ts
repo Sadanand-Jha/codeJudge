@@ -3,6 +3,10 @@
 // exam categories, and more.
 import { pool } from "../config/database.ts";
 import { NO_END_ATTEMPT_DURATION_MINUTES } from "../utils/quizAttemptTiming.ts";
+import {
+  syncQuizProblemOptions,
+  type QuizProblemOptionSyncResult,
+} from "./quizProblemOptions.ts";
 
 /**
  * Maximum number of attempts a single user may start for the same quiz,
@@ -392,11 +396,12 @@ export class QuizRepository {
         qpo.option_description,
         qpo.matching_target,
         qpo.iscorrect,
+        qpo.sort_order,
         qpo.created_at,
         qpo.updated_at
       FROM quiz_problem_options qpo
       WHERE qpo.problem_id = $1
-      ORDER BY qpo.id ASC
+      ORDER BY qpo.sort_order ASC, qpo.id ASC
     `;
     const result = await pool.query(query, [problemId]);
     return result.rows;
@@ -614,8 +619,10 @@ export class QuizRepository {
     isCorrect: boolean;
   }): Promise<any> {
     const query = `
-      INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, matching_target, iscorrect, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, matching_target, iscorrect, sort_order, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5,
+        (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM quiz_problem_options WHERE problem_id = $1),
+        CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING *
     `;
     const result = await pool.query(query, [
@@ -752,9 +759,9 @@ export class QuizRepository {
         const options = await client.query("SELECT * FROM quiz_problem_options WHERE problem_id = $1", [problem.id]);
         for (const option of options.rows) {
           await client.query(
-            `INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, matching_target, iscorrect, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-            [newProblemId, option.option_statement, option.option_description, (option as any).matching_target ?? null, option.iscorrect]
+            `INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, matching_target, iscorrect, sort_order, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+            [newProblemId, option.option_statement, option.option_description, (option as any).matching_target ?? null, option.iscorrect, Number(option.sort_order) || 0]
           );
         }
       }
@@ -839,9 +846,9 @@ export class QuizRepository {
       const options = await client.query("SELECT * FROM quiz_problem_options WHERE problem_id = $1", [problemId]);
       for (const option of options.rows) {
         await client.query(
-          `INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, matching_target, iscorrect, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-          [newProblemId, option.option_statement, option.option_description, (option as any).matching_target ?? null, option.iscorrect]
+          `INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, matching_target, iscorrect, sort_order, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+          [newProblemId, option.option_statement, option.option_description, (option as any).matching_target ?? null, option.iscorrect, Number(option.sort_order) || 0]
         );
       }
 
@@ -870,8 +877,9 @@ export class QuizRepository {
     marks?: number;
     negativeMarks?: number;
     options?: Array<{
+      id?: number;
       optionStatement: string;
-      optionDescription?: string;
+      optionDescription?: string | null;
       matchingTarget?: string | null;
       matching_target?: string | null;
       isCorrect: boolean;
@@ -882,7 +890,21 @@ export class QuizRepository {
       await client.query("BEGIN");
 
       let problem;
+      let previousGradingFields: {
+        quiz_problem_type: number | null;
+        marks: number | null;
+        negative_marks: number | null;
+      } | null = null;
+
       if (data.problemId) {
+        const previous = await client.query(
+          `SELECT quiz_problem_type, marks, negative_marks
+           FROM quiz_problems
+           WHERE id = $1 AND quiz_id = $2 AND deleted_at IS NULL`,
+          [data.problemId, data.quizId]
+        );
+        previousGradingFields = previous.rows[0] ?? null;
+
         const fields: string[] = [];
         const values: any[] = [];
         let paramCount = 0;
@@ -951,22 +973,22 @@ export class QuizRepository {
         problem = result.rows[0];
       }
 
-      if (data.options && problem) {
-        await client.query("DELETE FROM quiz_problem_options WHERE problem_id = $1", [problem.id]);
-        for (const opt of data.options) {
-          const matchingTarget = (opt as any).matchingTarget ?? (opt as any).matching_target ?? null;
-          // When quiz_problem_type is 12 (match_following) or 6 (fill_blanks), store in matching_target
-          const isTargetType = data.quizProblemType === 12 || data.quizProblemType === 6;
-          await client.query(
-            `INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, matching_target, iscorrect, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-            [problem.id, opt.optionStatement, opt.optionDescription || null, isTargetType ? matchingTarget : (matchingTarget ?? null), opt.isCorrect]
-          );
-        }
+      let optionSync: QuizProblemOptionSyncResult | null = null;
+      if (Array.isArray(data.options) && problem) {
+        optionSync = await syncQuizProblemOptions(client, Number(problem.id), data.options);
       }
 
+      const gradingFieldsChanged = !previousGradingFields
+        || Number(previousGradingFields.quiz_problem_type) !== Number(problem.quiz_problem_type)
+        || Number(previousGradingFields.marks) !== Number(problem.marks)
+        || Number(previousGradingFields.negative_marks) !== Number(problem.negative_marks);
+
       await client.query("COMMIT");
-      return problem;
+      return {
+        ...problem,
+        options: optionSync?.options ?? [],
+        gradingChanged: Boolean(optionSync?.gradingChanged) || gradingFieldsChanged,
+      };
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -1037,13 +1059,59 @@ export class QuizRepository {
            OR (
              q.endtime IS NULL
              AND COALESCE(qa.started_at, qa.created_at)
-               + ($3::int * INTERVAL '1 minute') <= CURRENT_TIMESTAMP
+               + (COALESCE(NULLIF(q.duration, 0), $3) * INTERVAL '1 minute') <= CURRENT_TIMESTAMP
            )
          )
        ORDER BY qa.id ASC`,
       [quizId, userId ?? null, NO_END_ATTEMPT_DURATION_MINUTES]
     );
     return result.rows;
+  }
+
+  async hasFinalQuizAttempts(quizId: number): Promise<boolean> {
+    const result = await pool.query(
+      `SELECT 1
+       FROM quiz_attempt
+       WHERE quiz_id = $1
+         AND status IN ('completed', 'timed_out')
+         AND deleted_at IS NULL
+       LIMIT 1`,
+      [quizId]
+    );
+    return result.rows.length > 0;
+  }
+
+  async getFinalQuizAttempts(quizId: number): Promise<any[]> {
+    const result = await pool.query(
+      `SELECT *
+       FROM quiz_attempt
+       WHERE quiz_id = $1
+         AND status IN ('completed', 'timed_out')
+         AND deleted_at IS NULL
+       ORDER BY id ASC`,
+      [quizId]
+    );
+    return result.rows;
+  }
+
+  async getQuizGradingRevision(quizId: number): Promise<string> {
+    const result = await pool.query(
+      `SELECT GREATEST(
+         COALESCE((
+           SELECT MAX(updated_at)
+           FROM quiz_problems
+           WHERE quiz_id = $1 AND deleted_at IS NULL
+         ), 'epoch'::timestamptz),
+         COALESCE((
+           SELECT MAX(qpo.updated_at)
+           FROM quiz_problem_options qpo
+           JOIN quiz_problems qp ON qp.id = qpo.problem_id
+           WHERE qp.quiz_id = $1 AND qp.deleted_at IS NULL
+         ), 'epoch'::timestamptz)
+       )::text AS revision`,
+      [quizId]
+    );
+    return String(result.rows[0]?.revision ?? "");
   }
 
   /** Quiz ids that have ended and still contain ungraded attempts. */
@@ -1062,7 +1130,7 @@ export class QuizRepository {
            OR (
              q.endtime IS NULL
              AND COALESCE(qa.started_at, qa.created_at)
-               + ($1::int * INTERVAL '1 minute') <= CURRENT_TIMESTAMP
+               + (COALESCE(NULLIF(q.duration, 0), $1) * INTERVAL '1 minute') <= CURRENT_TIMESTAMP
            )
          )
        ORDER BY q.id ASC`,
@@ -1943,7 +2011,7 @@ export class QuizRepository {
               'option_statement', o.option_statement,
               'iscorrect', o.iscorrect
             )
-            ORDER BY o.id
+            ORDER BY o.sort_order ASC, o.id ASC
           )
           FROM quiz_problem_options o
           WHERE o.problem_id = qp.id

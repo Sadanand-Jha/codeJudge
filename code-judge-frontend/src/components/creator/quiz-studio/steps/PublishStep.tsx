@@ -94,7 +94,7 @@ export function PublishStep({
     }
   };
 
-  const isScheduled = state.info.quizLifecycle === "scheduled" && Boolean(state.info.startDate);
+  const isScheduled = state.info.quizLifecycle === "scheduled";
   const rows: Array<{ label: string; value: ReactNode }> = [
     { label: "Title", value: state.info.title || "Untitled Quiz" },
     { label: "Questions", value: String(summary.questionCount) },
@@ -322,7 +322,7 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
   const [code, setCode] = useState(localCode);
   const [copying, setCopying] = useState(false);
   const title = state.info.title || "Untitled Quiz";
-  const isScheduled = state.info.quizLifecycle === "scheduled" && Boolean(state.info.startDate);
+  const isScheduled = state.info.quizLifecycle === "scheduled";
   const displayCode = code || localCode;
   const link = buildJoinLink(displayCode);
   const shareQuiz = {

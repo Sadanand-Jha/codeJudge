@@ -119,6 +119,8 @@ export interface QuizProblem {
   hint: string | null;
   difficulty: number | null;
   difficulty_name: string | null;
+  marks?: number | null;
+  negative_marks?: number | null;
   created_at: string | null;
   updated_at: string | null;
   options: QuizProblemOption[];
@@ -566,7 +568,11 @@ function mapQuizStatus(raw: unknown): string | null {
 export async function updateQuizStatus(
   quizId: string,
   status: "scheduled" | "live" | "ended",
-  options?: { sessionDuration?: number; endBehavior?: "manual" | "auto_duration" }
+  options?: {
+    sessionDuration?: number;
+    endBehavior?: "manual" | "auto_duration";
+    attemptDuration?: number;
+  }
 ): Promise<QuizStatusResponse> {
   const response = await apiClient.patch(`/v1/admin/quiz/${quizId}/status`, { status, ...options });
   const raw = response.data as Record<string, unknown>;
@@ -642,10 +648,28 @@ export interface QuizProblemCreate {
 }
 
 export interface QuizProblemOptionCreate {
+  /** Existing server option id. Omit for a newly added option. */
+  id?: number;
   optionStatement: string;
   optionDescription?: string;
   matchingTarget?: string | null;
   isCorrect: boolean;
+}
+
+export interface SavedQuizProblemOption {
+  id: number;
+  problem_id: number;
+  option_statement: string;
+  option_description: string | null;
+  matching_target: string | null;
+  iscorrect: boolean;
+  sort_order: number;
+}
+
+export interface QuizProblemSaveFullResult {
+  id: number;
+  options?: SavedQuizProblemOption[];
+  gradingChanged?: boolean;
 }
 
 /**
@@ -685,8 +709,8 @@ export interface QuizProblemSaveFull {
  * Save a quiz problem with all its options in a single transaction (upsert)
  * POST /api/v1/admin/quiz/problems/save-full
  */
-export async function saveQuizProblemFull(data: QuizProblemSaveFull): Promise<{ id: number }> {
-  const response = await apiClient.post<{ id: number }>('/v1/admin/quiz/problems/save-full', data);
+export async function saveQuizProblemFull(data: QuizProblemSaveFull): Promise<QuizProblemSaveFullResult> {
+  const response = await apiClient.post<QuizProblemSaveFullResult>('/v1/admin/quiz/problems/save-full', data);
   return response.data;
 }
 

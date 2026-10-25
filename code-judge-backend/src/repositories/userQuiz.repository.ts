@@ -139,8 +139,9 @@ export class UserQuizRepository {
   async getQuizProblemOptions(problemId: string): Promise<any[]> {
     const result = await pool.query(`
       SELECT qpo.id, qpo.problem_id, qpo.option_statement, qpo.option_description,
-        qpo.matching_target, qpo.iscorrect, qpo.created_at, qpo.updated_at
-      FROM quiz_problem_options qpo WHERE qpo.problem_id = $1 ORDER BY qpo.id ASC
+        qpo.matching_target, qpo.iscorrect, qpo.sort_order, qpo.created_at, qpo.updated_at
+      FROM quiz_problem_options qpo WHERE qpo.problem_id = $1
+      ORDER BY qpo.sort_order ASC, qpo.id ASC
     `, [problemId]);
     return result.rows;
   }

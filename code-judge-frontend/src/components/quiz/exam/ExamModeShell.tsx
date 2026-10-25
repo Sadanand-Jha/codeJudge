@@ -55,8 +55,6 @@ interface ExamModeShellProps {
   /** Creator-defined field names. When non-empty, a registration form is
    * shown after "Enter Exam Mode" and the attempt starts only on submit. */
   registrationFields?: string[];
-  /** Optional current-question AI trap rendered inside the monitoring strip. */
-  monitoringTrap?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -77,7 +75,6 @@ export default function ExamModeShell({
   autoEnter = false,
   fullWidth = false,
   registrationFields = [],
-  monitoringTrap = null,
   children,
 }: ExamModeShellProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -617,14 +614,9 @@ export default function ExamModeShell({
         )}
       </AnimatePresence>
 
-      {/* Always-on monitoring notice. The grid keeps a right-hand slot for the
-          optional AI trap without letting it overlap the real notice. */}
-      <div className="grid shrink-0 grid-cols-[auto_1fr] items-center gap-1 border-b-2 border-[var(--qs-line)] bg-[var(--qs-sun)]/25 px-2 py-1 text-[9px] font-bold text-[var(--qs-ink)] sm:grid-cols-[1fr_auto_1fr]">
-        <span aria-hidden="true" className="hidden sm:block" />
-        <span className="flex items-center justify-center gap-1.5 whitespace-nowrap">
-          <ShieldCheck className="h-3 w-3" /> Tab switching &amp; window changes are monitored
-        </span>
-        <span className="relative flex h-3 min-w-0 justify-end">{monitoringTrap}</span>
+      {/* Always-on monitoring notice. */}
+      <div className="flex shrink-0 items-center justify-center gap-1 border-b-2 border-[var(--qs-line)] bg-[var(--qs-sun)]/25 px-2 py-1 text-[9px] font-bold text-[var(--qs-ink)]">
+        <ShieldCheck className="h-3 w-3" /> Tab switching &amp; window changes are monitored
       </div>
 
       {/* Content - viewport-based on mobile, scrollable on desktop */}

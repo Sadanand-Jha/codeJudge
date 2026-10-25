@@ -12,6 +12,11 @@ import {
   storeFallbackQuizSubmission,
   type QuizSubmissionJobData,
 } from "../queues/quizSubmission.queue.ts";
+import {
+  enqueueQuizRecalculation,
+  isQuizRecalculationQueueConfigured,
+  type QuizRecalculationJobData,
+} from "../queues/quizRecalculation.queue.ts";
 import { getQuizAttemptDeadlineMs } from "../utils/quizAttemptTiming.ts";
 import { schedulerLog } from "../utils/schedulerLog.ts";
 
@@ -25,8 +30,10 @@ export async function processQuizSubmission(data: QuizSubmissionJobData): Promis
     throw new Error("Quiz attempt not found");
   }
 
+  const regrade = data.regrade === true;
   // Idempotency: a retried/deduped job for an already-graded attempt is a no-op.
-  if (attempt.status === "completed" || attempt.status === "timed_out") {
+  // Teacher-edit recalculation explicitly opts out and re-evaluates the attempt.
+  if (!regrade && (attempt.status === "completed" || attempt.status === "timed_out")) {
     return attempt;
   }
 
@@ -44,7 +51,7 @@ export async function processQuizSubmission(data: QuizSubmissionJobData): Promis
   const quizEnded =
     quizStatus === "ended"
     || (attemptDeadlineMs !== null && attemptDeadlineMs <= Date.now());
-  if (!quizEnded && !explicitlySubmitted) {
+  if (!regrade && !quizEnded && !explicitlySubmitted) {
     console.warn(`[bullmq] result calculation skipped for attempt ${attemptId}: quiz has not ended`);
     return attempt;
   }
@@ -60,7 +67,8 @@ export async function processQuizSubmission(data: QuizSubmissionJobData): Promis
   // Legacy inline jobs may still carry unsaved answers, so use those only when
   // they were created before the close.
   const usePersistedResponses =
-    Number.isFinite(attemptSubmittedAtMs)
+    regrade
+    || Number.isFinite(attemptSubmittedAtMs)
     || wasClosedAtSubmission
     || data.isLate === true;
   const persistedResponses = usePersistedResponses
@@ -113,6 +121,13 @@ export async function processQuizSubmission(data: QuizSubmissionJobData): Promis
 
     if (isMultipleChoice && Array.isArray(response.options) && response.options.length > 0) {
       const selectedIds = new Set(response.options.map(Number).filter(Number.isInteger));
+      const optionIds = new Set(problemOptions.map((o) => Number(o.id)));
+      // If any selected option was deleted by the teacher, the saved answer can
+      // no longer be interpreted. Count the whole response as skipped rather
+      // than marking it wrong.
+      if (selectedIds.size === 0 || [...selectedIds].some((id) => !optionIds.has(id))) {
+        continue;
+      }
       const correctIds = new Set(problemOptions.filter((o) => o.iscorrect).map((o) => Number(o.id)));
       const exactlyCorrect = selectedIds.size === correctIds.size && [...selectedIds].every((id) => correctIds.has(id));
       skippedQuestions--;
@@ -169,18 +184,21 @@ export async function processQuizSubmission(data: QuizSubmissionJobData): Promis
       : 0;
 
   // Persist every submitted answer in the quiz student response table
-  // (upsert — autosave may already have stored some of them).
-  for (const response of validResponses) {
-    try {
-      await quizService.saveStudentResponse({
-        attemptId: Number(attemptId),
-        problemId: Number(response.problemId),
-        option: response.option,
-        options: response.options,
-        textAnswer: response.textAnswer,
-      });
-    } catch (responseError) {
-      console.error("Error persisting quiz response on submit:", responseError);
+  // (upsert — autosave may already have stored some of them). Recalculation
+  // only reads the already-persisted answers, so it skips this write-back.
+  if (!regrade) {
+    for (const response of validResponses) {
+      try {
+        await quizService.saveStudentResponse({
+          attemptId: Number(attemptId),
+          problemId: Number(response.problemId),
+          option: response.option,
+          options: response.options,
+          textAnswer: response.textAnswer,
+        });
+      } catch (responseError) {
+        console.error("Error persisting quiz response on submit:", responseError);
+      }
     }
   }
 
@@ -198,30 +216,113 @@ export async function processQuizSubmission(data: QuizSubmissionJobData): Promis
     ? Math.max(0, Math.floor((effectiveCompletionMs - new Date(startedAt).getTime()) / 1000))
     : undefined;
 
-  const updatedAttempt = await quizService.updateQuizAttempt(Number(attemptId), {
-    status: isLate ? "timed_out" : "completed",
-    completed_at: new Date(effectiveCompletionMs),
-    ...(attempt.submitted_at ? {} : { submitted_at: new Date(effectiveCompletionMs) }),
-    score,
-    percentage,
-    correct_answers: correctAnswers,
-    wrong_answers: wrongAnswers,
-    skipped_questions: skippedQuestions,
-    total_marks: totalMarks,
-    marks_obtained: marksObtained,
-    violations,
-    flagged,
-    ...(flagReason !== undefined ? { flag_reason: flagReason } : {}),
-    ...(timeTaken !== undefined ? { time_taken: timeTaken } : {}),
-  });
+  const updatedAttempt = await quizService.updateQuizAttempt(
+    Number(attemptId),
+    regrade
+      ? {
+          score,
+          percentage,
+          correct_answers: correctAnswers,
+          wrong_answers: wrongAnswers,
+          skipped_questions: skippedQuestions,
+          total_questions: totalQuestions,
+          total_marks: totalMarks,
+          marks_obtained: marksObtained,
+        }
+      : {
+          status: isLate ? "timed_out" : "completed",
+          completed_at: new Date(effectiveCompletionMs),
+          ...(attempt.submitted_at ? {} : { submitted_at: new Date(effectiveCompletionMs) }),
+          score,
+          percentage,
+          correct_answers: correctAnswers,
+          wrong_answers: wrongAnswers,
+          skipped_questions: skippedQuestions,
+          total_questions: totalQuestions,
+          total_marks: totalMarks,
+          marks_obtained: marksObtained,
+          violations,
+          flagged,
+          ...(flagReason !== undefined ? { flag_reason: flagReason } : {}),
+          ...(timeTaken !== undefined ? { time_taken: timeTaken } : {}),
+        }
+  );
 
-  try {
-    await maybeQueueQuizResponsesEmail(Number(attempt.quiz_id));
-  } catch (error) {
-    console.error(`Could not queue responses email for quiz ${attempt.quiz_id}:`, error);
+  if (!regrade) {
+    try {
+      await maybeQueueQuizResponsesEmail(Number(attempt.quiz_id));
+    } catch (error) {
+      console.error(`Could not queue responses email for quiz ${attempt.quiz_id}:`, error);
+    }
   }
 
   return updatedAttempt;
+}
+
+/**
+ * Re-grade every final attempt for a quiz after its questions/options changed.
+ * The job carries a grading revision so a stale job can no-op when a newer save
+ * has already scheduled the next recalculation.
+ */
+export async function processQuizRecalculation(
+  data: QuizRecalculationJobData
+): Promise<{ attempts: number; skipped: boolean }> {
+  const quizId = Number(data.quizId);
+  if (!Number.isInteger(quizId) || quizId <= 0) {
+    throw new Error("Invalid quiz id for recalculation");
+  }
+
+  if (data.revision) {
+    const currentRevision = await quizService.getQuizGradingRevision(quizId);
+    if (currentRevision !== data.revision) {
+      schedulerLog(
+        "grading",
+        `quiz ${quizId}: recalculation skipped because revision changed (${data.revision} -> ${currentRevision})`
+      );
+      return { attempts: 0, skipped: true };
+    }
+  }
+
+  const attempts = await quizService.getFinalQuizAttempts(quizId);
+  schedulerLog("grading", `quiz ${quizId}: recalculating ${attempts.length} final attempt(s)`);
+
+  for (const attempt of attempts) {
+    await processQuizSubmission({
+      ...resultCalculationJobData(attempt),
+      regrade: true,
+    });
+  }
+
+  return { attempts: attempts.length, skipped: false };
+}
+
+/**
+ * Called after a grading-relevant problem/option save. Does nothing until the
+ * quiz has at least one final attempt. Uses Redis when available; otherwise
+ * recalculates inline so the save still leaves consistent results.
+ */
+export async function scheduleQuizRecalculation(quizId: number): Promise<void> {
+  const numericQuizId = Number(quizId);
+  if (!Number.isInteger(numericQuizId) || numericQuizId <= 0) return;
+  if (!(await quizService.hasFinalQuizAttempts(numericQuizId))) return;
+
+  const revision = await quizService.getQuizGradingRevision(numericQuizId);
+  const inlineFallback = !isQuizRecalculationQueueConfigured() || process.env.VERCEL === "1";
+  if (inlineFallback) {
+    await processQuizRecalculation({ quizId: numericQuizId, revision });
+    return;
+  }
+
+  try {
+    await enqueueQuizRecalculation({ quizId: numericQuizId, revision });
+  } catch (error) {
+    schedulerLog(
+      "grading",
+      `quiz ${numericQuizId}: could not enqueue recalculation; processing inline`,
+      error
+    );
+    await processQuizRecalculation({ quizId: numericQuizId, revision });
+  }
 }
 
 function savedResponseToSubmission(row: any): QuizSubmissionJobData["responses"][number] | null {

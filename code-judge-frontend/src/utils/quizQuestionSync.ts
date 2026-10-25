@@ -36,6 +36,44 @@ function isChoiceType(q: CreatorQuestion): boolean {
   return q.type === "single_choice" || q.type === "multiple_choice" || q.type === "true_false";
 }
 
+function serverOptionId(id: string): number | undefined {
+  if (!/^\d+$/.test(id)) return undefined;
+  const numericId = Number(id);
+  return Number.isInteger(numericId) && numericId > 0 ? numericId : undefined;
+}
+
+function remapCorrectAnswer(
+  answer: CreatorQuestion["correctAnswer"],
+  idMap: Map<string, string>
+): CreatorQuestion["correctAnswer"] {
+  if (Array.isArray(answer)) {
+    return answer.map((value) =>
+      typeof value === "string" && idMap.has(value) ? idMap.get(value)! : value
+    ) as CreatorQuestion["correctAnswer"];
+  }
+  if (typeof answer === "string" && idMap.has(answer)) return idMap.get(answer)!;
+  return answer;
+}
+
+/**
+ * Replace temporary/local option ids with the ids returned by the backend.
+ * The visible option order matches the order sent to the server.
+ */
+function applySavedOptionIds(q: CreatorQuestion, savedOptions: Array<{ id: number }>): void {
+  const localOptions = q.options.filter((option) => option.content.trim().length > 0);
+  const idMap = new Map<string, string>();
+  localOptions.forEach((option, index) => {
+    const saved = savedOptions[index];
+    if (!saved) return;
+    const nextId = String(saved.id);
+    if (option.id !== nextId) idMap.set(option.id, nextId);
+    option.id = nextId;
+  });
+  if (idMap.size > 0) {
+    q.correctAnswer = remapCorrectAnswer(q.correctAnswer, idMap);
+  }
+}
+
 /**
  * Create a deterministic content hash of a question for change detection.
  * Excludes volatile fields (id, serverId, createdAt, updatedAt) so that
@@ -125,7 +163,7 @@ export async function syncQuizQuestions(
     const q = questions[i];
     if (onlyChangedIds && !onlyChangedIds.has(q.id)) continue;
 
-    let options: { optionStatement: string; optionDescription?: string; matchingTarget?: string | null; matching_target?: string | null; isCorrect: boolean }[];
+    let options: { id?: number; optionStatement: string; optionDescription?: string; matchingTarget?: string | null; matching_target?: string | null; isCorrect: boolean }[];
     if (q.type === "match_following") {
       // For type 12, second column goes to matching_target column (per DB migration 01_quiz.sql)
       // Each left item is stored as a row: option_statement = Column A, matching_target = mapped Column B
@@ -189,6 +227,7 @@ export async function syncQuizQuestions(
         ? q.options
             .filter((o) => o.content.trim().length > 0)
             .map((o) => ({
+              id: serverOptionId(o.id),
               optionStatement: o.content,
               optionDescription: o.caption,
               isCorrect: o.isCorrect,
@@ -222,6 +261,9 @@ export async function syncQuizQuestions(
     // Track the server ID so subsequent saves update instead of insert
     if (saved && !q.serverId) {
       q.serverId = saved.id;
+    }
+    if (saved?.options && isChoiceType(q)) {
+      applySavedOptionIds(q, saved.options);
     }
     savedCount++;
     // Report progress after each question save

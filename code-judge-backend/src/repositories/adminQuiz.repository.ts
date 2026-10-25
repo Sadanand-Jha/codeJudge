@@ -2,6 +2,10 @@
 // Contains quiz CRUD, problem management, responses, analytics, game config,
 // collaborators, participants, and result-generation helpers.
 import { pool } from "../config/database.ts";
+import {
+  syncQuizProblemOptions,
+  type QuizProblemOptionSyncResult,
+} from "./quizProblemOptions.ts";
 
 export class AdminQuizRepository {
   // ==================== SHARED LOOKUPS ====================
@@ -292,9 +296,9 @@ export class AdminQuizRepository {
         const options = await client.query("SELECT * FROM quiz_problem_options WHERE problem_id = $1", [problem.id]);
         for (const option of options.rows) {
           await client.query(
-            `INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, matching_target, iscorrect, created_at, updated_at)
-             VALUES ($1,$2,$3,$4,$5,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)`,
-            [newProblemId, option.option_statement, option.option_description, (option as any).matching_target ?? null, option.iscorrect]
+            `INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, matching_target, iscorrect, sort_order, created_at, updated_at)
+             VALUES ($1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)`,
+            [newProblemId, option.option_statement, option.option_description, (option as any).matching_target ?? null, option.iscorrect, Number(option.sort_order) || 0]
           );
         }
       }
@@ -312,9 +316,10 @@ export class AdminQuizRepository {
 
   async getQuizProblems(quizId: string): Promise<any[]> {
     const query = `
-      SELECT qp.id, qp.quiz_id, qp.problem_statement,
+      SELECT qp.id, qp.quiz_id, qp.problem_statement, qp.problem_description,
         qp.quiz_problem_type, qpt.name AS problem_type_name, qp.question_number,
-        qp.explaination, qp.hint, qp.difficulty, qd.heading AS difficulty_name
+        qp.explaination, qp.hint, qp.difficulty, qd.heading AS difficulty_name,
+        qp.marks, qp.negative_marks, qp.created_at, qp.updated_at
       FROM quiz_problems qp
       LEFT JOIN quiz_problem_type qpt ON qpt.id = qp.quiz_problem_type
       LEFT JOIN quiz_difficulty qd ON qd.id = qp.difficulty
@@ -327,9 +332,10 @@ export class AdminQuizRepository {
 
   async getQuizProblemById(problemId: number | string): Promise<any | null> {
     const query = `
-      SELECT qp.id, qp.quiz_id, qp.problem_statement,
+      SELECT qp.id, qp.quiz_id, qp.problem_statement, qp.problem_description,
         qp.quiz_problem_type, qpt.name AS problem_type_name, qp.question_number,
-        qp.explaination, qp.hint, qp.difficulty, qd.heading AS difficulty_name
+        qp.explaination, qp.hint, qp.difficulty, qd.heading AS difficulty_name,
+        qp.marks, qp.negative_marks, qp.created_at, qp.updated_at
       FROM quiz_problems qp
       LEFT JOIN quiz_problem_type qpt ON qpt.id = qp.quiz_problem_type
       LEFT JOIN quiz_difficulty qd ON qd.id = qp.difficulty
@@ -349,10 +355,10 @@ export class AdminQuizRepository {
   async getQuizProblemOptions(problemId: string): Promise<any[]> {
     const query = `
       SELECT qpo.id, qpo.problem_id, qpo.option_statement, qpo.option_description,
-        qpo.matching_target, qpo.iscorrect
+        qpo.matching_target, qpo.iscorrect, qpo.sort_order
       FROM quiz_problem_options qpo
       WHERE qpo.problem_id = $1
-      ORDER BY qpo.id ASC
+      ORDER BY qpo.sort_order ASC, qpo.id ASC
     `;
     const result = await pool.query(query, [problemId]);
     return result.rows;
@@ -393,8 +399,10 @@ export class AdminQuizRepository {
     matchingTarget?: string | null; isCorrect: boolean;
   }): Promise<any> {
     const query = `
-      INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, matching_target, iscorrect, created_at, updated_at)
-      VALUES ($1,$2,$3,$4,$5,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) RETURNING *
+      INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, matching_target, iscorrect, sort_order, created_at, updated_at)
+      VALUES ($1,$2,$3,$4,$5,
+        (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM quiz_problem_options WHERE problem_id = $1),
+        CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) RETURNING *
     `;
     const result = await pool.query(query, [
       data.problemId, data.optionStatement, data.optionDescription || null,
@@ -458,9 +466,9 @@ export class AdminQuizRepository {
       const options = await client.query("SELECT * FROM quiz_problem_options WHERE problem_id = $1", [problemId]);
       for (const option of options.rows) {
         await client.query(
-          `INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, matching_target, iscorrect, created_at, updated_at)
-           VALUES ($1,$2,$3,$4,$5,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)`,
-          [newProblemId, option.option_statement, option.option_description, (option as any).matching_target ?? null, option.iscorrect]
+          `INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, matching_target, iscorrect, sort_order, created_at, updated_at)
+           VALUES ($1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)`,
+          [newProblemId, option.option_statement, option.option_description, (option as any).matching_target ?? null, option.iscorrect, Number(option.sort_order) || 0]
         );
       }
       await client.query("COMMIT");
@@ -480,7 +488,7 @@ export class AdminQuizRepository {
     referenceNotes?: string; internalComments?: string;
     marks?: number; negativeMarks?: number;
     options?: Array<{
-      optionStatement: string; optionDescription?: string;
+      id?: number; optionStatement: string; optionDescription?: string | null;
       matchingTarget?: string | null; matching_target?: string | null; isCorrect: boolean;
     }>;
   }): Promise<any> {
@@ -488,7 +496,21 @@ export class AdminQuizRepository {
     try {
       await client.query("BEGIN");
       let problem;
+      let previousGradingFields: {
+        quiz_problem_type: number | null;
+        marks: number | null;
+        negative_marks: number | null;
+      } | null = null;
+
       if (data.problemId) {
+        const previous = await client.query(
+          `SELECT quiz_problem_type, marks, negative_marks
+           FROM quiz_problems
+           WHERE id = $1 AND quiz_id = $2 AND deleted_at IS NULL`,
+          [data.problemId, data.quizId]
+        );
+        previousGradingFields = previous.rows[0] ?? null;
+
         const fields: string[] = [];
         const values: any[] = [];
         let pc = 0;
@@ -532,20 +554,23 @@ export class AdminQuizRepository {
         );
         problem = result.rows[0];
       }
-      if (data.options && problem) {
-        await client.query("DELETE FROM quiz_problem_options WHERE problem_id = $1", [problem.id]);
-        for (const opt of data.options) {
-          const mt = (opt as any).matchingTarget ?? (opt as any).matching_target ?? null;
-          const isTargetType = data.quizProblemType === 12 || data.quizProblemType === 6;
-          await client.query(
-            `INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, matching_target, iscorrect, created_at, updated_at)
-             VALUES ($1,$2,$3,$4,$5,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)`,
-            [problem.id, opt.optionStatement, opt.optionDescription || null, isTargetType ? mt : (mt ?? null), opt.isCorrect]
-          );
-        }
+
+      let optionSync: QuizProblemOptionSyncResult | null = null;
+      if (Array.isArray(data.options) && problem) {
+        optionSync = await syncQuizProblemOptions(client, Number(problem.id), data.options);
       }
+
+      const gradingFieldsChanged = !previousGradingFields
+        || Number(previousGradingFields.quiz_problem_type) !== Number(problem.quiz_problem_type)
+        || Number(previousGradingFields.marks) !== Number(problem.marks)
+        || Number(previousGradingFields.negative_marks) !== Number(problem.negative_marks);
+
       await client.query("COMMIT");
-      return problem;
+      return {
+        ...problem,
+        options: optionSync?.options ?? [],
+        gradingChanged: Boolean(optionSync?.gradingChanged) || gradingFieldsChanged,
+      };
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;

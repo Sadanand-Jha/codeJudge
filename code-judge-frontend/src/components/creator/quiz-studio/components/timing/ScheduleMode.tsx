@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown } from "lucide-react";
 import { DateTimeField } from "./DateTimeField";
 import {
   toDateString,
@@ -21,9 +19,6 @@ export function ScheduleMode({
   manualStatus: QuizLifecycle;
   validationErrors: string[];
 }) {
-  const [showEndOverride, setShowEndOverride] = useState<boolean | null>(null);
-  const showEnd = showEndOverride ?? Boolean(schedule.endDate);
-
   const isLive = manualStatus === "live";
   const isEnded = manualStatus === "ended";
   const locked = isLive || isEnded;
@@ -35,11 +30,13 @@ export function ScheduleMode({
     schedule.endTime
   );
   const endError =
-    schedule.endDate && !schedule.startDate
-      ? "Set a start date first, then the end."
-      : endInvalid
-        ? "End must be after the scheduled start."
-        : undefined;
+    !schedule.endDate || !schedule.endTime
+      ? "End date and time are required for a scheduled quiz."
+      : !schedule.startDate
+        ? "Set a start date first, then the end."
+        : endInvalid
+          ? "End must be after the scheduled start."
+          : undefined;
 
   return (
     <div className="space-y-5">
@@ -61,28 +58,18 @@ export function ScheduleMode({
 
       {/* ===== End date & time ===== */}
       <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 sm:p-4">
-        <button
-          type="button"
-          onClick={() => setShowEndOverride(!showEnd)}
-          className="flex w-full items-center justify-between gap-3 text-left text-xs font-bold text-[var(--qs-ink)]"
-          aria-expanded={showEnd}
-        >
-          <span>Set an end time <span className="font-medium text-[var(--qs-muted)]">(optional)</span></span>
-          <ChevronDown className={`h-4 w-4 transition-transform ${showEnd ? "rotate-180" : ""}`} />
-        </button>
-        {showEnd && (
-          <div className="mt-3">
-            <DateTimeField
-              label="Ends on"
-              date={schedule.endDate}
-              time={schedule.endTime}
-              onDateChange={(d) => onChange({ endDate: d })}
-              onTimeChange={(t) => onChange({ endTime: t })}
-              error={endError}
-              disabled={locked}
-            />
-          </div>
-        )}
+        <DateTimeField
+          label="Ends on *"
+          date={schedule.endDate}
+          time={schedule.endTime}
+          onDateChange={(d) => onChange({ endDate: d })}
+          onTimeChange={(t) => onChange({ endTime: t })}
+          error={endError}
+          disabled={locked}
+        />
+        <p className="mt-2 text-[11px] font-medium text-[var(--qs-muted)]">
+          End date and time are required. The quiz closes automatically at this time.
+        </p>
       </div>
     </div>
   );

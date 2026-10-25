@@ -225,8 +225,8 @@ function mapBackendProblem(
     correctAnswer,
     explanation: p.explaination ?? "",
     hint: p.hint ?? "",
-    marks: 10,
-    negativeMarks: 0,
+    marks: Number(p.marks) || 10,
+    negativeMarks: Number(p.negative_marks) || 0,
     difficulty: (DIFFICULTY_MAP[diffKey] as CreatorQuestion["difficulty"]) ?? "Medium",
     expectedTime: 2,
     topic: p.problem_description ?? "",
@@ -439,6 +439,7 @@ function buildQuizMetaSnapshot(state: QuizMetaSnapshotInput): string {
     subjectId: state.info.subjectId,
     examId: state.info.examId,
     difficultyId: state.info.difficultyId,
+    duration: state.info.duration,
     passingMarks: state.info.passingMarks,
     startDate: state.info.startDate,
     endDate: state.info.endDate,
@@ -1150,6 +1151,16 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     if (state.info.title.trim().length < 3) {
       throw new Error("Quiz title is required before saving");
     }
+    if (state.info.quizLifecycle === "scheduled") {
+      if (!state.info.startDate || !state.info.endDate) {
+        throw new Error("Scheduled quizzes require both a start and an end time");
+      }
+      const startsAt = new Date(state.info.startDate).getTime();
+      const endsAt = new Date(state.info.endDate).getTime();
+      if (!Number.isFinite(startsAt) || !Number.isFinite(endsAt) || endsAt <= startsAt) {
+        throw new Error("Scheduled quiz end time must be after the start time");
+      }
+    }
     // Validate the problems before persisting anything. setupOnly only creates
     // the quiz shell (no questions involved yet), so skip validation there.
     // Background autosave validates silently — no toasts for half-written
@@ -1176,6 +1187,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         difficultyId: state.info.difficultyId ? Number(state.info.difficultyId) : undefined,
         starttime: state.info.startDate || undefined,
         endtime: state.info.endDate || undefined,
+        timeLimit: state.info.duration,
         // Saving content must never publish a quiz. Lifecycle changes only
         // happen through the explicit schedule/start/end controls below.
         status: state.info.quizLifecycle,
@@ -1202,6 +1214,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
             name: payload.name,
             starttime: payload.starttime,
             endtime: payload.endtime,
+            duration: state.info.duration,
             status: payload.status,
             audienceMode: payload.audienceMode,
             subjectId: payload.subjectId,

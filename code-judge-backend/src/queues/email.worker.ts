@@ -30,7 +30,10 @@ export function startEmailWorker(): Worker<EmailJobData> | null {
 
       if (job.data.type === "responses") {
         console.log(`[bullmq] responses email job ${job.id} started for quiz ${job.data.quizId}`);
-        const result = await processQuizResponsesEmail(job.data.quizId);
+        const result = await processQuizResponsesEmail(
+          job.data.quizId,
+          job.data.sessionId
+        );
         console.log(
           `[bullmq] responses email job ${job.id} finished for quiz ${job.data.quizId} (sent=${result.sent}, reason=${result.reason ?? "none"})`
         );

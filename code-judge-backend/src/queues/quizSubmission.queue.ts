@@ -28,6 +28,11 @@ export interface QuizSubmissionJobData {
   /** True when the attempt was still active (not explicitly submitted) at end. */
   isLate: boolean;
   submittedAt: string;
+  /**
+   * Re-evaluate an already-final attempt after the teacher edits a question.
+   * The attempt's status/timing/metadata are preserved.
+   */
+  regrade?: boolean;
 }
 
 export type QuizSubmissionStatus = "queued" | "processing" | "completed" | "failed" | "none";

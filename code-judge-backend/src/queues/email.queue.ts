@@ -18,7 +18,7 @@ export type EmailJobData =
         marksheetBase64: string;
       };
     }
-  | { type: "responses"; quizId: number };
+  | { type: "responses"; quizId: number; sessionId?: string };
 
 export function isEmailQueueConfigured(): boolean {
   return Boolean(process.env.REDIS_URL?.trim());
@@ -53,19 +53,30 @@ export async function enqueueOtpEmail(to: string, otp: string): Promise<void> {
   await getEmailQueue().add("otp-email", { type: "otp", to, otp });
 }
 
-export function quizResponsesEmailJobId(quizId: number | string): string {
-  return `quiz-responses-${quizId}`;
+export function quizResponsesEmailJobId(
+  quizId: number | string,
+  sessionId?: string
+): string {
+  const session = String(sessionId ?? "")
+    .replace(/[^a-zA-Z0-9_-]/g, "")
+    .slice(0, 80);
+  return session
+    ? `quiz-responses-${quizId}-${session}`
+    : `quiz-responses-${quizId}`;
 }
 
 /** Queue the automatic responses report after a quiz finishes grading. */
-export async function enqueueResponsesReportEmail(quizId: number): Promise<void> {
+export async function enqueueResponsesReportEmail(
+  quizId: number,
+  sessionId?: string
+): Promise<void> {
   if (!isEmailQueueConfigured()) {
     throw new Error("Email queue is not configured");
   }
   await getEmailQueue().add(
     "responses-report-email",
-    { type: "responses", quizId },
-    { jobId: quizResponsesEmailJobId(quizId) }
+    { type: "responses", quizId, ...(sessionId ? { sessionId } : {}) },
+    { jobId: quizResponsesEmailJobId(quizId, sessionId) }
   );
 }
 

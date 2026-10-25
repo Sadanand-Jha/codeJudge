@@ -1,7 +1,7 @@
 
 "use client";
 
-import { use, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { use, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Home, PartyPopper, Send, ShieldCheck, Target, Volume2, VolumeX } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -29,9 +29,6 @@ import {
 import { useQuizSounds, type QuizSound } from "@/hooks/useQuizSounds";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
-import { AiTrap, QuestionNoteTrap, TrapCalibrationPanel, TrapGhost } from "@/components/quiz/exam/AiTrap";
-import { trapDecoyLabel, trapPlacementFor } from "@/lib/aiTrap";
-import { useAuthStore } from "@/store/authStore";
 
 type AnswerValue = StoredAttemptAnswer;
 
@@ -90,11 +87,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   const [autoSubmitted, setAutoSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [blockedByBackNavigation, setBlockedByBackNavigation] = useState(false);
-  const [trapStrength, setTrapStrength] = useState(4);
-  const [trapDefaultStrength, setTrapDefaultStrength] = useState(4);
-  const [trapOutline, setTrapOutline] = useState(false);
   const { soundEnabled, playQuizSound, toggleQuizSounds } = useQuizSounds();
-  const userRole = useAuthStore((state) => state.user?.role);
   // Mobile: static exam surface — no space atmosphere behind the questions,
   // opacity-only transitions, no layout-property animation while answering.
   const isMobile = useIsMobile();
@@ -118,19 +111,6 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     return () => window.removeEventListener("pageshow", onPageShow);
   }, []);
 
-  // Calibration is a teacher/admin-only local preview. The server owns the
-  // default strength; this flag only enables the controls when explicitly
-  // requested with ?trapcal=1. useSyncExternalStore keeps SSR and hydration
-  // consistent without writing state from an effect.
-  const trapCalibrationRequested = useSyncExternalStore(
-    () => () => {},
-    () => new URLSearchParams(window.location.search).get("trapcal") === "1",
-    () => false,
-  );
-  const trapCalibration =
-    trapCalibrationRequested &&
-    (String(userRole ?? "").toLowerCase() === "teacher" ||
-      String(userRole ?? "").toLowerCase() === "admin");
   useEffect(() => {
     answersRef.current = answers;
     // Persist locally on every change so a refresh/resume never loses answers.
@@ -264,21 +244,6 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   }, [attemptId, submit, submitting, timeLeft]);
 
   const current = questions[index];
-  const currentTrap = current?.trap ?? null;
-  const currentDecoyLabel = trapDecoyLabel(currentTrap);
-  const currentTrapPlacement =
-    current && attemptId !== null ? trapPlacementFor(attemptId, current.id) : null;
-  const trapOutlineVisible = trapCalibration && trapOutline;
-  const monitoringTrap =
-    currentTrap && currentTrapPlacement === "monitoring" ? (
-      <AiTrap
-        trap={currentTrap}
-        placement="monitoring"
-        strength={trapStrength}
-        outline={trapOutlineVisible}
-        className="right-0 left-auto w-full max-w-[240px]"
-      />
-    ) : null;
   const answered = Object.keys(answers).length;
   const progress = questions.length ? ((index + 1) / questions.length) * 100 : 0;
 
@@ -297,9 +262,6 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       // The server returns the final per-attempt option order. The decoy label
       // is derived from that exact order, so the client must not shuffle it.
       setQuestions(started.problems ?? []);
-      const serverTrapStrength = Number(started.trapStrength ?? 4);
-      setTrapDefaultStrength(serverTrapStrength);
-      setTrapStrength(serverTrapStrength);
       if (started.resumed) {
         // Server responses make resume work across devices; the local draft is
         // applied last because it may contain a newer offline edit.
@@ -443,17 +405,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       entryError={error}
       onTerminate={handleTerminate}
       registrationFields={skipRegistration ? [] : quiz.registration_fields ?? []}
-      monitoringTrap={monitoringTrap}
     >
-      {trapCalibration && (
-        <TrapCalibrationPanel
-          value={trapStrength}
-          defaultValue={trapDefaultStrength}
-          outline={trapOutline}
-          onChange={setTrapStrength}
-          onOutlineChange={setTrapOutline}
-        />
-      )}
       {submitting && <SubmissionProgressOverlay complete={submissionComplete} soundEnabled={soundEnabled} onSound={playQuizSound} onHome={handleGoHome} />}
       {starting || (!attemptId && !error) ? (
         <div className="flex h-full items-center justify-center p-6">
@@ -503,7 +455,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
           animate={{ opacity: 1, x: 0, scale: 1 }}
           exit={isMobile ? undefined : { opacity: 0, x: -14, scale: 1 }}
           transition={isMobile ? { duration: 0 } : { duration: 0.22, ease: "easeOut" }}
-          className={`relative overflow-hidden rounded-[24px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 sm:p-6 ${currentTrap && currentTrapPlacement === "under-options" ? "pb-10 sm:pb-12" : ""}`}
+          className="relative overflow-hidden rounded-[24px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 sm:p-6"
         >
           <div className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-2xl border-2 border-[var(--qs-line)]" />
           <div className="relative flex items-center justify-between gap-3">
@@ -517,14 +469,6 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
           </div>
           <h2 className="relative mt-4 whitespace-pre-wrap text-base font-semibold leading-7 tracking-[-0.01em] text-[var(--qs-ink)] sm:text-lg">{plainText(current.problem_statement)}</h2>
           {current.problem_description && <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--qs-muted)]">{plainText(current.problem_description)}</p>}
-          {currentTrap && currentTrapPlacement === "question-gap" && (
-            <QuestionNoteTrap
-              trap={currentTrap}
-              strength={trapStrength}
-              outline={trapOutlineVisible}
-              className="left-2 right-2 mt-1"
-            />
-          )}
 
           <div className="relative mt-5 grid gap-3 sm:grid-cols-2">
             {current.options.map((option, optionIndex) => {
@@ -558,28 +502,10 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
                   </span>
                   <span className="flex-1">{plainText(option.option_statement)}</span>
                   <CheckCircle2 className={`h-4 w-4 shrink-0 transition-opacity ${selected ? "text-[var(--qs-brand)] opacity-100" : "opacity-0"}`} />
-                  {currentTrap && currentDecoyLabel === optionLabel && (
-                    <TrapGhost
-                      trap={currentTrap}
-                      strength={trapStrength}
-                      surfaceKey={selected ? "selected" : "idle"}
-                      outline={trapOutlineVisible}
-                      className="bottom-0.5 left-2 right-2"
-                    />
-                  )}
                 </button>
               );
             })}
           </div>
-          {currentTrap && currentTrapPlacement === "under-options" && (
-            <AiTrap
-              trap={currentTrap}
-              placement="under-options"
-              strength={trapStrength}
-              outline={trapOutlineVisible}
-              className="left-4 right-4 sm:left-1/2 sm:right-4"
-            />
-          )}
           {current.options.length === 0 && (
             <textarea
               value={answers[current.id]?.textAnswer ?? ""}
@@ -597,18 +523,6 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         </motion.section>
         </AnimatePresence>
 
-        {currentTrap && currentTrapPlacement === "between-card-footer" && (
-          <div className="relative h-16" aria-hidden="true">
-            <AiTrap
-              trap={currentTrap}
-              placement="between-card-footer"
-              strength={trapStrength}
-              outline={trapOutlineVisible}
-              className="left-4 right-4 top-1"
-            />
-          </div>
-        )}
-
         {error && (
           <div className="mt-3 flex items-start gap-2 rounded-xl border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] p-3 text-xs text-[var(--qs-bad)]">
             <AlertCircle className="h-4 w-4 shrink-0" /> {error}
@@ -618,15 +532,6 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         </div>
 
         <footer className="relative grid shrink-0 grid-cols-2 gap-2 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 sm:grid-cols-[auto_1fr_auto] sm:gap-3">
-          {currentTrap && (
-            <TrapGhost
-              trap={currentTrap}
-              strength={trapStrength}
-              prefix="© 2026 QuizSupport. All rights reserved. "
-              outline={trapOutlineVisible}
-              className="bottom-0.5 left-3 right-3"
-            />
-          )}
           <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.max(0, value - 1)); }} disabled={index === 0} className="b b-ghost min-h-12 gap-1 px-3 disabled:cursor-not-allowed disabled:opacity-40 sm:px-4">
             <ChevronLeft className="h-4 w-4" /> Previous
           </button>

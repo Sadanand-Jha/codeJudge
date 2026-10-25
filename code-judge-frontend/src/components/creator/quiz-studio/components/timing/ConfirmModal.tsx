@@ -42,6 +42,7 @@ export function ConfirmModal({
   children,
   confirmLabel,
   confirmColor = "pink",
+  confirmDisabled = false,
   icon,
 }: {
   open: boolean;
@@ -53,6 +54,7 @@ export function ConfirmModal({
   children?: React.ReactNode;
   confirmLabel: string;
   confirmColor?: Variant;
+  confirmDisabled?: boolean;
   icon?: LucideIcon;
 }) {
   const v = VARIANTS[confirmColor];
@@ -136,8 +138,9 @@ export function ConfirmModal({
               <button
                 type="button"
                 onClick={onConfirm}
+                disabled={confirmDisabled}
                 className={cn(
-                  "inline-flex h-10 items-center gap-2 rounded-[12px] border-2 px-5 text-xs font-extrabold shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none",
+                  "inline-flex h-10 items-center gap-2 rounded-[12px] border-2 px-5 text-xs font-extrabold shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50",
                   v.button
                 )}
               >

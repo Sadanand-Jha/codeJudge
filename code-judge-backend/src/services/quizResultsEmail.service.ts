@@ -9,11 +9,18 @@ type QuizResponsesEmailRow = {
   name: string;
   code: string;
   createdby: number;
+  starttime: Date | string | null;
   endtime: Date | string | null;
   status: string | null;
   creator_email: string | null;
   responses_email_sent_at: Date | string | null;
 };
+
+function sessionToken(starttime: Date | string | null): string {
+  if (!starttime) return "";
+  const date = new Date(starttime);
+  return Number.isFinite(date.getTime()) ? date.toISOString() : String(starttime);
+}
 
 function quizHasEnded(
   quiz: Pick<QuizResponsesEmailRow, "endtime" | "status">,
@@ -27,7 +34,7 @@ function quizHasEnded(
 
 async function getQuizForResponsesEmail(quizId: number): Promise<QuizResponsesEmailRow | null> {
   const result = await pool.query(
-    `SELECT q.id, q.name, q.code, q.createdby, q.endtime,
+    `SELECT q.id, q.name, q.code, q.createdby, q.starttime, q.endtime,
             q.responses_email_sent_at,
             qs.name AS status,
             u.email AS creator_email
@@ -88,23 +95,33 @@ export async function maybeQueueQuizResponsesEmail(quizId: number): Promise<bool
 
   if (!isEmailQueueConfigured()) {
     schedulerLog("email", `quiz ${quizId}: email queue not configured, processing report inline`);
-    const result = await processQuizResponsesEmail(quizId);
+    const result = await processQuizResponsesEmail(quizId, sessionToken(quiz.starttime));
     schedulerLog("email", `quiz ${quizId}: inline processing completed (sent=${result.sent})`);
     return result.sent;
   }
 
   schedulerLog("email", `quiz ${quizId}: adding responses email job to BullMQ`);
-  await enqueueResponsesReportEmail(quizId);
+  await enqueueResponsesReportEmail(quizId, sessionToken(quiz.starttime));
   schedulerLog("email", `quiz ${quizId}: responses email job queued`);
   return true;
 }
 
 export async function processQuizResponsesEmail(
-  quizId: number
+  quizId: number,
+  sessionId?: string
 ): Promise<{ sent: boolean; reason?: string }> {
   schedulerLog("email-worker", `quiz ${quizId}: processing responses email job`);
   const quiz = await getQuizForResponsesEmail(quizId);
   if (!quiz) throw new Error("Quiz not found");
+  const currentSession = sessionToken(quiz.starttime);
+  const currentSessionStart = quiz.starttime ? new Date(quiz.starttime) : null;
+  if (sessionId && currentSession && sessionId !== currentSession) {
+    schedulerLog(
+      "email-worker",
+      `quiz ${quizId}: skipped stale responses email for session ${sessionId} (current ${currentSession})`
+    );
+    return { sent: false, reason: "stale_session" };
+  }
   if (quiz.responses_email_sent_at) {
     schedulerLog("email-worker", `quiz ${quizId}: skipped because email was already sent`);
     return { sent: false, reason: "already_sent" };
@@ -139,8 +156,10 @@ export async function processQuizResponsesEmail(
     `UPDATE quiz
         SET responses_email_sent_at = CURRENT_TIMESTAMP,
             updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1 AND responses_email_sent_at IS NULL`,
-    [quizId]
+      WHERE id = $1
+        AND responses_email_sent_at IS NULL
+        AND ($2::timestamptz IS NULL OR starttime = $2::timestamptz)`,
+    [quizId, currentSessionStart]
   ).catch((error) => {
     schedulerLog("email-worker", `quiz ${quizId}: failed to mark email as sent`, error);
   });

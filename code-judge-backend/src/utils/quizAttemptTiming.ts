@@ -2,7 +2,11 @@
 export const NO_END_ATTEMPT_DURATION_MS = 15 * 60_000;
 export const NO_END_ATTEMPT_DURATION_MINUTES = 15;
 
-type QuizTiming = { endtime?: string | Date | null; status?: string | null };
+type QuizTiming = {
+  endtime?: string | Date | null;
+  duration?: number | string | null;
+  status?: string | null;
+};
 type AttemptTiming = {
   started_at?: string | Date | null;
   created_at?: string | Date | null;
@@ -18,9 +22,19 @@ export function getAttemptStartedAtMs(attempt: AttemptTiming | null | undefined)
   return toTimestamp(attempt?.started_at) ?? toTimestamp(attempt?.created_at);
 }
 
+/** Per-student attempt window in minutes; falls back to 15 when unset. */
+export function getQuizAttemptDurationMinutes(
+  quiz: QuizTiming | null | undefined
+): number {
+  const minutes = Number(quiz?.duration);
+  return Number.isFinite(minutes) && minutes > 0
+    ? Math.floor(minutes)
+    : NO_END_ATTEMPT_DURATION_MINUTES;
+}
+
 /**
  * A quiz end time is authoritative when configured. Otherwise each attempt
- * gets a fixed 15-minute window measured from when that attempt started.
+ * gets the quiz's per-student duration measured from when that attempt started.
  */
 export function getQuizAttemptDeadlineMs(
   quiz: QuizTiming | null | undefined,
@@ -32,7 +46,7 @@ export function getQuizAttemptDeadlineMs(
   const attemptStartedAtMs = getAttemptStartedAtMs(attempt);
   return attemptStartedAtMs === null
     ? null
-    : attemptStartedAtMs + NO_END_ATTEMPT_DURATION_MS;
+    : attemptStartedAtMs + getQuizAttemptDurationMinutes(quiz) * 60_000;
 }
 
 export function isQuizAttemptWindowClosed(

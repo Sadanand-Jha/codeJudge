@@ -3,11 +3,13 @@
 // processes. Keeps running until SIGTERM/SIGINT.
 import "dotenv/config";
 import { startQuizSubmissionWorker } from "./quizSubmission.worker.ts";
+import { startQuizRecalculationWorker } from "./quizRecalculation.worker.ts";
 import { startQuizResultScheduler } from "./quizResult.scheduler.ts";
 import { startEmailWorker } from "./email.worker.ts";
 import { startPdfWorker } from "./pdf.worker.ts";
 
 startQuizSubmissionWorker();
+startQuizRecalculationWorker();
 startQuizResultScheduler();
 startEmailWorker();
 startPdfWorker();

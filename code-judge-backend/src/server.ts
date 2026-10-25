@@ -3,6 +3,7 @@
 // Vercel, the app is imported via api/index.js and workers are skipped.
 import app from './app.ts';
 import { startQuizSubmissionWorker } from './queues/quizSubmission.worker.ts';
+import { startQuizRecalculationWorker } from './queues/quizRecalculation.worker.ts';
 import { startQuizResultScheduler } from './queues/quizResult.scheduler.ts';
 import { startEmailWorker } from './queues/email.worker.ts';
 import { startPdfWorker } from './queues/pdf.worker.ts';
@@ -21,6 +22,7 @@ if (!isVercel) {
 if (shouldStartWorkers) {
   try {
     startQuizSubmissionWorker();
+    startQuizRecalculationWorker();
     startQuizResultScheduler();
     startEmailWorker();
     startPdfWorker();

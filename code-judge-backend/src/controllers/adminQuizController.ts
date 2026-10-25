@@ -10,7 +10,7 @@ import { isDatabaseUnavailableError, isQuizCodeConflictError } from "../utils/da
 import { QuizCreationLimitError } from "../services/quizCreationLimits.ts";
 import { MAX_QUESTIONS_PER_QUIZ, QuizQuestionLimitError } from "../services/quizQuestionLimits.ts";
 import { sendEntitlementError } from "../services/entitlement.service.ts";
-import { enqueueQuizResultCalculation } from "../services/quizSubmission.service.ts";
+import { enqueueQuizResultCalculation, scheduleQuizRecalculation } from "../services/quizSubmission.service.ts";
 
 const quizService = new AdminQuizService();
 const resultGenerationService = new ResultGenerationService();
@@ -485,7 +485,7 @@ export const updateQuizStatus = async (req: Request, res: Response) => {
     }
 
     const { quizId } = req.params;
-    const { status, sessionDuration, endBehavior } = req.body;
+    const { status, sessionDuration, endBehavior, attemptDuration } = req.body;
 
     const validStatuses = ["scheduled", "live", "ended"];
     if (!status || !validStatuses.includes(status)) {
@@ -502,10 +502,28 @@ export const updateQuizStatus = async (req: Request, res: Response) => {
       return;
     }
 
+    if (status === "scheduled") {
+      const quiz = await quizService.getQuizById(quizId);
+      if (!quiz) {
+        res.status(404).json({ success: false, message: "Quiz not found" });
+        return;
+      }
+      if (!quiz.endtime) {
+        res.status(400).json({
+          success: false,
+          message: "Scheduled quizzes require an end time",
+        });
+        return;
+      }
+    }
+
     const updateData: Record<string, any> = { status };
 
     if (status === "live") {
       updateData.starttime = new Date().toISOString();
+      if (typeof attemptDuration === "number" && attemptDuration > 0) {
+        updateData.duration = attemptDuration;
+      }
       if (endBehavior === "auto_duration" && typeof sessionDuration === "number" && sessionDuration > 0) {
         const endTime = new Date(Date.now() + sessionDuration * 60 * 1000);
         updateData.endtime = endTime.toISOString();
@@ -517,6 +535,16 @@ export const updateQuizStatus = async (req: Request, res: Response) => {
     }
 
     const updatedQuiz = await quizService.updateQuiz(Number(quizId), updateData);
+
+    if (status === "live") {
+      await pool.query(
+        `UPDATE quiz
+            SET responses_email_sent_at = NULL,
+                updated_at = CURRENT_TIMESTAMP
+          WHERE id = $1`,
+        [Number(quizId)]
+      );
+    }
 
     if (status === "ended") {
       await enqueueQuizResultCalculation(Number(quizId));
@@ -626,6 +654,11 @@ export const addQuizProblem = async (req: Request, res: Response) => {
     }
 
     const problem = await quizService.createQuizProblem({ ...req.body, quizId: Number(quizId) });
+    try {
+      await scheduleQuizRecalculation(Number(quizId));
+    } catch (recalcError) {
+      console.error("Could not schedule quiz result recalculation:", recalcError);
+    }
     res.status(201).json({ success: true, message: "Question added successfully", data: problem });
   } catch (error) {
     if (sendEntitlementError(error, res)) return;
@@ -660,6 +693,11 @@ export const updateQuizProblem = async (req: Request, res: Response) => {
     }
 
     const updatedProblem = await quizService.updateQuizProblem(Number(problemId), req.body);
+    try {
+      await scheduleQuizRecalculation(Number(target.quiz_id));
+    } catch (recalcError) {
+      console.error("Could not schedule quiz result recalculation:", recalcError);
+    }
     res.status(200).json({ success: true, message: "Question updated successfully", data: updatedProblem });
   } catch (error) {
     console.error("Error updating quiz problem:", error);
@@ -694,6 +732,12 @@ export const deleteQuizProblem = async (req: Request, res: Response) => {
       return;
     }
 
+    try {
+      await scheduleQuizRecalculation(Number(target.quiz_id));
+    } catch (recalcError) {
+      console.error("Could not schedule quiz result recalculation:", recalcError);
+    }
+
     res.status(200).json({ success: true, message: "Question deleted successfully" });
   } catch (error) {
     console.error("Error deleting quiz problem:", error);
@@ -723,6 +767,11 @@ export const duplicateQuizProblem = async (req: Request, res: Response) => {
     }
 
     const duplicatedProblem = await quizService.duplicateQuizProblem(Number(problemId));
+    try {
+      await scheduleQuizRecalculation(Number(target.quiz_id));
+    } catch (recalcError) {
+      console.error("Could not schedule quiz result recalculation:", recalcError);
+    }
     res.status(201).json({ success: true, message: "Question duplicated successfully", data: duplicatedProblem });
   } catch (error) {
     if (sendEntitlementError(error, res)) return;
@@ -790,6 +839,11 @@ export const addQuizProblemOption = async (req: Request, res: Response) => {
       ...req.body,
       problemId: Number(problemId),
     });
+    try {
+      await scheduleQuizRecalculation(Number(target.quiz_id));
+    } catch (recalcError) {
+      console.error("Could not schedule quiz result recalculation:", recalcError);
+    }
     res.status(201).json({ success: true, message: "Option added successfully", data: option });
   } catch (error) {
     console.error("Error adding quiz problem option:", error);
@@ -858,6 +912,14 @@ export const saveQuizProblemFull = async (req: Request, res: Response) => {
       negativeMarks: body.negativeMarks,
       options: body.options || [],
     });
+
+    if (result?.gradingChanged) {
+      try {
+        await scheduleQuizRecalculation(Number(quizId));
+      } catch (recalcError) {
+        console.error("Could not schedule quiz result recalculation:", recalcError);
+      }
+    }
 
     res.status(200).json({ success: true, message: "Question saved successfully", data: result });
   } catch (error) {

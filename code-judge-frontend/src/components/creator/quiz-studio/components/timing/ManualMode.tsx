@@ -12,7 +12,7 @@ import { updateQuizStatus } from "@/services/quiz";
 import { toast } from "@/lib/toast";
 import { isQuestionValidationError } from "../../StudioProvider";
 import type { ManualConfig } from "./types";
-import { SESSION_DURATION_PRESETS } from "./types";
+import { ATTEMPT_DURATION_PRESETS, SESSION_DURATION_PRESETS } from "./types";
 
 export function ManualMode({
   manual,
@@ -32,6 +32,9 @@ export function ManualMode({
   const [restartOpen, setRestartOpen] = useState(false);
   const [modalEndBehavior, setModalEndBehavior] = useState<"manual" | "auto_duration">(manual.endBehavior);
   const [modalSessionDuration, setModalSessionDuration] = useState(manual.sessionDuration);
+  const [modalPerStudentDuration, setModalPerStudentDuration] = useState(manual.perStudentDuration);
+  const perStudentDurationValid =
+    Number.isFinite(modalPerStudentDuration) && modalPerStudentDuration > 0;
 
   const isReady = manual.status === "draft";
   const isLive = manual.status === "live";
@@ -67,6 +70,7 @@ export function ManualMode({
                 onClick={() => {
                   setModalEndBehavior(manual.endBehavior);
                   setModalSessionDuration(manual.sessionDuration);
+                  setModalPerStudentDuration(manual.perStudentDuration);
                   setStartOpen(true);
                 }}
                 className="inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-ok)] px-4 text-sm font-extrabold text-white shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none sm:w-auto"
@@ -142,6 +146,7 @@ export function ManualMode({
             onClick={() => {
               setModalEndBehavior(manual.endBehavior);
               setModalSessionDuration(manual.sessionDuration);
+              setModalPerStudentDuration(manual.perStudentDuration);
               setRestartOpen(true);
             }}
             className="inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-ok)] px-4 text-sm font-extrabold text-white shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none sm:w-auto"
@@ -158,6 +163,10 @@ export function ManualMode({
         open={startOpen}
         onClose={() => setStartOpen(false)}
         onConfirm={async () => {
+          if (!perStudentDurationValid) {
+            toast.error({ title: "Set time per student", description: "Each student needs a valid attempt duration." });
+            return;
+          }
           if (onBeforeStart) {
             try {
               await onBeforeStart();
@@ -176,6 +185,7 @@ export function ManualMode({
               await updateQuizStatus(quizId, "live", {
                 endBehavior: modalEndBehavior,
                 sessionDuration: modalEndBehavior === "auto_duration" ? modalSessionDuration : undefined,
+                attemptDuration: modalPerStudentDuration,
               });
             } catch {
               toast.error({ title: "Failed to start quiz" });
@@ -187,6 +197,7 @@ export function ManualMode({
             startedAt: new Date().toISOString(),
             endBehavior: modalEndBehavior,
             sessionDuration: modalSessionDuration,
+            perStudentDuration: modalPerStudentDuration,
           });
           setStartOpen(false);
           toast.success({ title: "Quiz is live!", description: "Participants can now start their attempts." });
@@ -195,6 +206,7 @@ export function ManualMode({
         description="Starting the quiz will make it available to registered participants. They can begin their attempts immediately."
         confirmLabel="Start Quiz"
         confirmColor="emerald"
+        confirmDisabled={!perStudentDurationValid}
       >
         <div className="space-y-3">
           <p className="text-xs font-extrabold uppercase tracking-wider text-[var(--qs-muted)]">
@@ -261,6 +273,20 @@ export function ManualMode({
               />
             </div>
           )}
+          <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
+            <DurationPicker
+              value={modalPerStudentDuration}
+              onChange={setModalPerStudentDuration}
+              presets={ATTEMPT_DURATION_PRESETS}
+              label="Time per student *"
+              helperText="Each participant gets this many minutes from their own attempt start."
+            />
+            {!perStudentDurationValid && (
+              <p className="mt-2 text-[11px] font-bold text-[var(--qs-bad)]">
+                Time per student is required.
+              </p>
+            )}
+          </div>
         </div>
       </ConfirmModal>
 
@@ -288,6 +314,10 @@ export function ManualMode({
         open={restartOpen}
         onClose={() => setRestartOpen(false)}
         onConfirm={async () => {
+          if (!perStudentDurationValid) {
+            toast.error({ title: "Set time per student", description: "Each student needs a valid attempt duration." });
+            return;
+          }
           if (onBeforeStart) {
             try {
               await onBeforeStart();
@@ -306,6 +336,7 @@ export function ManualMode({
               await updateQuizStatus(quizId, "live", {
                 endBehavior: modalEndBehavior,
                 sessionDuration: modalEndBehavior === "auto_duration" ? modalSessionDuration : undefined,
+                attemptDuration: modalPerStudentDuration,
               });
             } catch {
               toast.error({ title: "Failed to restart quiz" });
@@ -318,6 +349,7 @@ export function ManualMode({
             endedAt: undefined,
             endBehavior: modalEndBehavior,
             sessionDuration: modalSessionDuration,
+            perStudentDuration: modalPerStudentDuration,
           });
           setRestartOpen(false);
           toast.success({ title: "Quiz is live!", description: "Participants can now start their attempts." });
@@ -326,6 +358,7 @@ export function ManualMode({
         description="This will make the quiz live again. Participants will be able to start new attempts."
         confirmLabel={onBeforeStart ? "Save and Restart" : "Restart Quiz"}
         confirmColor="emerald"
+        confirmDisabled={!perStudentDurationValid}
       >
         <div className="space-y-3">
           <p className="text-xs font-extrabold uppercase tracking-wider text-[var(--qs-muted)]">
@@ -392,6 +425,20 @@ export function ManualMode({
               />
             </div>
           )}
+          <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
+            <DurationPicker
+              value={modalPerStudentDuration}
+              onChange={setModalPerStudentDuration}
+              presets={ATTEMPT_DURATION_PRESETS}
+              label="Time per student *"
+              helperText="Each participant gets this many minutes from their own attempt start."
+            />
+            {!perStudentDurationValid && (
+              <p className="mt-2 text-[11px] font-bold text-[var(--qs-bad)]">
+                Time per student is required.
+              </p>
+            )}
+          </div>
         </div>
       </ConfirmModal>
     </div>

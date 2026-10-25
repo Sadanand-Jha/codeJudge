@@ -77,6 +77,11 @@ export function TimingSection({
     hydratedRef.current = true;
 
     queueMicrotask(() => {
+      setManual((prev) => ({
+        ...prev,
+        perStudentDuration:
+          state.info.duration > 0 ? state.info.duration : prev.perStudentDuration,
+      }));
       if (lc === "live" || lc === "ended") {
         setManual((prev) => ({
           ...prev,
@@ -100,18 +105,27 @@ export function TimingSection({
       }
     });
     // "draft" → keep defaults
-  }, [state.editMode, state.serverQuizId, state.info.title, state.info.quizLifecycle, state.info.startDate, state.info.endDate]);
+  }, [state.editMode, state.serverQuizId, state.info.title, state.info.quizLifecycle, state.info.startDate, state.info.endDate, state.info.duration]);
 
   const validationErrors = useMemo(() => {
     const errs: string[] = [];
     if (mode === "schedule") {
+      if (!schedule.startDate || !schedule.startTime) {
+        errs.push("Start date and time are required for a scheduled quiz.");
+      }
+      if (!schedule.endDate || !schedule.endTime) {
+        errs.push("End date and time are required for a scheduled quiz.");
+      }
       if (!allowPastSchedule && schedule.startDate && isPast(schedule.startDate, schedule.startTime)) {
         errs.push(
           'Start time cannot be in the past. Choose a future start time or switch to "Start when I\'m ready."'
         );
       }
       if (
+        schedule.startDate &&
+        schedule.startTime &&
         schedule.endDate &&
+        schedule.endTime &&
         isStartAfterEnd(
           schedule.startDate,
           schedule.startTime,
@@ -131,11 +145,15 @@ export function TimingSection({
       setSchedule(next);
       // Sync into studio info so saveToServer persists starttime/endtime.
       updateInfo({
-        startDate: combineDateTime(next.startDate, next.startTime, "00:00"),
-        endDate: next.endDate
-          ? combineDateTime(next.endDate, next.endTime, "23:59")
-          : "",
-        quizLifecycle: mode === "schedule" && next.startDate ? "scheduled" : "draft",
+        startDate:
+          next.startDate && next.startTime
+            ? combineDateTime(next.startDate, next.startTime, "00:00")
+            : "",
+        endDate:
+          next.endDate && next.endTime
+            ? combineDateTime(next.endDate, next.endTime, "00:00")
+            : "",
+        quizLifecycle: mode === "schedule" ? "scheduled" : "draft",
       });
       if (mode === "schedule" && patch.startDate) {
         setManual((prev) => ({ ...prev, status: "scheduled" }));
@@ -149,6 +167,9 @@ export function TimingSection({
 
     // Compute studio info updates outside setManual to avoid nested setState.
     const nextManual = { ...manual, ...patch };
+    if (patch.perStudentDuration !== undefined) {
+      updateInfo({ duration: nextManual.perStudentDuration });
+    }
     const isLiveTransition = patch.status === "live" || (nextManual.status === "live" && (patch.sessionDuration !== undefined || patch.endBehavior !== undefined || patch.startedAt));
     if (isLiveTransition && nextManual.status === "live") {
       const now = new Date();
@@ -179,11 +200,15 @@ export function TimingSection({
       setManual((prev) => ({ ...prev, status: "scheduled" }));
       // Re-sync any already-entered schedule into the saved info.
       updateInfo({
-        startDate: combineDateTime(schedule.startDate, schedule.startTime, "00:00"),
-        endDate: schedule.endDate
-          ? combineDateTime(schedule.endDate, schedule.endTime, "23:59")
-          : "",
-        quizLifecycle: schedule.startDate ? "scheduled" : "draft",
+        startDate:
+          schedule.startDate && schedule.startTime
+            ? combineDateTime(schedule.startDate, schedule.startTime, "00:00")
+            : "",
+        endDate:
+          schedule.endDate && schedule.endTime
+            ? combineDateTime(schedule.endDate, schedule.endTime, "00:00")
+            : "",
+        quizLifecycle: "scheduled",
       });
     } else {
       setManual((prev) => ({ ...prev, status: "draft" }));
@@ -220,12 +245,12 @@ export function TimingSection({
                 {formatTime12(schedule.startTime)}
               </span>
               <ArrowRight className="h-3 w-3 text-[var(--qs-muted)]" />
-              {schedule.endDate ? (
+              {schedule.endDate && schedule.endTime ? (
                 <span className="font-extrabold text-[var(--qs-ink)]">
-                  {formatTime12(schedule.endTime || "23:59")}
+                  {formatTime12(schedule.endTime)}
                 </span>
               ) : (
-                <span className="font-medium text-[var(--qs-muted)]">Manual end</span>
+                <span className="font-medium text-[var(--qs-muted)]">End time required</span>
               )}
             </div>
           ) : (
@@ -242,8 +267,8 @@ export function TimingSection({
             {mode === "schedule" && schedule.startDate
               ? "Participants can join and answer throughout the scheduled window. Responses stop automatically at the end time."
               : manual.status === "live"
-                ? "The quiz is currently live. Participants can answer until you stop the quiz."
-                : "Once you start the quiz, participants can begin answering. Responses remain open until you stop the quiz."}
+                ? `The quiz is currently live. Each participant gets ${manual.perStudentDuration} minutes from their own attempt start.`
+                : `Once you start the quiz, participants can begin answering. Each participant gets ${manual.perStudentDuration} minutes from their own attempt start.`}
           </p>
         </div>
         <ParticipantPreview state={helpState} />

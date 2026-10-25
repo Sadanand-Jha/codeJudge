@@ -215,6 +215,18 @@ export class QuizService {
     return this.repository.getExpiredQuizAttempts(quizId, userId);
   }
 
+  async hasFinalQuizAttempts(quizId: number): Promise<boolean> {
+    return this.repository.hasFinalQuizAttempts(quizId);
+  }
+
+  async getFinalQuizAttempts(quizId: number): Promise<any[]> {
+    return this.repository.getFinalQuizAttempts(quizId);
+  }
+
+  async getQuizGradingRevision(quizId: number): Promise<string> {
+    return this.repository.getQuizGradingRevision(quizId);
+  }
+
   async getQuizIdsAwaitingResultCalculation(): Promise<number[]> {
     return this.repository.getQuizIdsAwaitingResultCalculation();
   }
