@@ -211,10 +211,10 @@ export class AdminQuizRepository {
     }
 
     const updateableFields = [
-      "name", "starttime", "endtime", "visibility", "audience_mode", "difficulty",
+      "name", "code", "starttime", "endtime", "visibility", "audience_mode", "difficulty",
       "subject_id", "exam_cat", "duration", "total_marks", "passing_marks",
       "shuffle_questions", "shuffle_options", "show_results_immediately",
-      "negative_marking", "leaderboard", "quiz_status", "registration_fields",
+      "negative_marking", "leaderboard", "quiz_status", "registration_fields"
     ];
     const fieldKeyMap: Record<string, string> = {
       status: "quiz_status", subjectId: "subject_id", examId: "exam_cat",

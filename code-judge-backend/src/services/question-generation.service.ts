@@ -45,6 +45,8 @@ export interface GeneratedQuestionPayload {
   /** Sanitized HTML rendering of the question, including real tables/lists. */
   questionHtml?: string;
   options: string[];
+  /** Sanitized HTML rendering of each option, aligned with `options` by index. */
+  optionsHtml?: string[];
   answer: string;
   /** Canonical answer text returned to clients. Kept alongside `answer` for compatibility. */
   correctAnswer?: string;
@@ -108,6 +110,7 @@ The user may have attached one or more documents.
       "type": "mcq" | "true_false" | "short",
       "difficulty": "easy" | "medium" | "hard" | "expert",
       "options": ["option 1", "option 2", "option 3", "option 4"],
+      "optionsHtml": ["option 1 rendered as clean HTML", "option 2 rendered as clean HTML", "option 3 rendered as clean HTML", "option 4 rendered as clean HTML"],
       "answer": "exact correct option text (must match one of the options)",
       "explanation": "optional",
       "hint": "optional",
@@ -118,6 +121,7 @@ The user may have attached one or more documents.
 Rules when extracting:
 - Always include questionHtml. Use simple semantic HTML only (<p>, <ul>, <ol>, <li>, <strong>, <em>, <pre>, <code>, <table>, <thead>, <tbody>, <tr>, <th>, <td>). No scripts, styles, classes or inline attributes.
 - If a question contains tabular data (process tables, schedules, comparisons, datasets), render it as a real HTML <table> in questionHtml with clear headers. Never leave pipe-separated or space-aligned rows as plain text.
+- For every option include a matching optionsHtml entry (same order and length as options) rendered as clean HTML with the same allowed tags. Never leave pipe-separated table data inside an option as plain text.
 - Preserve the exact wording, options and correct answers. Do not invent or reorder questions.
 - Clean up option text: strip any leading option labels/prefixes such as "(A)", "A)", "A.", "A:" from an option. For example an option written as "(A) wow" must be output as "wow" only.
 - When the document marks the correct answer with a letter (e.g. answer key says "A)"), resolve that letter to the actual cleaned option text and put that text in "answer". Never output the raw letter as the answer.
@@ -338,33 +342,42 @@ export const parseQuestionsJSON = (
 
   const questions = list
     .filter((q): q is Record<string, unknown> => typeof q === "object" && q !== null)
-    .map((q) => ({
-      question: String(q.question ?? q.content ?? "").trim(),
-      questionHtml: cleanQuestionHtml(q.questionHtml ?? q.question_html),
-      options: Array.isArray(q.options)
-        ? dedupeOptions((q.options as unknown[]).map((o) => String(o).trim()).filter(Boolean))
-        : [],
-      answer: q.correctAnswer != null
-        ? String(q.correctAnswer).trim()
-        : q.answer != null
-          ? String(q.answer).trim()
-          : "",
-      correctOptionIndex: Number.isInteger(Number(q.correctOptionIndex))
-        ? Number(q.correctOptionIndex)
-        : undefined,
-      explanation: typeof q.explanation === "string" ? q.explanation : undefined,
-      hint: typeof q.hint === "string" ? q.hint : undefined,
-      type: typeof q.type === "string" ? q.type : undefined,
-      difficulty: typeof q.difficulty === "string" ? q.difficulty : undefined,
-      tags: Array.isArray(q.tags)
-        ? (q.tags as unknown[]).map((t) => String(t)).filter(Boolean)
-        : undefined,
-      subjectId: Number.isInteger(Number(q.subjectId)) && Number(q.subjectId) > 0 ? Number(q.subjectId) : undefined,
-      chapterId: Number.isInteger(Number(q.chapterId)) && Number(q.chapterId) > 0 ? Number(q.chapterId) : null,
-      topicId: Number.isInteger(Number(q.topicId)) && Number(q.topicId) > 0 ? Number(q.topicId) : null,
-      chapter: typeof q.chapter === "string" ? q.chapter : undefined,
-      topic: typeof q.topic === "string" ? q.topic : undefined,
-    }))
+    .map((q) => {
+      const { options, optionsHtml } = normalizeOptionPairs(
+        Array.isArray(q.options) ? (q.options as unknown[]) : [],
+        Array.isArray(q.optionsHtml)
+          ? (q.optionsHtml as unknown[])
+          : Array.isArray(q.options_html)
+            ? (q.options_html as unknown[])
+            : [],
+      );
+      return {
+        question: String(q.question ?? q.content ?? "").trim(),
+        questionHtml: cleanQuestionHtml(q.questionHtml ?? q.question_html),
+        options,
+        optionsHtml,
+        answer: q.correctAnswer != null
+          ? String(q.correctAnswer).trim()
+          : q.answer != null
+            ? String(q.answer).trim()
+            : "",
+        correctOptionIndex: Number.isInteger(Number(q.correctOptionIndex))
+          ? Number(q.correctOptionIndex)
+          : undefined,
+        explanation: typeof q.explanation === "string" ? q.explanation : undefined,
+        hint: typeof q.hint === "string" ? q.hint : undefined,
+        type: typeof q.type === "string" ? q.type : undefined,
+        difficulty: typeof q.difficulty === "string" ? q.difficulty : undefined,
+        tags: Array.isArray(q.tags)
+          ? (q.tags as unknown[]).map((t) => String(t)).filter(Boolean)
+          : undefined,
+        subjectId: Number.isInteger(Number(q.subjectId)) && Number(q.subjectId) > 0 ? Number(q.subjectId) : undefined,
+        chapterId: Number.isInteger(Number(q.chapterId)) && Number(q.chapterId) > 0 ? Number(q.chapterId) : null,
+        topicId: Number.isInteger(Number(q.topicId)) && Number(q.topicId) > 0 ? Number(q.topicId) : null,
+        chapter: typeof q.chapter === "string" ? q.chapter : undefined,
+        topic: typeof q.topic === "string" ? q.topic : undefined,
+      };
+    })
     .filter((q) => q.question.length > 0)
     .map((q) => {
       if (q.options.length === 0) {
@@ -413,19 +426,25 @@ const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
 /** De-duplicate choices case-insensitively and numerically ("5" == "5.0"). */
-const dedupeOptions = (options: string[]): string[] => {
+const normalizeOptionPairs = (
+  rawOptions: unknown[],
+  rawHtml: unknown[],
+): { options: string[]; optionsHtml?: string[] } => {
   const seen = new Set<string>();
-  const out: string[] = [];
-  for (const option of options) {
-    const text = option.replace(/\s+/g, " ").trim();
-    if (!text) continue;
+  const options: string[] = [];
+  const optionsHtml: string[] = [];
+  rawOptions.forEach((raw, index) => {
+    const text = String(raw).replace(/\s+/g, " ").trim();
+    if (!text) return;
     const numeric = Number(text);
     const key = Number.isFinite(numeric) ? `n:${numeric}` : `t:${text.toLocaleLowerCase()}`;
-    if (seen.has(key)) continue;
+    if (seen.has(key)) return;
     seen.add(key);
-    out.push(text);
-  }
-  return out;
+    options.push(text);
+    optionsHtml.push(cleanQuestionHtml(rawHtml[index]) ?? "");
+  });
+  const hasHtml = optionsHtml.some((html) => html.trim().length > 0);
+  return { options, optionsHtml: hasHtml ? optionsHtml : undefined };
 };
 
 /**
@@ -516,6 +535,7 @@ Return ONLY valid JSON (no markdown fences, no commentary) matching exactly this
       "type": "mcq" | "true_false" | "short",
       "difficulty": "easy" | "medium" | "hard" | "expert",
       "options": ["option 1", "option 2", "option 3", "option 4"],
+      "optionsHtml": ["option 1 rendered as clean HTML", "option 2 rendered as clean HTML", "option 3 rendered as clean HTML", "option 4 rendered as clean HTML"],
       "correctAnswer": "the exact correct option text (or the exact expected answer for non-choice types)",
       "correctOptionIndex": 0,
       "explanation": "why this is correct",
@@ -531,6 +551,7 @@ Rules:
 - Every question MUST include "correctAnswer". Never omit it and never return an empty value.
 - Always include questionHtml. Use simple semantic HTML only (<p>, <ul>, <ol>, <li>, <strong>, <em>, <pre>, <code>, <table>, <thead>, <tbody>, <tr>, <th>, <td>). No scripts, styles, classes or inline attributes.
 - If a question contains tabular data (process tables, schedules, comparisons, datasets), render it as a real HTML <table> in questionHtml with clear headers. Never leave pipe-separated or space-aligned rows as plain text.
+- For every option include a matching optionsHtml entry (same order and length as options) rendered as clean HTML with the same allowed tags. Never leave pipe-separated table data inside an option as plain text.
 - For multiple-choice questions always provide 4 options, make "correctAnswer" exactly match one option, and provide its zero-based "correctOptionIndex" (0=A, 1=B, 2=C, 3=D).
 - All options must be distinct: never repeat an option, never use two options with the same numeric value (e.g. "5" and "5" or "0" and "0.0"), and never use the correct answer as a distractor.
 - For true/false use options ["True", "False"].

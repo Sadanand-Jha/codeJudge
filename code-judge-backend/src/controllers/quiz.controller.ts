@@ -267,6 +267,8 @@ export const getQuizByCode = async (req: Request, res: Response) => {
 
     const quiz = await quizService.getQuizByCode(code);
 
+    console.log(quiz, "this is the reposne");
+
     const status = String(quiz?.status ?? "").toLowerCase();
     if (!quiz || !["scheduled", "live"].includes(status)) {
       res.status(404).json({

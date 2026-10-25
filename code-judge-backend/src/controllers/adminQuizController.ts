@@ -288,7 +288,11 @@ export const regenerateQuizCode = async (req: Request, res: Response) => {
     }
 
     const code = await quizService.generateUniqueCode();
-    await quizService.updateQuiz(Number(quizId), { code });
+    const updatedQuiz = await quizService.updateQuiz(Number(quizId), { code });
+    if (!updatedQuiz) {
+      res.status(404).json({ success: false, message: "Quiz not found" });
+      return;
+    }
 
     res.status(200).json({
       success: true,
