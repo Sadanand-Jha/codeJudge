@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { getUserTimeZone } from "@/lib/timezone";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import {
   ArrowRight,
   CalendarClock,
@@ -535,6 +535,11 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
     },
     { demoState }
   );
+  const refresh = useAICreditsStore((store) => store.refresh);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   const low = data ? checkLowCreditWarning(data.balance.totalRemaining, data.balance.monthlyAllowance || data.balance.monthlyCredits || 1) : false;
 

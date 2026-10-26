@@ -176,6 +176,8 @@ export const getCreditBalanceHandler = async (
         balance: summary.total,
         planCredits: summary.planCredits,
         purchasedCredits: summary.purchasedCredits,
+        planCreditsTotal: summary.planCreditsTotal,
+        purchasedCreditsTotal: summary.purchasedCreditsTotal,
         nearestExpiry: summary.nearestExpiry?.toISOString() ?? null,
       },
     });

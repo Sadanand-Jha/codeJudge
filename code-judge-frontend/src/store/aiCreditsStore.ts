@@ -16,6 +16,13 @@ import {
   type AICreditFeatureId,
   type CreditPurchasePack,
 } from "@/config/aiCredits";
+import { getCreditBalance } from "@/services/aiCredits";
+
+interface CreditMetadata {
+  promptHash?: string;
+  userAgent?: string;
+  sessionId?: string;
+}
 
 /* ============================================
    Initial state — no seeded data. Real purchases
@@ -94,9 +101,11 @@ interface AICreditsState {
   purchases: AICreditPurchase[];
 
   /* actions */
-  consumeCredits: (featureId: AICreditFeatureId, metadata?: { promptHash?: string; userAgent?: string; sessionId?: string }) => Promise<{ success: boolean; reason?: string; retryAfterMs?: number; message?: string }>;
+  consumeCredits: (featureId: AICreditFeatureId, metadata?: CreditMetadata) => Promise<{ success: boolean; reason?: string; retryAfterMs?: number; message?: string }>;
   refundCredits: (featureId: AICreditFeatureId) => Promise<void>;
   completeRequest: () => void;
+  /** Apply a server-authoritative remaining balance after an AI charge. */
+  syncServerBalance: (remaining: number) => void;
   purchasePack: (
     packId: string,
     meta?: {
@@ -133,7 +142,7 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
   abuse: EMPTY_ABUSE,
   purchases: [],
 
-  consumeCredits: async (featureId, metadata?: { promptHash?: string; userAgent?: string; sessionId?: string }): Promise<{ success: boolean; reason?: string; retryAfterMs?: number; message?: string }> => {
+  consumeCredits: async (featureId, metadata?: CreditMetadata): Promise<{ success: boolean; reason?: string; retryAfterMs?: number; message?: string }> => {
     const cost = creditCostMap[featureId];
     if (!cost) return { success: false, reason: "invalid_feature" };
 
@@ -226,6 +235,17 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
     });
   },
 
+  syncServerBalance: (remaining) => {
+    const next = Math.max(0, Math.trunc(remaining));
+    set((state) => ({
+      balance: {
+        ...state.balance,
+        totalRemaining: next,
+        remaining: next,
+      },
+    }));
+  },
+
   purchasePack: async (packId, meta) => {
     const credits = meta?.credits ?? 0;
     if (credits <= 0) return;
@@ -255,7 +275,39 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
   },
 
   refresh: async () => {
-    /* In production, fetch from API. Demo is no-op. */
+    try {
+      const snapshot = await getCreditBalance();
+      const planTotal = Math.max(0, snapshot.planCreditsTotal);
+      const purchasedTotal = Math.max(0, snapshot.purchasedCreditsTotal);
+      const planRemaining = Math.max(0, snapshot.planCredits);
+      const purchasedRemaining = Math.max(0, snapshot.purchasedCredits);
+      const expiry = snapshot.nearestExpiry
+        ? Date.parse(snapshot.nearestExpiry)
+        : 0;
+
+      set((state) => ({
+        balance: {
+          ...state.balance,
+          monthlyCredits: planTotal,
+          monthlyAllowance: planTotal,
+          monthlyCreditsConsumed: Math.max(0, planTotal - planRemaining),
+          monthlyCreditsExpiry: Number.isFinite(expiry) ? expiry : 0,
+          purchasedCredits: purchasedTotal,
+          purchasedCreditsConsumed: Math.max(0, purchasedTotal - purchasedRemaining),
+          totalRemaining: Math.max(0, snapshot.balance),
+          remaining: Math.max(0, snapshot.balance),
+          hasActiveSubscription:
+            state.balance.hasActiveSubscription || planTotal > 0,
+        },
+        stats: {
+          ...state.stats,
+          remaining: Math.max(0, snapshot.balance),
+          monthlyAllowance: planTotal,
+        },
+      }));
+    } catch {
+      // Keep the last known balance when the API is unavailable.
+    }
   },
 }));
 

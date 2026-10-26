@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { CalendarClock, History } from "lucide-react";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
@@ -45,6 +45,10 @@ export function AICreditsPage({
   const balance = useAICreditsStore((s) => s.balance);
   const refreshCredits = useAICreditsStore((s) => s.refresh);
   const purchasePack = useAICreditsStore((s) => s.purchasePack);
+
+  useEffect(() => {
+    void refreshCredits();
+  }, [refreshCredits]);
   const { catalog, isLoading: catalogLoading, error: catalogError, refresh: refreshCatalog } = usePricingCatalog();
   const packs = catalog.creditPacks;
   const state =
