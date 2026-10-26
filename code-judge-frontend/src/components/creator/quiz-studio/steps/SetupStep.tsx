@@ -61,10 +61,12 @@ export function SetupStep() {
         className="mb-7"
       >
         <h1 className="text-[26px] font-extrabold leading-tight tracking-[-0.02em] text-[var(--qs-ink)] sm:text-[34px]">
-          Create a new quiz
+          {editMode ? "Edit quiz" : "Create a new quiz"}
         </h1>
         <p className="mt-1.5 text-[15px] font-medium text-[var(--qs-muted)] sm:text-base">
-          Fill in the basic details first. Questions come in the next steps.
+          {editMode
+            ? "Review and update the basic details for this quiz."
+            : "Fill in the basic details first. Questions come in the next steps."}
         </p>
       </motion.div>
 

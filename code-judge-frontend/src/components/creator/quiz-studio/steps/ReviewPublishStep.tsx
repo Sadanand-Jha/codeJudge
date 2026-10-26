@@ -7,6 +7,7 @@ import { TimingSection } from "../components/timing";
 import { useStudio } from "../StudioProvider";
 import { QuizPreviewPlayer } from "../components/QuizPreviewPlayer";
 import { QuizCodeCard } from "./SettingsStep";
+import { QuizSummaryCard } from "../components/QuizSummaryCard";
 import { PublishStep } from "./PublishStep";
 import { useQuizProblemsStore } from "@/store/quizProblemsStore";
 import { useToast } from "@/hooks/useToast";
@@ -64,56 +65,60 @@ export function ReviewPublishStep({ onPublish }: { onPublish: () => void }) {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
-        <div className="border-b-2 border-[var(--qs-line)] px-5 py-4 sm:px-6 sm:py-5">
-          <h2 className="text-base font-extrabold text-[var(--qs-ink)]">
-            {editMode ? "Availability & save" : "Availability & publish"}
-          </h2>
-          <p className="mt-0.5 text-xs font-medium text-[var(--qs-muted)]">
-            {editMode
-              ? "Adjust when this quiz runs, then save your changes."
-              : "Choose when this quiz runs, then start or schedule it."}
-          </p>
-        </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+        <section className="overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
+          <div className="border-b-2 border-[var(--qs-line)] px-5 py-4 sm:px-6 sm:py-5">
+            <h2 className="text-base font-extrabold text-[var(--qs-ink)]">
+              {editMode ? "Availability & save" : "Availability & publish"}
+            </h2>
+            <p className="mt-0.5 text-xs font-medium text-[var(--qs-muted)]">
+              {editMode
+                ? "Adjust when this quiz runs, then save your changes."
+                : "Choose when this quiz runs, then start or schedule it."}
+            </p>
+          </div>
 
-        <div className="px-5 py-5 sm:px-6">
-          <TimingSection variant="availability" allowInlineStart={editMode} flat />
+          <div className="px-5 py-5 sm:px-6">
+            <TimingSection variant="availability" allowInlineStart={editMode} flat />
 
-          <div className="mt-6 overflow-hidden rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-3">
-              <div className="flex min-w-0 items-center gap-2.5">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1a1240]">
-                  <Save className="h-4 w-4" />
-                </span>
-                <div className="min-w-0">
-                  <h3 className="text-sm font-extrabold text-[var(--qs-ink)]">
-                    {editMode ? "Ready to save?" : "Ready to publish?"}
-                  </h3>
-                  <p className="mt-0.5 text-[11px] font-medium text-[var(--qs-muted)]">
-                    {editMode
-                      ? "Review the final details, then save your changes."
-                      : "Review the final details before publishing."}
-                  </p>
+            <div className="mt-6 overflow-hidden rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-3">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1a1240]">
+                    <Save className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-extrabold text-[var(--qs-ink)]">
+                      {editMode ? "Ready to save?" : "Ready to publish?"}
+                    </h3>
+                    <p className="mt-0.5 text-[11px] font-medium text-[var(--qs-muted)]">
+                      {editMode
+                        ? "Review the final details, then save your changes."
+                        : "Review the final details before publishing."}
+                    </p>
+                  </div>
                 </div>
+                <span
+                  className={cn(
+                    "shrink-0 rounded-full border-2 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em]",
+                    state.info.quizLifecycle === "live" && "border-[var(--qs-ink)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]",
+                    state.info.quizLifecycle === "scheduled" && "border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1a1240]",
+                    state.info.quizLifecycle === "ended" && "border-[var(--qs-ink)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]",
+                    state.info.quizLifecycle === "draft" && "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)]"
+                  )}
+                >
+                  {state.info.quizLifecycle}
+                </span>
               </div>
-              <span
-                className={cn(
-                  "shrink-0 rounded-full border-2 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em]",
-                  state.info.quizLifecycle === "live" && "border-[var(--qs-ink)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]",
-                  state.info.quizLifecycle === "scheduled" && "border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1a1240]",
-                  state.info.quizLifecycle === "ended" && "border-[var(--qs-ink)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]",
-                  state.info.quizLifecycle === "draft" && "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)]"
-                )}
-              >
-                {state.info.quizLifecycle}
-              </span>
-            </div>
-            <div className="p-4">
-              <PublishStep onPublish={onPublish} embedded bare />
+              <div className="p-4">
+                <PublishStep onPublish={onPublish} embedded bare />
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        <QuizSummaryCard className="lg:sticky lg:top-4" />
+      </div>
 
       <QuizPreviewPlayer
         key={previewOpen ? "preview-open" : "preview-closed"}
