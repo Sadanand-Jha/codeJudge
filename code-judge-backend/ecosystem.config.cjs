@@ -5,7 +5,7 @@ module.exports = {
       script: 'dist/server.js',
       cwd: '/app',
       exec_mode: 'cluster',
-      instances: 4,
+      instances: 2,
       autorestart: true,
       max_restarts: 20,
       min_uptime: '20s',
