@@ -152,6 +152,66 @@ export const deletePlanHandler = async (req: Request, res: Response): Promise<vo
   }
 };
 
+export const savePlanDraftHandler = async (req: Request, res: Response): Promise<void> => {
+  const planId = planIdFromRequest(req, res);
+  if (planId === null) return;
+  try {
+    const plan = await planService.saveDraft(planId, req.body, actorFromRequest(req));
+    res.status(200).json({ success: true, message: "Draft saved.", data: plan });
+  } catch (error) {
+    respondError(error, res, "save plan draft");
+  }
+};
+
+export const publishPlanDraftHandler = async (req: Request, res: Response): Promise<void> => {
+  const planId = planIdFromRequest(req, res);
+  if (planId === null) return;
+  try {
+    const plan = await planService.publishDraft(planId, actorFromRequest(req));
+    res.status(200).json({ success: true, message: "Plan published.", data: plan });
+  } catch (error) {
+    respondError(error, res, "publish plan draft");
+  }
+};
+
+export const togglePlanActiveHandler = async (req: Request, res: Response): Promise<void> => {
+  const planId = planIdFromRequest(req, res);
+  if (planId === null) return;
+  try {
+    const plan = await planService.setPlanActive(planId, req.body.active === true, actorFromRequest(req));
+    res.status(200).json({ success: true, message: "Plan visibility updated.", data: plan });
+  } catch (error) {
+    respondError(error, res, "toggle plan active");
+  }
+};
+
+export const getPlanVersionsHandler = async (req: Request, res: Response): Promise<void> => {
+  const planId = planIdFromRequest(req, res);
+  if (planId === null) return;
+  try {
+    const versions = await planService.listVersions(planId);
+    res.status(200).json({ success: true, data: { versions } });
+  } catch (error) {
+    respondError(error, res, "list plan versions");
+  }
+};
+
+export const restorePlanVersionHandler = async (req: Request, res: Response): Promise<void> => {
+  const planId = planIdFromRequest(req, res);
+  if (planId === null) return;
+  const versionId = Number(req.body.versionId);
+  if (!Number.isInteger(versionId) || versionId <= 0) {
+    res.status(400).json({ success: false, message: "Invalid version id." });
+    return;
+  }
+  try {
+    const plan = await planService.restoreVersion(planId, versionId, actorFromRequest(req));
+    res.status(200).json({ success: true, message: "Version restored into draft.", data: plan });
+  } catch (error) {
+    respondError(error, res, "restore plan version");
+  }
+};
+
 export const reorderPlansHandler = async (req: Request, res: Response): Promise<void> => {
   try {
     const plans = await planService.reorderPlans(req.body.planIds, actorFromRequest(req));

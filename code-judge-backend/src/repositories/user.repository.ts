@@ -48,59 +48,14 @@ export class userRepository {
         return result.rows.length > 0 ? result.rows[0] : null;
     }
 
-    async checkUsernameExistsForOtherUser(username: string, userId: string): Promise<boolean> {
-        const query = `
-            SELECT 1 FROM users
-            WHERE LOWER(username) = LOWER($1) AND id::text <> $2
-            LIMIT 1
-        `;
-        const result = await pool.query(query, [username, userId]);
-        return result.rows.length > 0;
-    }
-
-    async checkEmailExistsForOtherUser(email: string, userId: string): Promise<boolean> {
-        const query = `
-            SELECT 1 FROM users
-            WHERE LOWER(email) = LOWER($1) AND id::text <> $2
-            LIMIT 1
-        `;
-        const result = await pool.query(query, [email, userId]);
-        return result.rows.length > 0;
-    }
-
-    async updateUserProfile(
-        userId: string,
-        fields: { displayName?: string; username?: string; email?: string }
-    ): Promise<any> {
-        const sets: string[] = [];
-        const values: unknown[] = [];
-        let index = 1;
-
-        if (fields.displayName !== undefined) {
-            sets.push(`display_name = $${index++}`);
-            values.push(fields.displayName.trim() || null);
-        }
-        if (fields.username !== undefined) {
-            sets.push(`username = $${index++}`);
-            values.push(fields.username.trim().toLowerCase());
-        }
-        if (fields.email !== undefined) {
-            sets.push(`email = $${index++}`);
-            values.push(fields.email.trim().toLowerCase());
-        }
-
-        if (sets.length === 0) return null;
-
-        sets.push("updated_at = CURRENT_TIMESTAMP");
-        values.push(userId);
-
+    async updateUserDisplayName(userId: string, displayName: string): Promise<any> {
         const query = `
             UPDATE users
-            SET ${sets.join(", ")}
-            WHERE id = $${index}
-            RETURNING username, email, display_name
+            SET display_name = $1, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $2
+            RETURNING display_name
         `;
-        const result = await pool.query(query, values);
+        const result = await pool.query(query, [displayName.trim() || null, userId]);
         return result.rows.length > 0 ? result.rows[0] : null;
     }
 

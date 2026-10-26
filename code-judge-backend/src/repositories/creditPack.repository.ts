@@ -16,6 +16,8 @@ export interface CreditPackRow {
   sort_order: number;
   created_at: Date;
   updated_at?: Date;
+  draft_payload: Record<string, unknown> | null;
+  draft_updated_at: string | null;
 }
 
 export interface CreditPackInput {
@@ -34,7 +36,8 @@ export interface CreditPackInput {
 
 const PACK_COLUMNS = `
   id, code, name, price_inr, credits, validity_days, description,
-  is_popular, save_percent, is_active, cta, sort_order, created_at
+  is_popular, save_percent, is_active, cta, sort_order, created_at,
+  draft_payload, draft_updated_at
 `;
 
 export class CreditPackRepository {
@@ -113,6 +116,48 @@ export class CreditPackRepository {
       `UPDATE ai_credit_packs SET ${sets.join(", ")} WHERE id = $${params.length}`,
       params
     );
+  }
+
+  async getPackByName(name: string): Promise<CreditPackRow | null> {
+    const result = await pool.query(
+      `SELECT ${PACK_COLUMNS} FROM ai_credit_packs WHERE LOWER(name) = LOWER($1) LIMIT 1`,
+      [name.trim()]
+    );
+    return (result.rows[0] as CreditPackRow | undefined) ?? null;
+  }
+
+  async setActive(id: number, active: boolean): Promise<void> {
+    await pool.query(`UPDATE ai_credit_packs SET is_active = $2 WHERE id = $1`, [id, active]);
+  }
+
+  async saveDraft(id: number, payload: Record<string, unknown>): Promise<void> {
+    await pool.query(
+      `UPDATE ai_credit_packs SET draft_payload = $2::jsonb, draft_updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+      [id, JSON.stringify(payload)]
+    );
+  }
+
+  async clearDraft(id: number): Promise<void> {
+    await pool.query(
+      `UPDATE ai_credit_packs SET draft_payload = NULL, draft_updated_at = NULL WHERE id = $1`,
+      [id]
+    );
+  }
+
+  async reorderPacks(packIds: number[]): Promise<void> {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      for (let index = 0; index < packIds.length; index++) {
+        await client.query(`UPDATE ai_credit_packs SET sort_order = $2 WHERE id = $1`, [packIds[index], index]);
+      }
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async deactivatePack(id: number): Promise<void> {

@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { useAICreditsStore, checkLowCreditWarning, getRecommendedPack } from "@/store/aiCreditsStore";
+import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import type { AICreditFeatureId } from "@/config/aiCredits";
 
 /* ============================================
@@ -14,6 +15,7 @@ export function useAICreditConsumption() {
   const completeRequest = useAICreditsStore((s) => s.completeRequest);
   const balance = useAICreditsStore((s) => s.balance);
   const purchasePack = useAICreditsStore((s) => s.purchasePack);
+  const { catalog } = usePricingCatalog();
 
   const consume = useCallback(
     async (
@@ -86,13 +88,23 @@ export function useAICreditConsumption() {
 
   const buyCredits = useCallback(
     async (packId: string) => {
-      await purchasePack(packId);
+      const pack = catalog.creditPacks.find((item) => item.id === packId);
+      if (!pack) return;
+      await purchasePack(pack.id, {
+        packName: pack.name,
+        credits: pack.credits,
+        price: pack.price,
+      });
     },
-    [purchasePack]
+    [catalog.creditPacks, purchasePack]
   );
 
   const isLowCredit = checkLowCreditWarning(balance.remaining, balance.monthlyAllowance);
-  const recommendedPack = getRecommendedPack(balance.remaining, balance.monthlyAllowance);
+  const recommendedPack = getRecommendedPack(
+    balance.remaining,
+    balance.monthlyAllowance,
+    catalog.creditPacks
+  );
 
   return {
     consume,

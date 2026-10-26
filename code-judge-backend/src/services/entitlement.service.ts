@@ -41,6 +41,8 @@ export interface EffectiveEntitlements {
   /** "free" when the user has no entitled subscription at all. */
   status: SubscriptionStatus | "free";
   isPaid: boolean;
+  startedAt: string | null;
+  currentPeriodStart: string | null;
   currentPeriodEnd: string | null;
   trialEnd: string | null;
   cancelAtPeriodEnd: boolean;
@@ -126,6 +128,8 @@ function emptyEffective(userId: number): EffectiveEntitlements {
     planName: null,
     status: "free",
     isPaid: false,
+    startedAt: null,
+    currentPeriodStart: null,
     currentPeriodEnd: null,
     trialEnd: null,
     cancelAtPeriodEnd: false,
@@ -160,6 +164,8 @@ async function resolveEntitlements(userId: number): Promise<EffectiveEntitlement
       planName: subscription.plan_name,
       status: subscription.status,
       isPaid: !subscription.plan_is_default_free,
+      startedAt: subscription.started_at ? new Date(subscription.started_at).toISOString() : null,
+      currentPeriodStart: subscription.current_period_start ? new Date(subscription.current_period_start).toISOString() : null,
       currentPeriodEnd: subscription.current_period_end ? new Date(subscription.current_period_end).toISOString() : null,
       trialEnd: subscription.trial_end ? new Date(subscription.trial_end).toISOString() : null,
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
@@ -308,6 +314,41 @@ export async function ensureFreeSubscription(userId: number | string): Promise<n
   }
 
   const created = await subscriptionRepository.insertFreeSubscriptionIfMissing(id, freePlan.id, "self_serve");
+  if (created) await invalidateEntitlements(id);
+  return created;
+}
+
+/**
+ * Start the new user's 7-day trial on the configured trial plan. The trial
+ * window is anchored to the registration timestamp, so it cannot be extended
+ * by logging in later. Falls back to the default free plan when no trial plan
+ * exists or the window has already elapsed.
+ */
+export async function ensureTrialSubscription(userId: number | string): Promise<number | null> {
+  const id = Number(userId);
+  if (!Number.isFinite(id)) return null;
+
+  const trialPlan = await subscriptionRepository.getTrialPlan();
+  if (!trialPlan || trialPlan.trial_days <= 0) {
+    return ensureFreeSubscription(id);
+  }
+
+  const startedAt = await subscriptionRepository.getUserTrialStartedAt(id);
+  if (!startedAt) {
+    return ensureFreeSubscription(id);
+  }
+
+  const trialEndsAt = new Date(startedAt.getTime() + trialPlan.trial_days * 24 * 60 * 60 * 1000);
+  if (trialEndsAt.getTime() <= Date.now()) {
+    return ensureFreeSubscription(id);
+  }
+
+  const created = await subscriptionRepository.insertTrialSubscriptionIfMissing(
+    id,
+    trialPlan.id,
+    trialPlan.trial_days,
+    "self_serve"
+  );
   if (created) await invalidateEntitlements(id);
   return created;
 }

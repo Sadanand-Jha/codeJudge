@@ -6,6 +6,7 @@ export interface PricingPlan {
   tagline: string | null;
   cta: string | null;
   offer: string | null;
+  discountBadge: string | null;
   featured: boolean;
   trialDays: number;
   price: number;

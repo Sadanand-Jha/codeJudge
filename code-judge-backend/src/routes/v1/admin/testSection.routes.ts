@@ -6,6 +6,7 @@ import multer from "multer";
 import { authenticate } from "../../../middleware/auth.ts";
 import { requireActiveAiUser } from "../../../middleware/requireActiveAiUser.ts";
 import { generateSections, generatePaper, downloadPaper, generateQuestions, questionGeneratorCatalog, recordQuestionUsage, getSectionBlueprints, saveSectionBlueprint, useSectionBlueprint, removeSectionBlueprint } from "../../../controllers/testSection.controller.ts";
+import { randomizeUploadFilename } from "../../../utils/uploadName.ts";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -15,6 +16,7 @@ const upload = multer({
     fields: 0,
     parts: 6,
   },
+  fileFilter: randomizeUploadFilename,
 });
 
 const router = Router();

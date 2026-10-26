@@ -27,11 +27,13 @@ import {
   updateBankQuestionHandler,
 } from "../../controllers/platformQuestionBank.controller.ts";
 import platformSubscriptionsRouter from "./platformSubscriptions.routes.ts";
+import { randomizeUploadFilename } from "../../utils/uploadName.ts";
 
 const router = Router();
 const questionDocumentUpload = multer({
   storage: multer.memoryStorage(),
   limits: { files: 1, fileSize: 4 * 1024 * 1024 },
+  fileFilter: randomizeUploadFilename,
 });
 const uploadQuestionDocument = (req: Request, res: Response, next: NextFunction) => {
   console.log("[question-import] upload middleware: incoming", {
@@ -62,6 +64,7 @@ const uploadQuestionDocument = (req: Request, res: Response, next: NextFunction)
 const syllabusDocumentUpload = multer({
   storage: multer.memoryStorage(),
   limits: { files: 1, fileSize: 10 * 1024 * 1024 },
+  fileFilter: randomizeUploadFilename,
 });
 const uploadSyllabusDocument = (req: Request, res: Response, next: NextFunction) => {
   console.log("[syllabus-import] upload middleware: incoming", {

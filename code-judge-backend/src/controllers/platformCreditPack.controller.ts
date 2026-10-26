@@ -67,6 +67,75 @@ export const updateCreditPackHandler = async (req: Request, res: Response): Prom
   }
 };
 
+export const saveCreditPackDraftHandler = async (req: Request, res: Response): Promise<void> => {
+  const id = packIdFromRequest(req, res);
+  if (id === null) return;
+  try {
+    const pack = await creditPackService.saveDraft(id, req.body, actorFromRequest(req));
+    res.status(200).json({ success: true, message: "Credit pack draft saved.", data: pack });
+  } catch (error) {
+    respondError(error, res, "save pack draft");
+  }
+};
+
+export const publishCreditPackDraftHandler = async (req: Request, res: Response): Promise<void> => {
+  const id = packIdFromRequest(req, res);
+  if (id === null) return;
+  try {
+    const pack = await creditPackService.publishDraft(id, actorFromRequest(req));
+    res.status(200).json({ success: true, message: "Credit pack published.", data: pack });
+  } catch (error) {
+    respondError(error, res, "publish pack draft");
+  }
+};
+
+export const toggleCreditPackActiveHandler = async (req: Request, res: Response): Promise<void> => {
+  const id = packIdFromRequest(req, res);
+  if (id === null) return;
+  try {
+    const pack = await creditPackService.setActive(id, req.body.active === true, actorFromRequest(req));
+    res.status(200).json({ success: true, message: "Credit pack visibility updated.", data: pack });
+  } catch (error) {
+    respondError(error, res, "toggle pack active");
+  }
+};
+
+export const reorderCreditPacksHandler = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const packs = await creditPackService.reorderPacks(req.body.packIds, actorFromRequest(req));
+    res.status(200).json({ success: true, message: "Credit pack order saved.", data: { packs } });
+  } catch (error) {
+    respondError(error, res, "reorder packs");
+  }
+};
+
+export const getCreditPackVersionsHandler = async (req: Request, res: Response): Promise<void> => {
+  const id = packIdFromRequest(req, res);
+  if (id === null) return;
+  try {
+    const versions = await creditPackService.listVersions(id);
+    res.status(200).json({ success: true, data: { versions } });
+  } catch (error) {
+    respondError(error, res, "list pack versions");
+  }
+};
+
+export const restoreCreditPackVersionHandler = async (req: Request, res: Response): Promise<void> => {
+  const id = packIdFromRequest(req, res);
+  if (id === null) return;
+  const versionId = Number(req.body.versionId);
+  if (!Number.isInteger(versionId) || versionId <= 0) {
+    res.status(400).json({ success: false, message: "Invalid version id." });
+    return;
+  }
+  try {
+    const pack = await creditPackService.restoreVersion(id, versionId, actorFromRequest(req));
+    res.status(200).json({ success: true, message: "Version restored into draft.", data: pack });
+  } catch (error) {
+    respondError(error, res, "restore pack version");
+  }
+};
+
 export const deleteCreditPackHandler = async (req: Request, res: Response): Promise<void> => {
   const id = packIdFromRequest(req, res);
   if (id === null) return;

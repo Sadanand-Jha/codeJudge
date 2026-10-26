@@ -38,19 +38,8 @@ export class UserService {
         return this.repository.updatePasswordByEmail(email, hashedPassword);
     }
 
-    async checkUsernameExistsForOtherUser(username: string, userId: string): Promise<boolean> {
-        return this.repository.checkUsernameExistsForOtherUser(username, userId);
-    }
-
-    async checkEmailExistsForOtherUser(email: string, userId: string): Promise<boolean> {
-        return this.repository.checkEmailExistsForOtherUser(email, userId);
-    }
-
-    async updateUserProfile(
-        userId: string,
-        fields: { displayName?: string; username?: string; email?: string }
-    ): Promise<any> {
-        return this.repository.updateUserProfile(userId, fields);
+    async updateUserDisplayName(userId: string, displayName: string): Promise<any> {
+        return this.repository.updateUserDisplayName(userId, displayName);
     }
 
     async getUserProfileById(userId: string): Promise<any> {
