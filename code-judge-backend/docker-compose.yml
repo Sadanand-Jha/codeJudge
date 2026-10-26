@@ -11,7 +11,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./database/dumps:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 12
@@ -33,12 +33,12 @@ services:
     networks:
       - backend
 
-  migrate:
+  api:
     image: code-judge-backend:${IMAGE_TAG:-local}
     build:
       context: .
       dockerfile: Dockerfile
-    command: ["sh", "-c", "node dist/scripts/ensureBaseSchema.js && node dist/migrate.js"]
+    command: ["pm2-runtime", "start", "ecosystem.config.cjs"]
     env_file:
       - .env
     environment: &backend-env
@@ -58,26 +58,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    networks:
-      - backend
-
-  api:
-    image: code-judge-backend:${IMAGE_TAG:-local}
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: ["pm2-runtime", "start", "ecosystem.config.cjs"]
-    env_file:
-      - .env
-    environment:
-      <<: *backend-env
-    depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
     ports:
       - "127.0.0.1:${API_PORT:-8000}:8000"
     volumes:
