@@ -114,6 +114,8 @@ export interface CreditBalanceSummary {
   total: number;
   planCredits: number;
   purchasedCredits: number;
+  planCreditsTotal: number;
+  purchasedCreditsTotal: number;
   nearestExpiry: Date | null;
 }
 
@@ -911,6 +913,8 @@ export async function getCreditBalance(
     `SELECT COALESCE(SUM(credits_remaining), 0)::int AS total,
             COALESCE(SUM(credits_remaining) FILTER (WHERE order_type = 'plan'), 0)::int AS plan_credits,
             COALESCE(SUM(credits_remaining) FILTER (WHERE order_type = 'credit_pack'), 0)::int AS purchased_credits,
+            COALESCE(SUM(credits_total) FILTER (WHERE order_type = 'plan'), 0)::int AS plan_credits_total,
+            COALESCE(SUM(credits_total) FILTER (WHERE order_type = 'credit_pack'), 0)::int AS purchased_credits_total,
             MIN(expires_at) AS nearest_expiry
      FROM orders
      WHERE user_id = $1
@@ -927,6 +931,8 @@ export async function getCreditBalance(
     total: toNumber(row.total),
     planCredits: toNumber(row.plan_credits),
     purchasedCredits: toNumber(row.purchased_credits),
+    planCreditsTotal: toNumber(row.plan_credits_total),
+    purchasedCreditsTotal: toNumber(row.purchased_credits_total),
     nearestExpiry: toDate(row.nearest_expiry),
   };
 }

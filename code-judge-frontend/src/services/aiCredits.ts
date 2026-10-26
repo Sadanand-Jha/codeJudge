@@ -7,6 +7,24 @@ import {
 
 export type { CreditPurchasePack, AIEffortLevel };
 
+/** Live credit balance returned by the billing endpoint. */
+export interface CreditBalanceSnapshot {
+  balance: number;
+  planCredits: number;
+  purchasedCredits: number;
+  planCreditsTotal: number;
+  purchasedCreditsTotal: number;
+  nearestExpiry: string | null;
+}
+
+/** GET /api/v1/billing/credits/balance */
+export async function getCreditBalance(): Promise<CreditBalanceSnapshot> {
+  const response = await apiClient.get<CreditBalanceSnapshot>(
+    "/v1/billing/credits/balance"
+  );
+  return response.data;
+}
+
 /* ------------------------------------------------------------------
    Read APIs — served from local billing configuration until the
    backend billing endpoints land. Components must use these getters
