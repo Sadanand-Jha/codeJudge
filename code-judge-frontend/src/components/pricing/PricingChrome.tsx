@@ -48,6 +48,7 @@ export function PricingFooter() {
           <Link href="/contact">Contact</Link>
           <Link href="/privacy">Privacy Policy</Link>
           <Link href="/pricing/credits">AI credits</Link>
+          <Link href="/checkout">Checkout</Link>
           <Link href="/quiz">Quizzes</Link>
         </div>
       </div>
