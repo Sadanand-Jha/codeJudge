@@ -1055,6 +1055,8 @@ export class BillingService {
       startsAt: string | null;
       expiresAt: string | null;
       isActive: boolean;
+      paymentMethod: string | null;
+      gatewayPaymentId: string | null;
     }>
   > {
     const rows = await billingRepository.listUserOrders(userId, limit);
@@ -1077,6 +1079,8 @@ export class BillingService {
       startsAt: row.startsAt?.toISOString() ?? null,
       expiresAt: row.expiresAt?.toISOString() ?? null,
       isActive: row.isActive,
+      paymentMethod: row.paymentMethod,
+      gatewayPaymentId: row.gatewayPaymentId,
     }));
   }
 

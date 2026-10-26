@@ -63,16 +63,19 @@ export function buildOrderSummary(
    callbacks never double-grant.
    ------------------------------------------------------------------ */
 
-export interface CreditOrder {
-  /** Backend order id — idempotency key for verification. */
+export interface RazorpayCheckoutOrder {
   orderId: string;
-  /** Razorpay order id to open the checkout against. */
+  orderNo: string;
   razorpayOrderId: string;
-  /** Amount in paise. */
   amountPaise: number;
   currency: string;
-  packId: string;
+  keyId: string;
   credits: number;
+  validityDays: number;
+}
+
+export interface CreditOrder extends RazorpayCheckoutOrder {
+  packId: string;
 }
 
 export interface RazorpayPaymentPayload {
@@ -94,12 +97,11 @@ export interface VerifiedCreditPurchase {
  */
 export async function createCreditOrder(
   packId: string,
-  opts: { coupon?: string; amountPaise?: number; packs: CreditPurchasePack[] }
+  opts: { coupon?: string; packs: CreditPurchasePack[] }
 ): Promise<CreditOrder> {
   const summary = buildOrderSummary(packId, opts.packs);
   const response = await apiClient.post<CreditOrder>("/v1/billing/credits/orders", {
     pack_id: summary.pack.id,
-    amount_paise: opts?.amountPaise ?? summary.total * 100,
     currency: "INR",
     ...(opts?.coupon ? { coupon: opts.coupon } : {}),
   });
@@ -152,58 +154,100 @@ export interface RazorpayCheckoutOptions {
   modal?: { ondismiss?: () => void };
 }
 
+export class RazorpayCheckoutDismissedError extends Error {
+  constructor() {
+    super("Payment was cancelled.");
+    this.name = "RazorpayCheckoutDismissedError";
+  }
+}
+
+let razorpayScriptPromise: Promise<void> | null = null;
+
 function loadRazorpayScript(): Promise<void> {
   if (typeof window !== "undefined" && window.Razorpay) return Promise.resolve();
-  return new Promise((resolve, reject) => {
+  if (razorpayScriptPromise) return razorpayScriptPromise;
+
+  razorpayScriptPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Payment gateway failed to load. Check your connection and try again."));
+    script.onerror = () => {
+      razorpayScriptPromise = null;
+      reject(new Error("Payment gateway failed to load. Check your connection and try again."));
+    };
     document.body.appendChild(script);
   });
+  return razorpayScriptPromise;
 }
 
 /**
  * Open the Razorpay checkout for a backend-created order.
- * Resolves with the signed payment payload, rejects on gateway
- * load failure. Dismissal is reported via `onDismiss`
- * (cancellation, not an error).
+ * Resolves with the signed payment payload and rejects with
+ * RazorpayCheckoutDismissedError when the user closes the modal.
  */
 export async function openRazorpayCheckout(args: {
-  order: CreditOrder;
+  order: RazorpayCheckoutOrder;
   itemName: string;
   prefill?: { email?: string; contact?: string; name?: string; method?: string; vpa?: string };
   notes?: Record<string, string>;
-  onDismiss: () => void;
 }): Promise<RazorpayPaymentPayload> {
-  const key = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+  const key = args.order.keyId?.trim();
   if (!key) {
     throw new Error("Online payments are not configured yet. Please contact support.");
   }
+  if (!args.order.razorpayOrderId) {
+    throw new Error("This order is not ready for payment. Please try again.");
+  }
+
   await loadRazorpayScript();
-  if (!window.Razorpay) {
+  const Razorpay = window.Razorpay;
+  if (!Razorpay) {
     throw new Error("Payment gateway failed to load. Check your connection and try again.");
   }
-  return new Promise((resolve) => {
-    const checkout = new window.Razorpay!({
-      key,
-      order_id: args.order.razorpayOrderId,
-      amount: args.order.amountPaise,
-      currency: args.order.currency,
-      name: "QuizSupport",
-      description: args.itemName,
-      theme: { color: "#6A3DF0" },
-      prefill: args.prefill,
-      notes: args.notes,
-      handler: (response) =>
-        resolve({
-          razorpayPaymentId: response.razorpay_payment_id,
-          razorpayOrderId: response.razorpay_order_id,
-          razorpaySignature: response.razorpay_signature,
-        }),
-      modal: { ondismiss: args.onDismiss },
-    });
-    checkout.open();
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let checkout: { open: () => void };
+
+    try {
+      checkout = new Razorpay({
+        key,
+        order_id: args.order.razorpayOrderId,
+        amount: args.order.amountPaise,
+        currency: args.order.currency,
+        name: "QuizSupport",
+        description: args.itemName,
+        theme: { color: "#6A3DF0" },
+        prefill: args.prefill,
+        notes: args.notes,
+        handler: (response) => {
+          if (settled) return;
+          settled = true;
+          resolve({
+            razorpayPaymentId: response.razorpay_payment_id,
+            razorpayOrderId: response.razorpay_order_id,
+            razorpaySignature: response.razorpay_signature,
+          });
+        },
+        modal: {
+          ondismiss: () => {
+            if (settled) return;
+            settled = true;
+            reject(new RazorpayCheckoutDismissedError());
+          },
+        },
+      });
+      checkout.open();
+    } catch (error) {
+      if (!settled) {
+        settled = true;
+        reject(
+          error instanceof Error
+            ? error
+            : new Error("Payment gateway failed to open. Please try again.")
+        );
+      }
+    }
   });
 }

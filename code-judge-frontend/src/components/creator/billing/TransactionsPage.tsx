@@ -31,7 +31,7 @@ import {
 import { useToast } from "@/hooks/useToast";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
-import type { AICreditPaymentMethod } from "@/types/aiCredits";
+import { getBillingTransactions, type BillingTransaction } from "@/services/billing";
 import { cn } from "@/lib/helpers";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { useBillingData } from "./hooks";
@@ -43,7 +43,7 @@ import { BillButton, EmptyState, ErrorState, PageHeader, StatCard, StatusBadge, 
    ============================================ */
 
 export type CreditTxnStatus = "completed" | "pending" | "failed" | "refunded";
-export type PayMethodKind = "UPI" | "Card" | "NetBanking" | "Wallet";
+export type PayMethodKind = "UPI" | "Card" | "NetBanking" | "Wallet" | "Razorpay";
 
 export interface CreditTransaction {
   id: string;
@@ -56,6 +56,7 @@ export interface CreditTransaction {
   methodKind: PayMethodKind;
   methodLabel: string;
   methodRef: string;
+  expiresAt?: number | null;
 }
 
 const DAY = 86_400_000;
@@ -89,8 +90,8 @@ function daysLeft(expiry: number, now: number): number {
   return Math.ceil((expiry - now) / DAY);
 }
 
-/** Expiry for a transaction — based on the backend pack validity period. */
 function txnExpiry(txn: CreditTransaction, getValidity: CreditValidityLookup): number | null {
+  if (txn.expiresAt != null) return txn.expiresAt;
   const months = getValidity(txn.packId);
   return months ? addMonths(txn.timestamp, months) : null;
 }
@@ -111,17 +112,12 @@ function StatusChip({ status }: { status: CreditTxnStatus }) {
   return <StatusBadge label={meta.label} tone={meta.tone} dot />;
 }
 
-const PURCHASE_METHOD: Record<AICreditPaymentMethod, PayMethodKind> = {
-  upi: "UPI",
-  card: "Card",
-  netbanking: "NetBanking",
-};
-
 const METHOD_LABEL: Record<PayMethodKind, string> = {
   UPI: "UPI",
   Card: "Card",
   NetBanking: "Net Banking",
   Wallet: "Wallet",
+  Razorpay: "Razorpay",
 };
 
 const METHOD_ICON: Record<PayMethodKind, LucideIcon> = {
@@ -129,7 +125,54 @@ const METHOD_ICON: Record<PayMethodKind, LucideIcon> = {
   Card: CreditCard,
   NetBanking: Landmark,
   Wallet: Wallet,
+  Razorpay: ReceiptIndianRupee,
 };
+
+function mapOrderStatus(status: BillingTransaction["status"]): CreditTxnStatus {
+  switch (status) {
+    case "paid":
+      return "completed";
+    case "refunded":
+      return "refunded";
+    case "failed":
+    case "cancelled":
+      return "failed";
+    default:
+      return "pending";
+  }
+}
+
+function mapPaymentMethod(method: string | null | undefined): {
+  kind: PayMethodKind;
+  label: string;
+} {
+  const value = (method ?? "").toLowerCase();
+  if (value.includes("card")) return { kind: "Card", label: METHOD_LABEL.Card };
+  if (value.includes("net")) return { kind: "NetBanking", label: METHOD_LABEL.NetBanking };
+  if (value.includes("wallet")) return { kind: "Wallet", label: METHOD_LABEL.Wallet };
+  if (value.includes("upi")) return { kind: "UPI", label: METHOD_LABEL.UPI };
+  return { kind: "Razorpay", label: METHOD_LABEL.Razorpay };
+}
+
+function mapBillingTransaction(txn: BillingTransaction): CreditTransaction {
+  const method = mapPaymentMethod(txn.paymentMethod);
+  const parsed = Date.parse(txn.paidAt ?? txn.createdAt);
+  return {
+    id: txn.orderNo,
+    packId: txn.packCode ?? (txn.planSlug ? `plan:${txn.planSlug}` : txn.orderId),
+    packName: txn.planName ?? txn.packName ?? "Credit purchase",
+    credits: txn.credits,
+    price: txn.amountPaise / 100,
+    timestamp: Number.isNaN(parsed) ? Date.now() : parsed,
+    status: mapOrderStatus(txn.status),
+    methodKind: method.kind,
+    methodLabel: method.label,
+    methodRef: txn.gatewayPaymentId ?? txn.orderNo,
+    expiresAt: txn.expiresAt
+      ? (Number.isNaN(Date.parse(txn.expiresAt)) ? null : Date.parse(txn.expiresAt))
+      : null,
+  };
+}
 
 function ExpiryLine({ txn, now }: { txn: CreditTransaction; now: number }) {
   const getValidity = useCreditValidity();
@@ -189,7 +232,7 @@ function receiptText(txn: CreditTransaction, getValidity: CreditValidityLookup):
   return [
     "QuizSupport — Payment Receipt",
     `Order ID: ${txn.id}`,
-    `Pack: ${txn.packName} (${txn.credits} credits)`,
+    `Item: ${txn.packName} (${txn.credits} credits)`,
     `Amount paid: ${formatINR(txn.price)} (incl. 18% GST of ${formatINR(gst)})`,
     `Payment method: ${txn.methodLabel} (${txn.methodRef})`,
     `Purchase date: ${fmtDateTime(txn.timestamp)}`,
@@ -204,7 +247,7 @@ function invoiceText(txn: CreditTransaction): string {
   return [
     "QuizSupport — GST Invoice",
     `Order ID: ${txn.id}`,
-    `Pack: ${txn.packName} (${txn.credits} credits)`,
+    `Item: ${txn.packName} (${txn.credits} credits)`,
     `Taxable value: ${formatINR(base)}`,
     `GST @ 18%: ${formatINR(gst)}`,
     `Total (incl. GST): ${formatINR(txn.price)}`,
@@ -348,7 +391,7 @@ function DrawerShell({ txn, onClose, panelRef, onReceipt, onInvoice }: {
           <dl className="mt-5">
             {[
               ["Credits", `+${txn.credits}`],
-              ["Pack price", formatINR(base)],
+              ["Order value", formatINR(base)],
               ["GST (18%)", formatINR(gst)],
               ["Payment method", txn.methodLabel],
               [txn.methodKind === "Card" ? "Card" : "Reference", txn.methodRef],
@@ -438,10 +481,15 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
     (packId: string) => validityByPack.get(packId),
     [validityByPack]
   );
+  const refreshCredits = useAICreditsStore((s) => s.refresh);
   const { state, data, retry } = useBillingData(
-    () => [...useAICreditsStore.getState().purchases].sort((a, b) => b.timestamp - a.timestamp),
+    () => getBillingTransactions(100),
     { demoState }
   );
+
+  useEffect(() => {
+    void refreshCredits();
+  }, [refreshCredits]);
 
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
@@ -455,24 +503,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
 
   const allTxns = useMemo<CreditTransaction[]>(() => {
     return (data ?? [])
-      .filter((purchase): purchase is typeof purchase & { transactionId: string; method: AICreditPaymentMethod } =>
-        Boolean(purchase.transactionId && purchase.method)
-      )
-      .map((purchase) => {
-        const methodKind = PURCHASE_METHOD[purchase.method];
-        return {
-          id: purchase.transactionId,
-          packId: purchase.packId,
-          packName: purchase.packName,
-          credits: purchase.credits,
-          price: purchase.price,
-          timestamp: purchase.timestamp,
-          status: purchase.status ?? "completed",
-          methodKind,
-          methodLabel: METHOD_LABEL[methodKind],
-          methodRef: purchase.transactionId,
-        };
-      })
+      .map(mapBillingTransaction)
       .sort((a, b) => b.timestamp - a.timestamp);
   }, [data]);
 
@@ -564,7 +595,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
   };
 
   const exportCsv = () => {
-    const head = "Order ID,Pack,Credits,Amount (INR),Status,Payment method,Date,Expiry";
+    const head = "Order ID,Item,Credits,Amount (INR),Status,Payment method,Date,Expiry";
     const lines = filtered.map((t) =>
       [t.id, t.packName, t.credits, t.price, STATUS_META[t.status].label, t.methodLabel, fmtDateTime(t.timestamp), (() => { const exp = txnExpiry(t, getValidity); return exp ? fmtDate(exp) : "Unavailable"; })()]
         .map((v) => `"${String(v).replace(/"/g, '""')}"`)
@@ -599,7 +630,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
         {/* Header */}
       <PageHeader
         title="Transactions"
-        subtitle="Every AI credit purchase on your account."
+        subtitle="Credit-pack and monthly plan payments on your account."
         actions={
           <BillButton variant="primary" className="shrink-0" {...buyProps}>
             Buy Credits
@@ -619,8 +650,8 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
 
       {(state === "empty" || (state === "ready" && allTxns.length === 0)) && (
         <EmptyState
-          title="No purchases yet"
-          description="Buy your first credit pack to start generating papers."
+          title="No payments yet"
+          description="Buy a credit pack or choose a monthly plan to get started."
           icon={<ShoppingCart className="h-6 w-6" />}
           action={
             <BillButton variant="primary" {...buyProps}>
@@ -718,7 +749,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
                 {/* Desktop + tablet table */}
                 <div className="hidden overflow-x-auto sm:block">
                   <table className="w-full table-fixed border-collapse">
-                    <caption className="sr-only">AI credit purchases</caption>
+                    <caption className="sr-only">Billing transactions</caption>
                     <thead>
                       <tr className="border-b-2 border-[var(--qs-ink)]">
                         <th scope="col" className="w-[30%] px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[var(--qs-muted)]">Transaction</th>
