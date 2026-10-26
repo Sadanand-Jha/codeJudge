@@ -1,0 +1,43 @@
+module.exports = {
+  apps: [
+    {
+      name: 'codejudge-backend',
+      script: 'dist/server.js',
+      cwd: '/app',
+      exec_mode: 'cluster',
+      instances: 4,
+      autorestart: true,
+      max_restarts: 20,
+      min_uptime: '20s',
+      restart_delay: 5000,
+      kill_timeout: 40000,
+      node_args: '--max-old-space-size=512',
+      time: true,
+      merge_logs: true,
+      env: {
+        NODE_ENV: 'production',
+        DISABLE_BACKGROUND_WORKERS: '1',
+        PG_POOL_MAX: '15',
+      },
+    },
+    {
+      name: 'codejudge-worker',
+      script: 'dist/queues/startWorker.js',
+      cwd: '/app',
+      exec_mode: 'fork',
+      instances: 1,
+      autorestart: true,
+      max_restarts: 20,
+      min_uptime: '20s',
+      restart_delay: 5000,
+      kill_timeout: 60000,
+      node_args: '--max-old-space-size=1024',
+      time: true,
+      merge_logs: true,
+      env: {
+        NODE_ENV: 'production',
+        PG_POOL_MAX: '10',
+      },
+    },
+  ],
+};

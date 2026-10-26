@@ -33,8 +33,9 @@ function createPool(): pg.Pool {
     // TLS is required by hosted providers (Neon/Supabase/RDS) but the bundled
     // Compose PostgreSQL runs without TLS on the private network.
     ssl: resolveDatabaseSsl(connectionString),
-    // 2. Limit Pool Size: max 50 connections per container
-    max: 50,
+    // 2. Limit Pool Size per process. PM2 cluster mode runs several API
+    //    processes, so keep the per-instance pool configurable.
+    max: Number(process.env.PG_POOL_MAX) || 50,
     // 3. Timeout Configs: close idle quickly, fail fast on connect
     idleTimeoutMillis: 10000, // 10s — close idle client quickly (was 30000)
     connectionTimeoutMillis: 5000, // 5s — fail fast if DB unreachable (was 10000)

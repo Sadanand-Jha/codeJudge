@@ -25,7 +25,13 @@ WORKDIR /app
 
 ENV NODE_ENV=production \
     PORT=8000 \
-    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+    PM2_HOME=/home/node/.pm2
+
+RUN npm install -g pm2@7.1.0 \
+    && npm cache clean --force \
+    && mkdir -p /home/node/.pm2 \
+    && chown -R node:node /home/node/.pm2
 
 COPY --from=production-dependencies /app/node_modules ./node_modules
 COPY package.json package-lock.json ./
@@ -40,6 +46,7 @@ COPY --from=build /app/dist ./dist
 COPY database ./database
 COPY public ./public
 COPY secure-media ./secure-media
+COPY ecosystem.config.cjs ./ecosystem.config.cjs
 
 USER node
 EXPOSE 8000

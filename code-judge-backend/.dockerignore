@@ -13,3 +13,5 @@ redis-stable*
 api
 e2e_smoke.mts
 probe-usage.mjs
+database/dumps
+backups

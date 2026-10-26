@@ -1,0 +1,7 @@
+tunnel: 19209164-9521-42c0-ac87-017d2786f98c
+credentials-file: /run/secrets/cloudflared_credentials
+
+ingress:
+  - hostname: api.quizsupport.com
+    service: http://api:8000
+  - service: http_status:404

@@ -147,3 +147,7 @@ dist
 .svelte-kit
 
 # End of https://www.toptal.com/developers/gitignore/api/node
+
+# Local database dumps and pre-import backups
+database/dumps/
+backups/
