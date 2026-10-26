@@ -44,7 +44,6 @@ import RoomInviteModal from "./RoomInviteModal";
 import RoomRegistrationFormEditor from "./RoomRegistrationFormEditor";
 import RoomAnnouncementsPanel from "./RoomAnnouncementsPanel";
 import RoomDocumentsPanel from "./RoomDocumentsPanel";
-import { useRoomContentStore } from "@/store/roomContentStore";
 import { WhatsAppIcon } from "@/components/creator/common/ShareQuizDialog";
 
 type StudentFilter = "all" | "recent" | "issues";
@@ -93,7 +92,6 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   const tabParam = searchParams.get("tab");
   const section =
     tabParam === "documents" || tabParam === "announcements" ? tabParam : "students";
-  const seedRoomContent = useRoomContentStore((s) => s.seedRoom);
   const rooms = useRoomStore((s) => s.rooms);
   const hydrate = useRoomStore((s) => s.hydrate);
   const setRooms = useRoomStore((s) => s.setRooms);
@@ -197,11 +195,6 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
 
   const ownedRooms = useMemo(() => getOwnedRooms(rooms, user?.id), [rooms, user]);
   const room = ownedRooms.find((r) => r.id === roomId);
-
-  useEffect(() => {
-    if (!room) return;
-    seedRoomContent(room.id, room.name);
-  }, [room, seedRoomContent]);
 
   const quizUsage = useMemo(() => (room ? countRoomQuizUsage(room.id) : 0), [room]);
 

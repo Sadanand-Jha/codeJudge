@@ -67,7 +67,6 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const announcements = useRoomContentStore((s) => s.announcements);
   const documents = useRoomContentStore((s) => s.documents);
-  const seedRoom = useRoomContentStore((s) => s.seedRoom);
 
   const [room, setRoom] = useState<RoomSummary | null>(null);
   const [teacher, setTeacher] = useState<CreatorPublicStats | null>(null);
@@ -143,11 +142,6 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
     () => room?.members?.find((member) => member.is_you) ?? null,
     [room]
   );
-
-  useEffect(() => {
-    if (!room) return;
-    seedRoom(room.id, room.name);
-  }, [room, seedRoom]);
 
   const roomAnnouncements = useMemo(
     () =>

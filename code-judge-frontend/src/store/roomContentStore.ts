@@ -24,8 +24,6 @@ export interface RoomDocument {
 interface RoomContentState {
   announcements: RoomAnnouncement[];
   documents: RoomDocument[];
-  seededRoomIds: string[];
-  seedRoom: (roomId: string, roomName?: string) => void;
   addAnnouncement: (roomId: string, input: { title: string; body: string }) => void;
   updateAnnouncement: (id: string, input: { title: string; body: string }) => void;
   deleteAnnouncement: (id: string) => void;
@@ -33,81 +31,62 @@ interface RoomContentState {
   deleteDocument: (id: string) => void;
 }
 
+type PersistedRoomContent = Pick<RoomContentState, "announcements" | "documents">;
+
+const SEEDED_ANNOUNCEMENT_BODIES = new Set([
+  "I'll share class notes and important updates here. Please check this space before every class.",
+  "The revision notes are in the Documents section. Complete the practice sheet before the test.",
+]);
+
+const SEEDED_DOCUMENT_NAMES = new Set([
+  "Chapter 3 — Class Notes.pdf",
+  "Practice Sheet.docx",
+  "Class Timetable.pdf",
+]);
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+function asAnnouncements(value: unknown): RoomAnnouncement[] {
+  return Array.isArray(value) ? (value as RoomAnnouncement[]) : [];
+}
+
+function asDocuments(value: unknown): RoomDocument[] {
+  return Array.isArray(value) ? (value as RoomDocument[]) : [];
+}
+
+function migratePersistedContent(persistedState: unknown): PersistedRoomContent {
+  const state = asRecord(persistedState);
+  const seededRoomIds = new Set(
+    Array.isArray(state.seededRoomIds)
+      ? state.seededRoomIds.filter((id): id is string => typeof id === "string")
+      : []
+  );
+
+  return {
+    announcements: asAnnouncements(state.announcements).filter(
+      (announcement) =>
+        !(
+          seededRoomIds.has(announcement.roomId) &&
+          SEEDED_ANNOUNCEMENT_BODIES.has(announcement.body)
+        )
+    ),
+    documents: asDocuments(state.documents).filter(
+      (document) =>
+        !(seededRoomIds.has(document.roomId) && SEEDED_DOCUMENT_NAMES.has(document.name))
+    ),
+  };
+}
+
 const uid = (prefix: string) =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
-function seedAnnouncements(roomId: string, roomName: string): RoomAnnouncement[] {
-  const now = Date.now();
-  return [
-    {
-      id: uid("ann"),
-      roomId,
-      title: `Welcome to ${roomName}`,
-      body: "I'll share class notes and important updates here. Please check this space before every class.",
-      createdAt: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: uid("ann"),
-      roomId,
-      title: "Chapter test on Friday",
-      body: "The revision notes are in the Documents section. Complete the practice sheet before the test.",
-      createdAt: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
-    },
-  ];
-}
-
-function seedDocuments(roomId: string): RoomDocument[] {
-  const now = Date.now();
-  return [
-    {
-      id: uid("doc"),
-      roomId,
-      name: "Chapter 3 — Class Notes.pdf",
-      type: "PDF",
-      size: "2.4 MB",
-      addedAt: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: uid("doc"),
-      roomId,
-      name: "Practice Sheet.docx",
-      type: "DOCX",
-      size: "860 KB",
-      addedAt: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: uid("doc"),
-      roomId,
-      name: "Class Timetable.pdf",
-      type: "PDF",
-      size: "1.1 MB",
-      addedAt: new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-  ];
-}
-
 export const useRoomContentStore = create<RoomContentState>()(
-  persist(
+  persist<RoomContentState, [], [], PersistedRoomContent>(
     (set) => ({
       announcements: [],
       documents: [],
-      seededRoomIds: [],
-
-      seedRoom: (roomId, roomName) =>
-        set((state) => {
-          if (!roomId || state.seededRoomIds.includes(roomId)) return state;
-          const name = roomName?.trim() || "your room";
-          return {
-            announcements: [...state.announcements, ...seedAnnouncements(roomId, name)],
-            documents: [
-              ...state.documents,
-              ...seedDocuments(roomId).map((doc) => ({ ...doc, roomId })),
-            ],
-            seededRoomIds: [...state.seededRoomIds, roomId],
-          };
-        }),
 
       addAnnouncement: (roomId, input) => {
         const now = new Date().toISOString();
@@ -168,6 +147,8 @@ export const useRoomContentStore = create<RoomContentState>()(
     {
       name: "quizsupport_room_content",
       storage: createJSONStorage(() => localStorage),
+      version: 1,
+      migrate: migratePersistedContent,
     }
   )
 );

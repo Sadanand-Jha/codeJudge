@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { ArrowRight, FileText, Megaphone } from "lucide-react";
 import type { Room } from "@/types/room";
@@ -16,11 +16,6 @@ export default function RoomUpdatesSummary({
 }) {
   const announcements = useRoomContentStore((s) => s.announcements);
   const documents = useRoomContentStore((s) => s.documents);
-  const seedRoom = useRoomContentStore((s) => s.seedRoom);
-
-  useEffect(() => {
-    rooms.forEach((room) => seedRoom(room.id, room.name));
-  }, [rooms, seedRoom]);
 
   const roomById = useMemo(
     () => new Map(rooms.map((room) => [room.id, room])),
