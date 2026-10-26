@@ -4,11 +4,10 @@ set -euo pipefail
 # Usage:
 #   ./scripts/import-db.sh [dump-file]
 #   FORCE=1 ./scripts/import-db.sh [dump-file]   # replace an existing database
-#   NO_TUNNEL=1 ./scripts/import-db.sh           # local testing: skip cloudflared
 #   RUN_MIGRATE=0 ./scripts/import-db.sh         # skip migrations after restore
 #
 # The script starts PostgreSQL/Redis, restores the custom-format dump into the
-# Compose PostgreSQL container, applies migrations, and starts the API/tunnel.
+# Compose PostgreSQL container, applies migrations, and starts the API.
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
@@ -16,7 +15,6 @@ cd "$COMPOSE_DIR"
 
 DUMP_PATH="${1:-database/dumps/quizsupport.dump}"
 FORCE="${FORCE:-0}"
-NO_TUNNEL="${NO_TUNNEL:-0}"
 RUN_MIGRATE="${RUN_MIGRATE:-1}"
 
 # These migrations are already baked into database/migrations/init.sql. Older
@@ -145,8 +143,8 @@ if [ "${table_count:-0}" -gt 0 ]; then
   restore_args=(--clean --if-exists --no-owner --no-privileges --single-transaction)
 fi
 
-echo "==> Stopping API and tunnel during import"
-"${compose[@]}" stop api cloudflared-tunnel >/dev/null 2>&1 || true
+echo "==> Stopping API during import"
+"${compose[@]}" stop api >/dev/null 2>&1 || true
 
 echo "==> Restoring dump into '$db_name'"
 "${compose[@]}" exec -T postgres pg_restore -U "$db_user" -d "$db_name" "${restore_args[@]}" < "$DUMP_PATH"
@@ -154,18 +152,14 @@ echo "==> Restoring dump into '$db_name'"
 if [ "$RUN_MIGRATE" = "1" ]; then
   record_legacy_init_migrations
   echo "==> Applying migrations"
-  "${compose[@]}" run --rm migrate
+  "${compose[@]}" run --rm --no-deps api sh -c \
+    "node dist/scripts/ensureBaseSchema.js && node dist/migrate.js"
 else
   echo "==> Skipping migrations (full dump already contains the current schema)."
 fi
 
-if [ "$NO_TUNNEL" = "1" ]; then
-  echo "==> Starting API (tunnel disabled by NO_TUNNEL=1)"
-  "${compose[@]}" up -d api
-else
-  echo "==> Starting API and cloudflared tunnel"
-  "${compose[@]}" up -d api cloudflared-tunnel
-fi
+echo "==> Starting API"
+"${compose[@]}" up -d api
 
 echo "==> Waiting for API health"
 api_healthy=0
@@ -189,11 +183,6 @@ echo "==> Health:"
 echo "==> Database summary"
 "${compose[@]}" exec -T postgres psql -U "$db_user" -d "$db_name" -c "SELECT count(*) AS applied_migrations FROM schema_migration;"
 "${compose[@]}" exec -T postgres psql -U "$db_user" -d "$db_name" -c "SELECT relname, n_live_tup FROM pg_stat_user_tables ORDER BY n_live_tup DESC LIMIT 15;"
-
-if [ "$NO_TUNNEL" != "1" ]; then
-  echo "==> Tunnel status"
-  "${compose[@]}" logs --tail=30 cloudflared-tunnel || true
-fi
 
 echo "==> Service status"
 "${compose[@]}" ps

@@ -1,3 +1,5 @@
+name: quizsupport
+
 services:
   postgres:
     image: postgres:16.15-alpine
@@ -34,7 +36,7 @@ services:
       - backend
 
   api:
-    image: code-judge-backend:${IMAGE_TAG:-local}
+    image: quizsupport-api:${IMAGE_TAG:-local}
     build:
       context: .
       dockerfile: Dockerfile
@@ -81,28 +83,9 @@ services:
     networks:
       - backend
 
-  cloudflared-tunnel:
-    image: cloudflare/cloudflared:2026.10.3
-    restart: unless-stopped
-    command: ["tunnel", "--no-autoupdate", "--config", "/etc/cloudflared/config.yml", "run"]
-    volumes:
-      - ./cloudflared/config.yml:/etc/cloudflared/config.yml:ro
-    secrets:
-      - cloudflared_credentials
-    depends_on:
-      api:
-        condition: service_healthy
-    networks:
-      - backend
-
-secrets:
-  cloudflared_credentials:
-    file: ${CLOUDFLARED_CREDENTIALS_FILE:-/home/sadanand-jha/.cloudflared/19209164-9521-42c0-ac87-017d2786f98c.json}
-
 networks:
   backend:
     driver: bridge
-    name: code-judge-backend
 
 volumes:
   postgres_data:

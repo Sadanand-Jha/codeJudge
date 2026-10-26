@@ -151,3 +151,6 @@ dist
 # Local database dumps and pre-import backups
 database/dumps/
 backups/
+
+# Cloudflare tunnel credentials
+cloudflared/*.json
