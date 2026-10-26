@@ -16,6 +16,8 @@ services:
       timeout: 5s
       retries: 12
       start_period: 10s
+    networks:
+      - backend
 
   redis:
     image: redis:7.4.11-alpine
@@ -28,6 +30,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    networks:
+      - backend
 
   migrate:
     image: code-judge-backend:${IMAGE_TAG:-local}
@@ -54,6 +58,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - backend
 
   api:
     image: code-judge-backend:${IMAGE_TAG:-local}
@@ -90,6 +96,8 @@ services:
     stop_grace_period: 45s
     shm_size: 512mb
     restart: unless-stopped
+    networks:
+      - backend
 
   cloudflared-tunnel:
     image: cloudflare/cloudflared:2026.10.3
@@ -102,10 +110,17 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    networks:
+      - backend
 
 secrets:
   cloudflared_credentials:
     file: ${CLOUDFLARED_CREDENTIALS_FILE:-/home/sadanand-jha/.cloudflared/19209164-9521-42c0-ac87-017d2786f98c.json}
+
+networks:
+  backend:
+    driver: bridge
+    name: code-judge-backend
 
 volumes:
   postgres_data:
