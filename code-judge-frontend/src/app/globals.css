@@ -10440,3 +10440,149 @@ textarea {
   fill: var(--qzb-a);
   stroke: var(--qzb-a);
 }
+
+.qp-preview {
+  container-type: inline-size;
+  container-name: pricing-preview;
+}
+
+.qp-preview .qp-hero {
+  padding: 6px 0 0;
+}
+
+.qp-preview .qp-hero h1 {
+  font-size: clamp(28px, 5.2cqw, 46px);
+  line-height: 1.06;
+  max-width: 14em;
+}
+
+.qp-preview .qp-hero .lead {
+  font-size: clamp(12px, 1.8cqw, 15px);
+  line-height: 1.55;
+  margin-top: 10px;
+  max-width: 40em;
+}
+
+.qp-preview .qp-grid,
+.qp-preview .qp-packs {
+  grid-template-columns: 1fr;
+  gap: 20px;
+  max-width: none;
+  margin: 26px 0 0;
+}
+
+@container pricing-preview (min-width: 620px) {
+  .qp-preview .qp-grid,
+  .qp-preview .qp-packs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.qp-preview .qp-plan,
+.qp-preview .qp-pack {
+  padding: 20px;
+  border-radius: 20px;
+}
+
+.qp-preview .qp-plan.is-hot,
+.qp-preview .qp-pack.is-popular {
+  box-shadow: 5px 5px 0 var(--sun);
+}
+
+.qp-preview .qp-badge {
+  top: -12px;
+  padding: 3px 11px;
+  font-size: 9px;
+}
+
+.qp-preview .qp-plan-top,
+.qp-preview .qp-pack-top {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.qp-preview .qp-plan-top h3,
+.qp-preview .qp-pack-top h3 {
+  font-size: 21px;
+}
+
+.qp-preview .qp-pill,
+.qp-preview .qp-pack-validity {
+  padding: 3px 8px;
+  font-size: 9px;
+}
+
+.qp-preview .qp-plan-desc {
+  min-height: 0;
+  margin: 6px 0 15px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.qp-preview .qp-price,
+.qp-preview .qp-pack-price {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.qp-preview .qp-price b,
+.qp-preview .qp-pack-price b {
+  font-size: 38px;
+}
+
+.qp-preview .qp-price span,
+.qp-preview .qp-pack-price span {
+  padding-bottom: 4px;
+  font-size: 12px;
+}
+
+.qp-preview .qp-price s {
+  padding-bottom: 4px;
+  font-size: 14px;
+}
+
+.qp-preview .qp-plan-credits {
+  margin-top: 9px;
+  font-size: 11px;
+}
+
+.qp-preview .qp-pack-credits {
+  margin-top: 5px;
+  font-size: 12px;
+}
+
+.qp-preview .qp-pack-credits strong {
+  font-size: 19px;
+}
+
+.qp-preview .qp-features {
+  gap: 8px;
+  margin: 14px 0 18px;
+  padding-top: 14px;
+}
+
+.qp-preview .qp-features li {
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.qp-preview .qp-tick {
+  width: 17px;
+  height: 17px;
+}
+
+.qp-preview .qp-plan-cta,
+.qp-preview .qp-pack-cta,
+.qp-preview .qp-credit-hero .qp-actions .btn,
+.qp-preview .qp-cta-actions .btn {
+  width: 100%;
+  padding: 9px 14px;
+  font-size: 12px;
+}
+
+.qp-preview .qp-after {
+  margin-top: 20px;
+  font-size: 12px;
+  line-height: 1.5;
+}

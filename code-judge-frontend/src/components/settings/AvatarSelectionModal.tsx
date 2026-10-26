@@ -23,26 +23,26 @@ interface AvatarSelectionModalProps {
 // hero1-6.png are LOCKED (coming soon)
 // ─────────────────────────────────────────
 export const PROFILE_IMAGES: Array<{ src: string; label: string; unlocked: boolean }> = [
-  { src: "/images/quiz/image1.png", label: "image1", unlocked: true },
-  { src: "/images/quiz/image2.png", label: "image2", unlocked: true },
-  { src: "/images/quiz/image3.png", label: "image3", unlocked: true },
-  { src: "/images/quiz/image4.png", label: "image4", unlocked: true },
-  { src: "/images/quiz/image5.png", label: "image5", unlocked: true },
-  { src: "/images/quiz/image6.png", label: "image6", unlocked: true },
-  { src: "/images/quiz/image7.png", label: "image7", unlocked: true },
-  { src: "/images/quiz/image8.png", label: "image8", unlocked: true },
-  { src: "/images/quiz/image9.png", label: "image9", unlocked: true },
-  { src: "/images/quiz/image10.png", label: "image10", unlocked: true },
-  { src: "/images/quiz/image11.png", label: "image11", unlocked: true },
-  { src: "/images/quiz/image12.png", label: "image12", unlocked: true },
-  { src: "/images/quiz/image13.png", label: "image13", unlocked: true },
-  { src: "/images/quiz/image14.png", label: "image14", unlocked: true },
-  { src: "/images/hero/hero1.png", label: "hero1", unlocked: false },
-  { src: "/images/hero/hero2.png", label: "hero2", unlocked: false },
-  { src: "/images/hero/hero3.png", label: "hero3", unlocked: false },
-  { src: "/images/hero/hero4.png", label: "hero4", unlocked: false },
-  { src: "/images/hero/hero5.png", label: "hero5", unlocked: false },
-  { src: "/images/hero/hero6.png", label: "hero6", unlocked: false },
+  { src: "/images/quiz/image1.png", label: "Avatar 1", unlocked: true },
+  { src: "/images/quiz/image2.png", label: "Avatar 2", unlocked: true },
+  { src: "/images/quiz/image3.png", label: "Avatar 3", unlocked: true },
+  { src: "/images/quiz/image4.png", label: "Avatar 4", unlocked: true },
+  { src: "/images/quiz/image5.png", label: "Avatar 5", unlocked: true },
+  { src: "/images/quiz/image6.png", label: "Avatar 6", unlocked: true },
+  { src: "/images/quiz/image7.png", label: "Avatar 7", unlocked: true },
+  { src: "/images/quiz/image8.png", label: "Avatar 8", unlocked: true },
+  { src: "/images/quiz/image9.png", label: "Avatar 9", unlocked: true },
+  { src: "/images/quiz/image10.png", label: "Avatar 10", unlocked: true },
+  { src: "/images/quiz/image11.png", label: "Avatar 11", unlocked: true },
+  { src: "/images/quiz/image12.png", label: "Avatar 12", unlocked: true },
+  { src: "/images/quiz/image13.png", label: "Avatar 13", unlocked: true },
+  { src: "/images/quiz/image14.png", label: "Avatar 14", unlocked: true },
+  { src: "/images/hero/hero1.png", label: "Coming soon", unlocked: false },
+  { src: "/images/hero/hero2.png", label: "Coming soon", unlocked: false },
+  { src: "/images/hero/hero3.png", label: "Coming soon", unlocked: false },
+  { src: "/images/hero/hero4.png", label: "Coming soon", unlocked: false },
+  { src: "/images/hero/hero5.png", label: "Coming soon", unlocked: false },
+  { src: "/images/hero/hero6.png", label: "Coming soon", unlocked: false },
 ];
 
 export default function AvatarSelectionModal({
@@ -137,10 +137,10 @@ export default function AvatarSelectionModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[6px_6px_0_var(--qs-sun)]"
+            className="relative flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[6px_6px_0_var(--qs-sun)] sm:max-h-[700px]"
           >
             {/* ===== Header ===== */}
-            <div className="flex items-center justify-between border-b-2 border-[var(--qs-line)] px-6 py-4">
+            <div className="flex items-center justify-between border-b-2 border-[var(--qs-line)] px-5 py-3.5">
               <div>
                 <h2 className="text-lg font-extrabold text-[var(--qs-ink)]">Choose your avatar</h2>
                 <p className="mt-0.5 text-xs text-[var(--qs-muted)]">
@@ -157,8 +157,8 @@ export default function AvatarSelectionModal({
             </div>
 
             {/* ===== Preview Section ===== */}
-            <div className="border-b-2 border-[var(--qs-line)] px-6 py-5">
-              <div className="flex flex-col items-center gap-3">
+            <div className="border-b-2 border-[var(--qs-line)] px-5 py-4">
+              <div className="flex flex-col items-center gap-2">
                 <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[var(--qs-muted)]">
                   Current selection
                 </p>
@@ -171,7 +171,7 @@ export default function AvatarSelectionModal({
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                       transition={{ type: "spring", stiffness: 300, damping: 22 }}
-                      className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)] shadow-[4px_4px_0_var(--qs-sun)]"
+                      className="relative h-20 w-20 overflow-hidden rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)] shadow-[4px_4px_0_var(--qs-sun)]"
                     >
                       {selectedAvatar ? (
                         <img
@@ -187,15 +187,15 @@ export default function AvatarSelectionModal({
                     </motion.div>
                   </AnimatePresence>
                 </div>
-                <p className="text-sm font-extrabold text-[var(--qs-ink)]">
+                <p className="text-xs font-extrabold text-[var(--qs-ink)]">
                   {selectedLabel || "No avatar selected"}
                 </p>
               </div>
             </div>
 
             {/* ===== Image Grid ===== */}
-            <div className="flex-1 overflow-y-auto overscroll-contain p-6">
-              <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-4">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-4">
+              <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 lg:grid-cols-4">
                 {PROFILE_IMAGES.map((img) => {
                   const isSelected = selectedAvatar === img.src;
                   const isCurrent = currentAvatarUrl === img.src;
@@ -208,8 +208,8 @@ export default function AvatarSelectionModal({
                       onClick={() => handleImageClick(img)}
                       disabled={saving}
                       aria-pressed={isSelected}
-                      aria-label={`Select ${img.label}`}
-                      className={`group relative flex flex-col items-center gap-2 rounded-[14px] border-2 p-3 transition-all duration-200 ${
+                      aria-label={img.unlocked ? `Select ${img.label}` : "Locked avatar, coming soon"}
+                      className={`group relative flex flex-col items-center gap-1.5 rounded-[14px] border-2 p-2.5 transition-all duration-200 ${
                         isSelected
                           ? "border-[var(--qs-ink)] bg-[var(--qs-brand)]/10 shadow-[2px_2px_0_var(--qs-sun)]"
                           : img.unlocked
@@ -223,10 +223,10 @@ export default function AvatarSelectionModal({
                       )}
 
                       {/* Image */}
-                      <div className="relative h-14 w-14 overflow-hidden rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
+                      <div className="relative h-12 w-12 overflow-hidden rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
                         <img
                           src={img.src}
-                          alt={img.label}
+                          alt={img.unlocked ? img.label : "Locked avatar"}
                           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
                           loading="lazy"
                         />
@@ -289,7 +289,7 @@ export default function AvatarSelectionModal({
             </div>
 
             {/* ===== Footer Actions ===== */}
-            <div className="flex items-center justify-end gap-2.5 border-t-2 border-[var(--qs-line)] bg-[var(--qs-bg)]/60 px-6 py-4">
+            <div className="flex items-center justify-end gap-2.5 border-t-2 border-[var(--qs-line)] bg-[var(--qs-bg)]/60 px-5 py-3">
               <button
                 onClick={handleCancel}
                 disabled={saving}

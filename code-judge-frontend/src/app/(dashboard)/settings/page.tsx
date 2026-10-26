@@ -56,11 +56,7 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const toast = useToast();
 
-  const [profileForm, setProfileForm] = useState({
-    displayName: "",
-    username: "",
-    email: "",
-  });
+  const [displayName, setDisplayName] = useState("");
   const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
   const [profileSaving, setProfileSaving] = useState(false);
   const initializedProfile = useRef(false);
@@ -68,101 +64,36 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!user || initializedProfile.current) return;
     initializedProfile.current = true;
-    setProfileForm({
-      displayName: user.displayName ?? "",
-      username: user.username ?? "",
-      email: user.email ?? "",
-    });
+    setDisplayName(user.displayName ?? "");
   }, [user]);
 
-  const normalizedProfile = {
-    displayName: profileForm.displayName.trim(),
-    username: profileForm.username.trim().toLowerCase(),
-    email: profileForm.email.trim().toLowerCase(),
-  };
-  const currentProfile = {
-    displayName: (user?.displayName ?? "").trim(),
-    username: (user?.username ?? "").trim().toLowerCase(),
-    email: (user?.email ?? "").trim().toLowerCase(),
-  };
-  const hasProfileChanges =
-    normalizedProfile.displayName !== currentProfile.displayName ||
-    normalizedProfile.username !== currentProfile.username ||
-    normalizedProfile.email !== currentProfile.email;
-
-  const updateProfileField = (key: keyof typeof profileForm, value: string) => {
-    setProfileForm((previous) => ({ ...previous, [key]: value }));
-    setProfileErrors((previous) => {
-      const next = { ...previous };
-      delete next[key];
-      delete next.form;
-      return next;
-    });
-  };
+  const normalizedDisplayName = displayName.trim();
+  const currentDisplayName = (user?.displayName ?? "").trim();
+  const hasProfileChanges = normalizedDisplayName !== currentDisplayName;
 
   const handleProfileSave = async () => {
     if (!hasProfileChanges || profileSaving) return;
 
-    const errors: Record<string, string> = {};
-    if (normalizedProfile.displayName.length > 80) {
-      errors.displayName = "Display name must be at most 80 characters.";
-    }
-    if (!/^[a-z0-9]{3,20}$/.test(normalizedProfile.username)) {
-      errors.username = "Use 3–20 lowercase letters or numbers.";
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedProfile.email)) {
-      errors.email = "Enter a valid email address.";
-    }
-    if (Object.keys(errors).length > 0) {
-      setProfileErrors(errors);
+    if (normalizedDisplayName.length > 80) {
+      setProfileErrors({ displayName: "Display name must be at most 80 characters." });
       return;
     }
-
-    const payload: { displayName?: string; username?: string; email?: string } = {};
-    if (normalizedProfile.displayName !== currentProfile.displayName) {
-      payload.displayName = normalizedProfile.displayName;
-    }
-    if (normalizedProfile.username !== currentProfile.username) {
-      payload.username = normalizedProfile.username;
-    }
-    if (normalizedProfile.email !== currentProfile.email) {
-      payload.email = normalizedProfile.email;
-    }
-    if (Object.keys(payload).length === 0) return;
 
     setProfileSaving(true);
     setProfileErrors({});
     try {
-      const result = await updateProfile(payload);
-      const auth = useAuthStore.getState();
-      if (result.token && auth.user) {
-        auth.setAuth(result.token, {
-          ...auth.user,
-          username: result.username,
-          email: result.email,
-          displayName: result.displayName,
-        });
-      } else {
-        auth.setUser({
-          username: result.username,
-          email: result.email,
-          displayName: result.displayName,
-        });
-      }
-      setProfileForm({
-        displayName: result.displayName ?? "",
-        username: result.username,
-        email: result.email,
-      });
+      const result = await updateProfile({ displayName: normalizedDisplayName });
+      useAuthStore.getState().setUser({ displayName: result.displayName });
+      setDisplayName(result.displayName ?? "");
       toast.success({
         title: "Profile updated",
-        description: "Your profile details have been saved.",
+        description: "Your display name has been saved.",
         timestamp: "Just now",
       });
     } catch (error) {
       const message = getApiErrorMessage(
         error,
-        "Could not update your profile. Please try again."
+        "Could not update your display name. Please try again."
       );
       setProfileErrors({ form: message });
       toast.error({
@@ -268,7 +199,7 @@ export default function SettingsPage() {
 
               <SettingsPanel
                 title="Profile details"
-                description="Update the name and contact email on your account."
+                description="Change the public display name shown on your account."
                 icon={User}
                 badge={
                   <span className="shrink-0 rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-okbg)] px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ok)]">
@@ -279,8 +210,8 @@ export default function SettingsPage() {
                 <div className="grid gap-3 sm:grid-cols-3">
                   <SettingsTextField
                     label="Display name"
-                    value={profileForm.displayName}
-                    onChange={(value) => updateProfileField("displayName", value)}
+                    value={displayName}
+                    onChange={setDisplayName}
                     placeholder="Your name"
                     maxLength={80}
                     autoComplete="name"
@@ -288,24 +219,24 @@ export default function SettingsPage() {
                   />
                   <SettingsTextField
                     label="Username"
-                    value={profileForm.username}
-                    onChange={(value) => updateProfileField("username", value)}
+                    value={user?.username ?? ""}
+                    onChange={() => undefined}
                     placeholder="username"
                     maxLength={20}
                     autoComplete="username"
-                    hint="3–20 lowercase letters or numbers."
-                    error={profileErrors.username}
+                    hint="Username cannot be changed."
+                    disabled
                     required
                   />
                   <SettingsTextField
                     label="Email"
-                    value={profileForm.email}
-                    onChange={(value) => updateProfileField("email", value)}
+                    value={user?.email ?? ""}
+                    onChange={() => undefined}
                     type="email"
                     placeholder="you@example.com"
                     autoComplete="email"
-                    hint="Used to sign in."
-                    error={profileErrors.email}
+                    hint="Email cannot be changed."
+                    disabled
                     required
                   />
                 </div>
@@ -316,7 +247,7 @@ export default function SettingsPage() {
                 ) : null}
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                   <p className="text-xs leading-relaxed text-[var(--qs-muted)]">
-                    Changing your username or email updates your login details immediately.
+                    Only your display name can be changed. Username and email stay fixed.
                   </p>
                   <button
                     type="button"

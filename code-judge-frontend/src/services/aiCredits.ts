@@ -1,8 +1,6 @@
 import apiClient from "@/lib/axios";
 import {
   AI_EFFORT_LEVELS,
-  CREDIT_PURCHASE_PACKS,
-  CREDIT_VALIDITY_MONTHS,
   type AIEffortLevel,
   type CreditPurchasePack,
 } from "@/config/aiCredits";
@@ -16,19 +14,9 @@ export type { CreditPurchasePack, AIEffortLevel };
    backend values touches one file.
    ------------------------------------------------------------------ */
 
-/** Credit packs available for one-time purchase, in display order. */
-export function getPurchasePacks(): CreditPurchasePack[] {
-  return CREDIT_PURCHASE_PACKS;
-}
-
 /** Effort levels with their per-paper credit charges. */
 export function getEffortLevels(): AIEffortLevel[] {
   return AI_EFFORT_LEVELS;
-}
-
-/** How long purchased credits stay valid (months from purchase). */
-export function getCreditValidityMonths(): number {
-  return CREDIT_VALIDITY_MONTHS;
 }
 
 export interface PackOrderSummary {
@@ -43,7 +31,7 @@ export interface PackOrderSummary {
 /** Build the checkout summary for a pack. */
 export function buildOrderSummary(
   packId: string,
-  packs: CreditPurchasePack[] = CREDIT_PURCHASE_PACKS
+  packs: CreditPurchasePack[]
 ): PackOrderSummary {
   const pack = packs.find((p) => p.id === packId);
   if (!pack) throw new Error("Unknown credit pack.");
@@ -88,9 +76,9 @@ export interface VerifiedCreditPurchase {
  */
 export async function createCreditOrder(
   packId: string,
-  opts?: { coupon?: string; amountPaise?: number; packs?: CreditPurchasePack[] }
+  opts: { coupon?: string; amountPaise?: number; packs: CreditPurchasePack[] }
 ): Promise<CreditOrder> {
-  const summary = buildOrderSummary(packId, opts?.packs);
+  const summary = buildOrderSummary(packId, opts.packs);
   const response = await apiClient.post<CreditOrder>("/v1/billing/credits/orders", {
     pack_id: summary.pack.id,
     amount_paise: opts?.amountPaise ?? summary.total * 100,

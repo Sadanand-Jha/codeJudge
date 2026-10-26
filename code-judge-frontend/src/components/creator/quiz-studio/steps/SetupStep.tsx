@@ -2,26 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
-import { ArrowRight, BookOpen, Check, Clock, FileText, Search, ShieldCheck, Sparkles, Star, Target } from "lucide-react";
+import { ArrowRight, BookOpen, Check, Clock, FileText, Search, ShieldCheck, Star, Target } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
-import { SearchableDropdown, AiStreamText } from "@/components/ui";
+import { SearchableDropdown } from "@/components/ui";
 import { getAllSubjects, generateQuizCode as fetchQuizCode } from "@/services/quiz";
 import { useQuizReferenceStore } from "@/store/quizReferenceStore";
 import { useAuthStore } from "@/store/authStore";
-import { WHOLE_QUIZ_AI_ENABLED } from "@/config/creatorFeatures";
-import { toast } from "@/lib/toast";
 
 const CREATE_CHOICES = [
-  {
-    id: "ai",
-    label: "AI Generate",
-    icon: Sparkles,
-    desc: WHOLE_QUIZ_AI_ENABLED
-      ? "Give a topic, AI will draft the questions."
-      : "Generate a complete quiz from a topic or file. Coming soon.",
-  },
   {
     id: "scratch",
     label: "From Scratch",
@@ -42,9 +31,8 @@ const FIELD_CLS =
   "w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-[15px] font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:font-normal placeholder:text-[var(--qs-muted)] placeholder:opacity-60 focus:border-[var(--qs-brand)]";
 
 export function SetupStep() {
-  const router = useRouter();
   const { state, updateInfo, editMode } = useStudio();
-  const [choice, setChoice] = useState<"scratch" | "ai" | null>("scratch");
+  const [choice, setChoice] = useState<"scratch" | null>("scratch");
 
   const info = state.info;
   const fetchedRef = useRef(false);
@@ -90,7 +78,7 @@ export function SetupStep() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.05 }}
-              className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+              className="grid grid-cols-1 gap-3"
             >
               {CREATE_CHOICES.map((c) => (
                 <ChoiceCard
@@ -99,15 +87,7 @@ export function SetupStep() {
                   label={c.label}
                   desc={c.desc}
                   selected={choice === c.id}
-                  ai={c.id === "ai"}
-                  comingSoon={c.id === "ai" && !WHOLE_QUIZ_AI_ENABLED}
-                  onClick={() => {
-                    if (c.id === "ai") {
-                      if (WHOLE_QUIZ_AI_ENABLED) router.push("/creator/quizzes/ai-generate");
-                    } else {
-                      setChoice(c.id);
-                    }
-                  }}
+                  onClick={() => setChoice(c.id)}
                 />
               ))}
             </motion.section>
@@ -349,75 +329,40 @@ function ChoiceCard({
   label,
   desc,
   selected,
-  ai = false,
-  comingSoon = false,
   onClick,
 }: {
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   label: string;
   desc: string;
   selected: boolean;
-  ai?: boolean;
-  comingSoon?: boolean;
   onClick: () => void;
 }) {
-  const activeAi = ai && !comingSoon;
   return (
     <button
       type="button"
-      aria-disabled={comingSoon || undefined}
-      onClick={
-        comingSoon
-          ? () =>
-              toast.info({
-                title: "Coming soon",
-                description: "AI quiz generation is not available yet.",
-              })
-          : onClick
-      }
+      onClick={onClick}
       className={cn(
         "relative flex items-start gap-4 overflow-hidden rounded-[18px] border-2 p-5 text-left transition-colors",
-        comingSoon
-          ? "cursor-not-allowed border-[var(--qs-line)] bg-[var(--qs-surface)] opacity-60"
-          : activeAi
-            ? "border-[var(--qs-ink)] bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 text-white shadow-[4px_4px_0_var(--qs-sun)]"
-            : selected
-              ? "border-[var(--qs-ink)] bg-[var(--qs-poly-1)]"
-              : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-brand)]"
+        selected
+          ? "border-[var(--qs-ink)] bg-[var(--qs-poly-1)]"
+          : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-brand)]"
       )}
     >
-      {activeAi && (
-        <span
-          aria-hidden="true"
-          className="qs-ai-shimmer pointer-events-none absolute inset-y-0 left-0 w-14 -skew-x-12 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-        />
-      )}
       <span
         className={cn(
           "flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] border-2",
-          activeAi
-            ? "border-white/40 bg-white/15 text-white"
-            : selected
-              ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-white"
-              : "border-[var(--qs-line)] bg-[var(--qs-poly-1)] text-[var(--qs-brand)]"
+          selected
+            ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-white"
+            : "border-[var(--qs-line)] bg-[var(--qs-poly-1)] text-[var(--qs-brand)]"
         )}
       >
         <Icon className="h-5 w-5" />
       </span>
       <span className="flex min-w-0 flex-col gap-1">
-        <span className={cn("text-base font-extrabold", activeAi ? "text-white" : "text-[var(--qs-ink)]")}>
-          {label.toLowerCase().includes("ai") ? <AiStreamText text={label} /> : label}
-        </span>
-        <span className={cn("text-sm font-medium leading-snug", activeAi ? "text-white/85" : "text-[var(--qs-muted)]")}>
-          {desc}
-        </span>
+        <span className="text-base font-extrabold text-[var(--qs-ink)]">{label}</span>
+        <span className="text-sm font-medium leading-snug text-[var(--qs-muted)]">{desc}</span>
       </span>
-      {comingSoon && (
-        <span className="absolute right-3.5 top-3.5 rounded-full border-2 border-[#a85d00]/30 bg-[#fff3d6] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em] text-[#a85d00]">
-          Coming soon
-        </span>
-      )}
-      {!comingSoon && selected && (
+      {selected && (
         <span className="absolute right-3.5 top-3.5 flex h-[22px] w-[22px] items-center justify-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-ok)]">
           <Check className="h-3 w-3 text-white" strokeWidth={3.5} />
         </span>

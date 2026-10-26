@@ -5,7 +5,6 @@ import {
   ClipboardList,
   Database,
   FilePlus2,
-  Layers,
   Users,
   Settings,
   Wallet,
@@ -61,8 +60,6 @@ const _FULL_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
       { label: "Create Quiz", href: "/creator/quizzes/create", icon: FilePlus2, match: (p) => p === "/creator/quizzes/create" || p === "/creator/quizzes/ai-generate" },
       { label: "Tests", href: "/creator/tests", icon: ClipboardList, match: (p) => p === "/creator/tests" || (p.startsWith("/creator/tests/") && !p.startsWith("/creator/tests/create")), color: "purple" },
       { label: "Create Test", href: "/creator/tests/create", icon: NotebookPen, match: (p) => p === "/creator/tests/create", color: "purple" },
-      { label: "Test Series", href: "/creator/series", icon: Layers, match: (p) => p === "/creator/series" || (p.startsWith("/creator/series/") && !p.startsWith("/creator/series/create")), color: "purple" },
-      { label: "Create Test Series", href: "/creator/series/create", icon: FolderKanban, match: (p) => p === "/creator/series/create", color: "purple" },
     ],
   },
   {
@@ -133,14 +130,12 @@ const _FULL_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
 // Focus mode: only Problems / Quizzes / Tests (& related question bank) remain visible.
 // Payments, analytics, participants, advertise, AI studio, settings etc. are hidden.
 const FOCUS_CREATOR_ALLOWED = new Set([
-  // Quizzes / Tests / Series
+  // Quizzes / Tests
   "/creator/quizzes",
   "/creator/quizzes/create",
   "/creator/quizzes/ai-generate",
   "/creator/tests",
   "/creator/tests/create",
-  "/creator/series",
-  "/creator/series/create",
   // Problems & question bank
   "/creator/question-bank",
   "/creator/questions",

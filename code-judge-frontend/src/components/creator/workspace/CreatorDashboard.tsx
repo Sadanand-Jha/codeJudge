@@ -17,7 +17,6 @@ import {
   NotebookPen,
   GraduationCap,
   ListChecks,
-  Layers,
   CheckCircle2,
   Circle,
   Sparkles,
@@ -161,12 +160,10 @@ const RANGE_OPTIONS = [
 const QUICK_CREATE_ITEMS = [
   { label: "Create Quiz", desc: "Quick interactive test", href: "/creator/quizzes/create", icon: ListChecks, gradient: "from-emerald-500 to-teal-600" },
   { label: "Create Test", desc: "Full-length mock test", href: "/creator/tests/create", icon: ClipboardList, gradient: "from-pink-500 to-violet-600" },
-  { label: "Create Test Series", desc: "Bundle & sell tests", href: "/creator/series/create", icon: Layers, gradient: "from-violet-500 to-purple-600" },
   { label: "Create Problem", desc: "Practice question", href: "/creator/problems/create", icon: NotebookPen, gradient: "from-amber-500 to-orange-600" },
 ] as const;
 
 const YOUR_CONTENT = [
-  { name: "JEE Main 2027 Mock Series", type: "Series", status: "Published", meta: "12 tests · 842 students", tone: "emerald" as const },
   { name: "JEE Physics Mock Test #5", type: "Test", status: "Draft", meta: "40 questions · 180 min", tone: "amber" as const },
   { name: "NEET Biology Quiz: Genetics", type: "Quiz", status: "Draft", meta: "15 questions · 20 min", tone: "amber" as const },
   { name: "CAT 2027 Full Mock", type: "Test", status: "Scheduled", meta: "3 sections · 120 min", tone: "violet" as const },

@@ -27,7 +27,7 @@ import { TrialOfferBanner } from "@/components/marketing/TrialOfferBanner";
 import { TimingModal } from "@/components/creator/dashboard/TimingModal";
 import { ErrorState, Skeleton } from "@/components/creator/billing/ui";
 import { checkLowCreditWarning, useAICreditsStore } from "@/store/aiCreditsStore";
-import { getCreditValidityMonths } from "@/services/aiCredits";
+import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { useAuthStore } from "@/store/authStore";
 import {
   getCreatorProfileOverview,
@@ -494,7 +494,11 @@ function CreditsCard() {
   const balance = useAICreditsStore((s) => s.balance);
   const remaining = balance.totalRemaining;
   const low = checkLowCreditWarning(remaining, balance.monthlyAllowance || remaining || 1);
-  const validityMonths = getCreditValidityMonths();
+  const { catalog } = usePricingCatalog();
+  const validityMonths =
+    catalog.creditPacks.length > 0
+      ? Math.max(...catalog.creditPacks.map((pack) => pack.validityMonths))
+      : null;
 
   return (
     <article className="flex h-full flex-col rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-6">
@@ -505,7 +509,9 @@ function CreditsCard() {
         <span className="qs-display text-[44px] font-extrabold tracking-tight text-[var(--qs-ink)]">{remaining}</span>
         <span className="ml-2.5 align-middle text-[15px] font-bold text-[var(--qs-muted)]">credits left</span>
       </p>
-      <p className="mt-1.5 text-[13px] text-[var(--qs-muted)]">Valid {validityMonths} months from purchase.</p>
+      <p className="mt-1.5 text-[13px] text-[var(--qs-muted)]">
+        {validityMonths ? `Valid ${validityMonths} months from purchase.` : "One-time credits, valid from purchase."}
+      </p>
 
       {low && (
         <div className="mt-3.5 flex items-start gap-2.5 rounded-2xl border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/20 p-3">

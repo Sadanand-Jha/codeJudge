@@ -17,6 +17,7 @@ import {
   getQuizByCode,
   deleteQuizResponseAttempt,
   sendQuizResponsesEmail,
+  updateQuizStatus,
   type QuizResponseStudent,
   type StudentResponseDetail,
 } from "@/services/quiz";
@@ -283,6 +284,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [endingQuiz, setEndingQuiz] = useState(false);
   const [presenceNow, setPresenceNow] = useState(() => Date.now());
   const firstResponsesLoadRef = useRef(true);
 
@@ -566,6 +568,32 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
       setDeleting(false);
     }
   }, [deleteTarget, deleting, resolvedQuizId, detailPanel, toast, load]);
+
+  const handleEndQuiz = useCallback(async () => {
+    if (endingQuiz) return;
+    setEndingQuiz(true);
+    try {
+      let numericId = resolvedQuizId;
+      if (!/^\d+$/.test(numericId)) {
+        numericId = String((await getQuizByCode(numericId)).id);
+      }
+      const result = await updateQuizStatus(numericId, "ended");
+      setQuizStatus(result.status ?? "ended");
+      setEndOpen(false);
+      toast.success({
+        title: "Quiz ended",
+        description: "New participants can no longer start this quiz.",
+      });
+      await load();
+    } catch (error) {
+      toast.error({
+        title: "Could not end quiz",
+        description: apiErrorMessage(error, "Please try again in a moment."),
+      });
+    } finally {
+      setEndingQuiz(false);
+    }
+  }, [endingQuiz, resolvedQuizId, toast, load]);
 
   const handleSendEmail = useCallback(async () => {
     if (sendingEmail) return;
@@ -1501,17 +1529,19 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                   <button
                     type="button"
                     onClick={() => setEndOpen(false)}
-                    className="h-10 rounded-[12px] border-2 border-[var(--qs-line)] px-4 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+                    disabled={endingQuiz}
+                    className="h-10 rounded-[12px] border-2 border-[var(--qs-line)] px-4 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setEndOpen(false); }}
-                    className="inline-flex h-10 items-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-bad)] px-5 text-xs font-extrabold text-white shadow-[3px_3px_0_var(--qs-sun)] transition hover:brightness-110"
+                    onClick={() => void handleEndQuiz()}
+                    disabled={endingQuiz}
+                    className="inline-flex h-10 items-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-bad)] px-5 text-xs font-extrabold text-white shadow-[3px_3px_0_var(--qs-sun)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Square className="h-3.5 w-3.5" />
-                    End Quiz
+                    {endingQuiz ? "Ending…" : "End Quiz"}
                   </button>
                 </div>
               </div>

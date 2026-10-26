@@ -12,6 +12,7 @@ export interface PublicPlan {
   cta: string | null;
   offer: string | null;
   featured: boolean;
+  discountBadge: string | null;
   trialDays: number;
   price: number;
   originalPrice: number | null;
@@ -59,12 +60,20 @@ function entitlementNumber(
   return numberValue(entitlements[key], fallback);
 }
 
+function discountBadge(override: unknown, amount: number, mrp: unknown): string | null {
+  const manual = typeof override === "string" ? override.trim() : "";
+  if (manual) return manual;
+  const original = mrp == null ? 0 : numberValue(mrp);
+  if (original <= amount || original <= 0) return null;
+  return `${Math.round((1 - amount / original) * 100)}% off`;
+}
+
 export class PricingService {
   async getPublicCatalog(): Promise<PublicPricingCatalog> {
     const [planResult, packResult] = await Promise.all([
       pool.query(
         `SELECT p.id, p.slug, p.name, p.description, p.tagline, p.cta, p.offer,
-                p.featured, p.features, p.trial_days, p.sort_order, p.updated_at,
+                p.featured, p.discount_badge, p.features, p.trial_days, p.sort_order, p.updated_at,
                 pp.amount, pp.mrp_amount, pp.currency,
                 COALESCE(e.entitlements, '{}'::jsonb) AS entitlements
          FROM plans p
@@ -109,6 +118,7 @@ export class PricingService {
         cta: row.cta == null ? null : String(row.cta),
         offer: row.offer == null ? null : String(row.offer),
         featured: row.featured === true,
+        discountBadge: discountBadge(row.discount_badge, numberValue(row.amount), row.mrp_amount),
         trialDays: isBasic ? numberValue(row.trial_days) : 0,
         price: numberValue(row.amount) / 100,
         originalPrice:
@@ -149,6 +159,13 @@ export class PricingService {
           ? new Date(Math.max(...updatedCandidates)).toISOString()
           : null,
     };
+  }
+
+  async getPageContent(): Promise<Record<string, string>> {
+    const result = await pool.query(`SELECT key, value FROM pricing_page_content`);
+    return Object.fromEntries(
+      (result.rows as Array<{ key: string; value: string }>).map((row) => [row.key, row.value])
+    );
   }
 }
 

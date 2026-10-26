@@ -2,8 +2,6 @@
 // password reset, profile update, and user lookup by username.
 import type { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import type { SignOptions } from "jsonwebtoken";
 import { pool } from "../config/database.ts";
 import { OTPService } from "../services/otpService.ts";
 import { UserService } from "../services/database/user.database.ts";
@@ -170,13 +168,11 @@ const profile = async (req: Request, res: Response) => {
 
 /**
  * PATCH /api/v1/user/profile
- * Update the signed-in user's editable identity fields.
+ * Update the signed-in user's display name.
  *
- * Body: { displayName?, username?, email? } (at least one)
+ * Body: { displayName }
  *
- * Username and email are normalized to lowercase and must not already be
- * used by another account. When the email changes, the session cookie is
- * re-issued so downstream handlers do not keep using the old address.
+ * Username and email are identity fields and are not editable here.
  */
 const updateUserProfile = async (req: Request, res: Response) => {
   try {
@@ -190,39 +186,9 @@ const updateUserProfile = async (req: Request, res: Response) => {
       return;
     }
 
-    const { displayName, username, email } = req.body as {
-      displayName?: string;
-      username?: string;
-      email?: string;
-    };
+    const { displayName } = req.body as { displayName: string };
 
-    if (username !== undefined) {
-      const usernameTaken = await userService.checkUsernameExistsForOtherUser(username, userId);
-      if (usernameTaken) {
-        res.status(409).json({
-          success: false,
-          message: "Username is already taken",
-        });
-        return;
-      }
-    }
-
-    if (email !== undefined) {
-      const emailTaken = await userService.checkEmailExistsForOtherUser(email, userId);
-      if (emailTaken) {
-        res.status(409).json({
-          success: false,
-          message: "Email is already in use",
-        });
-        return;
-      }
-    }
-
-    const updated = await userService.updateUserProfile(userId, {
-      displayName,
-      username,
-      email,
-    });
+    const updated = await userService.updateUserDisplayName(userId, displayName);
 
     if (!updated) {
       res.status(404).json({
@@ -232,30 +198,11 @@ const updateUserProfile = async (req: Request, res: Response) => {
       return;
     }
 
-    let refreshedToken: string | undefined;
-    if (email !== undefined && email !== req.user?.email) {
-      const jwtSecret = process.env.JWT_SECRET || "your-fallback-secret-key-change-in-production";
-      const jwtExpiry = process.env.JWT_EXPIRY || "10d";
-      const signOptions: SignOptions = { expiresIn: jwtExpiry as SignOptions["expiresIn"] };
-      refreshedToken = jwt.sign({ userId, email: updated.email }, jwtSecret, signOptions);
-      const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
-      res.cookie("session_token", refreshedToken, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: "lax",
-        path: "/",
-        maxAge: 10 * 24 * 60 * 60 * 1000,
-      });
-    }
-
     res.status(200).json({
       success: true,
-      message: "Profile updated successfully",
+      message: "Display name updated successfully",
       data: {
-        username: updated.username,
-        email: updated.email,
         displayName: updated.display_name,
-        ...(refreshedToken ? { token: refreshedToken } : {}),
       },
     });
   } catch (error) {

@@ -2,37 +2,56 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  FALLBACK_PRICING,
+  EMPTY_PRICING,
   getPricingCatalog,
   type PricingCatalog,
 } from "@/services/pricing";
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Pricing could not be loaded.";
+}
+
 export function usePricingCatalog() {
-  const [catalog, setCatalog] = useState<PricingCatalog>(FALLBACK_PRICING);
+  const [catalog, setCatalog] = useState<PricingCatalog>(EMPTY_PRICING);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    let active = true;
+
     getPricingCatalog()
       .then((next) => {
-        if (!cancelled) setCatalog(next);
+        if (!active) return;
+        setCatalog(next);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (!active) return;
+        setCatalog(EMPTY_PRICING);
+        setError(errorMessage(err));
       })
       .finally(() => {
-        if (!cancelled) setIsLoading(false);
+        if (active) setIsLoading(false);
       });
+
     return () => {
-      cancelled = true;
+      active = false;
     };
   }, []);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      setCatalog(await getPricingCatalog());
+      const next = await getPricingCatalog();
+      setCatalog(next);
+    } catch (err) {
+      setCatalog(EMPTY_PRICING);
+      setError(errorMessage(err));
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  return { catalog, isLoading, refresh };
+  return { catalog, isLoading, error, refresh };
 }

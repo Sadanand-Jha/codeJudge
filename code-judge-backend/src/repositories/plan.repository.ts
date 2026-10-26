@@ -35,6 +35,7 @@ export interface PlanRow {
   tagline: string | null;
   cta: string | null;
   offer: string | null;
+  discount_badge: string | null;
   featured: boolean;
   features: string[];
   status: PlanStatus;
@@ -51,11 +52,12 @@ export interface PlanListRow extends PlanRow {
   prices: PlanPriceRow[];
   subscriber_count: number;
   active_subscriber_count: number;
+  entitlements: Record<string, unknown>;
+  draft_payload: Record<string, unknown> | null;
+  draft_updated_at: Date | null;
 }
 
-export interface PlanDetailRow extends PlanListRow {
-  entitlements: Record<string, unknown>;
-}
+export type PlanDetailRow = PlanListRow;
 
 export interface CreatePlanData {
   name: string;
@@ -64,6 +66,7 @@ export interface CreatePlanData {
   tagline?: string | null;
   cta?: string | null;
   offer?: string | null;
+  discount_badge?: string | null;
   featured?: boolean;
   features?: string[];
   status?: PlanStatus;
@@ -82,10 +85,11 @@ function lifecycleStatusList(): string {
 
 const PLAN_WITH_STATS_SELECT = `
   SELECT p.id, p.name, p.slug, p.description, p.tagline, p.cta, p.offer,
-         p.featured, p.features, p.status, p.is_public,
+         p.discount_badge, p.featured, p.features, p.status, p.is_public,
          p.is_default_free, p.sort_order, p.trial_days, p.archived_at,
-         p.created_at, p.updated_at,
+         p.created_at, p.updated_at, p.draft_payload, p.draft_updated_at,
          COALESCE(prices.rows, '[]'::json) AS prices,
+         COALESCE(ent.values, '{}'::jsonb) AS entitlements,
          COALESCE(stats.total, 0) AS subscriber_count,
          COALESCE(stats.active, 0) AS active_subscriber_count
   FROM plans p
@@ -94,6 +98,11 @@ const PLAN_WITH_STATS_SELECT = `
     FROM plan_prices pp
     WHERE pp.plan_id = p.id
   ) AS prices ON true
+  LEFT JOIN LATERAL (
+    SELECT jsonb_object_agg(pe.key, pe.value) AS values
+    FROM plan_entitlements pe
+    WHERE pe.plan_id = p.id
+  ) AS ent ON true
   LEFT JOIN LATERAL (
     SELECT COUNT(*)::int AS total,
            COUNT(*) FILTER (WHERE s.status IN (${lifecycleStatusList()}))::int AS active
@@ -147,6 +156,36 @@ export class PlanRepository {
     return (result.rows[0] as PlanRow | undefined) ?? null;
   }
 
+  async getPlanByName(name: string): Promise<PlanRow | null> {
+    const result = await pool.query(`SELECT * FROM plans WHERE LOWER(name) = LOWER($1) LIMIT 1`, [name.trim()]);
+    return (result.rows[0] as PlanRow | undefined) ?? null;
+  }
+
+  async unsetFeaturedExcept(planId: number): Promise<void> {
+    await pool.query(`UPDATE plans SET featured = FALSE WHERE id <> $1 AND featured = TRUE`, [planId]);
+  }
+
+  async listVersions(entityId: number, limit = 20): Promise<Array<{
+    id: number;
+    action: string;
+    actor_id: number | null;
+    actor_role: string;
+    before: unknown;
+    after: unknown;
+    reason: string | null;
+    created_at: Date;
+  }>> {
+    const result = await pool.query(
+      `SELECT id, action, actor_id, actor_role, before, after, reason, created_at
+       FROM subscription_audit_log
+       WHERE entity_type = 'plan' AND entity_id = $1
+       ORDER BY id DESC
+       LIMIT $2`,
+      [String(entityId), limit]
+    );
+    return result.rows;
+  }
+
   async countSubscriptionsForPlan(planId: number, onlyLifecycle = false): Promise<number> {
     const result = await pool.query(
       `SELECT COUNT(*)::int AS c FROM subscriptions
@@ -163,9 +202,9 @@ export class PlanRepository {
 
       const planResult = await client.query(
         `INSERT INTO plans
-           (name, slug, description, tagline, cta, offer, featured, features,
-            status, is_public, sort_order, trial_days)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12)
+           (name, slug, description, tagline, cta, offer, discount_badge,
+            featured, features, status, is_public, sort_order, trial_days)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, $13)
          RETURNING id`,
         [
           data.name,
@@ -174,6 +213,7 @@ export class PlanRepository {
           data.tagline ?? null,
           data.cta ?? null,
           data.offer ?? null,
+          data.discount_badge ?? null,
           data.featured ?? false,
           JSON.stringify(data.features ?? []),
           data.status ?? "draft",
@@ -238,6 +278,7 @@ export class PlanRepository {
       tagline?: string | null;
       cta?: string | null;
       offer?: string | null;
+      discount_badge?: string | null;
       featured?: boolean;
       features?: string[];
       is_public?: boolean;
@@ -288,6 +329,7 @@ export class PlanRepository {
       if (data.tagline !== undefined) assign("tagline", data.tagline);
       if (data.cta !== undefined) assign("cta", data.cta);
       if (data.offer !== undefined) assign("offer", data.offer);
+      if (data.discount_badge !== undefined) assign("discount_badge", data.discount_badge);
       if (data.featured !== undefined) assign("featured", data.featured);
       if (data.features !== undefined) assign("features", JSON.stringify(data.features));
       if (data.is_public !== undefined) assign("is_public", data.is_public);
@@ -422,7 +464,7 @@ export class PlanRepository {
 
   async setPlanStatus(planId: number, status: PlanStatus): Promise<void> {
     await pool.query(
-      `UPDATE plans SET status = $2, archived_at = CASE WHEN $2 = 'archived' THEN CURRENT_TIMESTAMP ELSE NULL END WHERE id = $1`,
+      `UPDATE plans SET status = $2::varchar, archived_at = CASE WHEN $2::varchar = 'archived' THEN CURRENT_TIMESTAMP ELSE NULL END WHERE id = $1`,
       [planId, status]
     );
   }
@@ -465,6 +507,20 @@ export class PlanRepository {
       [String(planId)]
     );
     return (result.rowCount ?? 0) > 0;
+  }
+
+  async saveDraft(planId: number, payload: Record<string, unknown>): Promise<void> {
+    await pool.query(
+      `UPDATE plans SET draft_payload = $2::jsonb, draft_updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+      [planId, JSON.stringify(payload)]
+    );
+  }
+
+  async clearDraft(planId: number): Promise<void> {
+    await pool.query(
+      `UPDATE plans SET draft_payload = NULL, draft_updated_at = NULL WHERE id = $1`,
+      [planId]
+    );
   }
 
   async reorderPlans(planIds: number[]): Promise<void> {

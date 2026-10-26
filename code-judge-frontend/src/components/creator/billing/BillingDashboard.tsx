@@ -16,6 +16,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { formatTrialEnd, getTrialState, useMySubscription } from "@/hooks/useMySubscription";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { useBillingData } from "./hooks";
 import { ErrorState, Skeleton, formatINR } from "./ui";
@@ -146,9 +147,16 @@ function CreditsCard({
   const monthlyUsed = Math.min(Math.max(balance.monthlyCreditsConsumed, 0), monthlyTotal || balance.monthlyCreditsConsumed);
   const monthlyPct = monthlyTotal > 0 ? Math.min(100, (monthlyUsed / monthlyTotal) * 100) : 0;
   const { catalog } = usePricingCatalog();
-  const isTrial = balance.planId === "free";
+  const { subscription } = useMySubscription();
+  const trialState = getTrialState(subscription);
+  const isTrialActive = trialState === "active";
+  const isTrialExpired = trialState === "expired";
+  const activePlanId = subscription?.planSlug ?? balance.planId;
+  const trialEndsOn = formatTrialEnd(subscription?.trialEnd ?? null);
+  const trialPlanName = catalog.plans.find((plan) => plan.trialDays > 0)?.name ?? "Trial";
   const planName =
-    catalog.plans.find((plan) => plan.slug === balance.planId)?.name ?? "Current";
+    catalog.plans.find((plan) => plan.slug === activePlanId)?.name ??
+    (subscription?.status === "free" ? "Free plan" : "Current");
 
   return (
     <div className="relative mb-4 mr-4">
@@ -174,10 +182,17 @@ function CreditsCard({
           <span className="ml-2.5 align-middle text-[15px] font-bold text-[var(--qs-muted)]">credits left</span>
         </p>
         <p className="mt-2 text-[13px] text-[var(--qs-muted)]">
-          {isTrial ? (
+          {isTrialActive ? (
             <>
-              Basic trial · no monthly AI credits ·{" "}
+              {trialPlanName} trial · no monthly AI credits ·{" "}
               {balance.purchasedCredits.toLocaleString("en-IN")} purchased
+              {trialEndsOn ? ` · ends ${trialEndsOn}` : ""}
+            </>
+          ) : isTrialExpired ? (
+            <>
+              {trialPlanName} trial expired · no monthly AI credits ·{" "}
+              {balance.purchasedCredits.toLocaleString("en-IN")} purchased
+              {trialEndsOn ? ` · ended ${trialEndsOn}` : ""}
             </>
           ) : (
             <>
@@ -439,9 +454,16 @@ function PlanSummaryStrip({
   purchasedCredits: number;
 }) {
   const { catalog } = usePricingCatalog();
-  const isTrial = planId === "free";
-  const plan = catalog.plans.find((candidate) => candidate.slug === planId);
-  if (!isTrial && !plan) return null;
+  const { subscription } = useMySubscription();
+  const trialState = getTrialState(subscription);
+  const isTrialActive = trialState === "active";
+  const isTrialExpired = trialState === "expired";
+  const isTrial = isTrialActive || (!subscription && planId === "free");
+  const activePlanId = subscription?.planSlug ?? planId;
+  const trialEndsOn = formatTrialEnd(subscription?.trialEnd ?? null);
+  const plan = catalog.plans.find((candidate) => candidate.slug === activePlanId);
+  const trialPlanName = catalog.plans.find((candidate) => candidate.trialDays > 0)?.name ?? "Trial";
+  if (!isTrial && !isTrialExpired && !plan) return null;
 
   return (
     <section
@@ -455,11 +477,24 @@ function PlanSummaryStrip({
         <div className="min-w-0">
           <span className={cn(PILL, "text-[var(--qs-brand)]")}>Monthly plan</span>
           <p className="mt-1.5 truncate text-[15px] font-extrabold text-[var(--qs-ink)]">
-            {isTrial ? "Basic trial" : plan?.name}
-            {!isTrial && plan && plan.price > 0 && (
+            {isTrialActive
+              ? `${trialPlanName} trial`
+              : isTrialExpired
+                ? `${trialPlanName} trial expired`
+                : plan?.name}
+            {isTrialActive && trialEndsOn ? (
               <span className="ml-1.5 font-semibold text-[var(--qs-muted)]">
-                · {formatINR(plan.price)} / month
+                · ends {trialEndsOn}
               </span>
+            ) : (
+              !isTrial &&
+              !isTrialExpired &&
+              plan &&
+              plan.price > 0 && (
+                <span className="ml-1.5 font-semibold text-[var(--qs-muted)]">
+                  · {formatINR(plan.price)} / month
+                </span>
+              )
             )}
           </p>
         </div>
@@ -468,11 +503,13 @@ function PlanSummaryStrip({
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] font-semibold text-[var(--qs-muted)]">
         <span className="inline-flex items-center gap-1.5">
           <Sparkles className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
-          {isTrial
+          {isTrialActive
             ? "Quizzes only · no AI credits"
-            : plan && plan.credits > 0
-              ? `${plan.credits.toLocaleString("en-IN")} credits / month`
-              : "No monthly credits"}
+            : isTrialExpired
+              ? "Trial ended · upgrade for AI credits"
+              : plan && plan.credits > 0
+                ? `${plan.credits.toLocaleString("en-IN")} credits / month`
+                : "No monthly credits"}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <Coins className="h-3.5 w-3.5 text-[var(--qs-brand)]" />

@@ -13,3 +13,14 @@ export const getPublicPricingHandler = async (_req: Request, res: Response): Pro
     res.status(503).json({ success: false, message: "Pricing is temporarily unavailable." });
   }
 };
+
+export const getPricingContentHandler = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const content = await pricingService.getPageContent();
+    res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
+    res.status(200).json({ success: true, data: { content } });
+  } catch (error) {
+    console.error("Public pricing: failed to load content", error);
+    res.status(503).json({ success: false, message: "Content is temporarily unavailable." });
+  }
+};

@@ -12,10 +12,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { PricingFooter, PricingNav } from "@/components/pricing/PricingChrome";
-import { CREDIT_VALIDITY_MONTHS } from "@/config/aiCredits";
 import {
+  formatPricingAmount,
   getPricingCatalogServer,
+  getPricingContentServer,
   getPlanDiscount,
+  type PricingCatalog,
 } from "@/services/pricing";
 
 const PLAN_INCLUDES: Array<{ title: string; icon: LucideIcon }> = [
@@ -27,39 +29,52 @@ const PLAN_INCLUDES: Array<{ title: string; icon: LucideIcon }> = [
   { title: "Any device", icon: Smartphone },
 ];
 
-const FAQS = [
-  {
-    q: "What counts as a quiz creation?",
-    a: "Each published quiz counts once against your monthly limit. Drafts and practice sets do not use a creation.",
-  },
-  {
-    q: "Can I change my plan later?",
-    a: "Yes. Move up whenever you need more quiz creations, or choose a smaller plan for the next billing cycle.",
-  },
-  {
-    q: "Do plans include AI credits?",
-    a: "Yes. Basic includes 20 AI credits a month and Pro includes 50. Need more? Buy a one-time top-up separately.",
-  },
-  {
-    q: "Is there a free trial?",
-    a: "Yes. Basic includes a 7-day quiz-only trial. AI credits are not included. No card required.",
-  },
-  {
-    q: "Are prices inclusive of taxes?",
-    a: "Yes. All plan prices shown here include GST.",
-  },
-];
+function buildFaqs(catalog: PricingCatalog) {
+  const paidPlans = catalog.plans.filter((plan) => plan.price > 0);
+  const trialPlan = catalog.plans.find((plan) => plan.trialDays > 0);
+  const creditAnswer = paidPlans.every((plan) => plan.credits > 0)
+    ? `Yes. ${paidPlans.map((plan) => `${plan.name} includes ${plan.credits} AI credits a month`).join(", ")}. Need more? Buy a one-time top-up separately.`
+    : "Paid plans may include monthly AI credits. Need more? Buy a one-time top-up separately.";
 
-function inr(value: number): string {
-  return `₹${value.toLocaleString("en-IN")}`;
+  return [
+    {
+      q: "What counts as a quiz creation?",
+      a: "Each published quiz counts once against your monthly limit. Drafts and practice sets do not use a creation.",
+    },
+    {
+      q: "Can I change my plan later?",
+      a: "Yes. Move up whenever you need more quiz creations, or choose a smaller plan for the next billing cycle.",
+    },
+    {
+      q: "Do plans include AI credits?",
+      a: creditAnswer,
+    },
+    {
+      q: "Is there a free trial?",
+      a: trialPlan
+        ? `Yes. ${trialPlan.name} includes a ${trialPlan.trialDays}-day quiz-only trial. AI credits are not included. No card required.`
+        : "Trial availability depends on the current plans shown above.",
+    },
+    {
+      q: "Are prices inclusive of taxes?",
+      a: "Yes. All plan prices shown here include GST.",
+    },
+  ];
 }
 
 export default async function PricingPage() {
-  const catalog = await getPricingCatalogServer();
+  const [catalog, content] = await Promise.all([
+    getPricingCatalogServer(),
+    getPricingContentServer(),
+  ]);
+  const trialPlan = catalog.plans.find((plan) => plan.trialDays > 0);
+  const trialDays = trialPlan?.trialDays ?? 0;
+  const offer = catalog.plans.find((plan) => plan.offer)?.offer ?? null;
   const creditValidityMonths =
     catalog.creditPacks.length > 0
       ? Math.max(...catalog.creditPacks.map((pack) => pack.validityMonths))
-      : CREDIT_VALIDITY_MONTHS;
+      : 0;
+  const faqs = buildFaqs(catalog);
 
   return (
     <div className="qs-ui qs-lp qp-page min-h-screen">
@@ -67,17 +82,15 @@ export default async function PricingPage() {
 
       <main id="top">
         <header className="wrap qp-hero">
-          <p className="eb">Monthly plans</p>
-          <h1>Plans that grow with your quiz load</h1>
+          <p className="eb">{content.plans_banner || "Monthly plans"}</p>
+          <h1>{content.plans_heading || "Plans that grow with your quiz load"}</h1>
           <p className="lead">
-            Start with a 7-day quiz-only trial. Move up when your quiz load grows.
-            Every plan includes the full quiz builder, access codes and instant
-            results. Paid plans also include monthly AI credits at the limited
-            2026 offer price.
+            {content.plans_subheading ||
+              "Move up when your quiz load grows. Every plan includes the full quiz builder, access codes and instant results. Paid plans also include monthly AI credits."}
           </p>
           <div className="qp-actions">
             <Link href="/register" className="btn pri">
-              Start quiz-only trial <ArrowRight size={16} />
+              {trialDays > 0 ? "Start quiz-only trial" : "Get started"} <ArrowRight size={16} />
             </Link>
             <a href="#plans" className="btn">
               Compare plans
@@ -85,8 +98,8 @@ export default async function PricingPage() {
           </div>
           <div className="qp-meta" aria-label="Pricing highlights">
             <span>No card required</span>
-            <span>Quiz-only trial</span>
-            <span>Limited 2026 offer</span>
+            {trialDays > 0 && <span>Quiz-only trial</span>}
+            {offer && <span>{offer}</span>}
             <span>GST included</span>
           </div>
         </header>
@@ -104,6 +117,9 @@ export default async function PricingPage() {
             </div>
 
             <div className="qp-grid">
+              {catalog.plans.length === 0 && (
+                <p className="qp-plan-desc">Plans are currently unavailable. Please check back later.</p>
+              )}
               {catalog.plans.map((plan) => {
                 const discount = getPlanDiscount(plan);
                 return (
@@ -118,17 +134,17 @@ export default async function PricingPage() {
                       <h3 id={`plan-${plan.id}`}>{plan.name}</h3>
                       {plan.trialDays ? (
                         <span className="qp-pill">{plan.trialDays}-day trial</span>
-                      ) : discount > 0 ? (
-                        <span className="qp-pill">{discount}% off</span>
+                      ) : plan.discountBadge || discount > 0 ? (
+                        <span className="qp-pill">{plan.discountBadge || `${discount}% off`}</span>
                       ) : null}
                     </div>
                     {plan.offer && <p className="qp-offer">{plan.offer}</p>}
                     <p className="qp-plan-desc">{plan.tagline}</p>
 
                     <div className="qp-price">
-                      <b>{inr(plan.price)}</b>
+                      <b>{formatPricingAmount(plan.price, plan.currency)}</b>
                       {discount > 0 && plan.originalPrice ? (
-                        <s>{inr(plan.originalPrice)}</s>
+                        <s>{formatPricingAmount(plan.originalPrice, plan.currency)}</s>
                       ) : null}
                       <span>/ month</span>
                     </div>
@@ -163,8 +179,8 @@ export default async function PricingPage() {
 
             <p className="qp-after">
               <Sparkles size={15} />
-              Every paid plan includes monthly AI credits. Need more? Top up
-              with a one-time pack.
+              {content.plans_gst_note ||
+                "Every paid plan includes monthly AI credits. Need more? Top up with a one-time pack."}
             </p>
 
             <div className="qp-includes">
@@ -188,7 +204,7 @@ export default async function PricingPage() {
                 <h3>Need extra AI credits?</h3>
                 <p>
                   Paid plans include a monthly allowance. Additional credits are
-                  one-time packs, valid for {creditValidityMonths} months, and
+                  one-time packs{creditValidityMonths > 0 ? `, valid for ${creditValidityMonths} months,` : ""} and
                   work with every plan.
                 </p>
               </div>
@@ -203,7 +219,7 @@ export default async function PricingPage() {
           <div className="wrap qp-faq-wrap">
             <p className="eb">Good to know</p>
             <h2 className="t">Plan questions, answered</h2>
-            {FAQS.map((faq) => (
+            {faqs.map((faq) => (
               <details className="fq" key={faq.q}>
                 <summary>{faq.q}</summary>
                 <p>{faq.a}</p>
@@ -217,7 +233,7 @@ export default async function PricingPage() {
             <div className="cta">
               <div>
                 <p className="eb">Start today</p>
-                <h2>Start your 7-day quiz-only trial today.</h2>
+                <h2>{trialDays > 0 ? `Start your ${trialDays}-day quiz-only trial today.` : "Start creating quizzes today."}</h2>
               </div>
               <div className="qp-cta-actions">
                 <Link href="/register" className="btn">
