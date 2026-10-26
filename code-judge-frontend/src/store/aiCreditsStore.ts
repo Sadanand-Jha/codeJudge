@@ -11,8 +11,6 @@ import type {
 import {
   FAIR_USAGE_LIMITS,
   ABUSE_RULES,
-  CREDIT_PACKS,
-  CREDIT_PURCHASE_PACKS,
   creditCostMap,
   LOW_CREDIT_THRESHOLD,
   type AICreditFeatureId,
@@ -101,7 +99,14 @@ interface AICreditsState {
   completeRequest: () => void;
   purchasePack: (
     packId: string,
-    meta?: { transactionId?: string; method?: AICreditPaymentMethod; status?: AICreditPurchase["status"] }
+    meta?: {
+      transactionId?: string;
+      method?: AICreditPaymentMethod;
+      status?: AICreditPurchase["status"];
+      credits?: number;
+      packName?: string;
+      price?: number;
+    }
   ) => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -222,27 +227,25 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
   },
 
   purchasePack: async (packId, meta) => {
-    const pack =
-      CREDIT_PACKS.find((p) => p.id === packId) ??
-      CREDIT_PURCHASE_PACKS.find((p) => p.id === packId);
-    if (!pack) return;
+    const credits = meta?.credits ?? 0;
+    if (credits <= 0) return;
 
     const { balance, purchases } = get();
     set({
       balance: {
         ...balance,
-        purchasedCredits: balance.purchasedCredits + pack.credits,
-        totalRemaining: balance.totalRemaining + pack.credits,
-        remaining: balance.totalRemaining + pack.credits, // backward compat
+        purchasedCredits: balance.purchasedCredits + credits,
+        totalRemaining: balance.totalRemaining + credits,
+        remaining: balance.totalRemaining + credits, // backward compat
       },
       purchases: [
         ...purchases,
         {
           transactionId: meta?.transactionId,
-          packId: pack.id,
-          packName: pack.name,
-          credits: pack.credits,
-          price: pack.price,
+          packId,
+          packName: meta?.packName ?? packId,
+          credits,
+          price: meta?.price ?? 0,
           timestamp: Date.now(),
           method: meta?.method,
           status: meta?.status ?? "completed",
@@ -340,19 +343,26 @@ export function checkLowCreditWarning(remaining: number, monthlyAllowance: numbe
   return remaining / monthlyAllowance < LOW_CREDIT_THRESHOLD;
 }
 
-export function getRecommendedPack(remaining: number, monthlyAllowance: number): CreditPurchasePack | null {
-  if (monthlyAllowance <= 0) return null;
-  
+export function getRecommendedPack(
+  remaining: number,
+  monthlyAllowance: number,
+  packs: CreditPurchasePack[]
+): CreditPurchasePack | null {
+  if (monthlyAllowance <= 0 || packs.length === 0) return null;
+
   const usageRatio = 1 - remaining / monthlyAllowance;
-  
+  const sorted = [...packs].sort((a, b) => a.price - b.price);
+
   // If less than 20% remaining, recommend the smaller top-up.
-  if (usageRatio > 0.8) {
-    return CREDIT_PURCHASE_PACKS.find((p) => p.id === "teacher") || null;
-  }
+  if (usageRatio > 0.8) return sorted[0] ?? null;
 
   // If less than 50% remaining, recommend the better-value top-up.
   if (usageRatio > 0.5) {
-    return CREDIT_PURCHASE_PACKS.find((p) => p.id === "master") || null;
+    return [...packs].sort((a, b) => {
+      const aRate = a.credits > 0 ? a.price / a.credits : Number.POSITIVE_INFINITY;
+      const bRate = b.credits > 0 ? b.price / b.credits : Number.POSITIVE_INFINITY;
+      return aRate - bRate;
+    })[0] ?? null;
   }
 
   return null;

@@ -338,6 +338,7 @@ export interface PlatformPlan {
   tagline: string | null;
   cta: string | null;
   offer: string | null;
+  discount_badge: string | null;
   featured: boolean;
   features: string[];
   status: "draft" | "active" | "archived";
@@ -352,6 +353,17 @@ export interface PlatformPlan {
   subscriber_count: number;
   active_subscriber_count: number;
   entitlements: Record<string, number | boolean>;
+  draft_payload: Record<string, unknown> | null;
+  draft_updated_at: string | null;
+}
+
+export interface PlatformPlanImpact {
+  plan_id: number;
+  active_subscribers: number;
+  total_subscribers: number;
+  price_subscribers: Record<string, number>;
+  entitlements: Record<string, number | boolean>;
+  prices: PlatformPlanPrice[];
 }
 
 export interface EntitlementDefinition {
@@ -378,6 +390,8 @@ export interface PlatformCreditPack {
   cta: string | null;
   sort_order: number;
   created_at: string;
+  draft_payload: Record<string, unknown> | null;
+  draft_updated_at: string | null;
 }
 
 export interface SubscriptionPlanUpdate {
@@ -387,6 +401,7 @@ export interface SubscriptionPlanUpdate {
   tagline?: string | null;
   cta?: string | null;
   offer?: string | null;
+  discount_badge?: string | null;
   featured?: boolean;
   features?: string[];
   is_public?: boolean;
@@ -417,6 +432,56 @@ export interface CreditPackUpdate {
   is_active?: boolean;
   cta?: string | null;
   sort_order?: number;
+}
+
+export interface PlatformCoupon {
+  id: number;
+  code: string;
+  type: "percent" | "flat" | "free_days";
+  value: number;
+  applies_to_plan_ids: number[] | null;
+  max_redemptions: number | null;
+  per_user_limit: number;
+  valid_from: string | null;
+  valid_until: string | null;
+  status: "active" | "disabled";
+  created_by: number | null;
+  created_at: string;
+  updated_at: string;
+  draft_payload: Record<string, unknown> | null;
+  draft_updated_at: string | null;
+  redemption_count: number;
+}
+
+export interface CouponUpdate {
+  code?: string;
+  type?: PlatformCoupon["type"];
+  value?: number;
+  applies_to_plan_ids?: number[] | null;
+  max_redemptions?: number | null;
+  per_user_limit?: number;
+  valid_from?: string | null;
+  valid_until?: string | null;
+  status?: PlatformCoupon["status"];
+}
+
+export interface PlatformPageContent {
+  key: string;
+  value: string;
+  draft_value: string | null;
+  updated_by: number | null;
+  updated_at: string;
+}
+
+export interface PlatformVersion {
+  id: number;
+  action: string;
+  actor_id: number | null;
+  actor_role: string;
+  before: unknown;
+  after: unknown;
+  reason: string | null;
+  created_at: string;
 }
 
 async function get<T>(path: string, params?: Record<string, string | number>): Promise<T> {
@@ -576,7 +641,175 @@ export const platformApi = {
       );
       return response.data;
     }),
+  duplicateSubscriptionPlan: (planId: number) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<PlatformPlan>(
+        `/v1/platform/subscriptions/plans/${planId}/duplicate`
+      );
+      return response.data;
+    }),
+  archiveSubscriptionPlan: (planId: number, payload: { strategy?: "migrate" | "run_until_expiry"; migrationTargetPlanId?: number } = {}) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<PlatformPlan>(
+        `/v1/platform/subscriptions/plans/${planId}/archive`,
+        payload
+      );
+      return response.data;
+    }),
+  deleteSubscriptionPlan: (planId: number) =>
+    schedulePlatformRequest(async () => {
+      await platformClient.delete(`/v1/platform/subscriptions/plans/${planId}`);
+    }),
+  reorderSubscriptionPlans: (planIds: number[]) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<{ plans: PlatformPlan[] }>(
+        "/v1/platform/subscriptions/plans/reorder",
+        { planIds }
+      );
+      return response.data;
+    }),
+  saveSubscriptionPlanDraft: (planId: number, payload: SubscriptionPlanUpdate) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.put<PlatformPlan>(
+        `/v1/platform/subscriptions/plans/${planId}/draft`,
+        payload
+      );
+      return response.data;
+    }),
+  publishSubscriptionPlanDraft: (planId: number) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<PlatformPlan>(
+        `/v1/platform/subscriptions/plans/${planId}/publish`
+      );
+      return response.data;
+    }),
+  toggleSubscriptionPlan: (planId: number, active: boolean) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<PlatformPlan>(
+        `/v1/platform/subscriptions/plans/${planId}/toggle`,
+        { active }
+      );
+      return response.data;
+    }),
+  subscriptionPlanImpact: (planId: number) =>
+    get<PlatformPlanImpact>(`/subscriptions/plans/${planId}/impact`),
+  subscriptionPlanVersions: (planId: number) =>
+    get<{ versions: PlatformVersion[] }>(`/subscriptions/plans/${planId}/versions`),
+  restoreSubscriptionPlanVersion: (planId: number, versionId: number) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<PlatformPlan>(
+        `/v1/platform/subscriptions/plans/${planId}/restore`,
+        { versionId }
+      );
+      return response.data;
+    }),
   creditPacks: () => get<{ packs: PlatformCreditPack[] }>("/subscriptions/packs"),
+  reorderCreditPacks: (packIds: number[]) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<{ packs: PlatformCreditPack[] }>(
+        "/v1/platform/subscriptions/packs/reorder",
+        { packIds }
+      );
+      return response.data;
+    }),
+  saveCreditPackDraft: (packId: number, payload: CreditPackUpdate) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.put<PlatformCreditPack>(
+        `/v1/platform/subscriptions/packs/${packId}/draft`,
+        payload
+      );
+      return response.data;
+    }),
+  publishCreditPackDraft: (packId: number) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<PlatformCreditPack>(
+        `/v1/platform/subscriptions/packs/${packId}/publish`
+      );
+      return response.data;
+    }),
+  toggleCreditPack: (packId: number, active: boolean) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<PlatformCreditPack>(
+        `/v1/platform/subscriptions/packs/${packId}/toggle`,
+        { active }
+      );
+      return response.data;
+    }),
+  creditPackVersions: (packId: number) =>
+    get<{ versions: PlatformVersion[] }>(`/subscriptions/packs/${packId}/versions`),
+  restoreCreditPackVersion: (packId: number, versionId: number) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<PlatformCreditPack>(
+        `/v1/platform/subscriptions/packs/${packId}/restore`,
+        { versionId }
+      );
+      return response.data;
+    }),
+  coupons: () => get<{ coupons: PlatformCoupon[] }>("/subscriptions/coupons"),
+  createCoupon: (payload: CouponUpdate) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<PlatformCoupon>(
+        "/v1/platform/subscriptions/coupons",
+        payload
+      );
+      return response.data;
+    }),
+  saveCouponDraft: (couponId: number, payload: CouponUpdate) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.put<PlatformCoupon>(
+        `/v1/platform/subscriptions/coupons/${couponId}/draft`,
+        payload
+      );
+      return response.data;
+    }),
+  publishCouponDraft: (couponId: number) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<PlatformCoupon>(
+        `/v1/platform/subscriptions/coupons/${couponId}/publish`
+      );
+      return response.data;
+    }),
+  toggleCoupon: (couponId: number, active: boolean) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<PlatformCoupon>(
+        `/v1/platform/subscriptions/coupons/${couponId}/toggle`,
+        { active }
+      );
+      return response.data;
+    }),
+  disableCoupon: (couponId: number) =>
+    schedulePlatformRequest(async () => {
+      await platformClient.delete(`/v1/platform/subscriptions/coupons/${couponId}`);
+    }),
+  couponVersions: (couponId: number) =>
+    get<{ versions: PlatformVersion[] }>(`/subscriptions/coupons/${couponId}/versions`),
+  restoreCouponVersion: (couponId: number, versionId: number) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<PlatformCoupon>(
+        `/v1/platform/subscriptions/coupons/${couponId}/restore`,
+        { versionId }
+      );
+      return response.data;
+    }),
+  pageContent: () => get<{ content: PlatformPageContent[] }>("/subscriptions/content"),
+  savePageContentDraft: (content: Record<string, string>) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.put<{ content: PlatformPageContent[] }>(
+        "/v1/platform/subscriptions/content/draft",
+        { content }
+      );
+      return response.data;
+    }),
+  publishPageContent: (keys: string[]) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<{ content: PlatformPageContent[] }>(
+        "/v1/platform/subscriptions/content/publish",
+        { keys }
+      );
+      return response.data;
+    }),
+  pageContentVersions: (key: string) =>
+    get<{ versions: PlatformVersion[] }>(`/subscriptions/content/${encodeURIComponent(key)}/versions`),
   createCreditPack: (payload: CreditPackUpdate) =>
     schedulePlatformRequest(async () => {
       const response = await platformClient.post<PlatformCreditPack>(

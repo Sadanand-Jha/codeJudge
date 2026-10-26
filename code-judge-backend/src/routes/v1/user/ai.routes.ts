@@ -26,6 +26,7 @@ import {
   getMyQuestionBank,
   deleteMyQuestionBankQuestion,
 } from "../../../controllers/ai.controller.ts";
+import { randomizeUploadFilename } from "../../../utils/uploadName.ts";
 
 const router = Router();
 
@@ -43,6 +44,7 @@ router.use(authenticate, requireActiveAiUser);
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024, files: 25 },
+  fileFilter: randomizeUploadFilename,
 });
 
 // Streaming chat — JSON body: `{ message?: string }` (legacy) or

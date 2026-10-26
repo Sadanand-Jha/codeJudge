@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
-import { getPlanDiscount } from "@/services/pricing";
+import { formatPricingAmount, getPlanDiscount } from "@/services/pricing";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { useAuthStore } from "@/store/authStore";
 
@@ -24,6 +24,7 @@ export function TrialOfferBanner({
 }: TrialOfferBannerProps) {
   const { catalog } = usePricingCatalog();
   const basicPlan = catalog.plans.find((plan) => plan.slug === "basic");
+  const trialPlan = catalog.plans.find((plan) => plan.trialDays > 0);
   const basicDiscount = basicPlan ? getPlanDiscount(basicPlan) : 0;
   const user = useAuthStore((state) => state.user);
   const balance = useAICreditsStore((state) => state.balance);
@@ -31,7 +32,7 @@ export function TrialOfferBanner({
 
   const [now] = useState(() => Date.now());
   const createdAt = user?.createdAt ? Date.parse(user.createdAt) : NaN;
-  const trialDays = basicPlan?.trialDays ?? 7;
+  const trialDays = trialPlan?.trialDays ?? 0;
   const isNewAccount =
     Number.isFinite(createdAt) &&
     now - createdAt < trialDays * 24 * 60 * 60 * 1000;
@@ -40,6 +41,8 @@ export function TrialOfferBanner({
     balance.purchasedCredits === 0 &&
     balance.purchasedCreditsConsumed === 0;
   const isTrialEligible =
+    Boolean(trialPlan) &&
+    trialDays > 0 &&
     isNewAccount &&
     hasNoPurchases &&
     balance.planId === "free" &&
@@ -69,20 +72,22 @@ export function TrialOfferBanner({
             New account offer
           </span>
           <p className="qs-display mt-3 text-[clamp(34px,6vw,62px)] font-extrabold leading-[0.92] tracking-[-0.04em]">
-            7-day free trial
+            {trialPlan ? `${trialDays}-day free trial` : "Free trial"}
           </p>
           <p className="mt-2 text-[clamp(16px,2vw,21px)] font-extrabold">
-            Quiz-only trial. No AI credits. No card required.
+            {trialPlan?.name ?? "Quiz-only"} trial. No AI credits. No card required.
           </p>
           {showBasicOffer && basicPlan && basicDiscount > 0 && (
             <p className="mt-2 flex flex-wrap items-center gap-2 text-[14px] font-bold">
               <span className="rounded-full bg-[#1a1240] px-2.5 py-1 text-[var(--qs-sun)]">
-                Basic {basicDiscount}% off
+                {basicPlan.name} {basicPlan.discountBadge || `${basicDiscount}% off`}
               </span>
               <span>
-                ₹{basicPlan.price}/month{" "}
-                <s className="opacity-60">₹{basicPlan.originalPrice}</s> — limited
-                period.
+                {formatPricingAmount(basicPlan.price, basicPlan.currency)}/month{" "}
+                {basicPlan.originalPrice ? (
+                  <s className="opacity-60">{formatPricingAmount(basicPlan.originalPrice, basicPlan.currency)}</s>
+                ) : null}{" "}
+                {basicPlan.offer ? `— ${basicPlan.offer}` : "— limited period."}
               </span>
             </p>
           )}

@@ -7,6 +7,7 @@ export interface PlanSummaryRow {
   name: string;
   slug: string;
   is_default_free: boolean;
+  trial_days: number;
 }
 
 export interface EntitlementRow {
@@ -47,12 +48,44 @@ export class SubscriptionRepository {
   /** The single plan flagged as the default free plan, if configured. */
   async getDefaultFreePlan(): Promise<PlanSummaryRow | null> {
     const result = await pool.query(
-      `SELECT id, name, slug, is_default_free
+      `SELECT id, name, slug, is_default_free, trial_days
        FROM plans
        WHERE is_default_free = true
        LIMIT 1`
     );
     return (result.rows[0] as PlanSummaryRow | undefined) ?? null;
+  }
+
+  /** An active plan that can be handed out as a free trial. */
+  async getTrialPlan(): Promise<PlanSummaryRow | null> {
+    const result = await pool.query(
+      `SELECT id, name, slug, is_default_free, trial_days
+       FROM plans
+       WHERE slug = 'basic'
+         AND status = 'active'
+         AND trial_days > 0
+       LIMIT 1`
+    );
+    return (result.rows[0] as PlanSummaryRow | undefined) ?? null;
+  }
+
+  /**
+   * The moment the user's trial starts. It is the registration timestamp:
+   * trial_started_at is stamped when the account is created, with created_at /
+   * createdat as fallbacks for older rows.
+   */
+  async getUserTrialStartedAt(userId: number): Promise<Date | null> {
+    const result = await pool.query(
+      `SELECT COALESCE(trial_started_at, created_at, createdat) AS trial_started_at
+       FROM users
+       WHERE id = $1
+       LIMIT 1`,
+      [userId]
+    );
+    const value = result.rows[0]?.trial_started_at as Date | string | null | undefined;
+    if (!value) return null;
+    const parsed = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
 
   /**
@@ -115,6 +148,55 @@ export class SubscriptionRepository {
       [userId, planId, source]
     );
     return result.rows[0]?.id ?? null;
+  }
+
+  /**
+   * Start the new user's trial on the given plan. The window always begins at
+   * the registration timestamp so a delayed first login does not extend it.
+   * Idempotent and race-safe: no row is created when one already exists.
+   */
+  async insertTrialSubscriptionIfMissing(
+    userId: number,
+    planId: number,
+    trialDays: number,
+    source = "self_serve"
+  ): Promise<number | null> {
+    const result = await pool.query(
+      `INSERT INTO subscriptions
+         (user_id, plan_id, status, started_at,
+          current_period_start, current_period_end, trial_end, source)
+       SELECT u.id, $2, 'trialing', trial_start,
+              trial_start,
+              trial_start + ($3::int * INTERVAL '1 day'),
+              trial_start + ($3::int * INTERVAL '1 day'),
+              $4
+       FROM (
+         SELECT COALESCE(trial_started_at, created_at, createdat, CURRENT_TIMESTAMP) AS trial_start
+         FROM users
+         WHERE id = $1
+       ) u
+       WHERE NOT EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = $1)
+       RETURNING id`,
+      [userId, planId, trialDays, source]
+    );
+    return (result.rows[0]?.id as number | undefined) ?? null;
+  }
+
+  /** The most recent trial window for a user, even after it has ended. */
+  async getLatestTrialEnd(userId: number): Promise<Date | null> {
+    const result = await pool.query(
+      `SELECT trial_end
+       FROM subscriptions
+       WHERE user_id = $1
+         AND trial_end IS NOT NULL
+       ORDER BY started_at DESC, id DESC
+       LIMIT 1`,
+      [userId]
+    );
+    const value = result.rows[0]?.trial_end as Date | string | null | undefined;
+    if (!value) return null;
+    const parsed = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
 
   async createSubscription(input: CreateSubscriptionInput): Promise<{ id: number }> {

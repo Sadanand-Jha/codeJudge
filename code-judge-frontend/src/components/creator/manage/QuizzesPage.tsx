@@ -202,8 +202,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
             </p>
           </div>
           <AiGenerateButton
-            href={WHOLE_QUIZ_AI_ENABLED ? "/creator/quizzes/ai-generate" : undefined}
-            comingSoon={!WHOLE_QUIZ_AI_ENABLED}
+            href="/creator/quizzes/create"
             size="md"
             label="Generate with AI"
             className="shrink-0"
@@ -248,8 +247,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
               New quiz
             </Link>
             <AiGenerateButton
-              href={WHOLE_QUIZ_AI_ENABLED ? "/creator/quizzes/ai-generate" : undefined}
-              comingSoon={!WHOLE_QUIZ_AI_ENABLED}
+              href="/creator/quizzes/create"
               size="sm"
               label="Generate with AI"
             />

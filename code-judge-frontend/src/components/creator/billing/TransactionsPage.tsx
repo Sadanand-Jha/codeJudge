@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getUserTimeZone } from "@/lib/timezone";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
-import { getPackValidityMonths } from "@/config/aiCredits";
+import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import type { AICreditPaymentMethod } from "@/types/aiCredits";
 import { cn } from "@/lib/helpers";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
@@ -60,6 +60,14 @@ export interface CreditTransaction {
 
 const DAY = 86_400_000;
 
+type CreditValidityLookup = (packId: string) => number | undefined;
+
+const CreditValidityContext = createContext<CreditValidityLookup>(() => undefined);
+
+function useCreditValidity(): CreditValidityLookup {
+  return useContext(CreditValidityContext);
+}
+
 function addMonths(ts: number, months: number): number {
   const d = new Date(ts);
   d.setMonth(d.getMonth() + months);
@@ -81,9 +89,10 @@ function daysLeft(expiry: number, now: number): number {
   return Math.ceil((expiry - now) / DAY);
 }
 
-/** Expiry for a transaction — based on the pack validity period. */
-function txnExpiry(txn: CreditTransaction): number {
-  return addMonths(txn.timestamp, getPackValidityMonths(txn.packId));
+/** Expiry for a transaction — based on the backend pack validity period. */
+function txnExpiry(txn: CreditTransaction, getValidity: CreditValidityLookup): number | null {
+  const months = getValidity(txn.packId);
+  return months ? addMonths(txn.timestamp, months) : null;
 }
 
 /* ============================================
@@ -123,8 +132,10 @@ const METHOD_ICON: Record<PayMethodKind, LucideIcon> = {
 };
 
 function ExpiryLine({ txn, now }: { txn: CreditTransaction; now: number }) {
+  const getValidity = useCreditValidity();
   if (txn.status !== "completed") return null;
-  const exp = txnExpiry(txn);
+  const exp = txnExpiry(txn, getValidity);
+  if (exp === null) return <p className="mt-0.5 text-xs text-[var(--qs-muted)]">Validity unavailable</p>;
   const left = daysLeft(exp, now);
   if (left < 0) return <p className="mt-0.5 text-xs font-semibold text-[var(--qs-bad)]">Expired</p>;
   if (left <= 14) {
@@ -172,8 +183,9 @@ function downloadFile(name: string, text: string) {
   URL.revokeObjectURL(url);
 }
 
-function receiptText(txn: CreditTransaction): string {
+function receiptText(txn: CreditTransaction, getValidity: CreditValidityLookup): string {
   const gst = txn.price - txn.price / 1.18;
+  const expiry = txnExpiry(txn, getValidity);
   return [
     "QuizSupport — Payment Receipt",
     `Order ID: ${txn.id}`,
@@ -181,7 +193,7 @@ function receiptText(txn: CreditTransaction): string {
     `Amount paid: ${formatINR(txn.price)} (incl. 18% GST of ${formatINR(gst)})`,
     `Payment method: ${txn.methodLabel} (${txn.methodRef})`,
     `Purchase date: ${fmtDateTime(txn.timestamp)}`,
-    `Credits valid till: ${fmtDate(txnExpiry(txn))}`,
+    `Credits valid till: ${expiry ? fmtDate(expiry) : "Unavailable"}`,
     `Status: ${STATUS_META[txn.status].label}`,
   ].join("\n");
 }
@@ -267,7 +279,8 @@ function DrawerShell({ txn, onClose, panelRef, onReceipt, onInvoice }: {
     };
   }, [txn, onClose, panelRef]);
 
-  const expiry = txnExpiry(txn);
+  const getValidity = useCreditValidity();
+  const expiry = txnExpiry(txn, getValidity);
   const base = txn.price / 1.18;
   const gst = txn.price - base;
   const MethodIcon = METHOD_ICON[txn.methodKind];
@@ -340,7 +353,7 @@ function DrawerShell({ txn, onClose, panelRef, onReceipt, onInvoice }: {
               ["Payment method", txn.methodLabel],
               [txn.methodKind === "Card" ? "Card" : "Reference", txn.methodRef],
               ["Purchase date", fmtDateTime(txn.timestamp)],
-              ["Expiry date", fmtDate(expiry)],
+              ["Expiry date", expiry ? fmtDate(expiry) : "—"],
             ].map(([label, value], i, arr) => (
               <div
                 key={label}
@@ -416,6 +429,15 @@ export interface TransactionsPageProps {
 export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadReceipt, onDownloadInvoice }: TransactionsPageProps) {
   const toast = useToast();
   const balance = useAICreditsStore((s) => s.balance);
+  const { catalog } = usePricingCatalog();
+  const validityByPack = useMemo(
+    () => new Map(catalog.creditPacks.map((pack) => [pack.id, pack.validityMonths])),
+    [catalog]
+  );
+  const getValidity = useCallback(
+    (packId: string) => validityByPack.get(packId),
+    [validityByPack]
+  );
   const { state, data, retry } = useBillingData(
     () => [...useAICreditsStore.getState().purchases].sort((a, b) => b.timestamp - a.timestamp),
     { demoState }
@@ -484,19 +506,22 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
 
   const nextExpiry = useMemo(() => {
     const upcoming = completed
-      .map((t) => ({ t, exp: txnExpiry(t) }))
-      .filter(({ exp }) => exp > now)
+      .map((t) => ({ t, exp: txnExpiry(t, getValidity) }))
+      .filter((entry): entry is { t: CreditTransaction; exp: number } => entry.exp !== null && entry.exp > now)
       .sort((a, b) => a.exp - b.exp);
     return upcoming[0] ?? null;
-  }, [completed, now]);
+  }, [completed, getValidity, now]);
 
   const expiringSoon = useMemo(() => {
     const cands = completed
-      .map((t) => ({ t, left: daysLeft(txnExpiry(t), now) }))
-      .filter(({ left }) => left >= 0 && left <= 14)
+      .map((t) => {
+        const exp = txnExpiry(t, getValidity);
+        return exp === null ? null : { t, exp, left: daysLeft(exp, now) };
+      })
+      .filter((entry): entry is { t: CreditTransaction; exp: number; left: number } => entry !== null && entry.left >= 0 && entry.left <= 14)
       .sort((a, b) => a.left - b.left);
     return cands[0] ?? null;
-  }, [completed, now]);
+  }, [completed, getValidity, now]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -513,7 +538,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
 
   const handleReceipt = (txn: CreditTransaction) => {
     if (onDownloadReceipt) return onDownloadReceipt(txn);
-    downloadFile(`${txn.id}-receipt.txt`, receiptText(txn));
+    downloadFile(`${txn.id}-receipt.txt`, receiptText(txn, getValidity));
     toast.success({ title: "Receipt downloaded", description: `Receipt for order ${txn.id}.` });
   };
 
@@ -541,7 +566,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
   const exportCsv = () => {
     const head = "Order ID,Pack,Credits,Amount (INR),Status,Payment method,Date,Expiry";
     const lines = filtered.map((t) =>
-      [t.id, t.packName, t.credits, t.price, STATUS_META[t.status].label, t.methodLabel, fmtDateTime(t.timestamp), fmtDate(txnExpiry(t))]
+      [t.id, t.packName, t.credits, t.price, STATUS_META[t.status].label, t.methodLabel, fmtDateTime(t.timestamp), (() => { const exp = txnExpiry(t, getValidity); return exp ? fmtDate(exp) : "Unavailable"; })()]
         .map((v) => `"${String(v).replace(/"/g, '""')}"`)
         .join(",")
     );
@@ -569,8 +594,9 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
   }, [totalPages, safePage]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <CreditValidityContext.Provider value={getValidity}>
+      <div className="space-y-6">
+        {/* Header */}
       <PageHeader
         title="Transactions"
         subtitle="Every AI credit purchase on your account."
@@ -626,7 +652,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
             <div className="flex flex-col gap-2 rounded-[18px] border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between" role="status">
               <p className="flex items-start gap-2 text-[13px] font-semibold text-[var(--qs-ink)]">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                {expiringSoon.t.credits} credits expire on {fmtDate(txnExpiry(expiringSoon.t))}. Use them before then.
+                {expiringSoon.t.credits} credits expire on {fmtDate(expiringSoon.exp)}. Use them before then.
               </p>
               <a
                 href="/creator/tests/create"
@@ -898,13 +924,14 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
         </>
       )}
 
-      <TxnDrawer
-        txn={activeTxn}
-        onClose={() => setActiveTxn(null)}
-        onReceipt={handleReceipt}
-        onInvoice={handleInvoice}
-      />
-    </div>
+        <TxnDrawer
+          txn={activeTxn}
+          onClose={() => setActiveTxn(null)}
+          onReceipt={handleReceipt}
+          onInvoice={handleInvoice}
+        />
+      </div>
+    </CreditValidityContext.Provider>
   );
 }
 

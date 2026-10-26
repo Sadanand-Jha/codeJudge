@@ -1,6 +1,4 @@
 import apiClient from "@/lib/axios";
-import { CREATOR_PLANS } from "@/config/creatorPlans";
-import { CREDIT_PURCHASE_PACKS } from "@/config/aiCredits";
 import type {
   PricingCatalog,
   PricingCreditPack,
@@ -15,38 +13,10 @@ const BACKEND_URL =
     ? "http://localhost:8000"
     : "https://api.quizsupport.com");
 
-/** Local safety net only — the backend catalog is the source of truth. */
-export const FALLBACK_PRICING: PricingCatalog = {
-  plans: CREATOR_PLANS.filter((plan) => plan.price > 0).map((plan, index) => ({
-    id: index + 1,
-    slug: plan.id,
-    name: plan.name,
-    description: null,
-    tagline: plan.tagline,
-    cta: plan.cta,
-    offer: plan.offer ?? null,
-    featured: plan.featured === true,
-    trialDays: plan.id === "basic" ? (plan.trialDays ?? 7) : 0,
-    price: plan.price,
-    originalPrice: plan.originalPrice ?? null,
-    currency: "INR",
-    quizzes: plan.quizzes,
-    rooms: plan.rooms,
-    credits: plan.credits,
-    features: plan.features,
-    sortOrder: index,
-  })),
-  creditPacks: CREDIT_PURCHASE_PACKS.map((pack, index) => ({
-    id: pack.id,
-    name: pack.name,
-    credits: pack.credits,
-    price: pack.price,
-    cta: pack.cta,
-    blurb: pack.blurb,
-    popular: pack.popular === true,
-    validityMonths: pack.validityMonths,
-    sortOrder: index,
-  })),
+/** Neutral placeholder used while loading and when the catalog is unavailable. */
+export const EMPTY_PRICING: PricingCatalog = {
+  plans: [],
+  creditPacks: [],
   updatedAt: null,
 };
 
@@ -56,14 +26,17 @@ function isPricingCatalog(value: unknown): value is PricingCatalog {
   return Array.isArray(candidate.plans) && Array.isArray(candidate.creditPacks);
 }
 
+function readCatalog(value: unknown): PricingCatalog {
+  if (!isPricingCatalog(value)) {
+    throw new Error("The pricing catalog returned an invalid response.");
+  }
+  return value;
+}
+
 /** Client-side catalog fetch (used by creator billing screens). */
 export async function getPricingCatalog(): Promise<PricingCatalog> {
-  try {
-    const response = await apiClient.get<PricingCatalog>("/v1/pricing");
-    return isPricingCatalog(response.data) ? response.data : FALLBACK_PRICING;
-  } catch {
-    return FALLBACK_PRICING;
-  }
+  const response = await apiClient.get<unknown>("/v1/pricing");
+  return readCatalog(response.data);
 }
 
 /** Server-side catalog fetch for marketing pages. */
@@ -72,11 +45,11 @@ export async function getPricingCatalogServer(): Promise<PricingCatalog> {
     const response = await fetch(`${BACKEND_URL}/api/v1/pricing`, {
       next: { revalidate: 60 },
     });
-    if (!response.ok) return FALLBACK_PRICING;
+    if (!response.ok) return EMPTY_PRICING;
     const payload = (await response.json()) as { data?: unknown };
-    return isPricingCatalog(payload.data) ? payload.data : FALLBACK_PRICING;
+    return readCatalog(payload.data);
   } catch {
-    return FALLBACK_PRICING;
+    return EMPTY_PRICING;
   }
 }
 
@@ -97,4 +70,35 @@ export function getCreditPackById(
 export function getPlanDiscount(plan: PricingPlan): number {
   if (!plan.originalPrice || plan.originalPrice <= plan.price) return 0;
   return Math.round((1 - plan.price / plan.originalPrice) * 100);
+}
+
+export function formatPricingAmount(value: number, currency = "INR"): string {
+  try {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    return `${currency} ${value.toLocaleString("en-IN")}`;
+  }
+}
+
+export async function getPricingContentServer(): Promise<Record<string, string>> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/v1/pricing/content`, {
+      next: { revalidate: 60 },
+    });
+    if (!response.ok) return {};
+    const payload = (await response.json()) as { data?: { content?: unknown } };
+    const content = payload.data?.content;
+    if (!content || typeof content !== "object") return {};
+    return Object.fromEntries(
+      Object.entries(content as Record<string, unknown>).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string"
+      )
+    );
+  } catch {
+    return {};
+  }
 }

@@ -8,21 +8,6 @@
    Subscription Plans - Feature Access
    Subscriptions unlock WHAT features users can access
    ============================================ */
-export interface SubscriptionPlan {
-  id: string;
-  name: string;
-  monthlyPrice: number;
-  audience: "student" | "creator" | "both";
-  features: AISubscriptionFeature[];
-  monthlyCredits: number;
-  description: string;
-}
-
-export interface AISubscriptionFeature {
-  id: AISubscriptionFeatureId;
-  label: string;
-}
-
 export type AISubscriptionFeatureId =
   | "ai-companion"
   | "ai-hint"
@@ -35,69 +20,6 @@ export type AISubscriptionFeatureId =
   | "ai-test-cases"
   | "ai-difficulty"
   | "ai-report-generation";
-
-export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
-  {
-    id: "free",
-    name: "Free",
-    monthlyPrice: 0,
-    audience: "both",
-    features: [],
-    monthlyCredits: 0,
-    description: "Basic access with no AI features",
-  },
-  {
-    id: "student-pro",
-    name: "Student Pro",
-    monthlyPrice: 299,
-    audience: "student",
-    features: [
-      { id: "ai-companion", label: "AI Coding Companion" },
-      { id: "ai-hint", label: "AI Hint" },
-      { id: "ai-debugger", label: "AI Debugger" },
-      { id: "ai-explanation", label: "AI Explanation" },
-      { id: "ai-complexity", label: "AI Complexity Analysis" },
-    ],
-    monthlyCredits: 300,
-    description: "AI-powered learning assistance for students",
-  },
-  {
-    id: "creator-pro",
-    name: "Creator Pro",
-    monthlyPrice: 599,
-    audience: "creator",
-    features: [
-      { id: "ai-quiz-generation", label: "AI Quiz Generation" },
-      { id: "ai-question-improvement", label: "AI Question Improvement" },
-      { id: "ai-test-cases", label: "AI Test Case Generation" },
-      { id: "ai-report-generation", label: "AI Report Generation" },
-      { id: "ai-difficulty", label: "AI Difficulty Estimation" },
-    ],
-    monthlyCredits: 800,
-    description: "AI-powered quiz creation and management",
-  },
-  {
-    id: "ultimate",
-    name: "Ultimate",
-    monthlyPrice: 899,
-    audience: "both",
-    features: [
-      { id: "ai-companion", label: "AI Coding Companion" },
-      { id: "ai-hint", label: "AI Hint" },
-      { id: "ai-debugger", label: "AI Debugger" },
-      { id: "ai-explanation", label: "AI Explanation" },
-      { id: "ai-complexity", label: "AI Complexity Analysis" },
-      { id: "ai-code-review", label: "AI Code Review" },
-      { id: "ai-quiz-generation", label: "AI Quiz Generation" },
-      { id: "ai-question-improvement", label: "AI Question Improvement" },
-      { id: "ai-test-cases", label: "AI Test Case Generation" },
-      { id: "ai-report-generation", label: "AI Report Generation" },
-      { id: "ai-difficulty", label: "AI Difficulty Estimation" },
-    ],
-    monthlyCredits: 1800,
-    description: "Complete AI suite for both students and creators",
-  },
-];
 
 /* Feature to subscription mapping for quick lookup */
 export const featureToSubscriptions: Record<AISubscriptionFeatureId, string[]> = {
@@ -155,29 +77,6 @@ export const creditCostMap: Record<AICreditFeatureId, number> = Object.fromEntri
   AI_CREDIT_COSTS.map((c) => [c.id, c.credits])
 ) as Record<AICreditFeatureId, number>;
 
-/* Subscription feature map for quick lookup */
-export const subscriptionFeatureMap: Record<AISubscriptionFeatureId, string> = Object.fromEntries(
-  SUBSCRIPTION_PLANS.flatMap((plan) =>
-    plan.features.map((f) => [f.id, plan.id])
-  )
-) as Record<AISubscriptionFeatureId, string>;
-
-/* ============================================
-   Monthly Included Credits per plan
-   ============================================ */
-export interface PlanCreditAllowance {
-  planId: string;
-  planName: string;
-  monthlyCredits: number;
-}
-
-export const PLAN_CREDIT_ALLOWANCES: PlanCreditAllowance[] = [
-  { planId: "free", planName: "Free", monthlyCredits: 0 },
-  { planId: "student-pro", planName: "Student Pro", monthlyCredits: 300 },
-  { planId: "creator-pro", planName: "Creator Pro", monthlyCredits: 800 },
-  { planId: "ultimate", planName: "Ultimate", monthlyCredits: 1800 },
-];
-
 /* ============================================
    Fair Usage Limits
    ============================================ */
@@ -198,25 +97,6 @@ export const FAIR_USAGE_LIMITS: FairUsageLimits = {
   maxResponseSizeKB: 200,
   queueLargeRequests: true,
 };
-
-/* ============================================
-   Credit Packs - Purchased Credits
-   ============================================ */
-export interface CreditPack {
-  id: string;
-  name: string;
-  credits: number;
-  price: number;
-  popular?: boolean;
-  description: string;
-}
-
-export const CREDIT_PACKS: CreditPack[] = [
-  { id: "starter", name: "Starter", credits: 250, price: 99, description: "For light AI usage" },
-  { id: "standard", name: "Standard", credits: 1000, price: 299, popular: true, description: "Best value for regular users" },
-  { id: "power", name: "Power User", credits: 5000, price: 999, description: "For heavy AI users" },
-  { id: "institution", name: "Institution", credits: 10000, price: 1799, description: "For schools & clubs" },
-];
 
 /* ============================================
    Abuse Detection Rules
@@ -280,9 +160,8 @@ export const LOW_CREDIT_THRESHOLD = 0.2; // 20% of monthly allowance
 /* ============================================
    Credit packs (one-time purchases — no subscriptions)
    --------------------------------------------
-   Mirror of the backend billing configuration. Pack sizes, prices,
-   CTAs and blurbs must be read from here, never duplicated in
-   components. Prices are in INR, GST-inclusive.
+   Type used by the backend-driven pricing catalog. Pack sizes,
+   prices, CTAs and validity come from /api/v1/pricing.
    ============================================ */
 export interface CreditPurchasePack {
   id: string;
@@ -295,33 +174,6 @@ export interface CreditPurchasePack {
   popular?: boolean;
   /** How long purchased credits stay valid, in months from purchase. */
   validityMonths: number;
-}
-
-export const CREDIT_PURCHASE_PACKS: CreditPurchasePack[] = [
-  {
-    id: "teacher",
-    name: "Teacher Pack",
-    credits: 50,
-    price: 99,
-    cta: "Choose Teacher Pack",
-    blurb: "For regular question-paper creation.",
-    popular: true,
-    validityMonths: 6,
-  },
-  {
-    id: "master",
-    name: "Master Pack",
-    credits: 125,
-    price: 199,
-    cta: "Get Master Pack",
-    blurb: "For frequent paper generation and advanced AI workflows.",
-    validityMonths: 6,
-  },
-];
-
-/** Validity for a pack id — falls back to the default when unknown. */
-export function getPackValidityMonths(packId: string): number {
-  return CREDIT_PURCHASE_PACKS.find((p) => p.id === packId)?.validityMonths ?? CREDIT_VALIDITY_MONTHS;
 }
 
 /* ============================================
@@ -397,9 +249,6 @@ export const AI_MODEL_BUDGETS: AIModelBudget[] = [
     monthlyReset: true,
   },
 ];
-
-/** How long purchased credits stay valid, in months from purchase. */
-export const CREDIT_VALIDITY_MONTHS = 6;
 
 /* ============================================
    AI effort levels (question-paper generation)

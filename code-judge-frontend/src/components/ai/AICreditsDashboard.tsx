@@ -5,23 +5,22 @@ import { getUserTimeZone } from "@/lib/timezone";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles,
-  TrendingDown,
   TrendingUp,
   Calendar,
   Clock,
   Zap,
   ShoppingCart,
-  ArrowUpRight,
   BarChart3,
   Activity,
   AlertTriangle,
-  Crown,
   ChevronRight,
   GraduationCap,
   Shield,
 } from "lucide-react";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
-import { CREDIT_PACKS, PLAN_CREDIT_ALLOWANCES } from "@/config/aiCredits";
+import { usePricingCatalog } from "@/hooks/usePricingCatalog";
+import { formatPricingAmount } from "@/services/pricing";
+import type { PricingCreditPack } from "@/types/pricing";
 import { useState } from "react";
 
 /* ============================================
@@ -85,6 +84,9 @@ function StatCard({
    ============================================ */
 export default function AICreditsDashboard({ compact = false }: { compact?: boolean }) {
   const { balance, stats, creator, fairUsage, abuse } = useAICreditsStore();
+  const { catalog } = usePricingCatalog();
+  const packs = catalog.creditPacks;
+  const maxValidityMonths = packs.reduce((max, pack) => Math.max(max, pack.validityMonths), 0);
   const [buyPackOpen, setBuyPackOpen] = useState(false);
 
   const remainingMonthly = balance.monthlyCredits - balance.monthlyCreditsConsumed;
@@ -119,7 +121,7 @@ export default function AICreditsDashboard({ compact = false }: { compact?: bool
           </button>
         </div>
         <AnimatePresence>
-          {buyPackOpen && <CreditPackModal onClose={() => setBuyPackOpen(false)} />}
+          {buyPackOpen && <CreditPackModal onClose={() => setBuyPackOpen(false)} packs={packs} />}
         </AnimatePresence>
       </div>
     );
@@ -146,7 +148,7 @@ export default function AICreditsDashboard({ compact = false }: { compact?: bool
           >
             <div className="flex items-center gap-2 text-[12px] font-semibold text-[#EF4444]">
               <AlertTriangle className="h-4 w-4" />
-              You're running low on Monthly AI Credits.
+              You&apos;re running low on Monthly AI Credits.
             </div>
             <p className="mt-1 text-[11px] text-text-secondary">
               You have <span className="font-bold text-text-primary">{remainingMonthly}</span> monthly credits left. 
@@ -364,10 +366,12 @@ export default function AICreditsDashboard({ compact = false }: { compact?: bool
             <ShoppingCart className="h-4 w-4 text-accent" />
             Credit Packs
           </div>
-          <span className="text-[10px] text-text-muted">Credits never expire while active</span>
+          <span className="text-[10px] text-text-muted">
+            {maxValidityMonths > 0 ? `Credits valid for ${maxValidityMonths} months` : "Credits sold separately"}
+          </span>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          {CREDIT_PACKS.map((pack) => (
+          {packs.map((pack) => (
             <div
               key={pack.id}
               className={`rounded-xl border p-3 transition-all ${
@@ -377,13 +381,16 @@ export default function AICreditsDashboard({ compact = false }: { compact?: bool
               }`}
             >
               {pack.popular && (
-                <div className="mb-1 text-[9px] font-bold tracking-wider text-[#C084FC]">POPULAR</div>
+                <div className="mb-1 text-[9px] font-bold tracking-wider text-[#C084FC]">LIMITED OFFER</div>
               )}
               <div className="text-[11px] font-semibold text-text-primary">{pack.name}</div>
               <div className="mt-0.5 text-[10px] text-text-muted">{pack.credits} credits</div>
               <div className="mt-2 flex items-center justify-between">
-                <span className="text-sm font-extrabold text-text-primary">₹{pack.price}</span>
-                <button className="rounded-lg bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-2.5 py-1 text-[10px] font-bold text-white shadow-[0_2px_10px_rgba(236,72,153,0.3)] transition-all hover:shadow-[0_4px_16px_rgba(236,72,153,0.45)]">
+                <span className="text-sm font-extrabold text-text-primary">{formatPricingAmount(pack.price)}</span>
+                <button
+                  onClick={() => setBuyPackOpen(true)}
+                  className="rounded-lg bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-2.5 py-1 text-[10px] font-bold text-white shadow-[0_2px_10px_rgba(236,72,153,0.3)] transition-all hover:shadow-[0_4px_16px_rgba(236,72,153,0.45)]"
+                >
                   Buy
                 </button>
               </div>
@@ -398,9 +405,9 @@ export default function AICreditsDashboard({ compact = false }: { compact?: bool
 /* ============================================
    Credit Pack Purchase Modal
    ============================================ */
-function CreditPackModal({ onClose }: { onClose: () => void }) {
+function CreditPackModal({ onClose, packs }: { onClose: () => void; packs: PricingCreditPack[] }) {
   const purchasePack = useAICreditsStore((s) => s.purchasePack);
-  const [purchasing, setPurchasing] = useState<string | null>(null);
+  const maxValidityMonths = packs.reduce((max, pack) => Math.max(max, pack.validityMonths), 0);
 
   return (
     <motion.div
@@ -423,15 +430,19 @@ function CreditPackModal({ onClose }: { onClose: () => void }) {
             <ChevronRight className="h-4 w-4 rotate-180" />
           </button>
         </div>
-        <p className="mt-1 text-[11px] text-text-muted">Credits never expire while your subscription is active.</p>
+        <p className="mt-1 text-[11px] text-text-muted">
+          {maxValidityMonths > 0 ? `Purchased credits stay valid for ${maxValidityMonths} months.` : "Choose a pack to continue."}
+        </p>
         <div className="mt-4 space-y-2">
-          {CREDIT_PACKS.map((pack) => (
+          {packs.map((pack) => (
             <button
               key={pack.id}
               onClick={async () => {
-                setPurchasing(pack.id);
-                await purchasePack(pack.id);
-                setPurchasing(null);
+                await purchasePack(pack.id, {
+                  packName: pack.name,
+                  credits: pack.credits,
+                  price: pack.price,
+                });
                 onClose();
               }}
               className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 transition-all ${
@@ -444,13 +455,13 @@ function CreditPackModal({ onClose }: { onClose: () => void }) {
                 <div className="flex items-center gap-2">
                   <span className="text-[12px] font-semibold text-text-primary">{pack.name}</span>
                   {pack.popular && (
-                    <span className="rounded-full bg-[#8B5CF6]/15 px-2 py-0.5 text-[8px] font-bold text-[#A78BFA]">BEST VALUE</span>
+                    <span className="rounded-full bg-[#8B5CF6]/15 px-2 py-0.5 text-[8px] font-bold text-[#A78BFA]">LIMITED OFFER</span>
                   )}
                 </div>
                 <div className="text-[11px] text-text-muted">{pack.credits} credits</div>
               </div>
               <div className="text-right">
-                <div className="text-sm font-extrabold text-text-primary">₹{pack.price}</div>
+                <div className="text-sm font-extrabold text-text-primary">{formatPricingAmount(pack.price)}</div>
               </div>
             </button>
           ))}

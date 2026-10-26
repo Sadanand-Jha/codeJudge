@@ -7,23 +7,41 @@ export async function getProfile(): Promise<UserProfile> {
 }
 
 /* =============================================
+   Subscription / trial
+   ============================================= */
+
+export interface MySubscription {
+  planId: number | null;
+  planSlug: string | null;
+  planName: string | null;
+  status: "trialing" | "active" | "past_due" | "paused" | "canceled" | "expired" | "free";
+  isPaid: boolean;
+  startedAt: string | null;
+  currentPeriodStart: string | null;
+  currentPeriodEnd: string | null;
+  trialEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+}
+
+/** GET /api/v1/user/subscription — current plan and trial window. */
+export async function getMySubscription(): Promise<MySubscription> {
+  const response = await apiClient.get<MySubscription>("/v1/user/subscription");
+  return response.data;
+}
+
+/* =============================================
    Editable Profile Fields
    ============================================= */
 
 export interface UpdateProfilePayload {
-  displayName?: string;
-  username?: string;
-  email?: string;
+  displayName: string;
 }
 
 export interface UpdateProfileResult {
-  username: string;
-  email: string;
   displayName: string | null;
-  token?: string;
 }
 
-/** PATCH /api/v1/user/profile — updates display name, username and email. */
+/** PATCH /api/v1/user/profile — updates only the display name. */
 export async function updateProfile(payload: UpdateProfilePayload): Promise<UpdateProfileResult> {
   const response = await apiClient.patch<UpdateProfileResult>("/v1/user/profile", payload);
   return response.data;

@@ -1,13 +1,8 @@
 "use client";
 
-import { CREDIT_PURCHASE_PACKS } from "@/config/aiCredits";
-
-const FALLBACK_VALIDITY_MONTHS = Math.max(
-  ...CREDIT_PURCHASE_PACKS.map((pack) => pack.validityMonths)
-);
 
 export function HowCreditsWork({
-  validityMonths = FALLBACK_VALIDITY_MONTHS,
+  validityMonths,
 }: {
   validityMonths?: number;
 }) {
@@ -22,7 +17,9 @@ export function HowCreditsWork({
     },
     {
       title: "Use before they expire",
-      body: `Purchased credits stay valid for ${validityMonths} months. Plan credits refresh each month.`,
+      body: validityMonths
+        ? `Purchased credits stay valid for ${validityMonths} months. Plan credits refresh each month.`
+        : "Purchased credits stay valid for the period shown at purchase. Plan credits refresh each month.",
     },
   ];
 

@@ -3,19 +3,30 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Sparkles, X } from "lucide-react";
-import { useAICreditsStore, checkLowCreditWarning, getRecommendedPack } from "@/store/aiCreditsStore";
+import { useAICreditsStore, checkLowCreditWarning } from "@/store/aiCreditsStore";
+import { usePricingCatalog } from "@/hooks/usePricingCatalog";
+import { formatPricingAmount } from "@/services/pricing";
 
 export default function LowCreditNotification() {
-  const { balance, purchasePack } = useAICreditsStore();
+  const { balance } = useAICreditsStore();
+  const { catalog } = usePricingCatalog();
   const [dismissed, setDismissed] = useState(false);
 
   const isLow = checkLowCreditWarning(balance.remaining, balance.monthlyAllowance);
-  const recommended = getRecommendedPack(balance.remaining, balance.monthlyAllowance);
+  const usageRatio =
+    balance.monthlyAllowance > 0 ? 1 - balance.remaining / balance.monthlyAllowance : 0;
+  const recommended = catalog.creditPacks.length > 0
+    ? [...catalog.creditPacks].sort((a, b) => {
+        const aRate = a.credits > 0 ? a.price / a.credits : Number.POSITIVE_INFINITY;
+        const bRate = b.credits > 0 ? b.price / b.credits : Number.POSITIVE_INFINITY;
+        return usageRatio > 0.8 ? bRate - aRate : aRate - bRate;
+      })[0]
+    : null;
   const visible = isLow && !dismissed && balance.monthlyAllowance > 0;
 
-  const handleBuyCredits = async (packId: string) => {
-    await purchasePack(packId);
+  const handleBuyCredits = (packId: string) => {
     setDismissed(true);
+    window.location.href = `/creator/billing/credits?pack=${encodeURIComponent(packId)}`;
   };
 
   const handleDismiss = () => {
@@ -61,7 +72,7 @@ export default function LowCreditNotification() {
                   <div className="text-[10px] text-text-muted">{recommended.credits} credits</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-extrabold text-text-primary">₹{recommended.price}</div>
+                  <div className="text-sm font-extrabold text-text-primary">{formatPricingAmount(recommended.price)}</div>
                 </div>
               </div>
               <button

@@ -12,16 +12,29 @@ import {
 } from "lucide-react";
 import { PricingFooter, PricingNav } from "@/components/pricing/PricingChrome";
 import { ScrollThemeSection } from "@/components/pricing/ScrollThemeSection";
-import { CREDIT_VALIDITY_MONTHS } from "@/config/aiCredits";
-import { getPricingCatalogServer } from "@/services/pricing";
+import {
+  formatPricingAmount,
+  getPricingCatalogServer,
+  getPricingContentServer,
+} from "@/services/pricing";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
 
-export const metadata = buildPublicPageMetadata({
-  title: "AI Credits",
-  description:
-    `Buy one-time QuizSupport AI credit top-ups for question generation, paper creation and exports. Basic and Pro include monthly credits; extra packs work with any plan and stay valid for ${CREDIT_VALIDITY_MONTHS} months.`,
-  path: "/pricing/credits",
-});
+export async function generateMetadata() {
+  const catalog = await getPricingCatalogServer();
+  const validity =
+    catalog.creditPacks.length > 0
+      ? Math.max(...catalog.creditPacks.map((pack) => pack.validityMonths))
+      : 0;
+  const description = validity
+    ? `Buy one-time QuizSupport AI credit top-ups for question generation, paper creation and exports. Monthly plans include credits; extra packs work with any plan and stay valid for ${validity} months.`
+    : "Buy one-time QuizSupport AI credit top-ups for question generation, paper creation and exports. Extra packs work with any plan.";
+
+  return buildPublicPageMetadata({
+    title: "AI Credits",
+    description,
+    path: "/pricing/credits",
+  });
+}
 
 const PAYMENT_METHODS: Array<{ label: string; icon: LucideIcon }> = [
   { label: "UPI", icon: Smartphone },
@@ -29,54 +42,70 @@ const PAYMENT_METHODS: Array<{ label: string; icon: LucideIcon }> = [
   { label: "Net Banking", icon: Landmark },
 ];
 
-function inr(value: number): string {
-  return `₹${value.toLocaleString("en-IN")}`;
-}
-
 export default async function AICreditsPricingPage() {
-  const catalog = await getPricingCatalogServer();
+  const [catalog, content] = await Promise.all([
+    getPricingCatalogServer(),
+    getPricingContentServer(),
+  ]);
   const creditPacks = catalog.creditPacks;
   const credits = creditPacks.map((pack) => pack.credits);
   const validity =
     creditPacks.length > 0
       ? Math.max(...creditPacks.map((pack) => pack.validityMonths))
-      : CREDIT_VALIDITY_MONTHS;
+      : 0;
   const minCredits = credits.length > 0 ? Math.min(...credits) : 0;
   const maxCredits = credits.length > 0 ? Math.max(...credits) : 0;
   const featuredPack =
     creditPacks.find((pack) => pack.popular) ?? creditPacks[0];
-  const basicCredits =
-    catalog.plans.find((plan) => plan.slug === "basic")?.credits ?? 0;
-  const proCredits =
-    catalog.plans.find((plan) => plan.slug === "pro")?.credits ?? 0;
+  const paidPlans = catalog.plans.filter((plan) => plan.price > 0);
+  const creditPlanNames = paidPlans.filter((plan) => plan.credits > 0).map((plan) => plan.name);
+  const planList = creditPlanNames.length > 0 ? creditPlanNames.join(" and ") : "Monthly plans";
+  const planCredits = paidPlans
+    .filter((plan) => plan.credits > 0)
+    .map((plan) => `${plan.name} includes ${plan.credits} AI credits a month`)
+    .join(" and ");
+  const creditRange =
+    creditPacks.length === 0
+      ? "No packs available"
+      : minCredits === maxCredits
+        ? `${minCredits} credits`
+        : `${minCredits}–${maxCredits} credits`;
 
   const steps = [
     {
       title: "Pick a top-up",
-      body: `Add ${minCredits} or ${maxCredits} credits in one payment. No separate AI subscription.`,
+      body: creditPacks.length > 0
+        ? `Add ${creditRange.toLowerCase()} in one payment. No separate AI subscription.`
+        : "Choose a top-up when packs become available. No separate AI subscription.",
     },
     {
       title: "Stack it on any plan",
-      body: "Packs add to your included plan credits and work with Basic and Pro.",
+      body: `Packs add to your included plan credits and work with ${planList}.`,
     },
     {
-      title: `Use them within ${validity} months`,
-      body: `Purchased credits stay valid for ${validity} months. Plan credits refresh with your plan.`,
+      title: validity ? `Use them within ${validity} months` : "Use them any time",
+      body: validity
+        ? `Purchased credits stay valid for ${validity} months. Plan credits refresh with your plan.`
+        : "Purchased credits stay valid for the period shown at purchase. Plan credits refresh with your plan.",
     },
   ];
 
   const faqs = [
     {
       q: "Do monthly plans include AI credits?",
-      a: `Yes. Basic includes ${basicCredits} AI credits a month and Pro includes ${proCredits}. Packs are only for extra usage on top of that.`,
+      a: planCredits
+        ? `Yes. ${planCredits}. Packs are only for extra usage on top of that.`
+        : "Monthly plans may include AI credits. Packs are only for extra usage on top of your plan allowance.",
     },
     {
       q: "Do AI credits expire?",
-      a: `Purchased credits stay valid for ${validity} months from the date of purchase. Monthly credits included with Basic or Pro refresh each billing cycle.`,
+      a: validity
+        ? `Purchased credits stay valid for ${validity} months from the date of purchase. Monthly credits included with ${planList} refresh each billing cycle.`
+        : `Purchased credits stay valid for the period shown at purchase. Monthly credits included with ${planList} refresh each billing cycle.`,
     },
     {
       q: "Do I need a paid plan to buy credits?",
-      a: "No. AI credits work alongside any active Basic or Pro subscription. You can buy a pack whenever your included allowance runs low.",
+      a: `No. AI credits work alongside any active ${planList} subscription. You can buy a pack whenever your included allowance runs low.`,
     },
     {
       q: "What can I use AI credits for?",
@@ -100,10 +129,10 @@ export default async function AICreditsPricingPage() {
         <header className="wrap qp-credit-hero">
           <div className="qp-credit-hero-copy">
             <p className="eb">AI credit top-ups</p>
-            <h1>More AI. Same plan.</h1>
+            <h1>{content.credits_heading || "More AI. Same plan."}</h1>
             <p className="lead">
-              Basic and Pro already include monthly AI credits. When you need
-              more, add a one-time pack — no separate AI subscription.
+              {content.credits_subheading ||
+                `${planList} already include monthly AI credits. When you need more, add a one-time pack — no separate AI subscription.`}
             </p>
             <div className="qp-actions">
               <a href="#packs" className="btn pri">
@@ -115,17 +144,17 @@ export default async function AICreditsPricingPage() {
             </div>
             <div className="qp-meta" aria-label="Credit highlights">
               <span>Works with any plan</span>
-              <span>
-                {minCredits}–{maxCredits} credits
-              </span>
-              <span>Valid for {validity} months</span>
+              {creditPacks.length > 0 && (
+                <span>{creditRange}</span>
+              )}
+              {validity > 0 && <span>Valid for {validity} months</span>}
             </div>
           </div>
 
           {featuredPack && (
             <aside
               className="qp-credit-visual"
-              aria-label={`${featuredPack.name}: ${featuredPack.credits} credits for ${inr(featuredPack.price)}`}
+              aria-label={`${featuredPack.name}: ${featuredPack.credits} credits for ${formatPricingAmount(featuredPack.price)}`}
             >
               <div className="qp-credit-visual-top">
                 <span className="qp-credit-visual-tag">
@@ -144,7 +173,7 @@ export default async function AICreditsPricingPage() {
               </div>
 
               <div className="qp-credit-visual-price">
-                <b>{inr(featuredPack.price)}</b>
+                <b>{formatPricingAmount(featuredPack.price)}</b>
                 <span>one-time</span>
               </div>
             </aside>
@@ -156,7 +185,9 @@ export default async function AICreditsPricingPage() {
             <div className="qp-credit-head">
               <div>
                 <p className="eb">Choose a top-up</p>
-                <h2 className="t">Buy once. Use for {validity} months.</h2>
+                <h2 className="t">
+                  {validity ? `Buy once. Use for ${validity} months.` : "Buy once. Top up when you need more."}
+                </h2>
               </div>
               <p className="d">
                 No separate AI subscription. Add credits whenever your included
@@ -171,8 +202,7 @@ export default async function AICreditsPricingPage() {
               <div>
                 <strong>Monthly plans already include credits.</strong>
                 <p>
-                  Basic includes {basicCredits} credits a month and Pro includes{" "}
-                  {proCredits}. Buy a pack only when you need extra.
+                  {planCredits ? `${planCredits}. ` : ""}Buy a pack only when you need extra.
                 </p>
               </div>
               <Link href="/pricing" className="qp-credit-note-link">
@@ -181,12 +211,15 @@ export default async function AICreditsPricingPage() {
             </div>
 
             <div className="qp-packs">
+              {creditPacks.length === 0 && (
+                <p className="qp-pack-desc">No credit packs are available right now. Please check back later.</p>
+              )}
               {creditPacks.map((pack) => (
                 <article
                   key={pack.id}
                   className={`qp-pack${pack.popular ? " is-popular" : ""}`}
                 >
-                  {pack.popular && <span className="qp-badge">Most popular</span>}
+                  {pack.popular && <span className="qp-badge">Limited offer</span>}
 
                   <div className="qp-pack-top">
                     <h3>{pack.name}</h3>
@@ -196,7 +229,7 @@ export default async function AICreditsPricingPage() {
                   </div>
 
                   <div className="qp-pack-price">
-                    <b>{inr(pack.price)}</b>
+                    <b>{formatPricingAmount(pack.price)}</b>
                     <span>one-time</span>
                   </div>
 
@@ -211,7 +244,7 @@ export default async function AICreditsPricingPage() {
                       <span className="qp-tick" aria-hidden="true">
                         <Check size={12} strokeWidth={3.5} />
                       </span>
-                      Works with Basic and Pro
+                      Works with {planList}
                     </li>
                     <li>
                       <span className="qp-tick" aria-hidden="true">
@@ -250,10 +283,13 @@ export default async function AICreditsPricingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {creditPacks.map((pack) => (
+                  {creditPacks.length === 0 && (
+                <p className="qp-pack-desc">No credit packs are available right now. Please check back later.</p>
+              )}
+              {creditPacks.map((pack) => (
                     <tr key={pack.id}>
                       <td>
-                        <strong>{inr(pack.price)}</strong>
+                        <strong>{formatPricingAmount(pack.price)}</strong>
                         <span>{pack.name}</span>
                       </td>
                       <td>{pack.credits}</td>
@@ -282,8 +318,8 @@ export default async function AICreditsPricingPage() {
             </div>
 
             <p className="qp-note">
-              Purchased credits work with any plan and stay valid for {validity}{" "}
-              months from the date of purchase.
+              Purchased credits work with any plan
+              {validity > 0 ? " and stay valid for " + validity + " months from the date of purchase." : "."}
             </p>
           </div>
         </ScrollThemeSection>
@@ -306,7 +342,7 @@ export default async function AICreditsPricingPage() {
                 <span className="qp-cross-tag">Monthly plans</span>
                 <h3>Need more quizzes too?</h3>
                 <p>
-                  Basic and Pro include quiz creations and monthly AI credits.
+                  {planList} include quiz creations and monthly AI credits.
                   Compare plans and top up only when you need more.
                 </p>
               </div>

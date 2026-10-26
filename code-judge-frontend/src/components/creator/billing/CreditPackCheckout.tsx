@@ -3,10 +3,8 @@
 import { useState } from "react";
 import { ArrowLeft, Lock } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import {
-  CREDIT_PURCHASE_PACKS,
-  type CreditPurchasePack,
-} from "@/config/aiCredits";
+import { usePricingCatalog } from "@/hooks/usePricingCatalog";
+import { formatPricingAmount, type PricingCreditPack } from "@/services/pricing";
 
 /* Layout: left column (steps) + sticky right summary. Pack/payment
    components keep their behaviour; only arrangement changed. */
@@ -14,7 +12,7 @@ import {
 export type PayMethodId = "upi" | "card" | "nb" | "wal" | "pl";
 
 export interface CheckoutPayload {
-  pack: CreditPurchasePack;
+  pack: PricingCreditPack;
   method: PayMethodId;
   methodLabel: string;
   app?: string;
@@ -35,8 +33,6 @@ interface CreditPackCheckoutProps {
   /** Back to the pricing cards. */
   onBack?: () => void;
 }
-
-const PACKS: CreditPurchasePack[] = CREDIT_PURCHASE_PACKS;
 
 const COUPONS: Record<string, number> = { TEACHER10: 0.1, NEWUSER: 0.15 };
 
@@ -178,10 +174,10 @@ function Tiles({
 }
 
 export function CreditPackCheckout({ onPay, processing, initialPackId, onBack }: CreditPackCheckoutProps) {
+  const { catalog, isLoading, error, refresh } = usePricingCatalog();
+  const packs = catalog.creditPacks;
   /* Remounted via key={packId} by the parent, so initial state is enough. */
-  const [packId, setPackId] = useState<string>(
-    initialPackId ?? PACKS.find((p) => p.popular)?.id ?? PACKS[0].id
-  );
+  const [packId, setPackId] = useState<string>(initialPackId ?? "");
   const [tab, setTab] = useState<PayMethodId>("upi");
 
   const [tilePick, setTilePick] = useState<Record<Exclude<PayMethodId, "upi">, number | null>>({
@@ -210,12 +206,43 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack }:
   const [emailErr, setEmailErr] = useState("");
   const [formErr, setFormErr] = useState("");
 
-  const pack = PACKS.find((p) => p.id === packId) ?? PACKS[0];
-  const baseRate = PACKS[0].price / PACKS[0].credits;
+  const defaultPackId =
+    (initialPackId && packs.some((pack) => pack.id === initialPackId) ? initialPackId : null) ??
+    packs.find((pack) => pack.popular)?.id ??
+    packs[0]?.id ??
+    "";
+  const activePackId = packs.some((pack) => pack.id === packId) ? packId : defaultPackId;
+  const pack = packs.find((p) => p.id === activePackId);
+  const baseRate = packs[0] ? packs[0].price / packs[0].credits : 0;
   const disc = appliedCoupon ? (COUPONS[appliedCoupon] ?? 0) : 0;
-  const total = +(pack.price * (1 - disc)).toFixed(2);
+  const total = pack ? +(pack.price * (1 - disc)).toFixed(2) : 0;
   const gstPart = total - total / 1.18;
   const brand = cardBrand(cardNum.replace(/\s/g, ""));
+
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center dark:border-white/10 dark:bg-[#1e1419]">
+        <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Loading credit packs…</p>
+      </div>
+    );
+  }
+
+  if (error || !pack) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center dark:border-white/10 dark:bg-[#1e1419]">
+        <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+          {error ?? "No credit packs are available right now."}
+        </p>
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          className="mt-3 rounded-lg border border-pink-500/40 px-3 py-2 text-sm font-semibold text-pink-600"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   const pickTile = (method: Exclude<PayMethodId, "upi">, i: number) => {
     setTilePick((s) => ({ ...s, [method]: s[method] === i ? null : i }));
@@ -295,7 +322,7 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack }:
       ok = false;
     }
 
-    if (!ok) return null;
+    if (!ok || !pack) return null;
     return {
       pack,
       method: tab,
@@ -317,6 +344,30 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack }:
   };
 
   const payLabel = processing ? "Processing… do not close this page" : `Pay ${inr(total)} securely`;
+
+  if (!pack) {
+    return (
+      <section aria-labelledby="checkout-heading" className="w-full">
+        <h2 id="checkout-heading" className="sr-only">
+          Credit pack checkout
+        </h2>
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center dark:border-white/10 dark:bg-[#1e1419]">
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">
+            {isLoading ? "Loading credit packs…" : error ? "Credit packs could not be loaded." : "No credit packs are available right now."}
+          </p>
+          {error && !isLoading && (
+            <button
+              type="button"
+              onClick={() => void refresh()}
+              className={cn("mt-4 rounded-xl border border-slate-200 px-4 py-2 text-[13px] font-semibold text-slate-900 dark:border-white/10 dark:text-white", FOCUS)}
+            >
+              Retry
+            </button>
+          )}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section
@@ -349,9 +400,9 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack }:
           </h3>
           {/* Horizontal 3-card row on desktop, stacked with Popular first on mobile */}
           <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Credit pack">
-            {PACKS.map((p) => {
+            {packs.map((p) => {
               const sv = Math.round((1 - p.price / p.credits / baseRate) * 100);
-              const checked = p.id === packId;
+              const checked = p.id === activePackId;
               return (
                 <button
                   key={p.id}
@@ -369,7 +420,7 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack }:
                   <span className="flex flex-wrap items-center gap-1.5">
                     {p.popular && (
                       <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-bold text-green-800 dark:bg-green-500/15 dark:text-green-300">
-                        ★ Most Popular
+                        ★ Limited Offer
                       </span>
                     )}
                     {sv > 0 && (
@@ -380,7 +431,7 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack }:
                   </span>
                   <b className="mt-2 block text-sm font-bold text-slate-900 dark:text-white">{p.name}</b>
                   <span className="mt-1 text-[26px] font-extrabold leading-none tabular-nums text-slate-900 dark:text-white">
-                    ₹{p.price}
+                    {formatPricingAmount(p.price)}
                   </span>
                   <span className="mt-1.5 text-xs tabular-nums text-slate-500 dark:text-slate-400">
                     {p.credits} credits

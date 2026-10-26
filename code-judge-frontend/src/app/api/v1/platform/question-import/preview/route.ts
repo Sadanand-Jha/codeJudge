@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { NextRequest } from "next/server";
 
 /**
@@ -25,6 +26,11 @@ export async function POST(req: NextRequest) {
     form = await req.formData();
   } catch {
     return Response.json({ success: false, message: "Please attach one document." }, { status: 400 });
+  }
+  const upload = form.get("file");
+  if (upload instanceof File) {
+    const extension = /\.[a-z0-9]{1,16}$/i.exec(upload.name)?.[0].toLowerCase() ?? "";
+    form.set("file", new File([upload], `${randomUUID()}${extension}`, { type: upload.type }));
   }
   console.log("[preview-stream] forwarding upload to backend stream", {
     file: (form.get("file") as File | null)?.name,

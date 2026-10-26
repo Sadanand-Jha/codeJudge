@@ -34,8 +34,10 @@ import GeneratorStudio from "@/components/marketing/landing/GeneratorStudio";
 import FeatureTabs from "@/components/marketing/landing/FeatureTabs";
 import { SecureLogo } from "@/components/common/SecureLogo";
 import {
+  formatPricingAmount,
   getPricingCatalogServer,
   getPlanDiscount,
+  type PricingCatalog,
 } from "@/services/pricing";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
 
@@ -259,44 +261,53 @@ const AUDIENCES = [
   },
 ];
 
-const FAQS = [
-  {
-    q: "Do students need to install anything?",
-    a: "No. It runs in the browser on phone or laptop. Just the code.",
-  },
-  {
-    q: "How does the access code work?",
-    a: "Every quiz has its own code. Enter it to join. Results open an hour after the quiz ends; teachers see them immediately.",
-  },
-  {
-    q: "What is exam mode?",
-    a: "A focused exam view with timers so every attempt stays on the paper.",
-  },
-  {
-    q: "What are rooms?",
-    a: "Reusable student groups. Create once, share the code, assign every quiz.",
-  },
-  {
-    q: "Who can see results?",
-    a: "Owners and collaborators see results immediately. Students see theirs an hour after the quiz ends.",
-  },
-  {
-    q: "What kinds of questions can AI generate?",
-    a: "MCQ, short and long, from the subject, chapters and topics you choose. Paste a syllabus for sharper results.",
-  },
-  {
-    q: "Is there a subscription?",
-    a: "Basic starts with a 7-day quiz-only trial. After the trial, Basic and Pro include monthly quiz creations, rooms and AI credits; extra credits are one-time packs.",
-  },
-  {
-    q: "Can I get results out of the platform?",
-    a: "Yes. CSV, email, PDF and Word.",
-  },
-  {
-    q: "Can I print a question paper?",
-    a: "Yes. Add questions, set title, marks and time, then export to PDF or Word.",
-  },
-];
+function buildFaqs(catalog: PricingCatalog) {
+  const paidPlans = catalog.plans.filter((plan) => plan.price > 0);
+  const trialPlan = catalog.plans.find((plan) => plan.trialDays > 0);
+  const planNames = paidPlans.map((plan) => plan.name).join(" and ");
+  const subscriptionAnswer = trialPlan
+    ? `${trialPlan.name} starts with a ${trialPlan.trialDays}-day quiz-only trial. After the trial, ${planNames || "paid plans"} include monthly quiz creations, rooms and AI credits; extra credits are one-time packs.`
+    : `${planNames || "Paid plans"} include monthly quiz creations, rooms and AI credits; extra credits are one-time packs.`;
+
+  return [
+    {
+      q: "Do students need to install anything?",
+      a: "No. It runs in the browser on phone or laptop. Just the code.",
+    },
+    {
+      q: "How does the access code work?",
+      a: "Every quiz has its own code. Enter it to join. Results open an hour after the quiz ends; teachers see them immediately.",
+    },
+    {
+      q: "What is exam mode?",
+      a: "A focused exam view with timers so every attempt stays on the paper.",
+    },
+    {
+      q: "What are rooms?",
+      a: "Reusable student groups. Create once, share the code, assign every quiz.",
+    },
+    {
+      q: "Who can see results?",
+      a: "Owners and collaborators see results immediately. Students see theirs an hour after the quiz ends.",
+    },
+    {
+      q: "What kinds of questions can AI generate?",
+      a: "MCQ, short and long, from the subject, chapters and topics you choose. Paste a syllabus for sharper results.",
+    },
+    {
+      q: "Is there a subscription?",
+      a: subscriptionAnswer,
+    },
+    {
+      q: "Can I get results out of the platform?",
+      a: "Yes. CSV, email, PDF and Word.",
+    },
+    {
+      q: "Can I print a question paper?",
+      a: "Yes. Add questions, set title, marks and time, then export to PDF or Word.",
+    },
+  ];
+}
 
 export default async function HomePage() {
   const catalog = await getPricingCatalogServer();
@@ -304,10 +315,17 @@ export default async function HomePage() {
   const creditValidityMonths =
     creditPacks.length > 0
       ? Math.max(...creditPacks.map((pack) => pack.validityMonths))
-      : 6;
+      : 0;
   const baseRate = creditPacks[0]
     ? creditPacks[0].price / creditPacks[0].credits
     : 0;
+  const paidPlans = catalog.plans.filter((plan) => plan.price > 0);
+  const trialPlan = catalog.plans.find((plan) => plan.trialDays > 0);
+  const trialDays = trialPlan?.trialDays ?? 0;
+  const offerPlan =
+    catalog.plans.find((plan) => plan.offer && plan.price > 0) ?? null;
+  const planNames = paidPlans.map((plan) => plan.name).join(" and ");
+  const faqs = buildFaqs(catalog);
 
   return (
     <div className="qs-ui qs-lp min-h-screen">
@@ -342,21 +360,23 @@ export default async function HomePage() {
       <main id="top">
         <div className="hs">
           <HeroPolygons />
-          <div className="wrap trial-banner-wrap">
-            <div className="trial-banner">
-              <div className="trial-copy">
-                <span className="trial-kicker">New creator offer</span>
-                <strong>7-day free trial</strong>
-                <span className="trial-includes">
-                  Quiz-only trial. No AI credits. No card required.
-                </span>
+          {trialPlan && (
+            <div className="wrap trial-banner-wrap">
+              <div className="trial-banner">
+                <div className="trial-copy">
+                  <span className="trial-kicker">New creator offer</span>
+                  <strong>{trialDays}-day free trial</strong>
+                  <span className="trial-includes">
+                    Quiz-only trial. No AI credits. No card required.
+                  </span>
+                </div>
+                <Link href="/register" className="btn trial-cta">
+                  Start quiz-only trial
+                  <ArrowRight size={16} aria-hidden />
+                </Link>
               </div>
-              <Link href="/register" className="btn trial-cta">
-                Start quiz-only trial
-                <ArrowRight size={16} aria-hidden />
-              </Link>
             </div>
-          </div>
+          )}
           <header className="wrap hero hero-compact">
             <div>
               <p className="eb">AI paper studio</p>
@@ -595,22 +615,33 @@ export default async function HomePage() {
         <section className="s" id="plans">
           <div className="wrap">
             <p className="eb">Monthly plans</p>
-            <h2 className="t">Start with a 7-day quiz-only trial. Upgrade at the 2026 offer price.</h2>
+            <h2 className="t">
+              {trialDays > 0
+                ? `Start with a ${trialDays}-day quiz-only trial.`
+                : "Start creating quizzes today."}{" "}
+              {offerPlan?.offer ? `Upgrade at the ${offerPlan.offer.toLowerCase()}.` : "Upgrade when you need more."}
+            </h2>
             <p className="d">
               Every plan includes the builder, codes, instant results and
               leaderboards. Paid plans add more creations and AI credits.
             </p>
-            <div className="offer-strip">
-              <span className="offer-tag">Limited 2026 offer</span>
-              <div>
-                <b>Basic and Pro are available at the limited 2026 offer price.</b>
-                <small>
-                  Start with a 7-day quiz-only trial. Upgrade only when you need
-                  more.
-                </small>
+            {offerPlan && (
+              <div className="offer-strip">
+                <span className="offer-tag">{offerPlan.offer}</span>
+                <div>
+                  <b>{planNames || "Paid plans"} are available at the {offerPlan.offer?.toLowerCase()}.</b>
+                  <small>
+                    {trialDays > 0
+                      ? `Start with a ${trialDays}-day quiz-only trial. Upgrade only when you need more.`
+                      : "Upgrade only when you need more."}
+                  </small>
+                </div>
               </div>
-            </div>
+            )}
             <div className="lp-plans">
+              {catalog.plans.length === 0 && (
+                <p className="d">Plans are currently unavailable. Please check back later.</p>
+              )}
               {catalog.plans.map((plan) => {
                 const discount = getPlanDiscount(plan);
                 return (
@@ -620,8 +651,8 @@ export default async function HomePage() {
                       {plan.name}
                       {plan.trialDays ? (
                         <span className="save">{plan.trialDays}-day trial</span>
-                      ) : discount > 0 ? (
-                        <span className="save">{discount}% off</span>
+                      ) : plan.discountBadge || discount > 0 ? (
+                        <span className="save">{plan.discountBadge || `${discount}% off`}</span>
                       ) : null}
                     </div>
                     <span
@@ -631,9 +662,9 @@ export default async function HomePage() {
                       {plan.offer ?? "\u00A0"}
                     </span>
                     <div className="pr">
-                      ₹{plan.price}
+                      {formatPricingAmount(plan.price, plan.currency)}
                       {discount > 0 && plan.originalPrice ? (
-                        <s className="was">₹{plan.originalPrice}</s>
+                        <s className="was">{formatPricingAmount(plan.originalPrice, plan.currency)}</s>
                       ) : null}
                       <small> / month</small>
                     </div>
@@ -671,7 +702,9 @@ export default async function HomePage() {
           <div className="wrap">
             <p className="eb">AI credits</p>
             <h2 className="t">
-              Pay once. Use your credits for up to {creditValidityMonths} months.
+              {creditValidityMonths > 0
+                ? `Pay once. Use your credits for up to ${creditValidityMonths} months.`
+                : "Pay once. Use your credits whenever you need them."}
             </h2>
             <p className="d">
               Paid monthly plans include AI credits. Extra packs are one-time
@@ -685,8 +718,10 @@ export default async function HomePage() {
                 <span className="pay-tag">One-time payment</span>
                 <b>No auto-renew. No surprise charges.</b>
                 <small>
-                  Buy once. Use for up to {creditValidityMonths} months. UPI,
-                  cards or net banking.
+                  {creditValidityMonths > 0
+                    ? `Buy once. Use for up to ${creditValidityMonths} months.`
+                    : "Buy once. Use your credits whenever you need them."}{" "}
+                  UPI, cards or net banking.
                 </small>
               </div>
               <div className="pay-pills" aria-label="Payment methods">
@@ -696,17 +731,20 @@ export default async function HomePage() {
               </div>
             </div>
             <div className="pk3">
+              {creditPacks.length === 0 && (
+                <p className="d">Credit packs are currently unavailable. Please check back later.</p>
+              )}
               {creditPacks.map((pack) => {
                 const rate = pack.price / pack.credits;
                 const save = baseRate ? Math.round((1 - rate / baseRate) * 100) : 0;
                 return (
                   <div className={pack.popular ? "pk hot" : "pk"} key={pack.id}>
-                    {pack.popular && <span className="tag">★ Most Popular</span>}
+                    {pack.popular && <span className="tag">★ Limited Offer</span>}
                     <div className="nm">
                       {pack.name}
                       {save > 0 && <span className="save">Save {save}%</span>}
                     </div>
-                    <div className="pr">₹{pack.price}</div>
+                    <div className="pr">{formatPricingAmount(pack.price)}</div>
                     <div className="cr">
                       {pack.credits} credits
                     </div>
@@ -735,7 +773,7 @@ export default async function HomePage() {
           <div className="wrap fq-wrap">
             <p className="eb">Questions</p>
             <h2 className="t">Good to know</h2>
-            {FAQS.map((faq) => (
+            {faqs.map((faq) => (
               <details className="fq" key={faq.q}>
                 <summary>{faq.q}</summary>
                 <p>{faq.a}</p>

@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { ArrowRight, Check, Lock, Sparkles } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { formatTrialEnd, getTrialState, useMySubscription } from "@/hooks/useMySubscription";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
-import { type PricingPlan } from "@/services/pricing";
+import { formatPricingAmount, type PricingPlan } from "@/services/pricing";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import type { CreditPurchasePack } from "@/services/aiCredits";
 
@@ -34,7 +35,7 @@ function CurrentPlanCard({ plan }: { plan: PricingPlan }) {
         "Top up anytime when you need more",
       ]
     : [
-        "Basic platform access",
+        "Platform access",
         "Pay only for the credits you use",
         "Buy a top-up whenever you need AI",
       ];
@@ -58,7 +59,7 @@ function CurrentPlanCard({ plan }: { plan: PricingPlan }) {
       </div>
 
       <p className="my-5 mb-2.5 text-[64px] font-black leading-none tracking-tight">
-        ₹{plan.price}
+        {formatPricingAmount(plan.price, plan.currency)}
         <span className="ml-2 text-base font-bold text-[var(--qs-muted)]">/ month</span>
       </p>
       <p className="text-base font-bold">
@@ -116,7 +117,7 @@ export function CreditPackCard({
     >
       {hot && (
         <span className="absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--qs-ink)] px-4 py-[5px] text-[13px] font-extrabold text-[var(--qs-bg)]">
-          ★ Most Popular
+          ★ Limited Offer
         </span>
       )}
 
@@ -130,7 +131,7 @@ export function CreditPackCard({
       </div>
 
       <p className="my-5 mb-2.5 text-[64px] font-black leading-none tracking-tight">
-        ₹{pack.price}
+        {formatPricingAmount(pack.price, "INR")}
       </p>
       <p className="text-base font-bold">
         {pack.credits} credits
@@ -189,10 +190,16 @@ export function CreditPacks({
   onSelect: (pack: CreditPurchasePack) => void;
 }) {
   const balance = useAICreditsStore((state) => state.balance);
+  const { subscription } = useMySubscription();
   const { catalog } = usePricingCatalog();
-  const isTrial = balance.planId === "free";
-  const currentPlan = catalog.plans.find((plan) => plan.slug === balance.planId);
-  const displayPlan = currentPlan ?? catalog.plans[0];
+  const trialPlan = catalog.plans.find((plan) => plan.trialDays > 0);
+  const trialLabel = trialPlan ? `${trialPlan.name} trial` : "Trial";
+  const trialState = getTrialState(subscription);
+  const isTrial = trialState === "active" || (!subscription && balance.planId === "free");
+  const activePlanId = subscription?.planSlug ?? balance.planId;
+  const trialEndsOn = formatTrialEnd(subscription?.trialEnd ?? null);
+  const currentPlan = catalog.plans.find((plan) => plan.slug === activePlanId);
+  const displayPlan = currentPlan;
   const basePack = packs.reduce<CreditPurchasePack | undefined>(
     (highest, pack) =>
       !highest || pack.price / pack.credits > highest.price / highest.credits ? pack : highest,
@@ -205,11 +212,13 @@ export function CreditPacks({
   return (
     <div>
       <p className="mb-6 mt-2 text-[14px] text-[var(--qs-muted)]">
-        {isTrial ? (
-          "Basic trial · quizzes only · no AI credits."
+        {trialState === "active" ? (
+          `${trialLabel} · quizzes only · no AI credits${trialEndsOn ? ` · ends ${trialEndsOn}` : ""}.`
+        ) : trialState === "expired" ? (
+          `${trialLabel} expired · no monthly AI credits. Add a one-time pack when you need credits.`
         ) : (
           <>
-            {displayPlan?.name ?? "Current plan"}
+            {displayPlan?.name ?? (subscription?.status === "free" ? "Free plan" : "Current plan")}
             {displayPlan && displayPlan.credits > 0
               ? ` · ${displayPlan.credits} credits/month · add a pack anytime.`
               : " · buy a one-time pack when you need credits."}

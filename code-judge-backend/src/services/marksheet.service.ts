@@ -47,7 +47,6 @@ export async function generateMarksheet(quizId: number): Promise<MarksheetResult
     SELECT 
       qa.*,
       u.username,
-      u.email,
       u.first_name,
       u.last_name,
       c.name as college_name,
@@ -70,7 +69,6 @@ export async function generateMarksheet(quizId: number): Promise<MarksheetResult
     { header: "Roll Number", key: "rollno", width: 15 },
     { header: "Student Name", key: "studentName", width: 25 },
     { header: "Username", key: "username", width: 20 },
-    { header: "Email", key: "email", width: 30 },
     { header: "College", key: "college", width: 30 },
     { header: "Quiz Name", key: "quizName", width: 30 },
     { header: "Quiz Code", key: "quizCode", width: 20 },
@@ -106,7 +104,6 @@ export async function generateMarksheet(quizId: number): Promise<MarksheetResult
       rollno: attempt.rollno || `N/A`,
       studentName: `${attempt.first_name || ""} ${attempt.last_name || ""}`.trim() || attempt.username,
       username: attempt.username,
-      email: attempt.email || "",
       college: attempt.college_name || "",
       quizName: quiz.name,
       quizCode: quiz.code,

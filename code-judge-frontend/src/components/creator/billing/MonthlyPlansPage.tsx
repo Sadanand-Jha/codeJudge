@@ -9,33 +9,34 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { formatTrialEnd, getTrialState, useMySubscription } from "@/hooks/useMySubscription";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
-import { getPlanDiscount, type PricingPlan } from "@/services/pricing";
+import { formatPricingAmount, getPlanDiscount, type PricingPlan } from "@/services/pricing";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { PageHeader } from "./ui";
 
 const OUTLINE_BTN =
   "inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]";
-const PRIMARY_BTN =
-  "inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:brightness-110 active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_var(--qs-sun)]";
 const PILL =
   "inline-flex shrink-0 items-center gap-1.5 rounded-full border-2 border-current px-2.5 py-[3px] text-[10px] font-black uppercase tracking-[0.08em]";
-
-function inr(value: number): string {
-  return `₹${value.toLocaleString("en-IN")}`;
-}
 
 function PlanCard({
   plan,
   currentPlanId,
+  trialAvailable,
 }: {
   plan: PricingPlan;
   currentPlanId: string;
+  trialAvailable: boolean;
 }) {
   const isCurrent = plan.slug === currentPlanId;
   const isHot = plan.featured && !isCurrent;
   const includedCredits = plan.credits > 0;
   const discount = getPlanDiscount(plan);
+  const showTrialCta = Boolean(plan.trialDays) && trialAvailable;
+  const features = plan.features.filter(
+    (feature) => trialAvailable || !/trial/i.test(feature)
+  );
 
   return (
     <article
@@ -75,13 +76,9 @@ function PlanCard({
               : "bg-[var(--qs-bg)] text-[var(--qs-muted)]"
           )}
         >
-          {plan.trialDays
+          {showTrialCta
             ? `${plan.trialDays}-day trial`
-            : plan.slug === "basic" && discount > 0
-              ? `Limited ${discount}% off`
-              : discount > 0
-                ? `${discount}% off`
-                : "Monthly"}
+            : plan.discountBadge || (discount > 0 ? `${discount}% off` : "Monthly")}
         </span>
       </div>
 
@@ -93,9 +90,19 @@ function PlanCard({
       >
         {plan.tagline}
       </p>
+      {plan.offer && (
+        <p
+          className={cn(
+            "mt-1 text-[12px] font-bold",
+            isHot ? "text-[var(--qs-sun)]" : "text-[var(--qs-brand)]"
+          )}
+        >
+          {plan.offer}
+        </p>
+      )}
 
       <p className="mt-4 text-[44px] font-black leading-none tracking-tight">
-        {inr(plan.price)}
+        {formatPricingAmount(plan.price, plan.currency)}
         {discount > 0 && plan.originalPrice && (
           <s
             className={cn(
@@ -103,7 +110,7 @@ function PlanCard({
               isHot ? "text-[var(--qs-on-brand)]/70" : "text-[var(--qs-muted)]"
             )}
           >
-            {inr(plan.originalPrice)}
+            {formatPricingAmount(plan.originalPrice, plan.currency)}
           </s>
         )}
         <span
@@ -140,7 +147,7 @@ function PlanCard({
           isHot ? "border-white/35" : "border-[var(--qs-line)]"
         )}
       >
-        {plan.features.map((feature) => (
+        {features.map((feature) => (
           <li key={feature} className="flex items-start gap-2.5">
             <span
               className={cn(
@@ -167,7 +174,7 @@ function PlanCard({
         </span>
       ) : (
         <Link
-          href={plan.trialDays ? "/register" : "/pricing#plans"}
+          href={showTrialCta ? "/register" : "/pricing#plans"}
           className={cn(
             "flex w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] py-[13px] text-[14px] font-extrabold transition-all",
             isHot
@@ -175,7 +182,7 @@ function PlanCard({
               : "bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:bg-[var(--qs-ink)] hover:text-[var(--qs-bg)]"
           )}
         >
-          {plan.trialDays ? `Start ${plan.trialDays}-day free trial` : `Upgrade to ${plan.name}`}
+          {plan.cta || (showTrialCta ? `Start ${plan.trialDays}-day free trial` : `Upgrade to ${plan.name}`)}
           <ArrowRight className="h-4 w-4" />
         </Link>
       )}
@@ -185,28 +192,46 @@ function PlanCard({
 
 export function MonthlyPlansPage() {
   const balance = useAICreditsStore((state) => state.balance);
-  const { catalog } = usePricingCatalog();
-  const isTrial = balance.planId === "free";
-  const currentPlan = catalog.plans.find((plan) => plan.slug === balance.planId);
-  const displayPlan = currentPlan ?? catalog.plans[0];
-  const currentPlanName = isTrial ? "Basic trial" : displayPlan?.name ?? "Current plan";
+  const { subscription, isLoading } = useMySubscription();
+  const { catalog, isLoading: catalogLoading, error: catalogError, refresh: refreshCatalog } = usePricingCatalog();
+  const trialState = getTrialState(subscription);
+  const isTrialActive = trialState === "active";
+  const isTrialExpired = trialState === "expired";
+  const isTrial = isTrialActive || (!subscription && balance.planId === "free");
+  const activePlanId = subscription?.planSlug ?? balance.planId;
+  const trialPlan = catalog.plans.find((plan) => plan.trialDays > 0);
+  const currentPlan = catalog.plans.find((plan) => plan.slug === activePlanId);
+  const displayPlan = currentPlan;
+  const trialPlanName = currentPlan?.name ?? trialPlan?.name;
+  const currentPlanName = isTrialActive
+    ? trialPlanName
+      ? `${trialPlanName} trial`
+      : "Trial"
+    : isTrialExpired
+      ? trialPlanName
+        ? `${trialPlanName} trial expired`
+        : "Trial expired"
+      : displayPlan?.name ?? "Free plan";
+  const trialEndsOn = formatTrialEnd(subscription?.trialEnd ?? null);
+  const trialAvailable = !isLoading && !subscription;
+  const isFreePlan = !isLoading && !isTrialActive && !isTrialExpired && !displayPlan;
 
   return (
     <div className="space-y-5 pb-2">
       <PageHeader
         title="Monthly plans"
-        subtitle="Basic starts with a 7-day quiz-only trial. Paid plans include monthly AI credits."
+        subtitle={
+          isTrialActive && trialPlan
+            ? `Your ${trialPlan.trialDays}-day ${trialPlan.name} trial is active. Paid plans include monthly AI credits.`
+            : isTrialExpired && trialPlan
+              ? `Your ${trialPlan.name} trial has ended. Upgrade to keep creating quizzes without limits.`
+              : "Paid plans include monthly AI credits."
+        }
         actions={
-          <>
-            <Link href="/creator/billing/credits" className={OUTLINE_BTN}>
-              <Coins className="h-4 w-4" />
-              Buy AI credits
-            </Link>
-            <Link href="/pricing#plans" className={PRIMARY_BTN}>
-              Compare on pricing
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </>
+          <Link href="/creator/billing/credits" className={OUTLINE_BTN}>
+            <Coins className="h-4 w-4" />
+            Buy AI credits
+          </Link>
         }
       />
 
@@ -224,47 +249,103 @@ export function MonthlyPlansPage() {
             </span>
             <p className="mt-1.5 truncate text-[15px] font-extrabold text-[var(--qs-ink)]">
               {currentPlanName}
-              {!isTrial && displayPlan && displayPlan.price > 0 && (
+              {isTrial && trialEndsOn ? (
                 <span className="ml-1.5 font-semibold text-[var(--qs-muted)]">
-                  · {inr(displayPlan.price)} / month
+                  · ends {trialEndsOn}
                 </span>
+              ) : isTrialExpired && trialEndsOn ? (
+                <span className="ml-1.5 font-semibold text-[var(--qs-muted)]">
+                  · ended {trialEndsOn}
+                </span>
+              ) : (
+                !isTrial &&
+                displayPlan &&
+                displayPlan.price > 0 && (
+                  <span className="ml-1.5 font-semibold text-[var(--qs-muted)]">
+                    · {formatPricingAmount(displayPlan.price, displayPlan.currency)} / month
+                  </span>
+                )
               )}
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] font-semibold text-[var(--qs-muted)]">
-          <span className="inline-flex items-center gap-1.5">
-            <Sparkles className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
-            {isTrial
-              ? "Quizzes only · no AI credits"
-              : displayPlan && displayPlan.credits > 0
-                ? `${displayPlan.credits.toLocaleString("en-IN")} AI credits / month`
-                : "No monthly credits"}
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <Coins className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
-            {balance.purchasedCredits.toLocaleString("en-IN")} purchased credits
-          </span>
+        {isFreePlan ? (
           <Link
-            href="/creator/billing/credits"
-            className="inline-flex items-center gap-1 text-[12px] font-extrabold text-[var(--qs-brand)] hover:underline"
+            href="#studio-plans"
+            className="inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2.5 text-[13px] font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:brightness-110 active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_var(--qs-sun)]"
           >
-            Top up credits
+            Buy a plan to get started
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
-        </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] font-semibold text-[var(--qs-muted)]">
+            <span className="inline-flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
+              {isTrialActive
+                ? "Quizzes only · no AI credits"
+                : isTrialExpired
+                  ? "Trial ended · upgrade for AI credits"
+                  : displayPlan && displayPlan.credits > 0
+                    ? `${displayPlan.credits.toLocaleString("en-IN")} AI credits / month`
+                    : "No monthly credits"}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Coins className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
+              {balance.purchasedCredits.toLocaleString("en-IN")} purchased credits
+            </span>
+            <Link
+              href="/creator/billing/credits"
+              className="inline-flex items-center gap-1 text-[12px] font-extrabold text-[var(--qs-brand)] hover:underline"
+            >
+              Top up credits
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        )}
       </section>
 
-      <div className="mx-auto grid w-full max-w-4xl items-stretch gap-6 lg:grid-cols-2">
-        {catalog.plans.map((plan) => (
-          <PlanCard
-            key={plan.slug}
-            plan={plan}
-            currentPlanId={displayPlan?.slug ?? ""}
-          />
-        ))}
-      </div>
+      {catalogLoading ? (
+        <div className="mx-auto grid w-full max-w-4xl items-stretch gap-6 lg:grid-cols-2" aria-label="Loading plans">
+          {[0, 1].map((index) => (
+            <div
+              key={index}
+              className="h-[430px] animate-pulse rounded-[26px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]"
+            />
+          ))}
+        </div>
+      ) : catalogError ? (
+        <div className="mx-auto w-full max-w-4xl rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-8 text-center">
+          <p className="text-lg font-extrabold text-[var(--qs-ink)]">Plans could not be loaded.</p>
+          <p className="mt-1 text-sm text-[var(--qs-muted)]">{catalogError}</p>
+          <button
+            type="button"
+            onClick={() => void refreshCatalog()}
+            className="mt-4 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2.5 text-[13px] font-extrabold text-[var(--qs-on-brand)]"
+          >
+            Try again
+          </button>
+        </div>
+      ) : catalog.plans.length === 0 ? (
+        <div className="mx-auto w-full max-w-4xl rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-8 text-center">
+          <p className="text-lg font-extrabold text-[var(--qs-ink)]">No monthly plans available</p>
+          <p className="mt-1 text-sm text-[var(--qs-muted)]">Plans are configured by the administrator. Please check back later.</p>
+        </div>
+      ) : (
+        <div
+          id="studio-plans"
+          className="mx-auto grid w-full max-w-4xl items-stretch gap-6 lg:grid-cols-2"
+        >
+          {catalog.plans.map((plan) => (
+            <PlanCard
+              key={plan.slug}
+              plan={plan}
+              currentPlanId={activePlanId}
+              trialAvailable={trialAvailable}
+            />
+          ))}
+        </div>
+      )}
 
       <p className="flex flex-wrap items-center justify-center gap-1.5 text-center text-[12.5px] font-medium text-[var(--qs-muted)]">
         <CalendarClock className="h-3.5 w-3.5" />

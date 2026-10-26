@@ -21,6 +21,7 @@ import roomRoutes from "../room.routes.ts";
 import followRoutes from "../follow.routes.ts";
 import { listRooms } from "../../../controllers/room.controller.ts";
 import { submitFeedback } from "../../../controllers/feedback.controller.ts";
+import { getMySubscription } from "../../../controllers/subscription.controller.ts";
 
 
 const router = Router();
@@ -45,6 +46,7 @@ router.post("/forget-password", forgetPassword);
 
 router.get("/profile", authenticate, profile);
 router.get("/info", authenticate, profile);
+router.get("/subscription", authenticate, getMySubscription);
 router.patch("/profile", authenticate, validate(profileUpdateSchema), updateUserProfile);
 
 // ===================== PROFILE LOCATION ==========

@@ -102,8 +102,31 @@ function validatePrices(prices: PlanPriceInput[]): PlanPriceInput[] {
     ) {
       throw new PlanServiceError(400, "INVALID_MRP_AMOUNT", "MRP amount must be a non-negative integer in paise.");
     }
+    if (price.mrp_amount != null && price.mrp_amount < price.amount) {
+      throw new PlanServiceError(400, "INVALID_MRP_AMOUNT", "Original price must be greater than or equal to the selling price.");
+    }
   }
   return prices;
+}
+
+function planSnapshot(plan: PlanDetailRow): Record<string, unknown> {
+  return {
+    name: plan.name,
+    slug: plan.slug,
+    description: plan.description,
+    tagline: plan.tagline,
+    cta: plan.cta,
+    offer: plan.offer,
+    discount_badge: plan.discount_badge,
+    featured: plan.featured,
+    features: plan.features,
+    status: plan.status,
+    is_public: plan.is_public,
+    sort_order: plan.sort_order,
+    trial_days: plan.trial_days,
+    prices: plan.prices,
+    entitlements: plan.entitlements,
+  };
 }
 
 export class PlanService {
@@ -139,6 +162,7 @@ export class PlanService {
       tagline?: string | null;
       cta?: string | null;
       offer?: string | null;
+      discount_badge?: string | null;
       featured?: boolean;
       features?: string[];
       status?: "draft" | "active";
@@ -152,6 +176,11 @@ export class PlanService {
   ): Promise<PlanDetailRow> {
     const prices = validatePrices(input.prices ?? []);
     const entitlements = validateEntitlements(input.entitlements ?? {});
+    const name = input.name.trim();
+    const existingName = await planRepository.getPlanByName(name);
+    if (existingName) {
+      throw new PlanServiceError(409, "NAME_TAKEN", `A plan named "${name}" already exists.`);
+    }
 
     let slug: string;
     if (input.slug) {
@@ -163,12 +192,13 @@ export class PlanService {
     }
 
     const data: CreatePlanData = {
-      name: input.name.trim(),
+      name,
       slug,
       description: input.description ?? null,
       tagline: input.tagline ?? null,
       cta: input.cta ?? null,
       offer: input.offer ?? null,
+      discount_badge: input.discount_badge?.trim() || null,
       featured: input.featured ?? false,
       features: input.features ?? [],
       status: input.status ?? "draft",
@@ -189,6 +219,8 @@ export class PlanService {
       throw error;
     }
 
+    if (input.featured) await planRepository.unsetFeaturedExcept(planId);
+    await planRepository.saveDraft(planId, { ...data, savedAt: new Date().toISOString() });
     const plan = await this.getPlan(planId);
     await writeSubscriptionAudit({
       actorId: actor.actorId,
@@ -196,7 +228,7 @@ export class PlanService {
       action: "plan.create",
       entityType: "plan",
       entityId: planId,
-      after: { name: plan.name, slug: plan.slug, status: plan.status, prices: plan.prices, entitlements },
+      after: planSnapshot(plan),
       ip: actor.ip,
     });
     return plan;
@@ -211,6 +243,7 @@ export class PlanService {
       tagline?: string | null;
       cta?: string | null;
       offer?: string | null;
+      discount_badge?: string | null;
       featured?: boolean;
       features?: string[];
       is_public?: boolean;
@@ -225,6 +258,15 @@ export class PlanService {
   ): Promise<PlanDetailRow> {
     const before = await this.getPlan(planId);
 
+    if (input.name !== undefined) {
+      const trimmedName = input.name.trim();
+      const existingName = await planRepository.getPlanByName(trimmedName);
+      if (existingName && existingName.id !== planId) {
+        throw new PlanServiceError(409, "NAME_TAKEN", `A plan named "${trimmedName}" already exists.`);
+      }
+      input = { ...input, name: trimmedName };
+    }
+
     if (input.slug !== undefined) {
       const slug = slugify(input.slug);
       const existing = await planRepository.getPlanBySlug(slug);
@@ -236,6 +278,9 @@ export class PlanService {
 
     const prices = input.prices ? validatePrices(input.prices) : undefined;
     const entitlements = input.entitlements ? validateEntitlements(input.entitlements) : undefined;
+    if (input.discount_badge !== undefined) {
+      input = { ...input, discount_badge: input.discount_badge?.trim() || null };
+    }
 
     // Price/permission changes on a plan with subscribers always go through
     // the diff + grandfathering path; migrations are explicit opt-in only.
@@ -253,6 +298,7 @@ export class PlanService {
         "This plan was modified by someone else. Reload and try again."
       );
     }
+    if (input.featured === true) await planRepository.unsetFeaturedExcept(planId);
 
     const after = await this.getPlan(planId);
     const priceChanges = Object.entries(result.priceMap).map(([oldId, newId]) => {
@@ -271,8 +317,8 @@ export class PlanService {
       action: "plan.update",
       entityType: "plan",
       entityId: planId,
-      before: { name: before.name, slug: before.slug, is_public: before.is_public, trial_days: before.trial_days, tagline: before.tagline, cta: before.cta, offer: before.offer, featured: before.featured, features: before.features, prices: before.prices, entitlements: before.entitlements },
-      after: { name: after.name, slug: after.slug, is_public: after.is_public, trial_days: after.trial_days, tagline: after.tagline, cta: after.cta, offer: after.offer, featured: after.featured, features: after.features, prices: after.prices, entitlements: after.entitlements },
+      before: planSnapshot(before),
+      after: planSnapshot(after),
       reason:
         priceChanges.length > 0
           ? `${result.migratedSubscribers} subscriber(s) migrated to new prices: ${JSON.stringify(priceChanges)}`
@@ -296,6 +342,7 @@ export class PlanService {
       tagline: source.tagline,
       cta: source.cta,
       offer: source.offer,
+      discount_badge: source.discount_badge,
       featured: false,
       features: source.features,
       status: "draft",
@@ -329,7 +376,7 @@ export class PlanService {
       entityType: "plan",
       entityId: planIdNew,
       before: { source_plan_id: planId },
-      after: { name: plan.name, slug: plan.slug },
+      after: planSnapshot(plan),
       ip: actor.ip,
     });
     return plan;
@@ -389,8 +436,8 @@ export class PlanService {
       action: "plan.archive",
       entityType: "plan",
       entityId: planId,
-      before: { status: plan.status },
-      after: { status: "archived", strategy: activeSubscribers > 0 ? input.strategy : "none", migrated_subscribers: migratedSubscribers },
+      before: planSnapshot(plan),
+      after: planSnapshot(after),
       ip: actor.ip,
     });
     return after;
@@ -409,8 +456,8 @@ export class PlanService {
       action: "plan.activate",
       entityType: "plan",
       entityId: planId,
-      before: { status: plan.status },
-      after: { status: "active" },
+      before: planSnapshot(plan),
+      after: planSnapshot(after),
       ip: actor.ip,
     });
     return after;
@@ -440,6 +487,170 @@ export class PlanService {
       before: { name: plan.name, slug: plan.slug, status: plan.status },
       ip: actor.ip,
     });
+  }
+
+  async saveDraft(
+    planId: number,
+    input: {
+      name?: string;
+      slug?: string;
+      description?: string | null;
+      tagline?: string | null;
+      cta?: string | null;
+      offer?: string | null;
+      discount_badge?: string | null;
+      featured?: boolean;
+      features?: string[];
+      is_public?: boolean;
+      sort_order?: number;
+      trial_days?: number;
+      prices?: PlanPriceInput[];
+      entitlements?: Record<string, unknown>;
+    },
+    actor: ActorContext
+  ): Promise<PlanDetailRow> {
+    const plan = await this.getPlan(planId);
+    if (input.name !== undefined) {
+      const existing = await planRepository.getPlanByName(input.name.trim());
+      if (existing && existing.id !== planId) {
+        throw new PlanServiceError(409, "NAME_TAKEN", `A plan named "${input.name.trim()}" already exists.`);
+      }
+    }
+    if (input.slug !== undefined) {
+      const slug = slugify(input.slug);
+      const existing = await planRepository.getPlanBySlug(slug);
+      if (existing && existing.id !== planId) {
+        throw new PlanServiceError(409, "SLUG_TAKEN", `The slug "${slug}" is already in use.`);
+      }
+      input = { ...input, slug };
+    }
+    if (input.prices) validatePrices(input.prices);
+    const entitlements = input.entitlements ? validateEntitlements(input.entitlements) : undefined;
+    const payload = {
+      ...input,
+      ...(entitlements ? { entitlements } : {}),
+      discount_badge:
+        input.discount_badge !== undefined ? input.discount_badge?.trim() || null : plan.discount_badge,
+      savedAt: new Date().toISOString(),
+    };
+    await planRepository.saveDraft(planId, payload);
+    await writeSubscriptionAudit({
+      actorId: actor.actorId,
+      actorRole: actor.actorRole ?? "platform_admin",
+      action: "plan.draft_save",
+      entityType: "plan",
+      entityId: planId,
+      before: plan.draft_payload ?? planSnapshot(plan),
+      after: payload,
+      ip: actor.ip,
+    });
+    return this.getPlan(planId);
+  }
+
+  async publishDraft(planId: number, actor: ActorContext): Promise<PlanDetailRow> {
+    const plan = await this.getPlan(planId);
+    const draft = plan.draft_payload as (Record<string, unknown> & { savedAt?: string }) | null;
+    if (!draft) {
+      throw new PlanServiceError(400, "NO_DRAFT", "There is no draft to publish.");
+    }
+    const { savedAt: _savedAt, ...input } = draft;
+    const updated = await this.updatePlan(
+      planId,
+      input as Parameters<PlanService["updatePlan"]>[1],
+      actor
+    );
+    if (plan.status !== "active") {
+      await planRepository.setPlanStatus(planId, "active");
+      await invalidateAllEntitlements();
+    }
+    await planRepository.clearDraft(planId);
+    await writeSubscriptionAudit({
+      actorId: actor.actorId,
+      actorRole: actor.actorRole ?? "platform_admin",
+      action: "plan.publish",
+      entityType: "plan",
+      entityId: planId,
+      before: planSnapshot(plan),
+      after: planSnapshot(updated),
+      ip: actor.ip,
+    });
+    return this.getPlan(planId);
+  }
+
+  async setPlanActive(planId: number, active: boolean, actor: ActorContext): Promise<PlanDetailRow> {
+    const plan = await this.getPlan(planId);
+    if (plan.is_default_free) {
+      throw new PlanServiceError(409, "DEFAULT_FREE_PLAN", "The default free plan cannot be hidden or archived.");
+    }
+    if (plan.status === "archived") {
+      throw new PlanServiceError(409, "PLAN_ARCHIVED", "Restore the plan before changing its active state.");
+    }
+    const status = active ? "active" : "draft";
+    await planRepository.setPlanStatus(planId, status);
+    await invalidateAllEntitlements();
+    await writeSubscriptionAudit({
+      actorId: actor.actorId,
+      actorRole: actor.actorRole ?? "platform_admin",
+      action: "plan.toggle_active",
+      entityType: "plan",
+      entityId: planId,
+      before: planSnapshot(plan),
+      after: planSnapshot(await this.getPlan(planId)),
+      ip: actor.ip,
+    });
+    return this.getPlan(planId);
+  }
+
+  async listVersions(planId: number) {
+    const versions = await planRepository.listVersions(planId);
+    return versions.filter((version) => {
+      const snapshot = (version.before ?? version.after) as Record<string, unknown> | null;
+      return Boolean(snapshot && typeof snapshot.name === "string");
+    });
+  }
+
+  async restoreVersion(planId: number, versionId: number, actor: ActorContext): Promise<PlanDetailRow> {
+    const versions = await planRepository.listVersions(planId, 100);
+    const version = versions.find((row) => row.id === versionId);
+    if (!version) throw new PlanServiceError(404, "VERSION_NOT_FOUND", "That version was not found.");
+    const snapshot = (version.before ?? version.after) as Record<string, unknown> | null;
+    if (!snapshot || typeof snapshot.name !== "string") {
+      throw new PlanServiceError(400, "VERSION_NOT_RESTORABLE", "This version does not contain a restorable plan snapshot.");
+    }
+    const snapshotPrices = Array.isArray(snapshot.prices) ? snapshot.prices : [];
+    const prices = snapshotPrices.map((price) => {
+      const row = price as Record<string, unknown>;
+      return {
+        billing_period: row.billing_period as BillingPeriod,
+        custom_days: (row.custom_days as number | null | undefined) ?? null,
+        amount: Number(row.amount),
+        mrp_amount: row.mrp_amount == null ? null : Number(row.mrp_amount),
+        tax_inclusive: row.tax_inclusive !== false,
+        gateway_price_id: (row.gateway_price_id as string | null | undefined) ?? null,
+        is_active: row.is_active !== false,
+      } satisfies PlanPriceInput;
+    });
+    const entitlements = (snapshot.entitlements ?? {}) as Record<string, unknown>;
+    return this.saveDraft(
+      planId,
+      {
+        name: String(snapshot.name),
+        slug: typeof snapshot.slug === "string" ? snapshot.slug : undefined,
+        description: (snapshot.description as string | null | undefined) ?? null,
+        tagline: (snapshot.tagline as string | null | undefined) ?? null,
+        cta: (snapshot.cta as string | null | undefined) ?? null,
+        offer: (snapshot.offer as string | null | undefined) ?? null,
+        discount_badge: (snapshot.discount_badge as string | null | undefined) ?? null,
+        featured: snapshot.featured === true,
+        features: Array.isArray(snapshot.features) ? (snapshot.features as string[]) : [],
+        is_public: snapshot.is_public === true,
+        sort_order: Number(snapshot.sort_order) || 0,
+        trial_days: Number(snapshot.trial_days) || 0,
+        prices,
+        entitlements,
+      },
+      actor
+    );
   }
 
   async reorderPlans(planIds: number[], actor: ActorContext): Promise<PlanListRow[]> {

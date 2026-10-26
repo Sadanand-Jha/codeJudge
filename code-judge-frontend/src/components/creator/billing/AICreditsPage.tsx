@@ -9,7 +9,6 @@ import { useToast } from "@/hooks/useToast";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { getApiErrorMessage } from "@/lib/apiError";
-import { useBillingData } from "./hooks";
 import { PageHeader } from "./ui";
 import { CreditPacks } from "./credits/CreditPacks";
 import { HowCreditsWork } from "./credits/HowCreditsWork";
@@ -46,12 +45,23 @@ export function AICreditsPage({
   const balance = useAICreditsStore((s) => s.balance);
   const refreshCredits = useAICreditsStore((s) => s.refresh);
   const purchasePack = useAICreditsStore((s) => s.purchasePack);
-  const { catalog } = usePricingCatalog();
+  const { catalog, isLoading: catalogLoading, error: catalogError, refresh: refreshCatalog } = usePricingCatalog();
   const packs = catalog.creditPacks;
-
-  const { state, data, retry } = useBillingData(() => ({ packs }), {
-    demoState,
-  });
+  const state =
+    demoState === "error" || catalogError
+      ? "error"
+      : demoState === "empty"
+        ? "empty"
+        : catalogLoading
+          ? "loading"
+          : packs.length === 0
+            ? "empty"
+            : "ready";
+  const data = state === "ready" ? { packs } : null;
+  const retry = () => {
+    if (demoState) return;
+    void refreshCatalog();
+  };
 
   const [packId, setPackId] = useState<string | null>(initialPackId ?? null);
   const [phase, setPhase] = useState<PurchasePhase>("summary");
@@ -107,6 +117,9 @@ export function AICreditsPage({
         transactionId: verified.transactionId,
         method: paymentMethod(args.method),
         status: "completed",
+        credits: verified.credits || summary.pack.credits,
+        packName: summary.pack.name,
+        price: summary.pack.price,
       });
       await refreshCredits();
       const newBalance = useAICreditsStore.getState().balance.totalRemaining;
