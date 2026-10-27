@@ -1,37 +1,29 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  ArrowRight,
   BarChart3,
   CalendarDays,
   Check,
   CreditCard,
   FileText,
   HelpCircle,
-  KeyRound,
-  Lock,
   Mail,
-  Moon,
   PenLine,
   Plus,
   Radio,
   ShieldCheck,
   Smartphone,
   Sparkles,
-  Timer,
   Trophy,
-  Users,
-  X,
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import QuizCodeForm from "@/components/marketing/QuizCodeForm";
-import SampleQuizDemo from "@/components/marketing/SampleQuizDemo";
-import HeroPolygons from "@/components/marketing/landing/HeroPolygons";
 import AnimatedStat from "@/components/marketing/landing/AnimatedStat";
-import ThemeToggle from "@/components/ui/ThemeToggle";
-import GeneratorStudio from "@/components/marketing/landing/GeneratorStudio";
 import FeatureTabs from "@/components/marketing/landing/FeatureTabs";
+import GeneratorStudio from "@/components/marketing/landing/GeneratorStudio";
+import HeroPolygons from "@/components/marketing/landing/HeroPolygons";
+import LandingHeader from "@/components/marketing/landing/LandingHeader";
+import LandingHero from "@/components/marketing/landing/LandingHero";
 import { SecureLogo } from "@/components/common/SecureLogo";
 import {
   formatPricingAmount,
@@ -49,19 +41,12 @@ export const metadata: Metadata = buildPublicPageMetadata({
   absoluteTitle: true,
 });
 
-const NAV_LINKS = [
-  { label: "Tools", href: "#tools" },
-  { label: "Features", href: "#features" },
-  { label: "Rooms", href: "#rooms" },
-  { label: "Why us", href: "#why" },
-  { label: "How it works", href: "#how" },
-  { label: "Pricing", href: "#plans" },
-];
-
 interface ToolCard {
   icon: LucideIcon;
   title: string;
-  desc: string;
+  badge: string;
+  tone: string;
+  points: string[];
   cta: string;
   href: string;
 }
@@ -70,69 +55,131 @@ const TOOLS: ToolCard[] = [
   {
     icon: Plus,
     title: "Quiz builder",
-    desc: "Start blank. Or start with a prompt.",
-    cta: "Build one →",
+    badge: "Core tool",
+    tone: "ok",
+    points: ["Start blank or from a prompt", "Add your own questions", "Or let AI fill the paper"],
+    cta: "Open builder",
     href: "/creator/quizzes/create",
   },
   {
     icon: Sparkles,
     title: "AI question generator",
-    desc: "Pick the scope. Get questions, keys and marks.",
-    cta: "Try it →",
-    href: "#qgen",
+    badge: "AI",
+    tone: "warn",
+    points: [
+      "Choose subject, topic and difficulty",
+      "Get questions with answer keys",
+      "Generate a full set in seconds",
+    ],
+    cta: "Open generator",
+    href: "#studio",
   },
   {
     icon: FileText,
-    title: "Paper generator",
-    desc: "The paper assembles itself.",
-    cta: "See it →",
-    href: "#paper",
+    title: "Paper composer",
+    badge: "Export",
+    tone: "blue",
+    points: [
+      "Collect the questions you like",
+      "Set marks, duration and title",
+      "Export a print-ready paper",
+    ],
+    cta: "Compose a paper",
+    href: "#paper-builder",
   },
   {
     icon: HelpCircle,
     title: "Question bank",
-    desc: "Save the good ones. Reuse them.",
-    cta: "Open bank →",
+    badge: "Library",
+    tone: "",
+    points: [
+      "Save the questions that work",
+      "Search and tag your own library",
+      "Reuse them across every paper",
+    ],
+    cta: "Open question bank",
     href: "/creator/problems",
   },
   {
     icon: PenLine,
-    title: "Practice sets",
-    desc: "Ready-made. No setup.",
-    cta: "Browse sets →",
+    title: "Ready practice sets",
+    badge: "Ready",
+    tone: "ok",
+    points: [
+      "JEE, NEET, GATE, SSC, UPSC and Banking",
+      "Curated practice by exam track",
+      "Open and start — no setup",
+    ],
+    cta: "Browse practice sets",
     href: "/quiz",
   },
   {
     icon: Radio,
-    title: "Live quizzes",
-    desc: "One code. Everyone in. Results live.",
-    cta: "See it live →",
-    href: "#features",
+    title: "Live quiz room",
+    badge: "Live",
+    tone: "bad",
+    points: [
+      "One access code for everyone",
+      "Students join in the browser",
+      "Live attempts, ranks and results",
+    ],
+    cta: "See the live platform",
+    href: "#platform",
   },
 ];
 
-interface FeatureCard {
+interface Capability {
   icon: LucideIcon;
   title: string;
   desc: string;
 }
 
-const FEATURE_CARDS: FeatureCard[] = [
-  { icon: Timer, title: "Secure exams", desc: "Timed and focused. No babysitting." },
+const CAPABILITIES: Capability[] = [
+  {
+    icon: Radio,
+    title: "Live quizzes",
+    desc: "One code in. Attempts land as they happen.",
+  },
+  {
+    icon: Trophy,
+    title: "Responses & ranks",
+    desc: "Marks, time and rank for every student.",
+  },
+  {
+    icon: BarChart3,
+    title: "Question analytics",
+    desc: "Hardest, easiest and slowest questions.",
+  },
+  {
+    icon: Zap,
+    title: "Game mode",
+    desc: "Lives, lifelines and a timer per question.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Secure exams",
+    desc: "Focused, timed attempts with auto-submit.",
+  },
   {
     icon: CalendarDays,
     title: "Scheduled quizzes",
     desc: "Open and close on your clock.",
   },
-  { icon: HelpCircle, title: "Question bank", desc: "Save once. Reuse everywhere." },
-  { icon: Mail, title: "Email and export", desc: "Results out in one click." },
   {
-    icon: Trophy,
-    title: "Ranks and leaderboards",
-    desc: "Ranks, with time as the tiebreaker.",
+    icon: HelpCircle,
+    title: "Question bank",
+    desc: "Save once. Reuse across every paper.",
   },
-  { icon: Smartphone, title: "Works anywhere", desc: "Phone or laptop. Nothing to install." },
-  { icon: Moon, title: "Light and dark", desc: "Easy on the eyes, day or night." },
+  {
+    icon: Mail,
+    title: "Email & export",
+    desc: "CSV, PDF, Word and email in one click.",
+  },
+  {
+    icon: Smartphone,
+    title: "Works anywhere",
+    desc: "Phone or laptop. Nothing to install.",
+  },
 ];
 
 const STATS = [
@@ -140,72 +187,6 @@ const STATS = [
   { value: 20, suffix: "+", label: "teachers and creators" },
   { value: 0, suffix: "", label: "installs needed" },
   { value: 1, suffix: "", label: "code to join" },
-];
-
-const WHY_CARDS: FeatureCard[] = [
-  {
-    icon: ShieldCheck,
-    title: "Exam mode, minus the drama",
-    desc: "Cheating is hard. It watches so you don't have to.",
-  },
-  {
-    icon: Users,
-    title: "One room. Every quiz.",
-    desc: "Group once, share one code, reuse the batch forever.",
-  },
-  {
-    icon: Zap,
-    title: "Results before the bell",
-    desc: "Instant grading, ranks and accuracy — no spreadsheets.",
-  },
-  {
-    icon: Lock,
-    title: "You see it first",
-    desc: "You see results instantly. Students, one hour after.",
-  },
-  {
-    icon: BarChart3,
-    title: "Know what to teach next",
-    desc: "Hardest questions, slowest topics and who needs help.",
-  },
-  {
-    icon: Sparkles,
-    title: "AI does the busywork",
-    desc: "Generate a full paper, then edit anything you want.",
-  },
-];
-
-const COMPARISON_ROWS = [
-  {
-    need: "Students join",
-    us: "One code",
-    them: "Links, lists, reminders",
-  },
-  {
-    need: "Exam integrity",
-    us: "Focused exam mode",
-    them: "No controls",
-  },
-  {
-    need: "Batch management",
-    us: "Reusable rooms",
-    them: "Spreadsheets",
-  },
-  {
-    need: "Results",
-    us: "Instant ranks + analytics",
-    them: "Manual marking",
-  },
-  {
-    need: "Result privacy",
-    us: "Teacher first",
-    them: "Everyone at once",
-  },
-  {
-    need: "Exports",
-    us: "CSV, email, PDF, Word",
-    them: "Copy-paste",
-  },
 ];
 
 interface Step {
@@ -219,18 +200,18 @@ const STEPS: Step[] = [
   {
     number: "1",
     title: "Pick the scope",
-    desc: "Subject, chapters, difficulty. AI drafts the paper. You edit what you want.",
+    desc: "Subject, chapter, topic, difficulty. AI drafts the questions. You keep, edit or regenerate anything.",
   },
   {
     number: "2",
     title: "Share the code",
-    desc: "Every quiz gets its own code. Send it anywhere.",
+    desc: "Every quiz gets its own access code. Send it anywhere — no accounts, no app installs.",
     code: "VQBA-MIDJ-ETTW-EFRT",
   },
   {
     number: "3",
-    title: "Watch results",
-    desc: "Scores, ranks and the questions that tripped everyone up — instantly.",
+    title: "Results before the bell",
+    desc: "Scores, ranks and question-level analytics land live. Export everything in a click.",
   },
 ];
 
@@ -239,7 +220,7 @@ const AUDIENCES = [
     chip: "Students",
     tone: "blue",
     title: "Practice. Compete. Repeat.",
-    desc: "Join with a code, answer anywhere, see your score instantly.",
+    desc: "Join with a code, answer anywhere, see your score and rank instantly.",
     cta: "Find practice sets",
     href: "/quiz",
   },
@@ -247,17 +228,52 @@ const AUDIENCES = [
     chip: "Teachers",
     tone: "ok",
     title: "Papers in minutes",
-    desc: "Generate from your syllabus, export print-ready, see every result.",
-    cta: "See AI credits",
-    href: "/pricing/credits",
+    desc: "Generate from your syllabus, export a print-ready paper, see every result.",
+    cta: "Try the AI generator",
+    href: "#studio",
   },
   {
     chip: "Creators",
     tone: "warn",
     title: "Host. Track. Repeat.",
-    desc: "Live quizzes, lifelines and performance over time.",
-    cta: "Explore features",
-    href: "#features",
+    desc: "Live quizzes, lifelines, rooms and performance over time — all in one place.",
+    cta: "Explore the platform",
+    href: "#platform",
+  },
+];
+
+const FOOTER_COLUMNS = [
+  {
+    title: "Product",
+    links: [
+      { label: "AI generator", href: "#studio" },
+      { label: "Paper composer", href: "#paper-builder" },
+      { label: "Live platform", href: "#platform" },
+      { label: "Pricing", href: "#pricing" },
+    ],
+  },
+  {
+    title: "Company",
+    links: [
+      { label: "About", href: "/about" },
+      { label: "Contact", href: "/contact" },
+      { label: "Meet the developer", href: "/meet-the-developer" },
+    ],
+  },
+  {
+    title: "Resources",
+    links: [
+      { label: "Quizzes", href: "/quiz" },
+      { label: "Rooms", href: "/rooms" },
+      { label: "Docs", href: "/docs" },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { label: "Privacy policy", href: "/privacy" },
+      { label: "Sign in", href: "/login" },
+    ],
   },
 ];
 
@@ -272,23 +288,11 @@ function buildFaqs(catalog: PricingCatalog) {
   return [
     {
       q: "Do students need to install anything?",
-      a: "No. It runs in the browser on phone or laptop. Just the code.",
+      a: "No. It runs in the browser on phone or laptop. Students just enter the access code.",
     },
     {
       q: "How does the access code work?",
       a: "Every quiz has its own code. Enter it to join. Results open an hour after the quiz ends; teachers see them immediately.",
-    },
-    {
-      q: "What is exam mode?",
-      a: "A focused exam view with timers so every attempt stays on the paper.",
-    },
-    {
-      q: "What are rooms?",
-      a: "Reusable student groups. Create once, share the code, assign every quiz.",
-    },
-    {
-      q: "Who can see results?",
-      a: "Owners and collaborators see results immediately. Students see theirs an hour after the quiz ends.",
     },
     {
       q: "What kinds of questions can AI generate?",
@@ -300,11 +304,23 @@ function buildFaqs(catalog: PricingCatalog) {
     },
     {
       q: "Can I get results out of the platform?",
-      a: "Yes. CSV, email, PDF and Word.",
+      a: "Yes. Export to CSV, PDF or Word, or email results in one click.",
     },
     {
       q: "Can I print a question paper?",
-      a: "Yes. Add questions, set title, marks and time, then export to PDF or Word.",
+      a: "Yes. Add questions, set the title, marks and duration, then export a print-ready PDF or Word file.",
+    },
+    {
+      q: "What is exam mode?",
+      a: "A focused exam view with timers and auto-submit so every attempt stays on the paper.",
+    },
+    {
+      q: "What are rooms?",
+      a: "Reusable student groups. Create once, share the code, and assign every quiz to the same batch.",
+    },
+    {
+      q: "Who can see results?",
+      a: "Owners and collaborators see results immediately. Students see theirs an hour after the quiz ends.",
     },
   ];
 }
@@ -329,66 +345,12 @@ export default async function HomePage() {
 
   return (
     <div className="qs-ui qs-lp min-h-screen">
-      <nav aria-label="Main">
-        <div className="wrap">
-          <Link href="/" aria-label="QuizSupport home">
-            <SecureLogo size={35} variant="full" rounded={false} className="logo" />
-          </Link>
-          <div className="nl">
-            {NAV_LINKS.map((link) =>
-              link.href.startsWith("#") ? (
-                <a key={link.href} href={link.href}>
-                  {link.label}
-                </a>
-              ) : (
-                <Link key={link.href} href={link.href}>
-                  {link.label}
-                </Link>
-              )
-            )}
-            <ThemeToggle variant="icon" />
-            <Link href="/login" className="btn sm">
-              Log in
-            </Link>
-            <Link href="/creator/quizzes/create" className="btn sm pri">
-              Create a paper
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <LandingHeader trialDays={trialDays} />
 
       <main id="top">
         <div className="hs">
           <HeroPolygons />
-          {trialPlan && (
-            <div className="wrap trial-banner-wrap">
-              <div className="trial-banner">
-                <div className="trial-copy">
-                  <span className="trial-kicker">New creator offer</span>
-                  <strong>{trialDays}-day free trial</strong>
-                  <span className="trial-includes">
-                    Quiz-only trial. No AI credits. No card required.
-                  </span>
-                </div>
-                <Link href="/register" className="btn trial-cta">
-                  Start quiz-only trial
-                  <ArrowRight size={16} aria-hidden />
-                </Link>
-              </div>
-            </div>
-          )}
-          <header className="wrap hero hero-compact">
-            <div>
-              <p className="eb">AI paper studio</p>
-              <h1>Pick a scope. The paper writes itself.</h1>
-              <p className="lead">
-                One scope in. A ready paper out. Share a code and watch the results
-                land.
-              </p>
-              <QuizCodeForm />
-            </div>
-            <SampleQuizDemo />
-          </header>
+          <LandingHero />
         </div>
 
         <section className="lp-stats" aria-label="QuizSupport by the numbers">
@@ -404,10 +366,14 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section className="s" id="tools">
+        <section className="s" id="toolkit">
           <div className="wrap">
             <p className="eb">The toolkit</p>
             <h2 className="t">From one scope to a finished paper.</h2>
+            <p className="d">
+              Six tools that share the same question bank, the same access codes and
+              the same results view. Use one, or use the whole loop.
+            </p>
             <div className="tg">
               {TOOLS.map((tool) => {
                 const Icon = tool.icon;
@@ -417,9 +383,18 @@ export default async function HomePage() {
                       <Icon size={20} />
                     </i>
                     <div>
-                      <b>{tool.title}</b>
-                      <small>{tool.desc}</small>
-                      <em>{tool.cta}</em>
+                      <b>
+                        {tool.title}
+                        <span className={tool.tone ? `pl ${tool.tone}` : "pl"}>
+                          {tool.badge}
+                        </span>
+                      </b>
+                      <ul className="tpoints">
+                        {tool.points.map((point) => (
+                          <li key={point}>{point}</li>
+                        ))}
+                      </ul>
+                      <em>{tool.cta} →</em>
                     </div>
                   </>
                 );
@@ -439,13 +414,17 @@ export default async function HomePage() {
 
         <GeneratorStudio />
 
-        <section className="s" id="features">
+        <section className="s" id="platform">
           <div className="wrap">
-            <p className="eb">After the paper</p>
+            <p className="eb">The live platform</p>
             <h2 className="t">The paper is only the beginning.</h2>
+            <p className="d">
+              Publish, share and run the quiz. Then see every answer, rank and
+              question-level insight — while it is still useful.
+            </p>
             <FeatureTabs />
             <div className="fg">
-              {FEATURE_CARDS.map((feature) => {
+              {CAPABILITIES.map((feature) => {
                 const Icon = feature.icon;
                 return (
                   <div className="fc" key={feature.title}>
@@ -461,132 +440,14 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section className="s" id="why">
-          <div className="wrap">
-            <p className="eb">Why it feels different</p>
-            <h2 className="t">Built for the parts nobody warns you about.</h2>
-            <p className="d">
-              Most tools stop at a form and a score.{" "}
-              <SecureLogo
-                size={20}
-                variant="full"
-                rounded={false}
-                className="inline-block align-[-4px]"
-              />{" "}
-              handles the rest.
-            </p>
-            <div className="wg">
-              {WHY_CARDS.map((card) => {
-                const Icon = card.icon;
-                return (
-                  <div className="wc" key={card.title}>
-                    <i>
-                      <Icon size={22} />
-                    </i>
-                    <h3>{card.title}</h3>
-                    <p>{card.desc}</p>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="cmp-wrap">
-              <table className="cmp">
-                <thead>
-                  <tr>
-                    <th>What you need</th>
-                    <th>
-                      <SecureLogo size={26} variant="full" rounded={false} theme="dark" />
-                    </th>
-                    <th>The usual stack</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {COMPARISON_ROWS.map((row) => (
-                    <tr key={row.need}>
-                      <th scope="row">{row.need}</th>
-                      <td className="yes">
-                        <span>
-                          <Check size={16} aria-hidden />
-                          {row.us}
-                        </span>
-                      </td>
-                      <td className="no">
-                        <span>
-                          <X size={16} aria-hidden />
-                          {row.them}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="cmp-note">One platform. None of the patchwork.</p>
-          </div>
-        </section>
-
-        <section className="s" id="rooms">
-          <div className="wrap rooms-split">
-            <div>
-              <p className="eb">Rooms</p>
-              <h2 className="t">Your batch. Your quizzes. One room.</h2>
-              <p className="d">
-                Create a room once. Share the code. Run every quiz for that batch
-                from one place.
-              </p>
-              <ul className="ck">
-                <li>Generate a code. Join in seconds.</li>
-                <li>Reuse the room across quizzes and terms.</li>
-                <li>See who joined, attempted and needs a nudge.</li>
-                <li>Built for batches, clubs and study groups.</li>
-              </ul>
-              <div className="rooms-actions">
-                <Link className="btn pri" href="/rooms">
-                  Explore rooms
-                </Link>
-                <Link className="btn" href="/creator/rooms">
-                  Create a room
-                </Link>
-              </div>
-            </div>
-            <div className="room-flow">
-              <div className="room-flow-step">
-                <i>
-                  <Users size={24} />
-                </i>
-                <div>
-                  <b>Create a room</b>
-                  <small>Add students once.</small>
-                </div>
-              </div>
-              <span className="room-flow-line" aria-hidden />
-              <div className="room-flow-step">
-                <i>
-                  <KeyRound size={24} />
-                </i>
-                <div>
-                  <b>Share the room code</b>
-                  <small>One code for everyone.</small>
-                </div>
-              </div>
-              <span className="room-flow-line" aria-hidden />
-              <div className="room-flow-step">
-                <i>
-                  <Radio size={24} />
-                </i>
-                <div>
-                  <b>Run every quiz</b>
-                  <small>Reuse the batch. Track every attempt.</small>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <section className="s" id="how">
           <div className="wrap">
             <p className="eb">How it works</p>
             <h2 className="t">Three steps. One of them is just choosing.</h2>
+            <p className="d">
+              The slow part of a quiz is the paper. The rest should take minutes,
+              not a free afternoon.
+            </p>
             <div className="st">
               {STEPS.map((step) => (
                 <div className="step" key={step.number}>
@@ -603,33 +464,45 @@ export default async function HomePage() {
                   <span className={`pl ${audience.tone}`}>{audience.chip}</span>
                   <h3>{audience.title}</h3>
                   <p>{audience.desc}</p>
-                  <a href={audience.href} className="btn sm">
-                    {audience.cta}
-                  </a>
+                  {audience.href.startsWith("#") ? (
+                    <a href={audience.href} className="btn sm">
+                      {audience.cta}
+                    </a>
+                  ) : (
+                    <Link href={audience.href} className="btn sm">
+                      {audience.cta}
+                    </Link>
+                  )}
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="s" id="plans">
+        <section className="s" id="pricing">
           <div className="wrap">
-            <p className="eb">Monthly plans</p>
+            <p className="eb">Pricing</p>
             <h2 className="t">
               {trialDays > 0
                 ? `Start with a ${trialDays}-day quiz-only trial.`
                 : "Start creating quizzes today."}{" "}
-              {offerPlan?.offer ? `Upgrade at the ${offerPlan.offer.toLowerCase()}.` : "Upgrade when you need more."}
+              {offerPlan?.offer
+                ? `Upgrade at the ${offerPlan.offer.toLowerCase()}.`
+                : "Upgrade when you need more."}
             </h2>
             <p className="d">
-              Every plan includes the builder, codes, instant results and
-              leaderboards. Paid plans add more creations and AI credits.
+              Every plan includes the builder, access codes, instant results and
+              leaderboards. Paid plans add more creations and AI credits. Keep the
+              free quiz-only flow for as long as it works for you.
             </p>
             {offerPlan && (
               <div className="offer-strip">
                 <span className="offer-tag">{offerPlan.offer}</span>
                 <div>
-                  <b>{planNames || "Paid plans"} are available at the {offerPlan.offer?.toLowerCase()}.</b>
+                  <b>
+                    {planNames || "Paid plans"} are available at the{" "}
+                    {offerPlan.offer?.toLowerCase()}.
+                  </b>
                   <small>
                     {trialDays > 0
                       ? `Start with a ${trialDays}-day quiz-only trial. Upgrade only when you need more.`
@@ -638,6 +511,8 @@ export default async function HomePage() {
                 </div>
               </div>
             )}
+
+            <h3 className="pgroup">Monthly plans</h3>
             <div className="lp-plans">
               {catalog.plans.length === 0 && (
                 <p className="d">Plans are currently unavailable. Please check back later.</p>
@@ -684,6 +559,16 @@ export default async function HomePage() {
                           : "AI credits sold separately"}
                       </span>
                     </div>
+                    {plan.features.length > 0 && (
+                      <ul className="pfeat">
+                        {plan.features.slice(0, 6).map((feature) => (
+                          <li key={feature}>
+                            <Check size={14} aria-hidden />
+                            {feature}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                     <p>{plan.tagline}</p>
                     <Link className="btn" href="/pricing">
                       {plan.cta}
@@ -692,24 +577,24 @@ export default async function HomePage() {
                 );
               })}
             </div>
-            <p className="sub" style={{ textAlign: "center", marginTop: 30 }}>
+            <p className="sub pricing-note">
               <Link href="/pricing">Compare all monthly plans</Link>.
             </p>
-          </div>
-        </section>
 
-        <section className="s" id="pricing">
-          <div className="wrap">
-            <p className="eb">AI credits</p>
-            <h2 className="t">
-              {creditValidityMonths > 0
-                ? `Pay once. Use your credits for up to ${creditValidityMonths} months.`
-                : "Pay once. Use your credits whenever you need them."}
-            </h2>
-            <p className="d">
-              Paid monthly plans include AI credits. Extra packs are one-time
-              and work with every plan.
-            </p>
+            <div className="packs-head">
+              <div>
+                <h3 className="pgroup">AI credit packs</h3>
+                <p className="d">
+                  Paid monthly plans include AI credits. Extra packs are one-time and
+                  work with every plan.
+                </p>
+              </div>
+              <span className="packs-note">
+                {creditValidityMonths > 0
+                  ? `Credits stay valid for up to ${creditValidityMonths} months.`
+                  : "Use your credits whenever you need them."}
+              </span>
+            </div>
             <div className="pay-ad">
               <span className="pay-ico" aria-hidden="true">
                 <CreditCard size={22} />
@@ -745,9 +630,7 @@ export default async function HomePage() {
                       {save > 0 && <span className="save">Save {save}%</span>}
                     </div>
                     <div className="pr">{formatPricingAmount(pack.price)}</div>
-                    <div className="cr">
-                      {pack.credits} credits
-                    </div>
+                    <div className="cr">{pack.credits} credits</div>
                     <p>
                       {pack.blurb} Valid for {pack.validityMonths}{" "}
                       {pack.validityMonths === 1 ? "month" : "months"}.
@@ -759,17 +642,14 @@ export default async function HomePage() {
                 );
               })}
             </div>
-            <p className="sub" style={{ textAlign: "center", marginTop: 30 }}>
-              <Link href="/pricing/credits">See all AI credit packs</Link>.
-            </p>
-            <p className="sub" style={{ textAlign: "center", marginTop: 8 }}>
-              Need more quiz creations?{" "}
-              <Link href="/pricing">Compare monthly plans</Link>.
+            <p className="sub pricing-note">
+              <Link href="/pricing/credits">See all AI credit packs</Link> ·{" "}
+              <Link href="/pricing">Compare monthly plans</Link>
             </p>
           </div>
         </section>
 
-        <section className="s">
+        <section className="s" id="faq">
           <div className="wrap fq-wrap">
             <p className="eb">Questions</p>
             <h2 className="t">Good to know</h2>
@@ -782,23 +662,20 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section className="s" style={{ borderTop: 0 }}>
+        <section className="s cta-section">
           <div className="wrap">
             <div className="cta">
-              <h2>Your first paper is one scope away.</h2>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <Link className="btn" href="/creator/quizzes/create">
-                  Start with a scope
+              <p className="cta-kicker">No setup. No installs.</p>
+              <h2>Your first quiz takes about five minutes.</h2>
+              <p className="cta-lead">
+                Pick a scope, let AI compose the paper, and share the code. Students
+                join in the browser — results arrive before the bell.
+              </p>
+              <div className="cta-actions">
+                <Link className="btn sun" href="/creator/quizzes/create">
+                  Create a quiz for free
                 </Link>
-                <a
-                  className="btn"
-                  href="#top"
-                  style={{
-                    background: "transparent",
-                    color: "var(--on-brand)",
-                    borderColor: "var(--on-brand)",
-                  }}
-                >
+                <a className="btn ghost-light" href="#top">
                   Join with a code
                 </a>
               </div>
@@ -808,15 +685,28 @@ export default async function HomePage() {
       </main>
 
       <footer>
-        <div className="wrap">
-          <SecureLogo size={34} variant="full" rounded={false} className="logo" />
-          <div className="fl">
-            <Link href="/about">About</Link>
-            <Link href="/contact">Contact</Link>
-            <Link href="/privacy">Privacy Policy</Link>
-            <Link href="/quiz">Quizzes</Link>
-            <Link href="/rooms">Rooms</Link>
+        <div className="wrap ft">
+          <div className="ft-brand">
+            <SecureLogo size={34} variant="full" rounded={false} className="logo" />
+            <p>AI-assisted papers, one access code, and results before the bell.</p>
+            <small>© {new Date().getFullYear()} QuizSupport. All rights reserved.</small>
           </div>
+          {FOOTER_COLUMNS.map((column) => (
+            <div className="ft-col" key={column.title}>
+              <b>{column.title}</b>
+              {column.links.map((link) =>
+                link.href.startsWith("#") ? (
+                  <a key={link.label} href={link.href}>
+                    {link.label}
+                  </a>
+                ) : (
+                  <Link key={link.label} href={link.href}>
+                    {link.label}
+                  </Link>
+                )
+              )}
+            </div>
+          ))}
         </div>
       </footer>
     </div>

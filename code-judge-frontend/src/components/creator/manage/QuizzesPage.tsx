@@ -23,6 +23,7 @@ import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
 import { useData } from "@/lib/hooks/useData";
 import { Skeleton } from "@/components/creator/billing/ui";
 import { cn } from "@/lib/helpers";
+import { formatDurationMinutes } from "@/lib/formatters";
 import { deriveQuizStatus, type EffectiveQuizStatus } from "@/lib/quizStatus";
 import { deleteQuiz, getMyCreatedQuizzes, type Quiz } from "@/services/quiz";
 import { toast } from "@/lib/toast";
@@ -40,6 +41,7 @@ interface QuizCard {
   attempts: number;
   rating: number;
   status: QuizStatus;
+  duration: number | null;
 }
 
 type QuizListRecord = Quiz & {
@@ -60,6 +62,7 @@ function mapQuizToCard(q: QuizListRecord): QuizCard {
     attempts: Number(q.attempts) || 0,
     rating: Number(q.rating) || 0,
     status: deriveQuizStatus(q),
+    duration: q.duration ?? null,
   };
 }
 
@@ -564,6 +567,7 @@ function QuizCardItem({
   // onDelete: () => void;
 }) {
   const hasAttempts = quiz.attempts > 0;
+  const durationLabel = formatDurationMinutes(quiz.duration);
   const [shareOpen, setShareOpen] = useState(false);
 
   return (
@@ -623,6 +627,11 @@ function QuizCardItem({
           <span className="inline-flex shrink-0 items-center rounded-full border-2 border-[var(--qs-line)] px-3 py-[5px] text-[13px] font-bold text-[var(--qs-muted)]">
             {quiz.questions} {quiz.questions === 1 ? "question" : "questions"}
           </span>
+          {durationLabel && (
+            <span className="inline-flex shrink-0 items-center rounded-full border-2 border-[var(--qs-line)] px-3 py-[5px] text-[13px] font-bold text-[var(--qs-muted)]">
+              {durationLabel}
+            </span>
+          )}
           <span className="inline-flex shrink-0 items-center rounded-full border-2 border-[var(--qs-line)] px-3 py-[5px] text-[13px] font-bold text-[var(--qs-muted)]">
             {hasAttempts ? `${quiz.attempts.toLocaleString("en-IN")} ${quiz.attempts === 1 ? "attempt" : "attempts"}` : "No attempts yet"}
           </span>
@@ -671,6 +680,7 @@ function QuizCardItem({
             code: quiz.code,
             questions: quiz.questions,
             status: quiz.status,
+            duration: quiz.duration,
           }}
           onClose={() => setShareOpen(false)}
         />

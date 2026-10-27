@@ -146,6 +146,7 @@ export default function GeneratorStudio() {
   const total = counts.Easy + counts.Medium + counts.Hard;
   const paperItems = paperIds.map(toItem);
   const paperMarks = paperItems.reduce((sum, item) => sum + item.marks, 0);
+  const resultMarks = results.reduce((sum, item) => sum + item.marks, 0);
 
   const statusText = busy
     ? busyMessage
@@ -218,6 +219,15 @@ export default function GeneratorStudio() {
     }, 1500);
   };
 
+  const syncResultsToPaper = () => {
+    if (!results.length) return;
+    setPaperIds(results.map((item) => item.id));
+    toast.success({
+      title: "Synced to paper",
+      description: `${results.length} question${results.length === 1 ? "" : "s"} added to the paper composer.`,
+    });
+  };
+
   const togglePaperItem = (id: string) => {
     const inPaper = paperIds.includes(id);
     const next = inPaper ? paperIds.filter((item) => item !== id) : [...paperIds, id];
@@ -245,23 +255,24 @@ export default function GeneratorStudio() {
 
   return (
     <>
-      <section className="s" id="qgen">
+      <section className="s" id="studio">
         <div className="wrap fx">
           <div>
             <p className="eb">Question generator</p>
             <h3>Pick the scope. AI writes the questions.</h3>
             <p>
-              Subject, chapters, topics, difficulty. Get questions with answer keys
-              in seconds. Paste a syllabus for sharper results.
+              Choose the subject and topics, decide how many easy, medium and hard
+              questions you want, and get questions with answer keys in seconds.
+              Paste your syllabus for even sharper results.
             </p>
             <ul className="ck">
-              <li>Subject, chapter and topic</li>
-              <li>Easy, medium, hard — you choose the mix</li>
-              <li>MCQ, short and long, with answer keys</li>
-              <li>Regenerate one or all</li>
+              <li>Subject, chapter and topic scope</li>
+              <li>Easy, medium and hard — you choose the mix</li>
+              <li>MCQ, short and long questions with answer keys</li>
+              <li>Regenerate one question or the whole set</li>
             </ul>
-            <a className="btn" href="#paper">
-              Watch the paper assemble →
+            <a className="btn" href="#paper-builder">
+              Then build a print-ready paper ↓
             </a>
           </div>
           <div className="outer">
@@ -272,6 +283,7 @@ export default function GeneratorStudio() {
                 </i>
                 <b>AI Question Generator</b>
                 <span className="pl warn">Plus</span>
+                <span className="sandbox-label">Interactive sandbox</span>
               </div>
               <span className="lb">Subject</span>
               <div className="cs">
@@ -331,6 +343,21 @@ export default function GeneratorStudio() {
               <p className="stat" role="status">
                 {statusText}
               </p>
+              <div className="gen-toolbar">
+                <span className="gen-summary">
+                  {results.length
+                    ? `${results.length} question${results.length === 1 ? "" : "s"} · ${resultMarks} marks`
+                    : "Generated questions & answer keys"}
+                </span>
+                <button
+                  className="btn sm"
+                  type="button"
+                  disabled={!results.length}
+                  onClick={syncResultsToPaper}
+                >
+                  Sync all to paper ↓
+                </button>
+              </div>
               <div>
                 {busy ? (
                   <>
@@ -380,14 +407,15 @@ export default function GeneratorStudio() {
         </div>
       </section>
 
-      <section className="s" id="paper">
+      <section className="s" id="paper-builder">
         <div className="wrap fx rev">
           <div>
-            <p className="eb">Paper generator</p>
-            <h3>The paper comes out ready.</h3>
+            <p className="eb">Paper composer</p>
+            <h3>Compose a print-ready paper.</h3>
             <p>
-              Your questions are already in. Set the title and time, then export.
-              Add more from the generator above.
+              Collect the questions you like, set the title and duration, and export
+              a clean question paper for class tests and mock exams. Add the answer
+              key when you need it.
             </p>
             <div className="pgf">
               <label className="lb" htmlFor="paper-title">
@@ -399,24 +427,24 @@ export default function GeneratorStudio() {
                 maxLength={60}
                 onChange={(event) => setPaperTitle(event.target.value)}
               />
-              <div className="r2">
+              <div className="paper-opts">
                 <div>
-                  <label className="lb" htmlFor="paper-duration">
-                    Duration
-                  </label>
-                  <select
-                    id="paper-duration"
-                    value={paperDuration}
-                    onChange={(event) => setPaperDuration(event.target.value)}
-                  >
+                  <span className="lb">Duration</span>
+                  <div className="dur-pills" role="group" aria-label="Paper duration">
                     {DURATIONS.map((minutes) => (
-                      <option key={minutes} value={minutes}>
-                        {minutes} minutes
-                      </option>
+                      <button
+                        key={minutes}
+                        className="ch"
+                        type="button"
+                        aria-pressed={paperDuration === minutes}
+                        onClick={() => setPaperDuration(minutes)}
+                      >
+                        {minutes} min
+                      </button>
                     ))}
-                  </select>
+                  </div>
                 </div>
-                <div>
+                <div className="answer-key-row">
                   <span className="lb">Answer key</span>
                   <button
                     className="ch"
@@ -447,6 +475,7 @@ export default function GeneratorStudio() {
               {paperItems.length ? (
                 <>
                   <div className="pgh">
+                    <small className="paper-kicker">Print-ready examination sheet</small>
                     <h4>{paperTitle || "Untitled paper"}</h4>
                     <span className="mu">
                       Total marks {paperMarks} · {paperDuration} minutes
