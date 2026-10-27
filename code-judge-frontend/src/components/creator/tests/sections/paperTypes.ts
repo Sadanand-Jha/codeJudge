@@ -1,3 +1,4 @@
+import type { ServerCreditCharge } from "@/services/ai";
 import type { Section } from "./types";
 
 export interface PaperQuestion {
@@ -63,6 +64,7 @@ export interface QuestionPaper {
 
 export interface GeneratePaperResponse {
   paper: QuestionPaper;
+  credits?: ServerCreditCharge;
 }
 
 export interface GeneratePaperPayload {
@@ -155,6 +157,7 @@ export interface GenerateQuestionsPayload {
 
 export interface GenerateQuestionsResponse {
   questions: SubjectiveQuestion[];
+  credits?: ServerCreditCharge;
 }
 
 export interface PaperGroupNumbering {

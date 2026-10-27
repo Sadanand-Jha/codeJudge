@@ -7,12 +7,15 @@
  */
 import type { Request, Response } from "express";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import sharp from "sharp";
 import { generateSectionsFromPDF } from "../services/testSectionGeneration.service.js";
 import { generateQuestionPaper, renderPaperDocx, generateSubjectiveQuestions, getQuestionGeneratorCatalog } from "../services/question-paper.service.js";
 import { markQuestionsUsed, persistGeneratedProblems } from "../services/question-bank.service.js";
 import type { PaperSectionInput } from "../services/question-paper.service.js";
 import { createSectionBlueprint, deleteSectionBlueprint, listSectionBlueprints, markSectionBlueprintUsed } from "../services/testSectionBlueprint.service.js";
+import { chargeAiUsage } from "../services/aiCredits.service.js";
+import { EntitlementError } from "../services/entitlements/errors.js";
 
 const MAX_TOTAL_UPLOAD_BYTES = 2 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = new Set([
@@ -26,6 +29,19 @@ const authenticatedUserId = (req: Request): number => {
   const userId = Number(req.user?.userId);
   if (!Number.isInteger(userId) || userId <= 0) throw new Error("Unauthorized");
   return userId;
+};
+
+const sendEntitlementFailure = (res: Response, error: unknown): boolean => {
+  if (!(error instanceof EntitlementError)) return false;
+  res.status(403).json({
+    success: false,
+    code: error.code,
+    message: error.message,
+    remaining: error.remaining,
+    requiredPlan: error.requiredPlan,
+    upgradeUrl: error.upgradeUrl,
+  });
+  return true;
 };
 
 export const getSectionBlueprints = async (req: Request, res: Response) => {
@@ -183,14 +199,22 @@ export const generateSections = async (req: Request, res: Response) => {
     await Promise.all(files.map(assertSafeUpload));
 
     const result = await generateSectionsFromPDF(files.map((file) => ({ buffer: file.buffer, filename: file.originalname })));
+    const credits = await chargeAiUsage({
+      userId,
+      usage: result.usage,
+      reason: "ai_generate_sections",
+      refId: randomUUID(),
+    });
 
     res.status(200).json({
       success: true,
       data: {
         sections: result.sections,
+        credits,
       },
     });
   } catch (error: any) {
+    if (sendEntitlementFailure(res, error)) return;
     console.error("Section generation error:", error);
     const message = error?.message || "Failed to generate sections. Please try again.";
 
@@ -289,8 +313,16 @@ export const generatePaper = async (req: Request, res: Response) => {
       question.bankQuestionId = bankIds[index] ?? null;
     });
 
-    res.status(200).json({ success: true, data: { paper: result.paper } });
+    const credits = await chargeAiUsage({
+      userId,
+      usage: result.usage,
+      reason: "ai_generate_paper",
+      refId: randomUUID(),
+    });
+
+    res.status(200).json({ success: true, data: { paper: result.paper, credits } });
   } catch (error: any) {
+    if (sendEntitlementFailure(res, error)) return;
     console.error("Paper generation error:", error);
     const message = error?.message || "Failed to generate the question paper. Please try again.";
     if (/(At least one section|at least one question|at most 100|available|select|valid)/i.test(message)) {
@@ -448,8 +480,16 @@ export const generateQuestions = async (req: Request, res: Response) => {
       });
     }
 
-    res.status(200).json({ success: true, data: { questions: result.questions } });
+    const credits = await chargeAiUsage({
+      userId,
+      usage: result.usage,
+      reason: "ai_generate_questions",
+      refId: randomUUID(),
+    });
+
+    res.status(200).json({ success: true, data: { questions: result.questions, credits } });
   } catch (error: any) {
+    if (sendEntitlementFailure(res, error)) return;
     console.error("Question picker error:", error);
     const message = error?.message || "Failed to generate questions. Please try again.";
     if (/(must equal|must be one of|available|at least|at most|select|valid)/i.test(message)) {
