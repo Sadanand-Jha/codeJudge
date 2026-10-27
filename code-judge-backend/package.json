@@ -20,6 +20,8 @@
     "test:document-export": "tsx src/scripts/testDocumentExport.ts",
     "test:rooms": "tsx src/__tests__/roomAccess.test.ts",
     "test:decoy": "tsx src/__tests__/quizDecoy.test.ts",
+    "test:billing": "tsx src/__tests__/billing.test.ts",
+    "test:ai-credits": "tsx src/__tests__/aiCredits.test.ts",
     "test:entitlements": "tsx src/services/entitlements/__tests__/resolver.test.ts",
     "test:entitlements:db": "tsx src/services/entitlements/__tests__/concurrency.test.ts"
   },
@@ -52,6 +54,7 @@
     "playwright": "^1.62.0",
     "playwright-extra": "^4.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "razorpay": "^2.9.8",
     "redis": "^6.1.0",
     "resend": "^6.28.1",
     "sanitize-html": "^2.17.0",

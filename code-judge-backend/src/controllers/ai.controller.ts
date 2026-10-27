@@ -29,6 +29,11 @@ import type { GeneratedQuestionPayload } from "../services/question-generation.s
 import { extractFileText } from "../services/question-generation.service.js";
 import { isDoclingAvailable } from "../services/docling-extract.service.js";
 import { deleteUserBankQuestion, generateFromQuestionBank, listUserQuestionBank, persistGeneratedQuestions } from "../services/question-bank.service.js";
+import {
+  chargeAiUsage,
+  type AiCreditCharge,
+} from "../services/aiCredits.service.ts";
+import { EntitlementError } from "../services/entitlements/errors.ts";
 
 /**
  * Best-effort user id for operational logging. The AI endpoints are not
@@ -51,11 +56,19 @@ const getUserId = (req: Request): string | undefined => {
   }
 };
 
+/** Billing context attached to one AI request. */
+interface AiBillingContext {
+  userId: string;
+  reason: string;
+  refId: string;
+}
+
 /** Stream an SSE reply to the client, mirroring the `/chat` wire protocol. */
 const streamSseReply = async (
   res: Response,
   messages: ChatMessageInput[] | string,
-  controller: AbortController
+  controller: AbortController,
+  billing: AiBillingContext
 ) => {
   res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
   res.setHeader("Cache-Control", "no-cache, no-transform");
@@ -123,8 +136,26 @@ const streamSseReply = async (
   } finally {
     if (!res.writableEnded) {
       parseAndSendQuestions(fullContent);
+      let credits: AiCreditCharge | undefined;
+      try {
+        credits = await chargeAiUsage({
+          userId: billing.userId,
+          usage: lastUsage,
+          reason: billing.reason,
+          refId: billing.refId,
+        });
+      } catch (error) {
+        console.error("[ai] credit debit failed", error);
+        send("credits", {
+          error:
+            error instanceof EntitlementError
+              ? error.message
+              : "AI usage could not be billed.",
+        });
+      }
       send("usage", {
         usage: lastUsage,
+        ...(credits ? { credits } : {}),
         time_ms: Date.now() - startedAt,
       });
       send("done", {});
@@ -183,7 +214,15 @@ export const chatWithFiles = async (req: Request, res: Response) => {
   }
 
   const message = contextParts.join("\n\n");
-  return streamSseReply(res, message, new AbortController());
+  const userId = req.user?.userId ?? getUserId(req);
+  if (!userId) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+  return streamSseReply(res, message, new AbortController(), {
+    userId,
+    reason: "ai_chat_files",
+    refId: randomUUID(),
+  });
 };
 
 /** Parse a comma-or-JSON-array string from a multipart text field. */
@@ -217,6 +256,12 @@ const parseList = (value: unknown): string[] => {
  */
 export const generateQuestionsFromUpload = async (req: Request, res: Response) => {
   try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Authentication required" });
+    }
+    const chargeRefId = randomUUID();
+
     const files = (req.files as Express.Multer.File[] | undefined) ?? [];
     if (files.length === 0) {
       return res.status(400).json({ success: false, message: "At least one file is required" });
@@ -291,7 +336,7 @@ export const generateQuestionsFromUpload = async (req: Request, res: Response) =
         if (subjectId != null) {
           await persistGeneratedQuestions(result.questions, {
             quizId,
-            createdBy: req.user?.userId ? Number(req.user.userId) : null,
+            createdBy: Number(userId),
             subjectId,
             chapterId,
             topicId,
@@ -300,8 +345,18 @@ export const generateQuestionsFromUpload = async (req: Request, res: Response) =
           });
         }
 
+        const credits = await chargeAiUsage({
+          userId,
+          usage: result.usage,
+          reason: "ai_generate_questions",
+          refId: chargeRefId,
+        });
         send("questions", { questions: result.questions });
-        if (result.usage) send("usage", { usage: result.usage, time_ms: Date.now() - startedAt });
+        send("usage", {
+          usage: result.usage,
+          credits,
+          time_ms: Date.now() - startedAt,
+        });
         send("done", {});
       } catch (error) {
         if (!closed) send("error", { message: error instanceof Error ? error.message : "Failed to generate questions" });
@@ -320,7 +375,7 @@ export const generateQuestionsFromUpload = async (req: Request, res: Response) =
     if (subjectId != null) {
       await persistGeneratedQuestions(result.questions, {
         quizId: optionalId(req.body.quizId),
-        createdBy: req.user?.userId ? Number(req.user.userId) : null,
+        createdBy: Number(userId),
         subjectId,
         chapterId,
         topicId,
@@ -329,8 +384,26 @@ export const generateQuestionsFromUpload = async (req: Request, res: Response) =
       });
     }
 
-    return res.status(200).json({ success: true, data: result });
+    const credits = await chargeAiUsage({
+      userId,
+      usage: result.usage,
+      reason: "ai_generate_questions",
+      refId: chargeRefId,
+    });
+    return res.status(200).json({
+      success: true,
+      data: { ...result, credits },
+    });
   } catch (error) {
+    if (error instanceof EntitlementError) {
+      return res.status(403).json({
+        success: false,
+        code: error.code,
+        message: error.message,
+        requiredPlan: error.requiredPlan,
+        upgradeUrl: error.upgradeUrl,
+      });
+    }
     console.error("Question generation error:", error);
     return res.status(400).json({
       success: false,
@@ -358,6 +431,12 @@ const parsePositiveIds = (value: unknown): number[] => {
  */
 export const generateFromQuestionBankHandler = async (req: Request, res: Response) => {
   try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Authentication required" });
+    }
+    const chargeRefId = randomUUID();
+
     const requestedQuestions = Number(req.body.numberOfQuestions) || 10;
     if (requestedQuestions > 25) {
       return res.status(400).json({
@@ -392,7 +471,7 @@ export const generateFromQuestionBankHandler = async (req: Request, res: Respons
     const topicId = uniqueTopicIds[0] ?? null;
     const kind = typeof req.body.kind === "string" ? req.body.kind : "any";
     const quizId = req.body.quizId != null && req.body.quizId !== "" ? Number(req.body.quizId) : null;
-    const createdBy = req.user?.userId ? Number(req.user.userId) : null;
+    const createdBy = Number(userId);
 
     // validate counts sum if all provided
     if (easyCount != null && mediumCount != null && hardCount != null) {
@@ -474,8 +553,18 @@ export const generateFromQuestionBankHandler = async (req: Request, res: Respons
           onReasoning: (chunk) => send("reasoning", { chunk }),
           onContent: (chunk) => send("content", { chunk }),
         });
+        const credits = await chargeAiUsage({
+          userId,
+          usage: result.usage,
+          reason: "ai_generate_bank",
+          refId: chargeRefId,
+        });
         send("questions", { questions: result.questions });
-        if (result.usage) send("usage", { usage: result.usage, time_ms: Date.now() - startedAt });
+        send("usage", {
+          usage: result.usage,
+          credits,
+          time_ms: Date.now() - startedAt,
+        });
         send("done", {});
       } catch (error) {
         send("error", {
@@ -489,8 +578,26 @@ export const generateFromQuestionBankHandler = async (req: Request, res: Respons
     }
 
     const result = await generateFromQuestionBank(selectionRequest);
-    return res.status(200).json({ success: true, data: result });
+    const credits = await chargeAiUsage({
+      userId,
+      usage: result.usage,
+      reason: "ai_generate_bank",
+      refId: chargeRefId,
+    });
+    return res.status(200).json({
+      success: true,
+      data: { ...result, credits },
+    });
   } catch (error) {
+    if (error instanceof EntitlementError) {
+      return res.status(403).json({
+        success: false,
+        code: error.code,
+        message: error.message,
+        requiredPlan: error.requiredPlan,
+        upgradeUrl: error.upgradeUrl,
+      });
+    }
     console.error("Question bank selection error:", error);
     return res.status(400).json({
       success: false,
@@ -589,7 +696,7 @@ export const chat = async (req: Request, res: Response) => {
 
   const controller = new AbortController();
   const requestId = randomUUID();
-  const userId = getUserId(req);
+  const userId = req.user?.userId ?? getUserId(req);
   let wroteAny = false;
   let lastUsage: LiveUsage | undefined;
   let responseConversationId: string | undefined;
@@ -646,8 +753,28 @@ export const chat = async (req: Request, res: Response) => {
     }
   } finally {
     if (!res.writableEnded) {
+      let credits: AiCreditCharge | undefined;
+      if (userId) {
+        try {
+          credits = await chargeAiUsage({
+            userId,
+            usage: lastUsage,
+            reason: "ai_chat",
+            refId: requestId,
+          });
+        } catch (error) {
+          console.error("[ai] credit debit failed", error);
+          send("credits", {
+            error:
+              error instanceof EntitlementError
+                ? error.message
+                : "AI usage could not be billed.",
+          });
+        }
+      }
       send("usage", {
         usage: lastUsage,
+        ...(credits ? { credits } : {}),
         time_ms: Date.now() - startedAt,
       });
       send("done", { conversationId: responseConversationId });

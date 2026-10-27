@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { AnimatePresence } from "framer-motion";
 import {
   ArrowRight,
   CalendarClock,
@@ -9,10 +11,20 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { getApiErrorMessage } from "@/lib/apiError";
 import { formatTrialEnd, getTrialState, useMySubscription } from "@/hooks/useMySubscription";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
+import { useToast } from "@/hooks/useToast";
+import {
+  openRazorpayCheckout,
+  RazorpayCheckoutDismissedError,
+  type RazorpayPaymentPayload,
+} from "@/services/aiCredits";
+import { createPlanOrder, verifyPlanPayment } from "@/services/billing";
 import { formatPricingAmount, getPlanDiscount, type PricingPlan } from "@/services/pricing";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
+import { PlanCheckoutDialog, type PlanPurchaseReceipt } from "./PlanCheckoutDialog";
+import type { PurchasePhase } from "./credits/OrderSummaryDialog";
 import { PageHeader } from "./ui";
 
 const OUTLINE_BTN =
@@ -24,10 +36,12 @@ function PlanCard({
   plan,
   currentPlanId,
   trialAvailable,
+  onSelect,
 }: {
   plan: PricingPlan;
   currentPlanId: string;
   trialAvailable: boolean;
+  onSelect: (plan: PricingPlan) => void;
 }) {
   const isCurrent = plan.slug === currentPlanId;
   const isHot = plan.featured && !isCurrent;
@@ -172,9 +186,9 @@ function PlanCard({
           <Check className="h-4 w-4" />
           Current plan
         </span>
-      ) : (
+      ) : showTrialCta ? (
         <Link
-          href={showTrialCta ? "/register" : "/pricing#plans"}
+          href="/register"
           className={cn(
             "flex w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] py-[13px] text-[14px] font-extrabold transition-all",
             isHot
@@ -182,9 +196,23 @@ function PlanCard({
               : "bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:bg-[var(--qs-ink)] hover:text-[var(--qs-bg)]"
           )}
         >
-          {plan.cta || (showTrialCta ? `Start ${plan.trialDays}-day free trial` : `Upgrade to ${plan.name}`)}
+          {plan.cta || `Start ${plan.trialDays}-day free trial`}
           <ArrowRight className="h-4 w-4" />
         </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onSelect(plan)}
+          className={cn(
+            "flex w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] py-[13px] text-[14px] font-extrabold transition-all",
+            isHot
+              ? "bg-[var(--qs-sun)] text-[#1A1240] hover:brightness-105"
+              : "bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:bg-[var(--qs-ink)] hover:text-[var(--qs-bg)]"
+          )}
+        >
+          {plan.cta || `Upgrade to ${plan.name}`}
+          <ArrowRight className="h-4 w-4" />
+        </button>
       )}
     </article>
   );
@@ -192,8 +220,20 @@ function PlanCard({
 
 export function MonthlyPlansPage() {
   const balance = useAICreditsStore((state) => state.balance);
-  const { subscription, isLoading } = useMySubscription();
+  const refreshCredits = useAICreditsStore((state) => state.refresh);
+  const { subscription, isLoading, refresh: refreshSubscription } = useMySubscription();
   const { catalog, isLoading: catalogLoading, error: catalogError, refresh: refreshCatalog } = usePricingCatalog();
+  const toast = useToast();
+  const [checkoutPlan, setCheckoutPlan] = useState<PricingPlan | null>(null);
+  const [phase, setPhase] = useState<PurchasePhase>("summary");
+  const [phaseError, setPhaseError] = useState<string | null>(null);
+  const [processingNote, setProcessingNote] = useState("Creating your order…");
+  const [receipt, setReceipt] = useState<PlanPurchaseReceipt | null>(null);
+
+  useEffect(() => {
+    void refreshCredits();
+  }, [refreshCredits]);
+
   const trialState = getTrialState(subscription);
   const isTrialActive = trialState === "active";
   const isTrialExpired = trialState === "expired";
@@ -215,6 +255,72 @@ export function MonthlyPlansPage() {
   const trialEndsOn = formatTrialEnd(subscription?.trialEnd ?? null);
   const trialAvailable = !isLoading && !subscription;
   const isFreePlan = !isLoading && !isTrialActive && !isTrialExpired && !displayPlan;
+
+  const closeCheckout = () => {
+    if (phase === "processing") return;
+    setCheckoutPlan(null);
+    setPhase("summary");
+    setPhaseError(null);
+    setReceipt(null);
+  };
+
+  const startCheckout = (plan: PricingPlan) => {
+    if (phase === "processing") return;
+    setCheckoutPlan(plan);
+    setPhase("summary");
+    setPhaseError(null);
+    setReceipt(null);
+  };
+
+  const runPlanPurchase = async () => {
+    const plan = checkoutPlan;
+    if (!plan || phase === "processing") return;
+
+    setPhase("processing");
+    setPhaseError(null);
+    setReceipt(null);
+    try {
+      setProcessingNote("Creating your order…");
+      const order = await createPlanOrder({ planId: plan.id, planSlug: plan.slug });
+
+      setProcessingNote("Waiting for payment…");
+      const payment: RazorpayPaymentPayload | null = await openRazorpayCheckout({
+        order,
+        itemName: `${plan.name} monthly plan`,
+        notes: { plan_id: String(plan.id) },
+      }).catch((error: unknown) => {
+        if (error instanceof RazorpayCheckoutDismissedError) return null;
+        throw error;
+      });
+
+      if (!payment) {
+        setPhase("cancelled");
+        return;
+      }
+
+      setProcessingNote("Activating your plan…");
+      const verified = await verifyPlanPayment(order, payment);
+      await Promise.allSettled([refreshSubscription(), refreshCredits()]);
+
+      setReceipt({
+        transactionId: verified.transactionId,
+        planName: verified.planName ?? plan.name,
+        credits: verified.credits,
+        newBalance: verified.newBalance,
+        expiresAt: verified.expiresAt,
+      });
+      setPhase("success");
+      toast.success({
+        title: "Plan activated",
+        description: `${verified.planName ?? plan.name} is now active.`,
+      });
+    } catch (error) {
+      setPhaseError(
+        getApiErrorMessage(error, "We could not complete this purchase. Please try again.")
+      );
+      setPhase("failed");
+    }
+  };
 
   return (
     <div className="space-y-5 pb-2">
@@ -340,8 +446,9 @@ export function MonthlyPlansPage() {
             <PlanCard
               key={plan.slug}
               plan={plan}
-              currentPlanId={activePlanId}
+              currentPlanId={isTrialActive ? "" : activePlanId}
               trialAvailable={trialAvailable}
+              onSelect={startCheckout}
             />
           ))}
         </div>
@@ -349,7 +456,7 @@ export function MonthlyPlansPage() {
 
       <p className="flex flex-wrap items-center justify-center gap-1.5 text-center text-[12.5px] font-medium text-[var(--qs-muted)]">
         <CalendarClock className="h-3.5 w-3.5" />
-        Prices include GST. Plan changes take effect from the next billing cycle.
+        Prices include GST. Plans activate immediately after payment.
       </p>
 
       <section className="flex flex-wrap items-center justify-between gap-4 rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-5 py-5 text-[var(--qs-on-brand)] shadow-[5px_5px_0_var(--qs-sun)]">
@@ -373,6 +480,25 @@ export function MonthlyPlansPage() {
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </section>
+
+      <AnimatePresence>
+        {checkoutPlan && (
+          <PlanCheckoutDialog
+            plan={checkoutPlan}
+            balance={balance.totalRemaining}
+            phase={phase}
+            phaseError={phaseError}
+            processingNote={processingNote}
+            receipt={receipt}
+            onClose={closeCheckout}
+            onPay={() => void runPlanPurchase()}
+            onBack={() => {
+              setPhase("summary");
+              setPhaseError(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

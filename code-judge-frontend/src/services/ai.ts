@@ -1,4 +1,5 @@
 import { getAuthHeaders } from "@/lib/authHeaders";
+import { useAICreditsStore } from "@/store/aiCreditsStore";
 
 const rawBase =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
@@ -18,10 +19,30 @@ export interface LiveUsage {
   reasoningTokens?: number;
 }
 
+/** Server-authoritative credit charge returned with AI usage. */
+export interface ServerCreditCharge {
+  creditsCharged?: number;
+  tokensUsed?: number;
+  creditsRemaining?: number;
+  error?: string;
+}
+
 export interface GenerationMeta {
   usage?: LiveUsage;
   timeMs?: number;
+  credits?: ServerCreditCharge;
 }
+
+/** Keep the in-memory balance aligned with the backend's post-charge value. */
+const syncServerCredits = (credits?: ServerCreditCharge) => {
+  if (
+    credits &&
+    typeof credits.creditsRemaining === "number" &&
+    Number.isFinite(credits.creditsRemaining)
+  ) {
+    useAICreditsStore.getState().syncServerBalance(credits.creditsRemaining);
+  }
+};
 
 export interface StreamCallbacks {
   onReasoning?: (chunk: string) => void;
@@ -48,6 +69,7 @@ interface SSEPayload {
   chunk?: string;
   message?: string;
   usage?: RawUsage;
+  credits?: ServerCreditCharge;
   time_ms?: number;
   questions?: RawAIGeneratedQuestion[];
 }
@@ -209,12 +231,18 @@ export interface GenerateFromFilesOptions {
   chapterId?: number | null;
   topicId?: number | null;
   quizId?: string | number | null;
+  /** Provider-reported usage from the non-streaming response. */
+  onUsage?: (usage: LiveUsage) => void;
 }
 
 interface GenerateFromFilesResponse {
   success: boolean;
   message?: string;
-  data?: { questions: RawAIGeneratedQuestion[] };
+  data?: {
+    questions: RawAIGeneratedQuestion[];
+    usage?: LiveUsage;
+    credits?: ServerCreditCharge;
+  };
 }
 
 /**
@@ -254,6 +282,8 @@ export const generateQuestionsFromFiles = async (
     throw new Error(payload.message || `Request failed with status ${response.status}`);
   }
 
+  if (payload.data?.usage) options.onUsage?.(payload.data.usage);
+  syncServerCredits(payload.data?.credits);
   return payload.data?.questions ?? [];
 };
 
@@ -319,7 +349,12 @@ export interface GenerateFromBankOptions {
 export interface GenerateFromBankResponse {
   success: boolean;
   message?: string;
-  data?: { questions: RawAIGeneratedQuestion[]; extractedText?: string; usage?: LiveUsage };
+  data?: {
+    questions: RawAIGeneratedQuestion[];
+    extractedText?: string;
+    usage?: LiveUsage;
+    credits?: ServerCreditCharge;
+  };
 }
 
 export const generateFromQuestionBank = async (
@@ -352,6 +387,7 @@ export const generateFromQuestionBank = async (
     throw new Error(payload.message || `Request failed with status ${response.status}`);
   }
   if (payload.data?.usage) options.onUsage?.(payload.data.usage);
+  syncServerCredits(payload.data?.credits);
   return payload.data?.questions ?? [];
 };
 
@@ -477,9 +513,14 @@ const consumeSSEResponse = async (
     }
 
     const emitUsage = () => {
+      syncServerCredits(data.credits);
       const usage = toLiveUsage(data.usage);
-      if (usage) {
-        onUsage?.({ usage, timeMs: typeof data.time_ms === "number" ? data.time_ms : undefined });
+      if (usage || data.credits) {
+        onUsage?.({
+          usage,
+          credits: data.credits,
+          timeMs: typeof data.time_ms === "number" ? data.time_ms : undefined,
+        });
       }
     };
 
@@ -495,6 +536,9 @@ const consumeSSEResponse = async (
         break;
       case "usage":
         emitUsage();
+        break;
+      case "credits":
+        syncServerCredits(data.credits);
         break;
       case "error":
         onError?.(data.message || "Failed to get AI response");

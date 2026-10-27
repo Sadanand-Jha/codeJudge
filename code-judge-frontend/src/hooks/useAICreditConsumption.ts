@@ -13,6 +13,8 @@ export function useAICreditConsumption() {
   const consumeCredits = useAICreditsStore((s) => s.consumeCredits);
   const refundCredits = useAICreditsStore((s) => s.refundCredits);
   const completeRequest = useAICreditsStore((s) => s.completeRequest);
+  const syncServerBalance = useAICreditsStore((s) => s.syncServerBalance);
+  const refreshBalance = useAICreditsStore((s) => s.refresh);
   const balance = useAICreditsStore((s) => s.balance);
   const purchasePack = useAICreditsStore((s) => s.purchasePack);
   const { catalog } = usePricingCatalog();
@@ -110,6 +112,8 @@ export function useAICreditConsumption() {
     consume,
     refund,
     completeRequest: done,
+    syncServerBalance,
+    refresh: refreshBalance,
     balance,
     purchasePack: buyCredits,
     isLowCredit,

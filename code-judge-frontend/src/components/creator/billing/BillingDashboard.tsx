@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { getUserTimeZone } from "@/lib/timezone";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import {
   ArrowRight,
   CalendarClock,
@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/helpers";
 import { formatTrialEnd, getTrialState, useMySubscription } from "@/hooks/useMySubscription";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
+import { getBillingTransactions, type BillingTransaction } from "@/services/billing";
 import { useBillingData } from "./hooks";
 import { ErrorState, Skeleton, formatINR } from "./ui";
 import { checkLowCreditWarning, useAICreditsStore } from "@/store/aiCreditsStore";
@@ -243,6 +244,19 @@ function CreditsCard({
       </article>
     </div>
   );
+}
+
+function toTopUp(txn: BillingTransaction): AICreditPurchase {
+  const parsed = Date.parse(txn.paidAt ?? txn.createdAt);
+  return {
+    transactionId: txn.orderNo,
+    packId: txn.packCode ?? txn.orderId,
+    packName: txn.packName ?? "Credit pack",
+    credits: txn.credits,
+    price: txn.amountPaise / 100,
+    timestamp: Number.isNaN(parsed) ? Date.now() : parsed,
+    status: "completed",
+  };
 }
 
 function TopUpsCard({ purchases }: { purchases: AICreditPurchase[] }) {
@@ -531,10 +545,26 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
   const { state, data, retry } = useBillingData(
     () => {
       const store = useAICreditsStore.getState();
-      return { balance: store.balance, stats: store.stats, purchases: store.purchases };
+      return getBillingTransactions(20)
+        .then((rows) => {
+          const current = useAICreditsStore.getState();
+          return {
+            balance: current.balance,
+            stats: current.stats,
+            purchases: rows
+              .filter((row) => row.orderType === "credit_pack" && row.status === "paid")
+              .map(toTopUp),
+          };
+        })
+        .catch(() => ({ balance: store.balance, stats: store.stats, purchases: store.purchases }));
     },
     { demoState }
   );
+  const refresh = useAICreditsStore((store) => store.refresh);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   const low = data ? checkLowCreditWarning(data.balance.totalRemaining, data.balance.monthlyAllowance || data.balance.monthlyCredits || 1) : false;
 

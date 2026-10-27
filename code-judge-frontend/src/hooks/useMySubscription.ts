@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getUserTimeZone } from "@/lib/timezone";
 import { getMySubscription, type MySubscription } from "@/services/user";
 
@@ -52,5 +52,16 @@ export function useMySubscription() {
     };
   }, []);
 
-  return { subscription, isLoading };
+  const refresh = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      setSubscription(await getMySubscription());
+    } catch {
+      setSubscription(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return { subscription, isLoading, refresh };
 }
