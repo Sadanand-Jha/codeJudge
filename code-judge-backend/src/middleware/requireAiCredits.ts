@@ -3,9 +3,9 @@ import { assertAiCreditsAvailable } from "../services/aiCredits.service.ts";
 import { EntitlementError } from "../services/entitlements/errors.ts";
 
 /**
- * Blocks AI requests before generation starts when the account has no
- * spendable credits. The actual token-based debit happens after the provider
- * reports usage, so this only guarantees a positive balance rather than
+ * Blocks AI requests before generation starts when the account is below the
+ * minimum generation balance. The actual token-based debit happens after the
+ * provider reports usage, so this only guarantees a usable balance rather than
  * reserving the full cost of a request.
  */
 export const requireAiCredits = async (

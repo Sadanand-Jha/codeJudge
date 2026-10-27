@@ -1,6 +1,7 @@
 // User data access layer. SQL queries for user lookup, email/username checks,
 // user creation, avatar updates, profile info, and preferences.
 import { pool } from "../config/database.ts";
+import { normalizeAccountRole } from "../constants/accountRoles.ts";
 
 export class userRepository {
     async getEmailByUsername(username: string): Promise<string | null> {
@@ -32,7 +33,11 @@ export class userRepository {
 
     async getUserByEmail(email: string): Promise<any> {
         const query = `
-            SELECT * FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1
+            SELECT u.*, LOWER(r.name) AS role_name
+            FROM users u
+            LEFT JOIN role r ON u.role_id = r.id
+            WHERE LOWER(u.email) = LOWER($1)
+            LIMIT 1
         `;
         const result = await pool.query(query, [email]);
         return result.rows.length > 0 ? result.rows[0] : null;
@@ -201,7 +206,15 @@ export class userRepository {
         };
     }
 
-    async createUser(email: string, password: string, username: string, avatarUrl: string, accountType: "student" | "teacher" = "student"): Promise<any> {
+    async createUser(email: string, password: string, username: string, avatarUrl: string, accountType: unknown = "student"): Promise<any> {
+        // Defense in depth: never let a caller persist an arbitrary role, even
+        // if they bypass the service layer. Public accounts are only ever
+        // student or teacher; admin/owner accounts are provisioned separately.
+        const accountRole = normalizeAccountRole(accountType);
+        if (!accountRole) {
+            throw new Error(`Invalid registration role: ${String(accountType)}`);
+        }
+
         const query = `
             WITH chosen_avatar AS (
                 INSERT INTO avatar (is_male, url, created_at, updated_at)
@@ -209,16 +222,19 @@ export class userRepository {
                 ON CONFLICT (url) DO UPDATE SET url = EXCLUDED.url
                 RETURNING id
             ), chosen_role AS (
-                SELECT id FROM role WHERE LOWER(name) = $5 LIMIT 1
+                SELECT id FROM role
+                WHERE LOWER(name) = $5
+                  AND LOWER(name) IN ('student', 'teacher')
+                LIMIT 1
             )
             INSERT INTO users (Username, Email, Password, role_id, avatar_id)
             SELECT LOWER($1), LOWER($2), $3, chosen_role.id, chosen_avatar.id
             FROM chosen_avatar CROSS JOIN chosen_role
             RETURNING *
         `;
-        const result = await pool.query(query, [username, email, password, avatarUrl, accountType]);
+        const result = await pool.query(query, [username, email, password, avatarUrl, accountRole]);
         if (!result.rows[0]) {
-            throw new Error(`Registration role is not configured: ${accountType}`);
+            throw new Error(`Registration role is not configured: ${accountRole}`);
         }
         return result.rows[0];
     }

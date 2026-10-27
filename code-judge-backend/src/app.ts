@@ -2,6 +2,7 @@
 // cookie-parser), reuses cached PostgreSQL pool for serverless, and mounts all API
 // routes under /api. Exports the configured Express app for Vercel/serverless.
 import 'dotenv/config';
+import { assertJwtSecretsConfigured } from "./config/jwt.js";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -23,6 +24,10 @@ dns.setDefaultResultOrder("ipv4first");
 
 // Server-side dates are UTC; user-facing formatting happens in the client.
 process.env.TZ = "UTC";
+
+// Refuse to start with a missing or guessable session secret. A known default
+// would let anyone forge a token for another user and spend their credits.
+assertJwtSecretsConfigured();
 
 // Trust proxy for Vercel (X-Forwarded-For, secure cookies)
 import type { Express, Request } from "express";

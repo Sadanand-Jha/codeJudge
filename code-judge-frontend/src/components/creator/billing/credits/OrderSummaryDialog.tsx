@@ -34,7 +34,6 @@ export function OrderSummaryDialog({
   summary,
   balance,
   phase,
-  phaseError,
   processingNote,
   receipt,
   onClose,
@@ -44,7 +43,6 @@ export function OrderSummaryDialog({
   summary: PackOrderSummary;
   balance: number;
   phase: PurchasePhase;
-  phaseError: string | null;
   processingNote: string;
   receipt: PurchaseReceipt | null;
   onClose: () => void;
@@ -183,7 +181,9 @@ export function OrderSummaryDialog({
               <AlertCircle className="h-6 w-6" />
             </span>
             <p className="mt-3 text-sm font-bold">Payment failed</p>
-            <p className="mt-1 max-w-xs text-xs leading-5 text-[var(--qs-muted)]">{phaseError}</p>
+            <p className="mt-1 max-w-xs text-xs leading-5 text-[var(--qs-muted)]">
+              Something went wrong. Please try again.
+            </p>
             <div className="mt-5 flex w-full gap-2">
               <button
                 type="button"

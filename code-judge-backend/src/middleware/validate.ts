@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { isValidPredefinedAvatar } from "../constants/avatars.ts";
+import { ACCOUNT_ROLES } from "../constants/accountRoles.ts";
 
 // ============================================
 // Registration Validation Schema
@@ -62,7 +63,7 @@ export const authRegisterSchema = z.object({
     .max(128, "Password must be at most 128 characters"),
   registration_token: z.string().trim().min(16, "Invalid registration token").max(512),
   avatar_url: z.string().refine(isValidPredefinedAvatar, "Please select a valid avatar"),
-  account_type: z.enum(["student", "teacher"]),
+  account_type: z.enum(ACCOUNT_ROLES),
 }).strict();
 
 /** Profile update. Only the display name is user-editable; username and

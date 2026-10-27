@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { CalendarClock, History } from "lucide-react";
+import { ArrowLeftRight, CalendarClock, History } from "lucide-react";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { useToast } from "@/hooks/useToast";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
-import { getApiErrorMessage } from "@/lib/apiError";
 import { PageHeader } from "./ui";
 import { CreditPacks } from "./credits/CreditPacks";
 import { HowCreditsWork } from "./credits/HowCreditsWork";
@@ -70,7 +69,6 @@ export function AICreditsPage({
 
   const [packId, setPackId] = useState<string | null>(initialPackId ?? null);
   const [phase, setPhase] = useState<PurchasePhase>("summary");
-  const [phaseError, setPhaseError] = useState<string | null>(null);
   const [processingNote, setProcessingNote] = useState("Creating your order…");
   const [receipt, setReceipt] = useState<PurchaseReceipt | null>(null);
 
@@ -87,7 +85,6 @@ export function AICreditsPage({
   const openSummary = (pack: CreditPurchasePack) => {
     setPackId(pack.id);
     setPhase("summary");
-    setPhaseError(null);
     setReceipt(null);
   };
 
@@ -100,7 +97,6 @@ export function AICreditsPage({
   const runPurchase = async (args: { packId: string; method: string }) => {
     if (phase === "processing") return;
     setPhase("processing");
-    setPhaseError(null);
     setReceipt(null);
     try {
       setProcessingNote("Creating your order…");
@@ -132,7 +128,7 @@ export function AICreditsPage({
         packName: summary.pack.name,
         price: summary.pack.price,
       });
-      await refreshCredits();
+      await refreshCredits({ force: true });
       const newBalance = useAICreditsStore.getState().balance.totalRemaining;
       setReceipt({
         transactionId: verified.transactionId,
@@ -146,7 +142,7 @@ export function AICreditsPage({
         description: `${verified.credits} AI credits are now available.`,
       });
     } catch (err: unknown) {
-      setPhaseError(getApiErrorMessage(err, "Payment could not be completed. No amount was charged."));
+      console.error("Credit purchase failed:", err);
       setPhase("failed");
     }
   };
@@ -171,10 +167,17 @@ export function AICreditsPage({
               Monthly plans
             </Link>
             <Link
-              href="/creator/billing/transactions"
+              href="/creator/billing/credits/usage"
               className="inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
             >
               <History className="h-4 w-4" />
+              Credit usage
+            </Link>
+            <Link
+              href="/creator/billing/transactions"
+              className="inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+            >
+              <ArrowLeftRight className="h-4 w-4" />
               Transactions
             </Link>
           </>
@@ -230,14 +233,12 @@ export function AICreditsPage({
             summary={selected}
             balance={balance.totalRemaining}
             phase={phase}
-            phaseError={phaseError}
             processingNote={processingNote}
             receipt={receipt}
             onClose={closeDialog}
             onPay={handlePay}
             onBack={() => {
               setPhase("summary");
-              setPhaseError(null);
             }}
           />
         )}

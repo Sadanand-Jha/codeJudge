@@ -1,3 +1,5 @@
+import type { ServerCreditCharge } from "@/services/ai";
+
 export type AIQuestionType =
   | "MCQ_SINGLE"
   | "MCQ_MULTIPLE"
@@ -80,6 +82,7 @@ export interface AISection {
 
 export interface AIGenerateResponse {
   sections: AISection[];
+  credits?: ServerCreditCharge;
 }
 
 export type AIGenerateStatus =

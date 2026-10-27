@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import type { SignOptions } from "jsonwebtoken";
 import crypto from "node:crypto";
+import { getJwtSecret, requireStrongSecret } from "../config/jwt.js";
 import redisClient from "../config/redis.js";
 
 /**
@@ -31,14 +32,16 @@ function platformSecret(): string | null {
   const explicit = process.env.PLATFORM_JWT_SECRET?.trim();
   const regular = process.env.JWT_SECRET?.trim();
 
-  if (explicit && explicit !== regular) return explicit;
+  if (explicit && explicit !== regular) {
+    return requireStrongSecret("PLATFORM_JWT_SECRET", explicit);
+  }
   if (!regular) return null;
 
   // Keep platform tokens cryptographically isolated even when Vercel only has
   // the application's JWT_SECRET configured. Domain separation means a normal
   // session token still cannot be verified as a platform token.
   return crypto
-    .createHmac("sha256", regular)
+    .createHmac("sha256", getJwtSecret())
     .update("quizsupport:platform-session:v1")
     .digest("hex");
 }
@@ -73,8 +76,23 @@ export function platformOwnerEmails(): string[] {
     .filter(Boolean);
 }
 
-export function isPlatformOwner(roleId: unknown, email: unknown): boolean {
-  if (Number(roleId) === 2) return true;
+/**
+ * Owner roles are matched by name, never by a hardcoded numeric id. Role ids
+ * differ between databases (e.g. admin=2 here, teacher=12), so an id-based
+ * check could accidentally grant platform access to the wrong persona.
+ */
+export function platformOwnerRoles(): string[] {
+  const configured = (process.env.PLATFORM_OWNER_ROLES || "admin")
+    .split(",")
+    .map((role) => role.trim().toLowerCase())
+    .filter(Boolean);
+  return configured.length > 0 ? configured : ["admin"];
+}
+
+export function isPlatformOwner(roleName: unknown, email: unknown): boolean {
+  const normalizedRole = String(roleName || "").trim().toLowerCase();
+  if (normalizedRole && platformOwnerRoles().includes(normalizedRole)) return true;
+
   const normalizedEmail = String(email || "").trim().toLowerCase();
   return normalizedEmail !== "" && platformOwnerEmails().includes(normalizedEmail);
 }

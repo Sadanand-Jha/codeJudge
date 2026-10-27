@@ -108,3 +108,50 @@ export async function getBillingTransactions(
   );
   return response.data;
 }
+
+/* ============================================================
+   AI credit ledger — where credits were spent or added
+   ============================================================ */
+
+export type CreditLedgerFilter = "all" | "spent" | "added";
+
+export interface CreditLedgerEntry {
+  id: string;
+  /** Signed credits: negative for spends, positive for additions. */
+  amount: number;
+  reason: string;
+  refId: string | null;
+  balanceAfter: number | null;
+  orderNo: string | null;
+  createdAt: string;
+}
+
+export interface CreditSpendSummary {
+  totalSpent: number;
+  spentThisMonth: number;
+  spendCount: number;
+}
+
+export interface CreditLedgerPage {
+  entries: CreditLedgerEntry[];
+  hasMore: boolean;
+  summary: CreditSpendSummary;
+}
+
+export async function getCreditTransactions(params?: {
+  limit?: number;
+  offset?: number;
+  type?: CreditLedgerFilter;
+}): Promise<CreditLedgerPage> {
+  const response = await apiClient.get<CreditLedgerPage>(
+    "/v1/billing/credits/transactions",
+    {
+      params: {
+        limit: params?.limit ?? 25,
+        offset: params?.offset ?? 0,
+        ...(params?.type && params.type !== "all" ? { type: params.type } : {}),
+      },
+    }
+  );
+  return response.data;
+}

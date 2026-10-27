@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Coins, Globe2, LogOut, Settings, UserRound } from "lucide-react";
+import { ChevronDown, Globe2, LogOut, Settings, UserRound } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import CoinBadge from "@/components/ai/CoinBadge";
 import { SecureLogo } from "@/components/common/SecureLogo";
 import WorkspaceSwitcher from "@/components/layout/WorkspaceSwitcher";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
@@ -113,6 +114,7 @@ function ProfileMenu() {
 
 export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuToggle?: () => void }) {
   const creditBalance = useAICreditsStore((s) => s.balance.totalRemaining);
+  const creditBalanceLoaded = useAICreditsStore((s) => s.lastFetchedAt !== null);
   return (
     <header className="creator-topbar qs-ui sticky top-0 z-40 flex h-[58px] min-w-0 w-full max-w-full items-center gap-2 border-b border-ai-border bg-ai-sidebar px-2.5 sm:border-b-2 sm:border-[var(--qs-line)] sm:bg-[var(--qs-surface)]/85 sm:px-3.5 sm:backdrop-blur-xl">
       <div className="flex min-w-0 flex-1 items-center gap-4 sm:flex-none sm:shrink-0 sm:gap-1">
@@ -138,15 +140,11 @@ export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuTogg
 
       <div className="hidden min-w-0 flex-1 sm:block" />
       <div className="flex min-w-0 shrink-0 items-center gap-1">
-        <Link
-          href="/creator/billing/credits"
-          title="Buy AI credits"
-          aria-label={`${creditBalance} AI credits left. Buy more.`}
-          className="mr-0.5 inline-flex shrink-0 items-center gap-1 rounded-full border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/25 px-2 py-1 text-[11px] font-bold tabular-nums text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-sun)]/45"
-        >
-          <Coins className="h-3 w-3" />
-          {creditBalance}
-        </Link>
+        <CoinBadge
+          balance={creditBalance}
+          loading={!creditBalanceLoaded}
+          className="mr-0.5 shrink-0"
+        />
         <WorkspaceSwitcher />
         <ProfileMenu />
       </div>

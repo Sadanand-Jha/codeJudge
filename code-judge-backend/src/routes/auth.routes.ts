@@ -59,7 +59,7 @@ router.post('/login', validate(loginSchema), loginController);
 /**
  * POST /api/auth/owner/send-otp
  * Body: { "email": "owner@example.com" }
- * Owner-only OTP login (role_id = 2). Generic response, rate-limited.
+ * Owner-only OTP login (platform-owner role). Generic response, rate-limited.
  */
 router.post('/owner/send-otp', ownerSendOtpController);
 

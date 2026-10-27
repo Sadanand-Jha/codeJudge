@@ -17,7 +17,6 @@
 import { Router } from "express";
 import multer from "multer";
 import { authenticate } from "../../../middleware/auth.ts";
-import { requireActiveAiUser } from "../../../middleware/requireActiveAiUser.ts";
 import { requireAiCredits } from "../../../middleware/requireAiCredits.ts";
 import {
   chat,
@@ -32,9 +31,9 @@ import { randomizeUploadFilename } from "../../../utils/uploadName.ts";
 const router = Router();
 
 // AI requests are never anonymous. Reading or deleting the question bank only
-// needs an active account; the endpoints that consume model tokens also need
-// a positive credit balance.
-router.use(authenticate, requireActiveAiUser);
+// needs a signed-in account; the endpoints that consume model tokens are
+// available to anyone with a positive credit balance.
+router.use(authenticate);
 
 /**
  * Multer upload config shared by the two multipart endpoints.
@@ -65,7 +64,7 @@ router.post("/generate-questions", requireAiCredits, upload.array("files", 25), 
 
 // Topic-scoped MCQ generation (fresh questions authored by the AI). JSON body,
 // no files. Generated questions are also persisted to quiz_question_bank.
-router.post("/generate-from-bank", generateFromQuestionBankHandler);
+router.post("/generate-from-bank", requireAiCredits, generateFromQuestionBankHandler);
 
 // Creator's active bank rows (user-owned for 7 days, then system-owned).
 router.get("/question-bank", getMyQuestionBank);

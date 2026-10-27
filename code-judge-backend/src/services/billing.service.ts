@@ -1085,6 +1085,66 @@ export class BillingService {
   }
 
   /**
+   * Returns a bounded page of the credit ledger and all-time AI spend totals.
+   * Entries are newest-first; spend totals exclude grants, purchases and
+   * payment-refund adjustments.
+   */
+  async listCreditTransactions(
+    userId: string,
+    options: {
+      limit?: number;
+      offset?: number;
+      filter?: "spent" | "added" | null;
+    } = {}
+  ): Promise<{
+    entries: Array<{
+      id: string;
+      amount: number;
+      reason: string;
+      refId: string | null;
+      balanceAfter: number | null;
+      orderNo: string | null;
+      createdAt: string;
+    }>;
+    hasMore: boolean;
+    summary: {
+      totalSpent: number;
+      spentThisMonth: number;
+      spendCount: number;
+    };
+  }> {
+    const requestedLimit = Number(options.limit);
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.min(100, Math.max(1, Math.trunc(requestedLimit)))
+      : 50;
+    const requestedOffset = Number(options.offset);
+    const offset = Number.isFinite(requestedOffset)
+      ? Math.max(0, Math.trunc(requestedOffset))
+      : 0;
+    const filter = options.filter ?? null;
+
+    const { rows, summary } = await billingRepository.listCreditLedger(
+      userId,
+      { limit: limit + 1, offset, filter }
+    );
+    const hasMore = rows.length > limit;
+
+    return {
+      entries: rows.slice(0, limit).map((row) => ({
+        id: row.id,
+        amount: row.amount,
+        reason: row.reason,
+        refId: row.refId,
+        balanceAfter: row.balanceAfter,
+        orderNo: row.orderNo,
+        createdAt: row.createdAt.toISOString(),
+      })),
+      hasMore,
+      summary,
+    };
+  }
+
+  /**
    * Returns one order with its payment and validity status. Polling clients can use this while a webhook or verification is still settling.
    */
   async getOrder(userId: string, orderKey: string): Promise<Record<string, unknown>> {

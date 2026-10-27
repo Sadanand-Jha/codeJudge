@@ -33,9 +33,7 @@ import { useAvatarHover } from "@/hooks/useAvatarHover";
 import { getQuizByCode, getQuizCode, type Quiz } from "@/services/quiz";
 import { isValidQuizCode } from "@/utils/quizCode";
 import { getQuizScheduleWindow } from "@/utils/quizSchedule";
-import dynamic from "next/dynamic";
-import { Sun, Moon, Globe } from "lucide-react";
-const LiveCampus = dynamic(() => import("@/components/quiz/live/live-campus/LiveCampus"), { ssr: false });
+import { Sun, Moon } from "lucide-react";
 
 export default function WaitingRoomPage() {
   const params = useParams<{ quizId?: string }>();
@@ -177,7 +175,7 @@ function WaitingRoomPageInner({
   const { setTheme: setWaitingTheme, setStudentOverride } = useWaitingRoomTheme();
   const { playQuizSound } = useQuizSounds();
   const { setTheme } = useTheme();
-  const [viewMode, setViewMode] = useState<"light"|"dark"|"real">(isDark ? "dark" : "light");
+  const [viewMode, setViewMode] = useState<"light"|"dark">(isDark ? "dark" : "light");
   const [clockMs, setClockMs] = useState<number | null>(null);
 
   useEffect(() => {
@@ -192,13 +190,12 @@ function WaitingRoomPageInner({
     return () => window.clearInterval(timer);
   }, []);
 
-  const handleViewMode = (m:"light"|"dark"|"real")=>{
+  const handleViewMode = (m:"light"|"dark")=>{
     playQuizSound("select");
     setViewMode(m);
     try{ localStorage.setItem(`quizsupport_waiting_view_mode_${quizCode}`, m);}catch{}
     if(m==="light"){ setTheme("light"); setWaitingTheme("ai-cloud"); setStudentOverride(undefined); }
     if(m==="dark"){ setTheme("dark"); setWaitingTheme("deep-space"); setStudentOverride(undefined); }
-    // real keeps current theme for LiveCampus isDark — ThemeBackground hidden in real mode
   };
 
   const scheduleWindow = useMemo(
@@ -249,12 +246,10 @@ function WaitingRoomPageInner({
 
   return (
     <div className="qs-ui h-dvh flex flex-col overflow-hidden relative bg-[var(--qs-bg)]">
-      {/* Flat token canvas — hidden in Real World (LiveCampus has its own). */}
-      {viewMode !== "real" && (
-        <div className="fixed inset-0 z-0 pointer-events-none">
-          <QuizAmbientBackground />
-        </div>
-      )}
+      {/* Flat token canvas */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <QuizAmbientBackground />
+      </div>
 
       {/* Full-screen roaming avatars — always mounted so preload gate shows shimmer, then fade-in together */}
       <div className="fixed inset-0 z-[5] pointer-events-none">
@@ -297,7 +292,7 @@ function WaitingRoomPageInner({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* View Mode Toggle: Light / Dark / Real World */}
+          {/* View Mode Toggle: Light / Dark */}
           <div className="hidden items-center gap-1 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-1 sm:flex">
             <button
               type="button"
@@ -317,21 +312,11 @@ function WaitingRoomPageInner({
             >
               <Moon className="h-3.5 w-3.5" /> Dark
             </button>
-            <button
-              type="button"
-              onClick={()=> handleViewMode("real")}
-              title="Real World — Live Campus"
-              data-selected={viewMode==="real"}
-              className="b b-chip sm gap-1.5"
-            >
-              <Globe className="h-3.5 w-3.5" /> Real World
-            </button>
           </div>
           {/* Mobile compact toggle */}
           <div className="flex items-center gap-1 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-1 sm:hidden">
             <button type="button" onClick={()=> handleViewMode("light")} aria-pressed={viewMode==="light"} title="Light mode" className={`b b-icon sm ${viewMode==="light" ? "b-pri" : ""}`}><Sun className="h-3.5 w-3.5" /></button>
             <button type="button" onClick={()=> handleViewMode("dark")} aria-pressed={viewMode==="dark"} title="Dark mode" className={`b b-icon sm ${viewMode==="dark" ? "b-pri" : ""}`}><Moon className="h-3.5 w-3.5" /></button>
-            <button type="button" onClick={()=> handleViewMode("real")} aria-pressed={viewMode==="real"} title="Real World — Live Campus" className={`b b-icon sm ${viewMode==="real" ? "b-pri" : ""}`}><Globe className="h-3.5 w-3.5" /></button>
           </div>
           {/* Participants Button */}
           <button
@@ -348,16 +333,8 @@ function WaitingRoomPageInner({
         </div>
       </div>
 
-      {/* LiveCampus — only mounted in Real World mode, positioned absolutely to fill screen */}
-      {viewMode === "real" && (
-        <div className="absolute inset-0 z-10 pt-[60px]">
-          <LiveCampus quizId={quizCode} quizName={quiz.name} startsIn={remainingTime} totalCapacity={40} />
-        </div>
-      )}
-
-      {/* Waiting Room UI — hidden in Real World mode */}
-      {viewMode !== "real" && (
-        <QuizPageReady className="flex min-h-0 flex-1 flex-col" label="Loading waiting room">
+      {/* Waiting Room UI */}
+      <QuizPageReady className="flex min-h-0 flex-1 flex-col" label="Loading waiting room">
       {/* Centered Header */}
       <div className="relative z-20 flex flex-col items-center text-center pt-6 pb-4 px-4">
         <motion.div
@@ -522,7 +499,6 @@ function WaitingRoomPageInner({
         <CountdownCard targetAt={quiz.starttime ?? undefined} onStarted={handleStarted} />
       </div>
         </QuizPageReady>
-      )}
 
       {/* Exit Confirmation Modal */}
       <AnimatePresence>

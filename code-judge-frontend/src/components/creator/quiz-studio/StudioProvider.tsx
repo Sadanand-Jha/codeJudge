@@ -1048,7 +1048,8 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         if (!editMode) {
           // Hand off to the edit route on the Problems (questions) step —
           // Setup is already done, so don't make the creator see it twice.
-          window.location.href = `/creator/quizzes/${quizId}/edit?step=questions`;
+          const wantsAi = new URLSearchParams(window.location.search).get("ai") === "1";
+          window.location.assign(`/creator/quizzes/${quizId}/edit?step=questions${wantsAi ? "&ai=1" : ""}`);
           return;
         }
       } catch (err) {

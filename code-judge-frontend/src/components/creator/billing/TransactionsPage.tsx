@@ -472,6 +472,7 @@ export interface TransactionsPageProps {
 export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadReceipt, onDownloadInvoice }: TransactionsPageProps) {
   const toast = useToast();
   const balance = useAICreditsStore((s) => s.balance);
+  const balanceLoaded = useAICreditsStore((s) => s.lastFetchedAt !== null);
   const { catalog } = usePricingCatalog();
   const validityByPack = useMemo(
     () => new Map(catalog.creditPacks.map((pack) => [pack.id, pack.validityMonths])),
@@ -671,7 +672,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
             <StatCard
               label="Credits left"
               value={balance.totalRemaining}
-              display={String(balance.totalRemaining)}
+              display={balanceLoaded ? String(balance.totalRemaining) : "—"}
               accent="info"
               icon={<Wallet className="h-[18px] w-[18px]" />}
               hint={nextExpiry ? `Next expiry: ${fmtDate(nextExpiry.exp)}` : "No active credits"}

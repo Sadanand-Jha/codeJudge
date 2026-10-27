@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import { verifySessionToken } from "../config/jwt.js";
 import redisClient from "../config/redis.js";
 
 // Extend Express Request type to include user
@@ -47,17 +47,18 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     }
 
     // Verify JWT token
-    const jwtSecret = process.env.JWT_SECRET || "your-fallback-secret-key-change-in-production";
-    const decoded = jwt.verify(token, jwtSecret) as {
-      userId: string;
-      email: string;
-    };
+    const decoded = verifySessionToken(token);
+    if (!decoded) {
+      res.status(401).json({
+        success: false,
+        message: "Invalid or expired token",
+        statusCode: 401,
+      });
+      return;
+    }
 
     // Attach user info to request
-    req.user = {
-      userId: decoded.userId,
-      email: decoded.email,
-    };
+    req.user = decoded;
 
     next();
   } catch (error) {

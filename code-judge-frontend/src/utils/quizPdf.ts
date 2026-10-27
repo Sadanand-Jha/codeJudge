@@ -85,9 +85,12 @@ export interface PaperInput {
 /** A single jsPDF instance used for ALL text measurement (identical in preview + PDF). */
 const MEASURE = new jsPDF({ unit: "mm", format: "a4" });
 
+const pdfSafeText = (value: string): string => value.replace(/\u2011/g, "-");
+
 function toPlainText(html: string | null | undefined): string {
   if (!html) return "";
   return String(html)
+    .replace(/\u2011/g, "-")
     .replace(/<[^>]*>/g, " ")
     .replace(/\s+/g, " ")
     .replace(/&nbsp;/g, " ")
@@ -103,6 +106,7 @@ function toPlainText(html: string | null | undefined): string {
 function htmlToLines(html: string | null | undefined): string[] {
   if (!html) return [];
   return String(html)
+    .replace(/\u2011/g, "-")
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(p|div|tr|li|h[1-4]|blockquote|table|thead|tbody)>/gi, "\n")
     .replace(/<[^>]*>/g, "")
@@ -191,7 +195,7 @@ function codeFence(html: string | null | undefined): { code: string[] | null; re
 function wrapLines(text: string, base: PdfBaseFont, style: PdfTextStyle, sizePt: number, widthMm: number): string[] {
   MEASURE.setFont(base, style);
   MEASURE.setFontSize(sizePt);
-  return MEASURE.splitTextToSize(text, widthMm) as string[];
+  return MEASURE.splitTextToSize(pdfSafeText(text), widthMm) as string[];
 }
 
 function lineHeightMm(sizePt: number, factor: number): number {
@@ -281,7 +285,7 @@ function codeBox(lines: string[], o: Spec, width: number): Box {  const wrapped:
   MEASURE.setFont("courier", "normal");
   MEASURE.setFontSize(o.sizePt);
   for (const raw of lines) {
-    const seg = MEASURE.splitTextToSize(raw || " ", width) as string[];
+    const seg = MEASURE.splitTextToSize(pdfSafeText(raw || " "), width) as string[];
     wrapped.push(...(seg.length ? seg : [""]));
   }
   const ls = o.sizePt * 0.3528 * 1.25;

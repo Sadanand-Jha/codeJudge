@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Wallet, ArrowLeftRight, CalendarClock, Sparkles } from "lucide-react";
+import { Wallet, ArrowLeftRight, CalendarClock, Sparkles, History } from "lucide-react";
 import { cn } from "@/lib/helpers";
 
 const BILLING_TABS = [
   { label: "Overview", href: "/creator/billing", icon: Wallet, exact: true },
   { label: "Monthly plans", href: "/creator/billing/plans", icon: CalendarClock },
-  { label: "AI credits", href: "/creator/billing/credits", icon: Sparkles },
+  { label: "AI credits", href: "/creator/billing/credits", icon: Sparkles, exact: true },
+  { label: "Credit usage", href: "/creator/billing/credits/usage", icon: History },
   // Selling tabs disabled for now (routes commented out, components kept):
   // { label: "Earnings", href: "/creator/billing/earnings", icon: TrendingUp },
   { label: "Transactions", href: "/creator/billing/transactions", icon: ArrowLeftRight },

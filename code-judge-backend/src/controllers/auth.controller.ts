@@ -2,9 +2,9 @@
 // login (JWT + Redis session), logout, the /me endpoint, and username availability.
 import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import type { SignOptions } from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import redisClient from "../config/redis.js";
+import { signSessionToken, verifySessionToken } from "../config/jwt.js";
 import { sendOtp, verifyOtp, register, requestPasswordReset, verifyResetOtp, resetPassword, requestOwnerLoginOtp, verifyOwnerLoginOtp } from "../services/auth.js";
 import { UserService } from "../services/database/user.database.js";
 import { userRepository } from "../repositories/user.repository.js";
@@ -386,17 +386,10 @@ export const loginController = async (req: Request, res: Response) => {
     }
 
     // Generate JWT session token
-    const jwtSecret = process.env.JWT_SECRET || "your-fallback-secret-key-change-in-production";
-    const jwtExpiry = process.env.JWT_EXPIRY || "10d";
-    const signOptions: SignOptions = { expiresIn: jwtExpiry as SignOptions['expiresIn'] };
-    const sessionToken = jwt.sign(
-      {
-        userId: String(user.id),
-        email: user.email
-      },
-      jwtSecret,
-      signOptions
-    );
+    const sessionToken = signSessionToken({
+      userId: String(user.id),
+      email: user.email,
+    });
 
     // 1. LOGIN TIME
     res.cookie("session_token", sessionToken, {
@@ -438,7 +431,7 @@ export const loginController = async (req: Request, res: Response) => {
 /**
  * POST /api/auth/owner/send-otp
  * Body: { "email": "owner@example.com" }
- * Sends a one-time login code only to role_id = 2 (owner/admin) accounts.
+ * Sends a one-time login code only to platform-owner role accounts.
  * Always responds generically so owner emails cannot be enumerated.
  * This is the ONLY login path for the private /platform control center —
  * password login is never accepted there (see requireOwner + frontend gate).
@@ -642,11 +635,15 @@ export const meController = async (req: Request, res: Response) => {
     }
 
     // Verify JWT token
-    const jwtSecret = process.env.JWT_SECRET || "your-fallback-secret-key-change-in-production";
-    const decoded = jwt.verify(session_token, jwtSecret) as {
-      userId: string;
-      email: string;
-    };
+    const decoded = verifySessionToken(session_token);
+    if (!decoded) {
+      res.status(401).json({
+        success: false,
+        message: "Invalid or expired session_token",
+        statusCode: 401,
+      });
+      return;
+    }
 
     const mergedData = await buildUserProfile(decoded.userId);
 
@@ -717,11 +714,15 @@ export const getProfileController = async (req: Request, res: Response) => {
     }
 
     // Verify JWT token
-    const jwtSecret = process.env.JWT_SECRET || "your-fallback-secret-key-change-in-production";
-    const decoded = jwt.verify(session_token, jwtSecret) as {
-      userId: string;
-      email: string;
-    };
+    const decoded = verifySessionToken(session_token);
+    if (!decoded) {
+      res.status(401).json({
+        success: false,
+        message: "Invalid or expired session_token",
+        statusCode: 401,
+      });
+      return;
+    }
 
     // Return user identity from token
     res.status(200).json({

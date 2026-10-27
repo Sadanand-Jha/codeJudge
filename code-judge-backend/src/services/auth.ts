@@ -12,6 +12,7 @@ import generateOtp from './otpGenerator.js';
 import { isPlatformOwner } from './platformSession.js';
 import { ensureTrialSubscription } from './entitlement.service.js';
 import { isTransientDatabaseError, withTransientDatabaseRetry } from '../config/database.js';
+import { normalizeAccountRole } from '../constants/accountRoles.ts';
 
 const OTP_TTL_SECONDS = 5 * 60; // 5 minutes — OTP validity
 const OTP_RESEND_COOLDOWN_SECONDS = 60; // 60 seconds — resend cooldown (must match frontend countdown)
@@ -382,7 +383,7 @@ export async function register(
   registrationToken: string,
   username: string,
   avatarUrl: string,
-  accountType: "student" | "teacher"
+  accountType: unknown
 ): Promise<ServiceResponse> {
   try {
     // 1. Validate inputs
@@ -394,6 +395,14 @@ export async function register(
         'Password must be at least 8 characters with 1 uppercase, 1 lowercase, 1 digit, and 1 special character',
         400
       );
+    }
+
+    // Public registration can only ever create a student or teacher account.
+    // This is intentionally checked again here (besides Zod and the SQL role
+    // lookup) so no caller can persist an admin/owner or unknown role.
+    const accountRole = normalizeAccountRole(accountType);
+    if (!accountRole) {
+      return errorResponse('Account type must be either student or teacher', 400);
     }
 
     if (!registrationToken) {
@@ -435,7 +444,7 @@ export async function register(
     const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
     // 6. Save user to database and get the created user record (includes id)
-    const createdUser = await userService.createUser(normalizedEmail, hashedPassword, normalizedUsername, avatarUrl, accountType);
+    const createdUser = await userService.createUser(normalizedEmail, hashedPassword, normalizedUsername, avatarUrl, accountRole);
 
     // 6b. Start the 7-day Basic trial for the new account. A subscription
     // hiccup must never block registration — the entitlement resolver falls
@@ -456,7 +465,7 @@ export async function register(
         user: {
           id: createdUser.id,
           email: normalizedEmail,
-          role: accountType,
+          role: accountRole,
         },
       },
       'Registration successful'
@@ -484,6 +493,10 @@ export async function register(
       return errorResponse('An account with these details already exists', 400);
     }
 
+    if (databaseError.message?.startsWith('Invalid registration role:')) {
+      return errorResponse('Account type must be either student or teacher', 400);
+    }
+
     if (databaseError.message?.startsWith('Registration role is not configured:')) {
       return errorResponse('This account type is temporarily unavailable. Please try again shortly.', 503);
     }
@@ -498,8 +511,9 @@ export async function register(
 
 // --- Owner Login OTP Cache Operations ---
 // Isolated `ownerlogin:` namespace so owner sign-in attempts never interfere
-// with registration or password-reset attempts. Only users with role_id = 2
-// (admin/owner) may receive and redeem an owner login OTP.
+// with registration or password-reset attempts. Only users whose role name is
+// in PLATFORM_OWNER_ROLES (default "admin") may receive and redeem an owner
+// login OTP.
 
 async function cacheOwnerLoginOtp(email: string, otp: string): Promise<void> {
   const key = `ownerlogin_otp:${email.toLowerCase()}`;
@@ -530,12 +544,12 @@ async function deleteCachedOwnerLoginOtp(email: string): Promise<void> {
 }
 
 function isOwnerRole(user: any): boolean {
-  return user != null && isPlatformOwner(user.role_id, user.email);
+  return user != null && isPlatformOwner(user.role_name, user.email);
 }
 
 /**
  * POST /api/auth/owner/send-otp
- * Sends a login OTP only if the email belongs to a role_id = 2 account.
+ * Sends a login OTP only if the email belongs to a platform-owner role.
  * Always returns a generic message so the endpoint cannot be used to
  * enumerate which emails hold owner access.
  */
@@ -602,7 +616,7 @@ export async function requestOwnerLoginOtp(email: string, clientIp?: string): Pr
       return errorResponse(`You have reached the maximum OTP requests. Please try again later.`, 429);
     }
 
-    // Only role_id = 2 accounts receive an OTP — but respond generically.
+    // Only platform-owner roles receive an OTP — but respond generically.
     // Both branches are logged (without the OTP value) so email delivery
     // to non-admins can be audited from server logs.
     const user = await withTransientDatabaseRetry(() => userService.getUserByEmail(normalizedEmail));
@@ -639,7 +653,7 @@ export async function requestOwnerLoginOtp(email: string, clientIp?: string): Pr
 
 /**
  * POST /api/auth/owner/verify-otp
- * Redeems an owner login OTP. Only succeeds for role_id = 2 accounts.
+ * Redeems an owner login OTP. Only succeeds for platform-owner roles.
  * Returns the user id + email so the controller can mint a session.
  */
 export async function verifyOwnerLoginOtp(email: string, otp: string): Promise<ServiceResponse> {

@@ -35,8 +35,6 @@ import {
   type CreatorRecentAttempt,
 } from "@/services/creatorProfile";
 import { getMyCreatedQuizzes, type Quiz } from "@/services/quiz";
-import { WHOLE_QUIZ_AI_ENABLED } from "@/config/creatorFeatures";
-import { toast } from "@/lib/toast";
 
 /* ============================================================
    Types & mapping
@@ -251,14 +249,13 @@ function StatTile({
    Quick actions
    ============================================================ */
 
-const QUICK_ACTIONS: Array<{ title: string; sub: string; href: string; icon: LucideIcon; comingSoon?: boolean }> = [
+const QUICK_ACTIONS: Array<{ title: string; sub: string; href: string; icon: LucideIcon }> = [
   { title: "New quiz", sub: "Build one by hand", href: "/creator/quizzes/create", icon: Plus },
   {
     title: "Generate with AI",
-    sub: WHOLE_QUIZ_AI_ENABLED ? "From files, topics or prompts" : "Coming soon",
-    href: "/creator/quizzes/ai-generate",
+    sub: "From files, topics or prompts",
+    href: "/creator/quizzes/create?ai=1",
     icon: WandSparkles,
-    comingSoon: !WHOLE_QUIZ_AI_ENABLED,
   },
   { title: "Paper builder", sub: "Print-ready papers", href: "/creator/tests/create", icon: FileText },
   { title: "Question bank", sub: "Reuse your problems", href: "/creator/question-bank", icon: Database },
@@ -289,25 +286,9 @@ function QuickActions() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: index * 0.04 }}
           >
-            {action.comingSoon ? (
-              <button
-                type="button"
-                aria-disabled="true"
-                onClick={() =>
-                  toast.info({
-                    title: "Coming soon",
-                    description: "AI quiz generation is not available yet.",
-                  })
-                }
-                className={cn(className, "w-full cursor-not-allowed text-left opacity-60")}
-              >
-                {content}
-              </button>
-            ) : (
-              <Link href={action.href} className={className}>
-                {content}
-              </Link>
-            )}
+            <Link href={action.href} className={className}>
+              {content}
+            </Link>
           </motion.div>
         );
       })}
@@ -353,8 +334,7 @@ function OnboardingCard() {
           Create quiz
         </Link>
         <AiGenerateButton
-          href={WHOLE_QUIZ_AI_ENABLED ? "/creator/quizzes/ai-generate" : undefined}
-          comingSoon={!WHOLE_QUIZ_AI_ENABLED}
+          href="/creator/quizzes/create?ai=1"
           size="md"
           label="Generate with AI"
         />
@@ -492,8 +472,12 @@ function LiveQuizCard({ quiz, onChangeTiming }: { quiz: QuizRow; onChangeTiming:
 
 function CreditsCard() {
   const balance = useAICreditsStore((s) => s.balance);
+  const lastFetchedAt = useAICreditsStore((s) => s.lastFetchedAt);
   const remaining = balance.totalRemaining;
-  const low = checkLowCreditWarning(remaining, balance.monthlyAllowance || remaining || 1);
+  const balanceLoaded = lastFetchedAt !== null;
+  const low =
+    balanceLoaded &&
+    checkLowCreditWarning(remaining, balance.monthlyAllowance || remaining || 1);
   const { catalog } = usePricingCatalog();
   const validityMonths =
     catalog.creditPacks.length > 0
@@ -506,7 +490,9 @@ function CreditsCard() {
         <Sparkles className="h-5 w-5" strokeWidth={2.5} />
       </span>
       <p className="mt-3.5 leading-none">
-        <span className="qs-display text-[44px] font-extrabold tracking-tight text-[var(--qs-ink)]">{remaining}</span>
+        <span className="qs-display text-[44px] font-extrabold tracking-tight text-[var(--qs-ink)]">
+          {balanceLoaded ? remaining : "—"}
+        </span>
         <span className="ml-2.5 align-middle text-[15px] font-bold text-[var(--qs-muted)]">credits left</span>
       </p>
       <p className="mt-1.5 text-[13px] text-[var(--qs-muted)]">
@@ -774,7 +760,7 @@ function RecentQuizzesPanel({ quizzes }: { quizzes: QuizRow[] }) {
       {rows.length === 0 ? (
         <EmptyHint
           text="No quizzes yet."
-          hint="Create one from scratch. AI quiz generation is coming soon."
+          hint="Create one from scratch or let AI generate the questions."
           action={
             <Link href="/creator/quizzes/create" className={BTN_PRI}>
               <Plus className="h-4 w-4" />

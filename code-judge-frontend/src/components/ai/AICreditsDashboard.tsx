@@ -85,6 +85,8 @@ function StatCard({
 export default function AICreditsDashboard({ compact = false }: { compact?: boolean }) {
   const { balance, stats, creator, fairUsage, abuse } = useAICreditsStore();
   const refresh = useAICreditsStore((state) => state.refresh);
+  const lastFetchedAt = useAICreditsStore((state) => state.lastFetchedAt);
+  const balanceLoaded = lastFetchedAt !== null;
   const { catalog } = usePricingCatalog();
   const packs = catalog.creditPacks;
 
@@ -106,7 +108,7 @@ export default function AICreditsDashboard({ compact = false }: { compact?: bool
             <span className="text-[11px] font-semibold text-text-secondary">AI Credits</span>
           </div>
           <span className="text-[11px] font-bold text-accent">
-            {balance.totalRemaining} credits
+            {balanceLoaded ? `${balance.totalRemaining} credits` : "—"}
           </span>
         </div>
         <div className="mt-2">
@@ -136,7 +138,7 @@ export default function AICreditsDashboard({ compact = false }: { compact?: bool
     <div className="ai-credits-dashboard space-y-6">
       {/* Top stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard icon={Sparkles} label="Remaining Credits" value={`${balance.remaining}`} sub={`of ${balance.monthlyAllowance} included`} accent="#8B5CF6" />
+        <StatCard icon={Sparkles} label="Remaining Credits" value={balanceLoaded ? `${balance.remaining}` : "—"} sub={`of ${balance.monthlyAllowance} included`} accent="#8B5CF6" />
         <StatCard icon={Activity} label="Today's Usage" value={stats.consumedToday} sub="credits today" accent="#EC4899" />
         <StatCard icon={Calendar} label="This Month" value={stats.consumedThisMonth} sub={`${balance.monthlyAllowance} total`} accent="#6366F1" />
         <StatCard icon={TrendingUp} label="Est. Days Left" value={stats.estimatedDaysRemaining} sub={`avg ${stats.averageDailyUsage}/day`} accent="#22C55E" />
@@ -144,7 +146,7 @@ export default function AICreditsDashboard({ compact = false }: { compact?: bool
 
       {/* Low credit warning */}
       <AnimatePresence>
-        {balance.monthlyCredits > 0 && remainingMonthly / balance.monthlyCredits < 0.2 && (
+        {balanceLoaded && balance.monthlyCredits > 0 && remainingMonthly / balance.monthlyCredits < 0.2 && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -180,7 +182,9 @@ export default function AICreditsDashboard({ compact = false }: { compact?: bool
           </div>
           <div className="text-right">
             <div className="text-[11px] text-text-muted">Remaining</div>
-            <div className="text-2xl font-extrabold text-accent">{balance.remaining}</div>
+            <div className="text-2xl font-extrabold text-accent">
+              {balanceLoaded ? balance.remaining : "—"}
+            </div>
           </div>
         </div>
         <div className="mt-3">

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpen, Check, Clock, FileText, Search, ShieldCheck, Star, Target } from "lucide-react";
+import { ArrowRight, BookOpen, Check, Clock, FileText, Search, ShieldCheck, Star, Target, WandSparkles } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import { SearchableDropdown } from "@/components/ui";
@@ -17,7 +17,15 @@ const CREATE_CHOICES = [
     icon: FileText,
     desc: "Build manually on an empty canvas, full control.",
   },
+  {
+    id: "ai",
+    label: "Generate with AI",
+    icon: WandSparkles,
+    desc: "Set up the quiz, then generate questions from a file or question bank.",
+  },
 ] as const;
+
+type CreateChoiceId = (typeof CREATE_CHOICES)[number]["id"];
 
 /** Fallback difficulty levels (used until the reference store loads). */
 const FALLBACK_DIFFICULTY = [
@@ -32,7 +40,22 @@ const FIELD_CLS =
 
 export function SetupStep() {
   const { state, updateInfo, editMode } = useStudio();
-  const [choice, setChoice] = useState<"scratch" | null>("scratch");
+  const [choice, setChoice] = useState<CreateChoiceId>("scratch");
+
+  useEffect(() => {
+    if (editMode) return;
+    const wantsAi = new URLSearchParams(window.location.search).get("ai") === "1";
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (wantsAi) setChoice("ai");
+  }, [editMode]);
+
+  const selectChoice = (id: CreateChoiceId) => {
+    setChoice(id);
+    const url = new URL(window.location.href);
+    if (id === "ai") url.searchParams.set("ai", "1");
+    else url.searchParams.delete("ai");
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+  };
 
   const info = state.info;
   const fetchedRef = useRef(false);
@@ -89,9 +112,14 @@ export function SetupStep() {
                   label={c.label}
                   desc={c.desc}
                   selected={choice === c.id}
-                  onClick={() => setChoice(c.id)}
+                  onClick={() => selectChoice(c.id)}
                 />
               ))}
+              {choice === "ai" && (
+                <p className="rounded-[14px] border-2 border-[var(--qs-brand)]/30 bg-[var(--qs-brand)]/5 px-4 py-3 text-xs font-medium text-[var(--qs-muted)]">
+                  Continue after entering the quiz details — AI generation opens on the Questions step.
+                </p>
+              )}
             </motion.section>
           )}
 

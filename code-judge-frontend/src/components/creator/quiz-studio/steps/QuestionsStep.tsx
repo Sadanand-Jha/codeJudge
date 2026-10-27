@@ -15,7 +15,7 @@
  */
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { QuestionList } from "../components/QuestionList";
 import { QuestionEditor } from "../components/QuestionEditor";
@@ -41,6 +41,17 @@ export function QuestionsStep() {
   const { state, addQuestion, importQuestionsAndSave, setActiveQuestion, questionsLoading } = useStudio();
   const [aiOpen, setAiOpen] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (questionsLoading) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("ai") !== "1") return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAiOpen(true);
+    url.searchParams.delete("ai");
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+  }, [questionsLoading]);
+
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [generatedPdfCode, setGeneratedPdfCode] = useState("");
   const pdfCode = state.info.code || generatedPdfCode;

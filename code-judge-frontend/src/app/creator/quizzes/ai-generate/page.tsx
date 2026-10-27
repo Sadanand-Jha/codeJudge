@@ -1,5 +1,3 @@
-import { AiQuizGenerator } from "@/components/creator/ai-quiz-generator/AiQuizGenerator";
-import { WHOLE_QUIZ_AI_ENABLED } from "@/config/creatorFeatures";
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
 
@@ -9,6 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function AiGenerateQuizRoute() {
-  if (!WHOLE_QUIZ_AI_ENABLED) redirect("/creator/quizzes");
-  return <AiQuizGenerator />;
+  redirect("/creator/quizzes/create?ai=1");
 }

@@ -6,7 +6,7 @@ import {
   Sparkles, Upload, FileText, Image, X, ChevronRight, ChevronDown,
   Settings, Play, Pause, RotateCcw, Check, Edit3, Trash2,
   Wand2, FileSpreadsheet, FileType, Archive, CheckCircle2,
-  AlertCircle, Plus, Minus, Sliders, BookOpen,
+  Plus, Minus, Sliders, BookOpen,
   BarChart3, Lightbulb, Tag, ImageIcon, HelpCircle,
   File, FileCode, FileImage, FileArchive, FileText as FileTxt,
   ChevronLeft, GripVertical, Eye, Download, RefreshCw,
@@ -170,7 +170,6 @@ export default function AIStudio({
   const [generationProgress, setGenerationProgress] = useState(0);
   const [showReviewOverlay, setShowReviewOverlay] = useState(false);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
-  const [estimatedCredits, setEstimatedCredits] = useState(0);
   const [isDragOver, setIsDragOver] = useState(false);
   const [showSmartSuggestions, setShowSmartSuggestions] = useState(true);
   // Database question-bank controls — balanced 10 paper by default 4/3/3
@@ -184,19 +183,12 @@ export default function AIStudio({
   const [bankTopicId, setBankTopicId] = useState<number | null>(null);
   const [bankKind, setBankKind] = useState<"any" | "theory" | "numerical">("any");
 
-  const { balance, refresh } = useAICreditConsumption();
+  const { balance, refresh, lastFetchedAt } = useAICreditConsumption();
+  const estimatedCredits = Math.round(8 + options.numberOfQuestions * 1.5);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
-
-  // Calculate estimated credits
-  useEffect(() => {
-    const baseCost = 8;
-    const perQuestion = 1.5;
-    const estimated = Math.round(baseCost + (options.numberOfQuestions * perQuestion));
-    setEstimatedCredits(estimated);
-  }, [options.numberOfQuestions]);
 
   /* ============================================
      File Upload Handlers
@@ -1028,7 +1020,10 @@ export default function AIStudio({
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-text-muted pt-2 border-t border-accent/20">
-                  <span>Available: {balance.totalRemaining} credits</span>
+                  <span>
+                    Available:{" "}
+                    {lastFetchedAt === null ? "—" : balance.totalRemaining} credits
+                  </span>
                   <span>Cost: ~{estimatedCredits} credits</span>
                 </div>
               </div>

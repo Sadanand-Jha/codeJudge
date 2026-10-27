@@ -1,5 +1,6 @@
 import { getAuthHeaders } from "@/lib/authHeaders";
-import { useAICreditsStore } from "@/store/aiCreditsStore";
+import { useAICreditsStore, ensureAiCreditsOrNotify } from "@/store/aiCreditsStore";
+import { MIN_CREDITS_MESSAGE } from "@/config/aiCredits";
 
 const rawBase =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
@@ -33,14 +34,25 @@ export interface GenerationMeta {
   credits?: ServerCreditCharge;
 }
 
+/** Block AI requests until the account has the minimum working balance. */
+const assertAiCredits = async () => {
+  if (!(await ensureAiCreditsOrNotify())) {
+    throw new Error(MIN_CREDITS_MESSAGE);
+  }
+};
+
 /** Keep the in-memory balance aligned with the backend's post-charge value. */
-const syncServerCredits = (credits?: ServerCreditCharge) => {
+export const syncServerCredits = (credits?: ServerCreditCharge) => {
   if (
     credits &&
     typeof credits.creditsRemaining === "number" &&
     Number.isFinite(credits.creditsRemaining)
   ) {
-    useAICreditsStore.getState().syncServerBalance(credits.creditsRemaining);
+    const store = useAICreditsStore.getState();
+    store.syncServerBalance(credits.creditsRemaining);
+    if ((credits.creditsCharged ?? 0) > 0) {
+      void store.refresh();
+    }
   }
 };
 
@@ -253,6 +265,7 @@ export const generateQuestionsFromFiles = async (
   files: File[],
   options: GenerateFromFilesOptions
 ): Promise<RawAIGeneratedQuestion[]> => {
+  await assertAiCredits();
   const formData = new FormData();
   files.forEach((file) => formData.append("files", file));
 
@@ -298,6 +311,7 @@ export const generateQuestionsFromFilesStream = async (
   callbacks: StreamCallbacks,
   signal?: AbortSignal
 ): Promise<void> => {
+  await assertAiCredits();
   const formData = new FormData();
   files.forEach((file) => formData.append("files", file));
 
@@ -360,6 +374,7 @@ export interface GenerateFromBankResponse {
 export const generateFromQuestionBank = async (
   options: GenerateFromBankOptions
 ): Promise<RawAIGeneratedQuestion[]> => {
+  await assertAiCredits();
   const response = await fetch(`${API_BASE}/v1/user/ai/generate-from-bank`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
@@ -435,6 +450,7 @@ export const streamChat = async (
   callbacks: StreamCallbacks,
   signal?: AbortSignal
 ): Promise<void> => {
+  await assertAiCredits();
   const response = await fetch(`${API_BASE}/v1/user/ai/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
@@ -458,6 +474,7 @@ export const streamChatWithFiles = async (
   callbacks: StreamCallbacks,
   signal?: AbortSignal
 ): Promise<void> => {
+  await assertAiCredits();
   const formData = new FormData();
   formData.append("prompt", prompt);
   files.forEach((file) => formData.append("files", file));
@@ -582,6 +599,7 @@ export const generateFromQuestionBankStream = async (
   callbacks: StreamCallbacks,
   signal?: AbortSignal
 ): Promise<void> => {
+  await assertAiCredits();
   const response = await fetch(`${API_BASE}/v1/user/ai/generate-from-bank?stream=1`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },

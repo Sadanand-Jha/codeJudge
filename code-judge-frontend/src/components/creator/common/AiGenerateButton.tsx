@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/helpers";
 import { toast } from "@/lib/toast";
+import { requireAiCreditsOrNotify } from "@/store/aiCreditsStore";
 
 type AiGenerateButtonSize = "sm" | "md" | "lg";
 
@@ -62,9 +63,18 @@ export function AiGenerateButton({
     );
   }
 
+  const notifyIfNeeded = () => {
+    requireAiCreditsOrNotify();
+  };
+
   if (href && !disabled) {
     return (
-      <Link href={href} className={classes} aria-label={ariaLabel ?? label}>
+      <Link
+        href={href}
+        onClick={notifyIfNeeded}
+        className={classes}
+        aria-label={ariaLabel ?? label}
+      >
         <span>{label}</span>
       </Link>
     );
@@ -73,7 +83,10 @@ export function AiGenerateButton({
   return (
     <button
       type={type}
-      onClick={onClick}
+      onClick={() => {
+        notifyIfNeeded();
+        onClick?.();
+      }}
       disabled={disabled}
       className={classes}
       aria-label={ariaLabel ?? label}

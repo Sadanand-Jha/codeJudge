@@ -2,13 +2,15 @@
 
 import { useState, useCallback } from "react";
 import { useAICreditConsumption } from "@/hooks/useAICreditConsumption";
+import { MIN_CREDITS_TO_GENERATE } from "@/config/aiCredits";
 import { toast } from "@/lib/toast";
 
 /* ============================================
    Example: AI Hint Feature with Credit Consumption
    ============================================ */
 export default function AIHintExample() {
-  const { consume, refund, completeRequest, balance, isLowCredit, recommendedPack } = useAICreditConsumption();
+  const { consume, refund, completeRequest, balance, lastFetchedAt, isLowCredit, recommendedPack } = useAICreditConsumption();
+  const hasEnoughCredits = balance.totalRemaining >= MIN_CREDITS_TO_GENERATE;
   const [loading, setLoading] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
 
@@ -99,7 +101,9 @@ export default function AIHintExample() {
           <div className="flex items-center justify-between text-[11px] mb-1">
             <span className="text-text-secondary">Your Balance</span>
             <span className={`font-semibold ${isLowCredit ? "text-[#EF4444]" : "text-text-primary"}`}>
-              {balance.remaining} / {balance.monthlyAllowance}
+              {lastFetchedAt === null
+                ? "—"
+                : `${balance.remaining} / ${balance.monthlyAllowance}`}
             </span>
           </div>
           <div className="h-1.5 rounded-full bg-card-hover overflow-hidden">
@@ -112,7 +116,7 @@ export default function AIHintExample() {
       </div>
 
       {/* Low credit warning */}
-      {isLowCredit && (
+      {isLowCredit && hasEnoughCredits && (
         <div className="rounded-xl border border-[#EF4444]/30 bg-[#EF4444]/10 px-3 py-2">
           <p className="text-[10px] text-[#EF4444] font-medium">
             You&apos;re running low on credits. Consider purchasing more.
@@ -137,7 +141,7 @@ export default function AIHintExample() {
       {/* Action button */}
       <button
         onClick={handleGetHint}
-        disabled={loading || balance.totalRemaining <= 0}
+        disabled={loading}
         className="w-full rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-2.5 text-[12px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] transition-all hover:shadow-[0_6px_24px_rgba(236,72,153,0.5)] disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? (
@@ -154,7 +158,7 @@ export default function AIHintExample() {
       </button>
 
       {/* Buy credits button when low */}
-      {isLowCredit && (
+      {isLowCredit && hasEnoughCredits && (
         <button
           onClick={() => {
             toast.info("Coming soon!", { description: "Credit pack purchase will be available shortly." });

@@ -1,18 +1,21 @@
 "use client";
 
-import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Sparkles, X } from "lucide-react";
-import { useAICreditsStore, checkLowCreditWarning } from "@/store/aiCreditsStore";
+import { useAICreditsStore } from "@/store/aiCreditsStore";
+import { MIN_CREDITS_TO_GENERATE, MIN_CREDITS_MESSAGE } from "@/config/aiCredits";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { formatPricingAmount } from "@/services/pricing";
 
 export default function LowCreditNotification() {
-  const { balance } = useAICreditsStore();
+  const {
+    balance,
+    insufficientCreditsNotice,
+    dismissInsufficientCreditsNotice,
+  } = useAICreditsStore();
   const { catalog } = usePricingCatalog();
-  const [dismissed, setDismissed] = useState(false);
 
-  const isLow = checkLowCreditWarning(balance.remaining, balance.monthlyAllowance);
+  const belowMinimum = balance.totalRemaining < MIN_CREDITS_TO_GENERATE;
   const usageRatio =
     balance.monthlyAllowance > 0 ? 1 - balance.remaining / balance.monthlyAllowance : 0;
   const recommended = catalog.creditPacks.length > 0
@@ -22,15 +25,15 @@ export default function LowCreditNotification() {
         return usageRatio > 0.8 ? bRate - aRate : aRate - bRate;
       })[0]
     : null;
-  const visible = isLow && !dismissed && balance.monthlyAllowance > 0;
+  const visible = belowMinimum && insufficientCreditsNotice;
 
   const handleBuyCredits = (packId: string) => {
-    setDismissed(true);
+    dismissInsufficientCreditsNotice();
     window.location.href = `/creator/billing/credits?pack=${encodeURIComponent(packId)}`;
   };
 
   const handleDismiss = () => {
-    setDismissed(true);
+    dismissInsufficientCreditsNotice();
   };
 
   return (
@@ -56,9 +59,12 @@ export default function LowCreditNotification() {
               <AlertTriangle className="h-5 w-5 text-[#EF4444]" />
             </div>
             <div className="flex-1 pr-6">
-              <h3 className="text-[12px] font-bold text-text-primary">Low AI Credits</h3>
+              <h3 className="text-[12px] font-bold text-text-primary">
+                Not enough AI credits
+              </h3>
               <p className="text-[10px] text-text-secondary mt-0.5">
-                You have <span className="font-bold text-text-primary">{balance.remaining}</span> credits left
+                {MIN_CREDITS_MESSAGE} You have{" "}
+                <span className="font-bold text-text-primary">{balance.totalRemaining}</span>.
               </p>
             </div>
           </div>
@@ -87,6 +93,7 @@ export default function LowCreditNotification() {
           {/* View all packs link */}
           <button
             onClick={() => {
+              dismissInsufficientCreditsNotice();
               window.location.href = "/creator/billing/credits";
             }}
             className="text-[10px] font-semibold text-accent hover:text-accent-secondary transition-colors flex items-center gap-1"

@@ -34,6 +34,7 @@ import {
   StatusBadge,
 } from "@/components/creator/billing/ui";
 import { useToast } from "@/hooks/useToast";
+import { requireAiCreditsOrNotify } from "@/store/aiCreditsStore";
 
 type AiTab = "files" | "topic" | "chat";
 
@@ -186,6 +187,7 @@ export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
   };
 
   const generate = () => {
+    if (!requireAiCreditsOrNotify()) return;
     setGenerating(true);
     setTimeout(() => {
       setGenerating(false);
@@ -199,6 +201,7 @@ export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
   const send = () => {
     const text = draft.trim();
     if (!text) return;
+    if (!requireAiCreditsOrNotify()) return;
     setMessages((prev) => [...prev, { id: `u_${Date.now()}`, role: "user", text }]);
     setDraft("");
     setTimeout(() => {

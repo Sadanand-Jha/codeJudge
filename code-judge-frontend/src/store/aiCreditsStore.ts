@@ -13,6 +13,8 @@ import {
   ABUSE_RULES,
   creditCostMap,
   LOW_CREDIT_THRESHOLD,
+  MIN_CREDITS_TO_GENERATE,
+  MIN_CREDITS_MESSAGE,
   type AICreditFeatureId,
   type CreditPurchasePack,
 } from "@/config/aiCredits";
@@ -99,8 +101,15 @@ interface AICreditsState {
   fairUsage: FairUsageStatus;
   abuse: AbuseDetectionStatus;
   purchases: AICreditPurchase[];
+  isLoading: boolean;
+  lastFetchedAt: number | null;
+  error: string | null;
+  /** Set when a generation attempt is blocked by the minimum balance. */
+  insufficientCreditsNotice: boolean;
 
   /* actions */
+  showInsufficientCreditsNotice: () => void;
+  dismissInsufficientCreditsNotice: () => void;
   consumeCredits: (featureId: AICreditFeatureId, metadata?: CreditMetadata) => Promise<{ success: boolean; reason?: string; retryAfterMs?: number; message?: string }>;
   refundCredits: (featureId: AICreditFeatureId) => Promise<void>;
   completeRequest: () => void;
@@ -117,8 +126,10 @@ interface AICreditsState {
       price?: number;
     }
   ) => Promise<void>;
-  refresh: () => Promise<void>;
+  refresh: (options?: { force?: boolean }) => Promise<void>;
 }
+
+let refreshPromise: Promise<void> | null = null;
 
 export const useAICreditsStore = create<AICreditsState>((set, get) => ({
   balance: {
@@ -141,14 +152,38 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
   fairUsage: EMPTY_FAIR_USAGE,
   abuse: EMPTY_ABUSE,
   purchases: [],
+  isLoading: false,
+  lastFetchedAt: null,
+  error: null,
+  insufficientCreditsNotice: false,
+
+  showInsufficientCreditsNotice: () => set({ insufficientCreditsNotice: true }),
+
+  dismissInsufficientCreditsNotice: () => set({ insufficientCreditsNotice: false }),
 
   consumeCredits: async (featureId, metadata?: CreditMetadata): Promise<{ success: boolean; reason?: string; retryAfterMs?: number; message?: string }> => {
     const cost = creditCostMap[featureId];
     if (!cost) return { success: false, reason: "invalid_feature" };
 
-    const { balance, fairUsage } = get();
+    // A fresh session starts at zero; fetch the real balance before deciding.
+    if (get().lastFetchedAt === null) {
+      await get().refresh();
+    }
+    if (get().lastFetchedAt === null) {
+      return { success: false, reason: "balance_unavailable" };
+    }
 
-    // Free plans can spend purchased credits; paid plans also include monthly credits.
+    const { balance, fairUsage, stats } = get();
+
+    // Generation requires a small working balance on top of this request's cost.
+    if (balance.totalRemaining < MIN_CREDITS_TO_GENERATE) {
+      return {
+        success: false,
+        reason: "insufficient_credits" as const,
+        message: MIN_CREDITS_MESSAGE,
+      };
+    }
+
     // Check credits - use totalRemaining
     if (balance.totalRemaining < cost) {
       return { success: false, reason: "insufficient_credits" as const };
@@ -193,6 +228,10 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
         totalRemaining: balance.totalRemaining - cost,
         remaining: balance.totalRemaining - cost, // backward compat
       },
+      stats: {
+        ...stats,
+        remaining: balance.totalRemaining - cost,
+      },
       fairUsage: {
         ...fairUsage,
         requestsThisHour: fairUsage.requestsThisHour + 1,
@@ -207,7 +246,7 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
   refundCredits: async (featureId) => {
     const cost = creditCostMap[featureId];
     if (!cost) return;
-    const { balance, fairUsage } = get();
+    const { balance, fairUsage, stats } = get();
     set({
       balance: {
         ...balance,
@@ -217,6 +256,10 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
         consumedThisHour: Math.max(0, balance.consumedThisHour - cost),
         totalRemaining: balance.totalRemaining + cost,
         remaining: balance.totalRemaining + cost, // backward compat
+      },
+      stats: {
+        ...stats,
+        remaining: balance.totalRemaining + cost,
       },
       fairUsage: {
         ...fairUsage,
@@ -243,6 +286,12 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
         totalRemaining: next,
         remaining: next,
       },
+      stats: {
+        ...state.stats,
+        remaining: next,
+      },
+      insufficientCreditsNotice:
+        next >= MIN_CREDITS_TO_GENERATE ? false : state.insufficientCreditsNotice,
     }));
   },
 
@@ -250,13 +299,20 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
     const credits = meta?.credits ?? 0;
     if (credits <= 0) return;
 
-    const { balance, purchases } = get();
+    const { balance, purchases, stats } = get();
+    const nextRemaining = balance.totalRemaining + credits;
     set({
       balance: {
         ...balance,
         purchasedCredits: balance.purchasedCredits + credits,
-        totalRemaining: balance.totalRemaining + credits,
-        remaining: balance.totalRemaining + credits, // backward compat
+        totalRemaining: nextRemaining,
+        remaining: nextRemaining, // backward compat
+      },
+      insufficientCreditsNotice:
+        nextRemaining >= MIN_CREDITS_TO_GENERATE ? false : get().insufficientCreditsNotice,
+      stats: {
+        ...stats,
+        remaining: balance.totalRemaining + credits,
       },
       purchases: [
         ...purchases,
@@ -274,40 +330,61 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
     });
   },
 
-  refresh: async () => {
-    try {
-      const snapshot = await getCreditBalance();
-      const planTotal = Math.max(0, snapshot.planCreditsTotal);
-      const purchasedTotal = Math.max(0, snapshot.purchasedCreditsTotal);
-      const planRemaining = Math.max(0, snapshot.planCredits);
-      const purchasedRemaining = Math.max(0, snapshot.purchasedCredits);
-      const expiry = snapshot.nearestExpiry
-        ? Date.parse(snapshot.nearestExpiry)
-        : 0;
-
-      set((state) => ({
-        balance: {
-          ...state.balance,
-          monthlyCredits: planTotal,
-          monthlyAllowance: planTotal,
-          monthlyCreditsConsumed: Math.max(0, planTotal - planRemaining),
-          monthlyCreditsExpiry: Number.isFinite(expiry) ? expiry : 0,
-          purchasedCredits: purchasedTotal,
-          purchasedCreditsConsumed: Math.max(0, purchasedTotal - purchasedRemaining),
-          totalRemaining: Math.max(0, snapshot.balance),
-          remaining: Math.max(0, snapshot.balance),
-          hasActiveSubscription:
-            state.balance.hasActiveSubscription || planTotal > 0,
-        },
-        stats: {
-          ...state.stats,
-          remaining: Math.max(0, snapshot.balance),
-          monthlyAllowance: planTotal,
-        },
-      }));
-    } catch {
-      // Keep the last known balance when the API is unavailable.
+  refresh: async (options) => {
+    if (refreshPromise) {
+      if (!options?.force) return refreshPromise;
+      await refreshPromise;
     }
+
+    refreshPromise = (async () => {
+      set({ isLoading: true, error: null });
+      try {
+        const snapshot = await getCreditBalance();
+        const planTotal = Math.max(0, snapshot.planCreditsTotal);
+        const purchasedTotal = Math.max(0, snapshot.purchasedCreditsTotal);
+        const planRemaining = Math.max(0, snapshot.planCredits);
+        const purchasedRemaining = Math.max(0, snapshot.purchasedCredits);
+        const expiry = snapshot.nearestExpiry
+          ? Date.parse(snapshot.nearestExpiry)
+          : 0;
+
+        set((state) => ({
+          balance: {
+            ...state.balance,
+            monthlyCredits: planTotal,
+            monthlyAllowance: planTotal,
+            monthlyCreditsConsumed: Math.max(0, planTotal - planRemaining),
+            monthlyCreditsExpiry: Number.isFinite(expiry) ? expiry : 0,
+            purchasedCredits: purchasedTotal,
+            purchasedCreditsConsumed: Math.max(0, purchasedTotal - purchasedRemaining),
+            totalRemaining: Math.max(0, snapshot.balance),
+            remaining: Math.max(0, snapshot.balance),
+            hasActiveSubscription:
+              state.balance.hasActiveSubscription || planTotal > 0,
+          },
+          stats: {
+            ...state.stats,
+            remaining: Math.max(0, snapshot.balance),
+            monthlyAllowance: planTotal,
+          },
+          insufficientCreditsNotice:
+            snapshot.balance >= MIN_CREDITS_TO_GENERATE
+              ? false
+              : state.insufficientCreditsNotice,
+          isLoading: false,
+          lastFetchedAt: Date.now(),
+        }));
+      } catch (error) {
+        set({
+          isLoading: false,
+          error: error instanceof Error ? error.message : "Failed to load credits",
+        });
+      } finally {
+        refreshPromise = null;
+      }
+    })();
+
+    return refreshPromise;
   },
 }));
 
@@ -388,6 +465,41 @@ function detectAbuse(
   }
 
   return { isFlagged: false, activeRules: [], action: "none" };
+}
+
+/**
+ * Gate an AI action behind the minimum working balance. On failure the shared
+ * low-credit banner is shown so the user sees why the action stopped.
+ */
+export function requireAiCreditsOrNotify(): boolean {
+  const state = useAICreditsStore.getState();
+  if (state.balance.totalRemaining >= MIN_CREDITS_TO_GENERATE) return true;
+  // Before the first successful fetch the zero balance is not authoritative.
+  if (state.lastFetchedAt === null) {
+    void state.refresh();
+    return true;
+  }
+  state.showInsufficientCreditsNotice();
+  return false;
+}
+
+/**
+ * Async variant for request guards: waits for the first balance fetch so a
+ * fresh session doesn't block (or allow) generation on a placeholder zero.
+ */
+export async function ensureAiCreditsOrNotify(): Promise<boolean> {
+  const state = useAICreditsStore.getState();
+  if (state.balance.totalRemaining >= MIN_CREDITS_TO_GENERATE) return true;
+  if (state.lastFetchedAt === null) {
+    await state.refresh();
+  }
+
+  const latest = useAICreditsStore.getState();
+  if (latest.balance.totalRemaining >= MIN_CREDITS_TO_GENERATE) return true;
+  // Balance is still unknown (fetch failed) — let the server make the call.
+  if (latest.lastFetchedAt === null) return true;
+  latest.showInsufficientCreditsNotice();
+  return false;
 }
 
 export function checkLowCreditWarning(remaining: number, monthlyAllowance: number): boolean {

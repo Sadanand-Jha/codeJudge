@@ -227,6 +227,7 @@ ABSOLUTE RULES:
 - Vary wording and structure; avoid duplicates and near-duplicates.
 - For numerical questions, ensure the answer is unambiguous and calculable from the wording.
 - Always include "questionHtml": the same question rendered as clean semantic HTML. If the question contains tabular data, render it as a real <table> — never leave pipe-separated rows or space-aligned columns as plain text.
+- Write mathematical notation as plain text, e.g. T(n)=aT(n/b)+f(n) and f(n). Never wrap formulas, equations or math symbols in <code>; reserve <code> for literal source code.
 
 OUTPUT SHAPE:
 { "generated": [{ "question": "...", "questionHtml": "<p>...</p>", "difficulty": "easy", "kind": "Theory", "chapterId": 12, "topicId": 34 }] }

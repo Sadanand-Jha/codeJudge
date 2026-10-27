@@ -35,6 +35,7 @@ import { SectionBlueprintLibrary } from "./sections/SectionBlueprintLibrary";
 import type { QuestionPaper } from "./sections/paperTypes";
 import { saveTestRecord } from "@/utils/savedTests";
 import { DEFAULT_PAPER_HEADER, parseTimeAllowedMinutes, type PaperHeaderMeta } from "@/utils/paperHeader";
+import { requireAiCreditsOrNotify } from "@/store/aiCreditsStore";
 import {
   type Section,
   createDefaultSection,
@@ -714,7 +715,10 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                   </button>
                   <button
                     type="button"
-                    onClick={() => setAiModalOpen(true)}
+                    onClick={() => {
+                      requireAiCreditsOrNotify();
+                      setAiModalOpen(true);
+                    }}
                     className="b b-pri sm flex-1 shrink-0 gap-1.5 sm:flex-none"
                   >
                     <Sparkles className="h-3.5 w-3.5" /> Generate with AI

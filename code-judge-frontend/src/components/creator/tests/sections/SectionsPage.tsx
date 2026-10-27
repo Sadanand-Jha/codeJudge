@@ -30,6 +30,7 @@ import {
   getSectionMarks,
 } from "./types";
 import { DEFAULT_PAPER_HEADER, parseTimeAllowedMinutes, type PaperHeaderMeta } from "@/utils/paperHeader";
+import { requireAiCreditsOrNotify } from "@/store/aiCreditsStore";
 import { saveTestRecord } from "@/utils/savedTests";
 import type { QuestionPaper } from "./paperTypes";
 
@@ -212,7 +213,10 @@ export function SectionsPage() {
           </button>
           <button
             type="button"
-            onClick={() => setAiModalOpen(true)}
+            onClick={() => {
+              requireAiCreditsOrNotify();
+              setAiModalOpen(true);
+            }}
             className="col-span-2 inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] sm:col-span-1"
           >
             <Sparkles className="h-3.5 w-3.5" />

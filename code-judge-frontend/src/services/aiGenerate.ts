@@ -1,5 +1,8 @@
 import type { AIGenerateResponse } from "@/components/creator/tests/sections/aiTypes";
 import { getAuthHeaders } from "@/lib/authHeaders";
+import { syncServerCredits } from "@/services/ai";
+import { ensureAiCreditsOrNotify } from "@/store/aiCreditsStore";
+import { MIN_CREDITS_MESSAGE } from "@/config/aiCredits";
 import type {
   GeneratePaperPayload,
   GeneratePaperResponse,
@@ -14,6 +17,13 @@ const rawBase =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://api.quizsupport.com/api";
 const API_BASE = rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "");
+
+/** Block AI requests until the account has the minimum working balance. */
+const assertAiCredits = async () => {
+  if (!(await ensureAiCreditsOrNotify())) {
+    throw new Error(MIN_CREDITS_MESSAGE);
+  }
+};
 
 export interface QuestionGeneratorCatalog {
   subjects: Array<{ id: number; name: string }>;
@@ -92,6 +102,7 @@ export async function generateTestSectionsFromPDF(
   files: File[],
   signal?: AbortSignal
 ): Promise<AIGenerateResponse> {
+  await assertAiCredits();
   const formData = new FormData();
   for (const file of files) formData.append("files", file);
 
@@ -109,6 +120,7 @@ export async function generateTestSectionsFromPDF(
     throw new Error(json.message || `Request failed with status ${response.status}`);
   }
 
+  syncServerCredits(json.data?.credits);
   return json.data;
 }
 
@@ -122,6 +134,7 @@ export async function generateQuestionPaper(
   payload: GeneratePaperPayload,
   signal?: AbortSignal
 ): Promise<GeneratePaperResponse> {
+  await assertAiCredits();
   const response = await fetch(`${API_BASE}/v1/admin/tests/generate-paper`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
@@ -136,6 +149,7 @@ export async function generateQuestionPaper(
     throw new Error(json.message || `Request failed with status ${response.status}`);
   }
 
+  syncServerCredits(json.data?.credits);
   return json.data;
 }
 
@@ -219,6 +233,7 @@ export async function generateSubjectiveQuestions(
   payload: GenerateQuestionsPayload,
   signal?: AbortSignal
 ): Promise<GenerateQuestionsResponse> {
+  await assertAiCredits();
   const response = await fetch(`${API_BASE}/v1/admin/tests/generate-questions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
@@ -233,5 +248,6 @@ export async function generateSubjectiveQuestions(
     throw new Error(json.message || `Request failed with status ${response.status}`);
   }
 
+  syncServerCredits(json.data?.credits);
   return json.data;
 }

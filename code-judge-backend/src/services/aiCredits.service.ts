@@ -15,6 +15,9 @@ export const TOKENS_PER_AI_CREDIT = 1_000;
 /** Smallest billable charge. Any non-zero usage costs at least one credit. */
 export const MIN_AI_CREDIT_CHARGE = 1;
 
+/** Minimum balance required before any AI generation request is accepted. */
+export const MIN_AI_CREDITS_TO_GENERATE = 5;
+
 export interface AiCreditCharge {
   /** Credits debited for this request. */
   creditsCharged: number;
@@ -71,23 +74,23 @@ function numericUserId(userId: string | number): number {
 }
 
 /**
- * Rejects requests from accounts with no spendable AI credits. Called before
- * generation starts so a zero-balance account cannot consume model tokens.
+ * Rejects requests from accounts below the minimum generation balance. Called
+ * before generation starts so an under-funded account cannot consume tokens.
  */
 export async function assertAiCreditsAvailable(
   userId: string | number
 ): Promise<number> {
   const id = numericUserId(userId);
   const balance = await getCreditBalance(String(id));
-  if (balance.total > 0) return balance.total;
+  if (balance.total >= MIN_AI_CREDITS_TO_GENERATE) return balance.total;
 
   throw new EntitlementError(
     "NO_AI_CREDITS",
-    "You do not have enough AI credits for this action. Buy a credit pack to continue.",
+    `You need at least ${MIN_AI_CREDITS_TO_GENERATE} AI credits to generate. Buy a credit pack to continue.`,
     {
-      limit: MIN_AI_CREDIT_CHARGE,
+      limit: MIN_AI_CREDITS_TO_GENERATE,
       used: 0,
-      remaining: 0,
+      remaining: balance.total,
       requiredPlan: null,
       upgradeUrl: "/pricing/credits",
     }

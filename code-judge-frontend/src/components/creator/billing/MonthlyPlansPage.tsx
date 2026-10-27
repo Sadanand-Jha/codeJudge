@@ -11,7 +11,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { getApiErrorMessage } from "@/lib/apiError";
 import { formatTrialEnd, getTrialState, useMySubscription } from "@/hooks/useMySubscription";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { useToast } from "@/hooks/useToast";
@@ -226,7 +225,6 @@ export function MonthlyPlansPage() {
   const toast = useToast();
   const [checkoutPlan, setCheckoutPlan] = useState<PricingPlan | null>(null);
   const [phase, setPhase] = useState<PurchasePhase>("summary");
-  const [phaseError, setPhaseError] = useState<string | null>(null);
   const [processingNote, setProcessingNote] = useState("Creating your order…");
   const [receipt, setReceipt] = useState<PlanPurchaseReceipt | null>(null);
 
@@ -260,7 +258,6 @@ export function MonthlyPlansPage() {
     if (phase === "processing") return;
     setCheckoutPlan(null);
     setPhase("summary");
-    setPhaseError(null);
     setReceipt(null);
   };
 
@@ -268,7 +265,6 @@ export function MonthlyPlansPage() {
     if (phase === "processing") return;
     setCheckoutPlan(plan);
     setPhase("summary");
-    setPhaseError(null);
     setReceipt(null);
   };
 
@@ -277,7 +273,6 @@ export function MonthlyPlansPage() {
     if (!plan || phase === "processing") return;
 
     setPhase("processing");
-    setPhaseError(null);
     setReceipt(null);
     try {
       setProcessingNote("Creating your order…");
@@ -300,7 +295,7 @@ export function MonthlyPlansPage() {
 
       setProcessingNote("Activating your plan…");
       const verified = await verifyPlanPayment(order, payment);
-      await Promise.allSettled([refreshSubscription(), refreshCredits()]);
+      await Promise.allSettled([refreshSubscription(), refreshCredits({ force: true })]);
 
       setReceipt({
         transactionId: verified.transactionId,
@@ -315,9 +310,7 @@ export function MonthlyPlansPage() {
         description: `${verified.planName ?? plan.name} is now active.`,
       });
     } catch (error) {
-      setPhaseError(
-        getApiErrorMessage(error, "We could not complete this purchase. Please try again.")
-      );
+      console.error("Plan purchase failed:", error);
       setPhase("failed");
     }
   };
@@ -487,14 +480,12 @@ export function MonthlyPlansPage() {
             plan={checkoutPlan}
             balance={balance.totalRemaining}
             phase={phase}
-            phaseError={phaseError}
             processingNote={processingNote}
             receipt={receipt}
             onClose={closeCheckout}
             onPay={() => void runPlanPurchase()}
             onBack={() => {
               setPhase("summary");
-              setPhaseError(null);
             }}
           />
         )}

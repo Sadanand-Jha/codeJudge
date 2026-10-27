@@ -26,7 +26,6 @@ import { cn } from "@/lib/helpers";
 import { deriveQuizStatus, type EffectiveQuizStatus } from "@/lib/quizStatus";
 import { deleteQuiz, getMyCreatedQuizzes, type Quiz } from "@/services/quiz";
 import { toast } from "@/lib/toast";
-import { WHOLE_QUIZ_AI_ENABLED } from "@/config/creatorFeatures";
 
 type QuizStatus = EffectiveQuizStatus;
 type TabId = "all" | QuizStatus;
@@ -186,23 +185,16 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
           <div className="min-w-0 flex-1">
             <p className="flex flex-wrap items-center gap-2 text-[12px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-brand)]">
               AI service
-              {!WHOLE_QUIZ_AI_ENABLED && (
-                <span className="rounded-full border-2 border-[#a85d00]/30 bg-[#fff3d6] px-2 py-0.5 text-[10px] tracking-[0.06em] text-[#a85d00]">
-                  Coming soon
-                </span>
-              )}
             </p>
             <h2 className="qs-display mt-1 text-[20px] font-extrabold text-[var(--qs-ink)]">
               Build your next quiz with AI
             </h2>
             <p className="mt-1 text-[13px] text-[var(--qs-muted)]">
-              {WHOLE_QUIZ_AI_ENABLED
-                ? "Upload a problem list and generate a complete, review-ready quiz in minutes."
-                : "AI quiz generation from a problem list is coming soon."}
+              Set up the quiz, then generate review-ready questions from a file or your question bank.
             </p>
           </div>
           <AiGenerateButton
-            href="/creator/quizzes/create"
+            href="/creator/quizzes/create?ai=1"
             size="md"
             label="Generate with AI"
             className="shrink-0"
@@ -239,7 +231,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
         <div className="rounded-[16px] border-2 border-dashed border-[var(--qs-line)] px-6 py-16 text-center">
           <p className="qs-display text-[20px] font-extrabold text-[var(--qs-ink)]">No quizzes yet</p>
           <p className="mx-auto mt-1.5 max-w-sm text-[13px] text-[var(--qs-muted)]">
-            Create one from scratch. AI quiz generation is coming soon.
+            Create one from scratch or let AI generate the questions.
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-2">
             <Link href="/creator/quizzes/create" className={BTN_PRI_SM}>
@@ -247,7 +239,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
               New quiz
             </Link>
             <AiGenerateButton
-              href="/creator/quizzes/create"
+              href="/creator/quizzes/create?ai=1"
               size="sm"
               label="Generate with AI"
             />

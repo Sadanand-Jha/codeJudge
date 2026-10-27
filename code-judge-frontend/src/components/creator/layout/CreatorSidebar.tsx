@@ -11,6 +11,7 @@ import {
   Coins,
   CalendarClock,
   ArrowLeftRight,
+  History,
   ArrowLeft,
   BookOpen,
   UserRound,
@@ -105,7 +106,8 @@ const _FULL_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
     items: [
       { label: "Billing overview", href: "/creator/billing", icon: Wallet, exact: true },
       { label: "Monthly plans", href: "/creator/billing/plans", icon: CalendarClock },
-      { label: "AI credits", href: "/creator/billing/credits", icon: Coins },
+      { label: "AI credits", href: "/creator/billing/credits", icon: Coins, exact: true },
+      { label: "Credit usage", href: "/creator/billing/credits/usage", icon: History },
       { label: "Transactions", href: "/creator/billing/transactions", icon: ArrowLeftRight },
       // Selling pages disabled for now (routes commented out, components kept):
       // { label: "Earnings", href: "/creator/billing/earnings", icon: TrendingUp },

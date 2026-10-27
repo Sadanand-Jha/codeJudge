@@ -723,7 +723,9 @@ export function AiGenerateModal({
     bankTheory + bankNumerical === bankNumber &&
     !!bankSubjectId;
   const canGenerateFromFiles = files.length > 0 && !error;
-  const primaryDisabled = (mode === "bank" ? !canGenerateFromBank : !canGenerateFromFiles) || !!quizLimitError;
+  const primaryDisabled =
+    (mode === "bank" ? !canGenerateFromBank : !canGenerateFromFiles) ||
+    !!quizLimitError;
 
   const liveTotal = mode === "bank" ? bankNumber : FILE_GENERATION_COUNT;
   const liveDraftCount = generating

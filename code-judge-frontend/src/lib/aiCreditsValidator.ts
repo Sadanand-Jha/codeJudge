@@ -9,7 +9,13 @@
  */
 
 import type { AICreditFeatureId } from "@/config/aiCredits";
-import { FAIR_USAGE_LIMITS, ABUSE_RULES, creditCostMap } from "@/config/aiCredits";
+import {
+  FAIR_USAGE_LIMITS,
+  ABUSE_RULES,
+  creditCostMap,
+  MIN_CREDITS_TO_GENERATE,
+  MIN_CREDITS_MESSAGE,
+} from "@/config/aiCredits";
 
 /* ============================================
    Validation Result Types
@@ -19,6 +25,7 @@ export interface CreditValidationResult {
   reason?: string;
   retryAfterMs?: number;
   creditsRequired: number;
+  message?: string;
 }
 
 export interface FairUsageCheck {
@@ -72,6 +79,15 @@ export function validateAICredits(params: {
   }
 
   // Insufficient credits
+  if (remainingCredits < MIN_CREDITS_TO_GENERATE) {
+    return {
+      allowed: false,
+      reason: "insufficient_credits",
+      creditsRequired: MIN_CREDITS_TO_GENERATE,
+      message: MIN_CREDITS_MESSAGE,
+    };
+  }
+
   if (remainingCredits < cost) {
     return {
       allowed: false,

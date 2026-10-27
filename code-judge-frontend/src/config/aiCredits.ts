@@ -138,6 +138,12 @@ export const RATE_LIMIT_CONFIG: RateLimitConfig = {
 };
 
 /* ============================================
+   Minimum generation balance
+   ============================================ */
+export const MIN_CREDITS_TO_GENERATE = 5;
+export const MIN_CREDITS_MESSAGE = `You need at least ${MIN_CREDITS_TO_GENERATE} credits to generate with AI.`;
+
+/* ============================================
    Low-credit threshold
    ============================================ */
 export const LOW_CREDIT_THRESHOLD = 0.2; // 20% of monthly allowance

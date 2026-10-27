@@ -18,11 +18,20 @@ import {
 import { cn } from "@/lib/helpers";
 import { formatTrialEnd, getTrialState, useMySubscription } from "@/hooks/useMySubscription";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
-import { getBillingTransactions, type BillingTransaction } from "@/services/billing";
+import {
+  getBillingTransactions,
+  getCreditTransactions,
+  type BillingTransaction,
+  type CreditLedgerEntry,
+} from "@/services/billing";
 import { useBillingData } from "./hooks";
 import { ErrorState, Skeleton, formatINR } from "./ui";
 import { checkLowCreditWarning, useAICreditsStore } from "@/store/aiCreditsStore";
-import type { AICreditPurchase, AICreditUsageEntry } from "@/types/aiCredits";
+import type {
+  AICreditPurchase,
+  AICreditUsageEntry,
+  AICreditUsageStats,
+} from "@/types/aiCredits";
 
 const BTN =
   "inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]";
@@ -45,6 +54,93 @@ function formatTime(ts: number): string {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+const AI_USAGE_LABELS: Record<string, string> = {
+  ai_chat: "AI chat",
+  ai_chat_files: "AI chat with files",
+  ai_generate_questions: "Question generation",
+  ai_generate_problems: "Question generation",
+  ai_generate_bank: "Question generation",
+  ai_generate_sections: "Section generation",
+  ai_generate_paper: "Question paper generation",
+};
+
+function toUsageEntry(row: CreditLedgerEntry): AICreditUsageEntry {
+  const timestamp = new Date(row.createdAt).getTime();
+  return {
+    id: row.id,
+    featureId: row.reason as AICreditUsageEntry["featureId"],
+    featureLabel: AI_USAGE_LABELS[row.reason] ?? row.reason.replaceAll("_", " "),
+    credits: Math.abs(row.amount),
+    status: "success",
+    timestamp: Number.isNaN(timestamp) ? Date.now() : timestamp,
+  };
+}
+
+function dayKey(date: Date): string {
+  return date.toLocaleDateString("en-CA", { timeZone: getUserTimeZone() });
+}
+
+function buildUsageStats(
+  entries: CreditLedgerEntry[],
+  spentThisMonth: number,
+  totalRemaining: number,
+  fallback: AICreditUsageStats
+): AICreditUsageStats {
+  const now = new Date();
+  const today = dayKey(now);
+  const start = new Date(now);
+  start.setDate(start.getDate() - 29);
+  start.setHours(0, 0, 0, 0);
+
+  const byDay = new Map<string, number>();
+  const recentRequests: AICreditUsageEntry[] = [];
+  let consumedToday = 0;
+  let spentLast30Days = 0;
+
+  for (const entry of entries) {
+    if (entry.amount >= 0 || !entry.reason.startsWith("ai_")) continue;
+    const date = new Date(entry.createdAt);
+    if (Number.isNaN(date.getTime())) continue;
+    const credits = Math.abs(entry.amount);
+    const key = dayKey(date);
+
+    if (key === today) consumedToday += credits;
+    if (date >= start) {
+      spentLast30Days += credits;
+      byDay.set(key, (byDay.get(key) ?? 0) + credits);
+    }
+    if (recentRequests.length < 6) recentRequests.push(toUsageEntry(entry));
+  }
+
+  const monthlyGraph = Array.from({ length: 30 }, (_, index) => {
+    const date = new Date(now);
+    date.setDate(date.getDate() - (29 - index));
+    return {
+      day: date.toLocaleDateString("en-IN", {
+        timeZone: getUserTimeZone(),
+        day: "numeric",
+        month: "short",
+      }),
+      credits: byDay.get(dayKey(date)) ?? 0,
+    };
+  });
+
+  const averageDailyUsage = spentLast30Days / 30;
+
+  return {
+    ...fallback,
+    consumedToday,
+    consumedThisMonth: spentThisMonth,
+    averageDailyUsage: Math.round(averageDailyUsage),
+    estimatedDaysRemaining:
+      averageDailyUsage > 0
+        ? Math.round(totalRemaining / averageDailyUsage)
+        : 0,
+    monthlyGraph: spentLast30Days > 0 ? monthlyGraph : [],
+    recentRequests,
+  };
 }
 
 function formatPurchaseDate(ts: number): string {
@@ -140,9 +236,11 @@ function UsageStatus({ entry }: { entry: AICreditUsageEntry }) {
 function CreditsCard({
   balance,
   low,
+  loaded,
 }: {
   balance: ReturnType<typeof useAICreditsStore.getState>["balance"];
   low: boolean;
+  loaded: boolean;
 }) {
   const monthlyTotal = Math.max(balance.monthlyCredits, 0);
   const monthlyUsed = Math.min(Math.max(balance.monthlyCreditsConsumed, 0), monthlyTotal || balance.monthlyCreditsConsumed);
@@ -178,7 +276,7 @@ function CreditsCard({
 
         <p className="mt-4 leading-none">
           <span className="qs-display text-[48px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-[56px]">
-            {balance.totalRemaining.toLocaleString("en-IN")}
+            {loaded ? balance.totalRemaining.toLocaleString("en-IN") : "—"}
           </span>
           <span className="ml-2.5 align-middle text-[15px] font-bold text-[var(--qs-muted)]">credits left</span>
         </p>
@@ -378,7 +476,7 @@ function RecentUsageCard({ entries }: { entries: AICreditUsageEntry[] }) {
       title="Recent AI usage"
       subtitle="Latest credit-consuming operations"
       action={
-        <Link href="/creator/billing/transactions" className="inline-flex items-center gap-1 text-[12px] font-bold text-[var(--qs-brand)] hover:underline">
+        <Link href="/creator/billing/credits/usage" className="inline-flex items-center gap-1 text-[12px] font-bold text-[var(--qs-brand)] hover:underline">
           All
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>
@@ -544,29 +642,51 @@ function PlanSummaryStrip({
 export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" }) {
   const { state, data, retry } = useBillingData(
     () => {
-      const store = useAICreditsStore.getState();
-      return getBillingTransactions(20)
-        .then((rows) => {
-          const current = useAICreditsStore.getState();
-          return {
-            balance: current.balance,
-            stats: current.stats,
-            purchases: rows
-              .filter((row) => row.orderType === "credit_pack" && row.status === "paid")
-              .map(toTopUp),
-          };
-        })
-        .catch(() => ({ balance: store.balance, stats: store.stats, purchases: store.purchases }));
+      return Promise.all([
+        getBillingTransactions(20).catch(() => null),
+        getCreditTransactions({ limit: 100, type: "spent" }).catch(() => null),
+      ]).then(([rows, ledger]) => {
+        const current = useAICreditsStore.getState();
+        const stats = ledger
+          ? buildUsageStats(
+              ledger.entries,
+              ledger.summary.spentThisMonth,
+              current.balance.totalRemaining,
+              current.stats
+            )
+          : current.stats;
+        return {
+          balance: current.balance,
+          stats,
+          purchases: rows
+            ? rows
+                .filter(
+                  (row) =>
+                    row.orderType === "credit_pack" && row.status === "paid"
+                )
+                .map(toTopUp)
+            : current.purchases,
+        };
+      });
     },
     { demoState }
   );
   const refresh = useAICreditsStore((store) => store.refresh);
+  const liveBalance = useAICreditsStore((store) => store.balance);
+  const balanceLoaded = useAICreditsStore(
+    (store) => store.lastFetchedAt !== null
+  );
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  const low = data ? checkLowCreditWarning(data.balance.totalRemaining, data.balance.monthlyAllowance || data.balance.monthlyCredits || 1) : false;
+  const low = data
+    ? checkLowCreditWarning(
+        liveBalance.totalRemaining,
+        liveBalance.monthlyAllowance || liveBalance.monthlyCredits || 1
+      )
+    : false;
 
   return (
     <div className="space-y-5 pb-2">
@@ -604,11 +724,18 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
 
       {state === "ready" && data && (
         <>
-          <PlanSummaryStrip planId={data.balance.planId} purchasedCredits={data.balance.purchasedCredits} />
+          <PlanSummaryStrip
+            planId={liveBalance.planId}
+            purchasedCredits={liveBalance.purchasedCredits}
+          />
 
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
             <div className="lg:col-span-2">
-              <CreditsCard balance={data.balance} low={low} />
+              <CreditsCard
+                balance={liveBalance}
+                low={low}
+                loaded={balanceLoaded}
+              />
             </div>
             <TopUpsCard purchases={data.purchases} />
           </div>
@@ -618,7 +745,7 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
               label="Used this month"
               value={data.stats.consumedThisMonth.toLocaleString("en-IN")}
               unit="credits"
-              hint={`of ${data.balance.monthlyCredits.toLocaleString("en-IN")} included`}
+              hint={`of ${liveBalance.monthlyCredits.toLocaleString("en-IN")} included`}
               color={METRIC_COLORS.warning}
               icon={<Flame className="h-4 w-4" />}
             />

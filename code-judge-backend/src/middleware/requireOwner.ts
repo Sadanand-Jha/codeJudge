@@ -15,9 +15,11 @@ import {
  * verification. Regular user sessions (`session_token`, password login) are
  * rejected here — even for admins — so OTP is mandatory for platform access.
  *
- * Ownership is then re-checked against the database on every request:
- * users.role_id = 2 (admin), or email in PLATFORM_OWNER_EMAILS.
- * Never rely on client-side checks alone.
+ * Ownership is then re-checked against the database on every request: the
+ * account's role name must be in PLATFORM_OWNER_ROLES (default "admin"), or its
+ * email must be in PLATFORM_OWNER_EMAILS. Never rely on client-side checks.
+ * Role names are used instead of a hardcoded role id because ids differ between
+ * databases.
  */
 
 export const requireOwner = async (req: Request, res: Response, next: NextFunction) => {
@@ -47,16 +49,18 @@ export const requireOwner = async (req: Request, res: Response, next: NextFuncti
 
     req.user = { userId: claims.userId, email: claims.email };
 
-    // Ownership check: role-based (role_id = 2) or explicit allowlist.
-    let roleId: number | null = null;
+    // Ownership check: role name or explicit allowlist.
+    let roleName: string | null = null;
     let dbEmail: string | null = null;
     try {
       const r = await withTransientDatabaseRetry(() => pool.query(
-        `SELECT u.email AS email, u.role_id AS role_id
-         FROM users u WHERE u.id = $1 LIMIT 1`,
+        `SELECT u.email AS email, LOWER(r.name) AS role_name
+         FROM users u
+         LEFT JOIN role r ON u.role_id = r.id
+         WHERE u.id = $1 LIMIT 1`,
         [claims.userId]
       ));
-      roleId = r.rows[0]?.role_id ?? null;
+      roleName = r.rows[0]?.role_name ?? null;
       dbEmail = r.rows[0]?.email ?? null;
     } catch (error) {
       // The dedicated token can only be minted after OTP verification and a
@@ -74,7 +78,7 @@ export const requireOwner = async (req: Request, res: Response, next: NextFuncti
     }
 
     const email = (dbEmail || claims.email || "").toLowerCase();
-    if (!isPlatformOwner(roleId, email)) {
+    if (!isPlatformOwner(roleName, email)) {
       res.status(403).json({ success: false, message: "Forbidden: owner access required", statusCode: 403 });
       return;
     }

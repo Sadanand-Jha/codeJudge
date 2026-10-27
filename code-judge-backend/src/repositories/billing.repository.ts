@@ -119,6 +119,24 @@ export interface CreditBalanceSummary {
   nearestExpiry: Date | null;
 }
 
+export type CreditLedgerFilter = "spent" | "added" | null;
+
+export interface CreditLedgerRow {
+  id: string;
+  amount: number;
+  reason: string;
+  refId: string | null;
+  balanceAfter: number | null;
+  orderNo: string | null;
+  createdAt: Date;
+}
+
+export interface CreditSpendSummary {
+  totalSpent: number;
+  spentThisMonth: number;
+  spendCount: number;
+}
+
 /**
  * Converts PostgreSQL numeric values to numbers with a fallback. Counts and money arrive as strings in some driver paths, so every mapping goes through here.
  */
@@ -965,6 +983,76 @@ export async function insertCreditTransaction(
       input.balanceAfter,
     ]
   );
+}
+
+/**
+ * Returns the user's credit ledger entries plus all-time AI spend aggregates.
+ * Spend totals only include debit reasons prefixed with `ai_`; payment refund
+ * adjustments are not AI usage. The caller requests one extra row to detect
+ * whether another page exists.
+ */
+export async function listCreditLedger(
+  userId: string,
+  input: {
+    limit: number;
+    offset: number;
+    filter: CreditLedgerFilter;
+  },
+  db: Db = pool
+): Promise<{ rows: CreditLedgerRow[]; summary: CreditSpendSummary }> {
+  const [listResult, summaryResult] = await Promise.all([
+    db.query(
+      `SELECT ct.id, ct.amount, ct.reason, ct.ref_id, ct.balance_after,
+              ct.created_at, o.order_no
+       FROM credit_transactions ct
+       LEFT JOIN orders o ON o.id = ct.order_id
+       WHERE ct.user_id = $1
+         AND (
+           $2::text IS NULL
+           OR ($2 = 'spent' AND ct.amount < 0)
+           OR ($2 = 'added' AND ct.amount > 0)
+         )
+       ORDER BY ct.created_at DESC, ct.id DESC
+       LIMIT $3 OFFSET $4`,
+      [userId, input.filter, input.limit, input.offset]
+    ),
+    db.query(
+      `SELECT COALESCE(SUM(-amount) FILTER (
+                WHERE amount < 0 AND reason LIKE 'ai_%'
+              ), 0)::bigint AS total_spent,
+              COALESCE(SUM(-amount) FILTER (
+                WHERE amount < 0
+                  AND reason LIKE 'ai_%'
+                  AND created_at >= date_trunc('month', CURRENT_TIMESTAMP)
+              ), 0)::bigint AS spent_this_month,
+              COUNT(*) FILTER (
+                WHERE amount < 0 AND reason LIKE 'ai_%'
+              )::int AS spend_count
+       FROM credit_transactions
+       WHERE user_id = $1`,
+      [userId]
+    ),
+  ]);
+
+  const summaryRow = summaryResult.rows[0] ?? {};
+  return {
+    rows: listResult.rows.map((row) => ({
+      id: String(row.id),
+      amount: toNumber(row.amount),
+      reason: String(row.reason),
+      refId: row.ref_id == null ? null : String(row.ref_id),
+      balanceAfter:
+        row.balance_after == null ? null : toNumber(row.balance_after),
+      orderNo: row.order_no == null ? null : String(row.order_no),
+      createdAt:
+        toDate(row.created_at) ?? new Date(0),
+    })),
+    summary: {
+      totalSpent: toNumber(summaryRow.total_spent),
+      spentThisMonth: toNumber(summaryRow.spent_this_month),
+      spendCount: toNumber(summaryRow.spend_count),
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------

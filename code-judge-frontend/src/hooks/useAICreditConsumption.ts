@@ -11,11 +11,15 @@ import type { AICreditFeatureId } from "@/config/aiCredits";
    ============================================ */
 export function useAICreditConsumption() {
   const consumeCredits = useAICreditsStore((s) => s.consumeCredits);
+  const showInsufficientCreditsNotice = useAICreditsStore(
+    (s) => s.showInsufficientCreditsNotice
+  );
   const refundCredits = useAICreditsStore((s) => s.refundCredits);
   const completeRequest = useAICreditsStore((s) => s.completeRequest);
   const syncServerBalance = useAICreditsStore((s) => s.syncServerBalance);
   const refreshBalance = useAICreditsStore((s) => s.refresh);
   const balance = useAICreditsStore((s) => s.balance);
+  const lastFetchedAt = useAICreditsStore((s) => s.lastFetchedAt);
   const purchasePack = useAICreditsStore((s) => s.purchasePack);
   const { catalog } = usePricingCatalog();
 
@@ -47,8 +51,12 @@ export function useAICreditConsumption() {
       // Handle specific failure reasons
       switch (result.reason) {
         case "insufficient_credits":
+          showInsufficientCreditsNotice();
           options?.onInsufficientCredits?.();
-          options?.onError?.("insufficient_credits", "You don't have enough AI credits for this request.");
+          options?.onError?.(
+            "insufficient_credits",
+            result.message || "You don't have enough AI credits for this request."
+          );
           break;
         case "hourly_limit_exceeded":
           options?.onError?.("hourly_limit_exceeded", "You've reached the maximum number of requests per hour. Please wait.");
@@ -62,6 +70,12 @@ export function useAICreditConsumption() {
         case "abuse_detected":
           options?.onError?.("abuse_detected", result.message || "Suspicious activity detected. Please slow down.");
           break;
+        case "balance_unavailable":
+          options?.onError?.(
+            "balance_unavailable",
+            "We couldn't verify your AI credit balance. Please try again."
+          );
+          break;
         case "no_subscription":
           options?.onError?.("no_subscription", "You need an active subscription to use AI features.");
           break;
@@ -74,7 +88,7 @@ export function useAICreditConsumption() {
 
       return { allowed: false, reason: result.reason, message: result.message };
     },
-    [consumeCredits]
+    [consumeCredits, showInsufficientCreditsNotice]
   );
 
   const refund = useCallback(
@@ -115,6 +129,7 @@ export function useAICreditConsumption() {
     syncServerBalance,
     refresh: refreshBalance,
     balance,
+    lastFetchedAt,
     purchasePack: buyCredits,
     isLowCredit,
     recommendedPack,

@@ -206,6 +206,36 @@ export const listTransactionsHandler = async (
 };
 
 /**
+ * Returns a bounded, newest-first page of the user's credit ledger along with
+ * all-time AI spend totals. `type=spent|added` filters entries by direction.
+ */
+export const listCreditTransactionsHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const requestedLimit = Number(req.query.limit);
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.min(100, Math.max(1, Math.trunc(requestedLimit)))
+      : 25;
+    const requestedOffset = Number(req.query.offset);
+    const offset = Number.isFinite(requestedOffset)
+      ? Math.max(0, Math.trunc(requestedOffset))
+      : 0;
+    const rawType = typeof req.query.type === "string" ? req.query.type : "";
+    const filter =
+      rawType === "spent" || rawType === "added" ? rawType : null;
+    const data = await billingService.listCreditTransactions(
+      userIdFrom(req),
+      { limit, offset, filter }
+    );
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    sendBillingError(res, error);
+  }
+};
+
+/**
  * Returns the current status of one user-owned order. This supports polling after checkout while webhooks settle.
  */
 export const getOrderHandler = async (

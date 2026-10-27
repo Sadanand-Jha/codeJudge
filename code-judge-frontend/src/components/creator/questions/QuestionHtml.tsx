@@ -67,6 +67,20 @@ function preTextToTable(pre: HTMLPreElement): HTMLDivElement | null {
   return wrapper;
 }
 
+/* Models often wrap formulas such as T(n)=aT(n/b)+f(n) or f(n) in <code>.
+   Inline-code styling (monospace, smaller type, padding) then breaks the
+   sentence and adds a gap before punctuation. Detect those math-only code
+   spans and render them as normal text; real code keeps its styling. */
+const INLINE_MATH_CHARS = /^[\sA-Za-z0-9()[\]{}+\-*/=<>^.,|!]+$/;
+
+function looksLikeInlineMath(text: string): boolean {
+  const value = text.trim();
+  if (!value || value.length > 160) return false;
+  if (!/[()]/.test(value)) return false;
+  if (!INLINE_MATH_CHARS.test(value)) return false;
+  return /[A-Za-z0-9)]\s*[=+\-*/^<>]|[A-Za-z][A-Za-z0-9]*\s*\(/.test(value);
+}
+
 /* Render-time only: swap a space-aligned <pre> block for a real <table> so
    data tables read as tables; stored HTML is never modified. */
 export function renderQuestionHtml(html: string): string {
@@ -76,6 +90,12 @@ export function renderQuestionHtml(html: string): string {
   template.content.querySelectorAll("pre").forEach((pre) => {
     const table = preTextToTable(pre);
     if (table) pre.replaceWith(table);
+  });
+  template.content.querySelectorAll("code").forEach((code) => {
+    if (code.closest("pre")) return;
+    const text = code.textContent ?? "";
+    if (!looksLikeInlineMath(text)) return;
+    code.replaceWith(code.ownerDocument.createTextNode(text));
   });
   const holder = document.createElement("div");
   holder.appendChild(template.content.cloneNode(true));

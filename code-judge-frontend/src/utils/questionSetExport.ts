@@ -79,6 +79,7 @@ const normalizeWhitespace = (value: string) => value.replace(/\s+/g, " ").trim()
  * readable ASCII instead of letting jsPDF emit a missing-glyph box.
  */
 const PDF_GLYPH_REPLACEMENTS: Record<string, string> = {
+  "\u2011": "-",
   "\u2208": " in ",
   "\u2209": " not in ",
   "\u2282": " subset of ",
@@ -90,7 +91,7 @@ const PDF_GLYPH_REPLACEMENTS: Record<string, string> = {
 };
 
 const pdfSafeText = (value: string): string =>
-  value.replace(/[\u2208\u2209\u2282\u2286\u222a\u2207\u21d2\u21d0]/g, (char) => PDF_GLYPH_REPLACEMENTS[char] ?? char);
+  value.replace(/[\u2011\u2208\u2209\u2282\u2286\u222a\u2207\u21d2\u21d0]/g, (char) => PDF_GLYPH_REPLACEMENTS[char] ?? char);
 
 const styleOf = (run: Run): FontStyle =>
   run.bold && run.italic ? "bolditalic" : run.bold ? "bold" : run.italic ? "italic" : "normal";
@@ -445,9 +446,10 @@ const drawJustifiedText = (
   color: [number, number, number]
 ) => {
   setFont(doc, FONT, style, size, color);
-  const words = pdfSafeText(text).split(/\s+/).filter(Boolean);
+  const safeText = pdfSafeText(text);
+  const words = safeText.split(/\s+/).filter(Boolean);
   if (words.length < 2) {
-    doc.text(text, x, baselineY);
+    doc.text(safeText, x, baselineY);
     return;
   }
   const natural = doc.getTextWidth(words.join(" "));
