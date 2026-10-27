@@ -1,5 +1,6 @@
 import type { AIGenerateResponse } from "@/components/creator/tests/sections/aiTypes";
 import { getAuthHeaders } from "@/lib/authHeaders";
+import { syncServerCredits } from "@/services/ai";
 import type {
   GeneratePaperPayload,
   GeneratePaperResponse,
@@ -109,6 +110,7 @@ export async function generateTestSectionsFromPDF(
     throw new Error(json.message || `Request failed with status ${response.status}`);
   }
 
+  syncServerCredits(json.data?.credits);
   return json.data;
 }
 
@@ -136,6 +138,7 @@ export async function generateQuestionPaper(
     throw new Error(json.message || `Request failed with status ${response.status}`);
   }
 
+  syncServerCredits(json.data?.credits);
   return json.data;
 }
 
@@ -233,5 +236,6 @@ export async function generateSubjectiveQuestions(
     throw new Error(json.message || `Request failed with status ${response.status}`);
   }
 
+  syncServerCredits(json.data?.credits);
   return json.data;
 }

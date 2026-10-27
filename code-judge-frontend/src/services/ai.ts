@@ -34,7 +34,7 @@ export interface GenerationMeta {
 }
 
 /** Keep the in-memory balance aligned with the backend's post-charge value. */
-const syncServerCredits = (credits?: ServerCreditCharge) => {
+export const syncServerCredits = (credits?: ServerCreditCharge) => {
   if (
     credits &&
     typeof credits.creditsRemaining === "number" &&

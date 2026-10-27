@@ -80,6 +80,12 @@ export interface AISection {
 
 export interface AIGenerateResponse {
   sections: AISection[];
+  credits?: {
+    creditsCharged?: number;
+    tokensUsed?: number;
+    creditsRemaining?: number;
+    error?: string;
+  };
 }
 
 export type AIGenerateStatus =
