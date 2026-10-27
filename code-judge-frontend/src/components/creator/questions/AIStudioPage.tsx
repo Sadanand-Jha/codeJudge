@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import {
   Bot,
   CheckCircle2,
@@ -10,6 +11,7 @@ import {
   FileSpreadsheet,
   FileText,
   Image,
+  Lock,
   Minus,
   Plus,
   Presentation,
@@ -34,6 +36,7 @@ import {
   StatusBadge,
 } from "@/components/creator/billing/ui";
 import { useToast } from "@/hooks/useToast";
+import { useFileUploadAccess } from "@/hooks/useFileUploadAccess";
 
 type AiTab = "files" | "topic" | "chat";
 
@@ -152,6 +155,8 @@ function SelectField({
 
 export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
   const toast = useToast();
+  const { canUploadFiles, isLoading: subscriptionLoading, upgradeHref, upgradeMessage } =
+    useFileUploadAccess();
   const { state, data, retry } = useBillingData(
     () => ({ generations: RECENT_GENERATIONS }),
     { delayMs: 650, demoState }
@@ -178,6 +183,12 @@ export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
   const handleFiles = (files: FileList | null) => {
     const n = files?.length ?? 0;
     if (n === 0) return;
+    if (!canUploadFiles) {
+      if (!subscriptionLoading) {
+        toast.error({ title: "Upgrade required", description: upgradeMessage });
+      }
+      return;
+    }
     setFileCount((c) => c + n);
     toast.success({
       title: "Files added",
@@ -263,7 +274,8 @@ export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
                   handleFiles(e.dataTransfer.files);
                 }}
                 className={cn(
-                  "ai-upload-zone flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-14 text-center transition-colors",
+                  "ai-upload-zone flex flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-14 text-center transition-colors",
+                  canUploadFiles ? "cursor-pointer" : "cursor-not-allowed",
                   dragging
                     ? "border-pink-500/50 bg-pink-500/[0.06] dark:border-ai-accent/50"
                     : "border-border bg-card hover:border-pink-500/30 dark:hover:border-ai-accent/30"
@@ -275,20 +287,38 @@ export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
                   multiple
                   className="hidden"
                   accept=".pdf,.docx,.ppt,.pptx,.csv,.txt,.png,.jpg,.jpeg"
+                  disabled={!canUploadFiles || subscriptionLoading}
                   onChange={(e) => {
                     handleFiles(e.target.files);
                     e.target.value = "";
                   }}
                 />
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500/15 to-violet-600/15 text-pink-500 dark:text-ai-accent">
-                  <Upload className="h-5 w-5" />
-                </div>
-                <p className="mt-4 text-[15px] font-semibold text-text-primary">Drag &amp; drop or browse</p>
-                <p className="mt-1 text-[13px] text-text-secondary">PDF, DOCX, PPT, CSV, TXT, Images</p>
-                {fileCount > 0 && (
-                  <p className="mt-2 text-xs font-semibold text-pink-500 dark:text-ai-accent">
-                    {fileCount} file{fileCount === 1 ? "" : "s"} selected
-                  </p>
+                {!subscriptionLoading && !canUploadFiles ? (
+                  <>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500/15 to-violet-600/15 text-pink-500 dark:text-ai-accent">
+                      <Lock className="h-5 w-5" />
+                    </div>
+                    <p className="mt-4 text-[15px] font-semibold text-text-primary">File uploads are paid-only</p>
+                    <p className="mt-1 text-[13px] text-text-secondary">
+                      <Link href={upgradeHref} className="font-semibold text-pink-500 underline dark:text-ai-accent">
+                        Upgrade your plan
+                      </Link>{" "}
+                      to generate questions from your materials.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500/15 to-violet-600/15 text-pink-500 dark:text-ai-accent">
+                      <Upload className="h-5 w-5" />
+                    </div>
+                    <p className="mt-4 text-[15px] font-semibold text-text-primary">Drag &amp; drop or browse</p>
+                    <p className="mt-1 text-[13px] text-text-secondary">PDF, DOCX, PPT, CSV, TXT, Images</p>
+                    {fileCount > 0 && (
+                      <p className="mt-2 text-xs font-semibold text-pink-500 dark:text-ai-accent">
+                        {fileCount} file{fileCount === 1 ? "" : "s"} selected
+                      </p>
+                    )}
+                  </>
                 )}
               </label>
 
@@ -308,8 +338,16 @@ export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
                 <BillButton
                   icon={<Sparkles className="h-4 w-4" />}
                   loading={generating}
-                  onClick={generate}
-                  disabled={generating}
+                  onClick={() => {
+                    if (!canUploadFiles) {
+                      if (!subscriptionLoading) {
+                        toast.error({ title: "Upgrade required", description: upgradeMessage });
+                      }
+                      return;
+                    }
+                    generate();
+                  }}
+                  disabled={generating || subscriptionLoading || !canUploadFiles}
                 >
                   {generating ? "Generating..." : "Generate Questions"}
                 </BillButton>

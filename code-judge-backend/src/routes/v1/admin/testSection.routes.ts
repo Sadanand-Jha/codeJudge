@@ -5,6 +5,7 @@ import type { NextFunction, Request, Response } from "express";
 import multer from "multer";
 import { authenticate } from "../../../middleware/auth.ts";
 import { requireActiveAiUser } from "../../../middleware/requireActiveAiUser.ts";
+import { requirePaidPlan } from "../../../middleware/requirePaidPlan.ts";
 import { generateSections, generatePaper, downloadPaper, generateQuestions, questionGeneratorCatalog, recordQuestionUsage, getSectionBlueprints, saveSectionBlueprint, useSectionBlueprint, removeSectionBlueprint } from "../../../controllers/testSection.controller.ts";
 import { randomizeUploadFilename } from "../../../utils/uploadName.ts";
 
@@ -44,6 +45,7 @@ const safeSingleUpload = (req: Request, res: Response, next: NextFunction) => {
 
 router.post(
   "/generate-sections",
+  requirePaidPlan,
   safeSingleUpload,
   generateSections
 );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -15,9 +16,11 @@ import {
   Layers3,
   Clock3,
   ShieldCheck,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
+import { useFileUploadAccess } from "@/hooks/useFileUploadAccess";
 import { AiStreamText } from "@/components/ui";
 import { generateTestSectionsFromPDF } from "@/services/aiGenerate";
 import { convertAIResponseToSections } from "./convertAIResponse";
@@ -71,6 +74,8 @@ export function AIGenerateModal({
   existingSectionCount,
 }: AIGenerateModalProps) {
   const toast = useToast();
+  const { canUploadFiles, isLoading: subscriptionLoading, upgradeHref, upgradeMessage } =
+    useFileUploadAccess();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -101,6 +106,13 @@ export function AIGenerateModal({
   }, [status, reset, onClose]);
 
   const addFiles = useCallback((incoming: FileList | File[]) => {
+    if (!canUploadFiles) {
+      setError({ type: "upload", message: upgradeMessage });
+      if (!subscriptionLoading) {
+        toast.error({ title: "Upgrade required", description: upgradeMessage });
+      }
+      return;
+    }
     const selected = Array.from(incoming);
     if (selected.length === 0) return;
     const invalid = selected.find((file) => !SUPPORTED_EXTENSIONS.has(file.name.split(".").pop()?.toLocaleLowerCase() ?? ""));
@@ -122,7 +134,7 @@ export function AIGenerateModal({
       setError(null);
       return next;
     });
-  }, []);
+  }, [canUploadFiles, subscriptionLoading, upgradeMessage, toast]);
 
   const removeFile = useCallback((index: number) => {
     setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index));
@@ -155,18 +167,11 @@ export function AIGenerateModal({
     setStatus("building");
   }, []);
 
-  const handleGenerate = useCallback(async () => {
-    if (files.length === 0) return;
-
-    if (existingSectionCount > 0) {
-      setShowReplaceConfirm(true);
+  const startGeneration = useCallback(async () => {
+    if (!canUploadFiles) {
+      setError({ type: "upload", message: upgradeMessage });
       return;
     }
-
-    await startGeneration();
-  }, [files, existingSectionCount]);
-
-  const startGeneration = useCallback(async () => {
     if (files.length === 0) return;
 
     setShowReplaceConfirm(false);
@@ -236,7 +241,25 @@ export function AIGenerateModal({
       setError({ type: errorType, message: errorMessage });
       setStatus("error");
     }
-  }, [files, simulateProgress, onGenerate, toast, handleClose, reset]);
+  }, [files, simulateProgress, onGenerate, toast, handleClose, reset, canUploadFiles, upgradeMessage]);
+
+  const handleGenerate = useCallback(async () => {
+    if (!canUploadFiles) {
+      setError({ type: "upload", message: upgradeMessage });
+      if (!subscriptionLoading) {
+        toast.error({ title: "Upgrade required", description: upgradeMessage });
+      }
+      return;
+    }
+    if (files.length === 0) return;
+
+    if (existingSectionCount > 0) {
+      setShowReplaceConfirm(true);
+      return;
+    }
+
+    await startGeneration();
+  }, [files, existingSectionCount, canUploadFiles, subscriptionLoading, upgradeMessage, toast, startGeneration]);
 
   const isProcessing =
     status === "uploading" ||
@@ -336,9 +359,19 @@ export function AIGenerateModal({
                       }}
                       onDragLeave={() => setDragOver(false)}
                       onDrop={handleDrop}
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => {
+                        if (!canUploadFiles) {
+                          setError({ type: "upload", message: upgradeMessage });
+                          if (!subscriptionLoading) {
+                            toast.error({ title: "Upgrade required", description: upgradeMessage });
+                          }
+                          return;
+                        }
+                        fileInputRef.current?.click();
+                      }}
                       className={cn(
-                        "flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-7 text-center transition-all cursor-pointer",
+                        "flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-7 text-center transition-all",
+                        canUploadFiles ? "cursor-pointer" : "cursor-not-allowed",
                         files.length > 0 && "ai-upload-zone",
                         dragOver
                           ? "border-pink-500 bg-pink-500/5"
@@ -374,6 +407,21 @@ export function AIGenerateModal({
                             </button>
                           )}
                         </>
+                      ) : !subscriptionLoading && !canUploadFiles ? (
+                        <>
+                          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-card text-text-muted">
+                            <Lock className="h-6 w-6" />
+                          </div>
+                          <p className="mt-3 text-sm font-semibold text-text-primary">
+                            File uploads are paid-only
+                          </p>
+                          <p className="mt-1 text-[11px] text-text-muted">
+                            <Link href={upgradeHref} className="font-semibold text-violet-600 underline dark:text-violet-300">
+                              Upgrade your plan
+                            </Link>{" "}
+                            to generate test sections from your material.
+                          </p>
+                        </>
                       ) : (
                         <>
                           <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-card text-text-muted">
@@ -395,6 +443,7 @@ export function AIGenerateModal({
                       accept={SUPPORTED_ACCEPT}
                       multiple
                       className="hidden"
+                      disabled={!canUploadFiles || subscriptionLoading}
                       onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ""; }}
                     />
 

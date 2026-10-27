@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles, Upload, FileText, Image, X, ChevronRight, ChevronDown,
@@ -14,7 +15,9 @@ import {
   Presentation, Table, FileType2, Code2
 } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
+import { cn } from "@/lib/helpers";
 import { useAICreditConsumption } from "@/hooks/useAICreditConsumption";
+import { useFileUploadAccess } from "@/hooks/useFileUploadAccess";
 import { toast } from "@/lib/toast";
 import { generateQuestionsFromFiles, generateFromQuestionBank, mapRawQuestionsToPreview } from "@/services/ai";
 import type { RawAIGeneratedQuestion, AIQuestionPreview } from "@/services/ai";
@@ -185,6 +188,8 @@ export default function AIStudio({
   const [bankKind, setBankKind] = useState<"any" | "theory" | "numerical">("any");
 
   const { consume, refund, completeRequest, balance, isLowCredit, recommendedPack } = useAICreditConsumption();
+  const { canUploadFiles, isLoading: subscriptionLoading, upgradeHref, upgradeMessage } =
+    useFileUploadAccess();
 
   // Calculate estimated credits
   useEffect(() => {
@@ -199,6 +204,12 @@ export default function AIStudio({
       ============================================ */
   const handleFileUpload = useCallback((files: FileList | null) => {
     if (!files) return;
+    if (!canUploadFiles) {
+      if (!subscriptionLoading) {
+        toast.error("Upgrade required", { description: upgradeMessage });
+      }
+      return;
+    }
 
     Array.from(files).forEach((file) => {
       const ext = "." + file.name.split(".").pop()?.toLowerCase();
@@ -220,7 +231,7 @@ export default function AIStudio({
       setUploadedFiles((prev) => [...prev, newFile]);
       toast.success(`Added ${file.name}`);
     });
-  }, []);
+  }, [canUploadFiles, subscriptionLoading, upgradeMessage]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -239,6 +250,10 @@ export default function AIStudio({
     const files = uploadedFiles.filter((f) => f.file).map((f) => f.file as File);
     if (files.length === 0) {
       toast.error("Please upload learning material first");
+      return;
+    }
+    if (!canUploadFiles) {
+      toast.error("Upgrade required", { description: upgradeMessage });
       return;
     }
 
@@ -394,6 +409,7 @@ export default function AIStudio({
       } else {
         const files = uploadedFiles.filter((item) => item.file).map((item) => item.file as File);
         if (files.length === 0) throw new Error("Uploaded material is no longer available.");
+        if (!canUploadFiles) throw new Error(upgradeMessage);
         rawQuestions = await generateQuestionsFromFiles(files, {
           ...options,
           numberOfQuestions: 1,
@@ -681,14 +697,30 @@ export default function AIStudio({
                   onChange={(e) => handleFileUpload(e.target.files)}
                   className="hidden"
                   id="file-upload"
+                  disabled={!canUploadFiles || subscriptionLoading}
                 />
                 <label
                   htmlFor="file-upload"
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-2 text-[12px] font-bold text-white shadow-[0_2px_10px_rgba(236,72,153,0.3)] hover:shadow-[0_4px_16px_rgba(236,72,153,0.4)] transition-shadow"
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-2 text-[12px] font-bold text-white shadow-[0_2px_10px_rgba(236,72,153,0.3)] transition-shadow",
+                    canUploadFiles && !subscriptionLoading
+                      ? "cursor-pointer hover:shadow-[0_4px_16px_rgba(236,72,153,0.4)]"
+                      : "cursor-not-allowed opacity-50"
+                  )}
+                  title={canUploadFiles ? undefined : upgradeMessage}
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Browse Files
                 </label>
+                {!subscriptionLoading && !canUploadFiles && (
+                  <p className="mt-3 text-[11px] font-semibold text-[#EC4899]">
+                    File uploads are paid-only.{" "}
+                    <Link href={upgradeHref} className="underline">
+                      Upgrade
+                    </Link>{" "}
+                    to upload files.
+                  </p>
+                )}
               </div>
 
               {/* Smart Suggestions */}

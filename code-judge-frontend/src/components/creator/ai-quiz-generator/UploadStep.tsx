@@ -8,12 +8,15 @@ import {
   Sparkles,
   ChevronDown,
   ArrowLeft,
+  Lock,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/helpers";
 import { FileCard } from "./FileCard";
 import type { UploadedFile } from "./types";
 import { AiStreamText } from "@/components/ui";
+import { useFileUploadAccess } from "@/hooks/useFileUploadAccess";
+import { useToast } from "@/hooks/useToast";
 
 const ACCEPTED_TYPES = {
   "application/pdf": "pdf",
@@ -80,17 +83,26 @@ export function UploadStep({
 }: {
   onFileAccepted: (file: UploadedFile) => void;
 }) {
+  const toast = useToast();
+  const { canUploadFiles, isLoading: subscriptionLoading, upgradeHref, upgradeMessage } =
+    useFileUploadAccess();
   const [dragging, setDragging] = useState(false);
   const [file, setFile] = useState<UploadedFile | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = useCallback(
     (raw: File) => {
+      if (!canUploadFiles) {
+        if (!subscriptionLoading) {
+          toast.error({ title: "Upgrade required", description: upgradeMessage });
+        }
+        return;
+      }
       const validated = validateFile(raw);
       setFile(validated);
       if (validated.valid) onFileAccepted(validated);
     },
-    [onFileAccepted]
+    [onFileAccepted, canUploadFiles, subscriptionLoading, upgradeMessage, toast]
   );
 
   const onDrop = useCallback(
@@ -150,9 +162,18 @@ export function UploadStep({
         }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => {
+          if (!canUploadFiles) {
+            if (!subscriptionLoading) {
+              toast.error({ title: "Upgrade required", description: upgradeMessage });
+            }
+            return;
+          }
+          inputRef.current?.click();
+        }}
         className={cn(
-          "relative min-h-[190px] cursor-pointer rounded-[24px] border-2 border-dashed bg-[var(--qs-surface)] p-6 text-center transition-all duration-200 sm:min-h-[220px] sm:p-10",
+          "relative min-h-[190px] rounded-[24px] border-2 border-dashed bg-[var(--qs-surface)] p-6 text-center transition-all duration-200 sm:min-h-[220px] sm:p-10",
+          canUploadFiles ? "cursor-pointer" : "cursor-not-allowed",
           dragging
             ? "border-[var(--qs-brand)] bg-[var(--qs-brand)]/[0.06]"
             : file?.valid
@@ -168,9 +189,25 @@ export function UploadStep({
           accept=".pdf,.docx"
           onChange={onBrowse}
           className="hidden"
+          disabled={!canUploadFiles || subscriptionLoading}
         />
 
-        {!file ? (
+        {!subscriptionLoading && !canUploadFiles ? (
+          <>
+            <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-brand)]">
+              <Lock className="h-6 w-6" />
+            </div>
+            <p className="text-[15px] font-extrabold text-[var(--qs-ink)]">
+              File uploads are paid-only
+            </p>
+            <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">
+              <Link href={upgradeHref} className="font-extrabold text-[var(--qs-brand)] underline">
+                Upgrade your plan
+              </Link>{" "}
+              to generate a quiz from your problem list.
+            </p>
+          </>
+        ) : !file ? (
           <>
             <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-brand)]">
               <Upload className="h-6 w-6" />

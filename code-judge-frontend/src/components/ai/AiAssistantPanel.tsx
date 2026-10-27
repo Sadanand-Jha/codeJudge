@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles,
@@ -30,6 +31,7 @@ import AILogo from "@/components/ai/AILogo";
 import AIQuestionReviewOverlay from "@/components/quiz/creator/AIQuestionReviewOverlay";
 import { useQuizProblemsStore } from "@/store/quizProblemsStore";
 import { mapToCreatorQuestions } from "@/utils/aiToCreatorQuestion";
+import { useFileUploadAccess } from "@/hooks/useFileUploadAccess";
 
 export type { ChatMessage };
 
@@ -117,6 +119,8 @@ export default function AiAssistantPanel({
   const [showWelcome, setShowWelcome] = useState(true);
   const [timeStage, setTimeStage] = useState(0);
   const { chatHistory, setChatHistory, addMessage, conversationId } = useChat();
+  const { canUploadFiles, isLoading: subscriptionLoading, upgradeHref, upgradeMessage } =
+    useFileUploadAccess();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const streamAbortRef = useRef<AbortController | null>(null);
@@ -195,6 +199,12 @@ export default function AiAssistantPanel({
 
   const addFiles = (incoming: FileList | null) => {
     if (!incoming) return;
+    if (!canUploadFiles) {
+      if (!subscriptionLoading) {
+        toast.error("Upgrade required", { description: upgradeMessage });
+      }
+      return;
+    }
     Array.from(incoming).forEach((file) => {
       const ext = "." + file.name.split(".").pop()?.toLowerCase();
       if (!SUPPORTED_FILE_TYPES.includes(ext)) {
@@ -255,6 +265,10 @@ export default function AiAssistantPanel({
     }
 
     const readyFiles = files.filter((f) => f.status === "ready");
+    if (readyFiles.length > 0 && !canUploadFiles) {
+      toast.error("Upgrade required", { description: upgradeMessage });
+      return;
+    }
     const userPrompt = prompt.trim();
     addMessage({
       role: "user",
@@ -607,10 +621,16 @@ export default function AiAssistantPanel({
                     htmlFor="ai-file-input"
                     className={cn(
                       "flex h-6 w-6 shrink-0 items-center justify-center rounded text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary",
-                      files.some((f) => f.status === "uploading") && "cursor-not-allowed opacity-50"
+                      (!canUploadFiles || files.some((f) => f.status === "uploading")) &&
+                        "cursor-not-allowed opacity-50 hover:bg-transparent hover:text-text-muted"
                     )}
-                    aria-label="Attach files"
-                    title="Attach files (PDF, DOCX, TXT, MD, images, …)"
+                    aria-label={canUploadFiles ? "Attach files" : "File uploads require a paid plan"}
+                    aria-disabled={!canUploadFiles || subscriptionLoading}
+                    title={
+                      canUploadFiles
+                        ? "Attach files (PDF, DOCX, TXT, MD, images, …)"
+                        : upgradeMessage
+                    }
                   >
                     <Plus className="h-4 w-4" />
                     <input
@@ -620,7 +640,11 @@ export default function AiAssistantPanel({
                       accept=".pdf,.docx,.doc,.txt,.md,.png,.jpg,.jpeg,.gif,.webp"
                       className="hidden"
                       onChange={(e) => addFiles(e.target.files)}
-                      disabled={files.some((f) => f.status === "uploading")}
+                      disabled={
+                        !canUploadFiles ||
+                        subscriptionLoading ||
+                        files.some((f) => f.status === "uploading")
+                      }
                     />
                   </label>
 
@@ -639,9 +663,19 @@ export default function AiAssistantPanel({
                     className="min-w-0 flex-1 resize-none border-0 bg-transparent text-xs text-text-primary placeholder:text-text-muted/60 focus:outline-none"
                   />
                 </div>
-                <p className="mt-1 text-[10px] text-text-muted">
-                  Enter to send · Shift + Enter for a new line
-                </p>
+                {!subscriptionLoading && !canUploadFiles ? (
+                  <p className="mt-1 text-[10px] font-medium text-text-muted">
+                    File attachments are paid-only.{" "}
+                    <Link href={upgradeHref} className="font-bold text-chat-rose underline">
+                      Upgrade
+                    </Link>{" "}
+                    to upload files.
+                  </p>
+                ) : (
+                  <p className="mt-1 text-[10px] text-text-muted">
+                    Enter to send · Shift + Enter for a new line
+                  </p>
+                )}
               </div>
 
               {/* Footer / Ask AI — toggles to Stop while streaming */}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload,
@@ -39,6 +40,7 @@ import MarkdownRenderer from "@/components/ai/MarkdownRenderer";
 import { AiStreamText } from "@/components/ui";
 import { QsSelect } from "@/components/creator/problems/QsSelect";
 import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
+import { useFileUploadAccess } from "@/hooks/useFileUploadAccess";
 
 const ACCEPT = [
   ".txt", ".md", ".csv", ".tsv", ".json", ".xml", ".html", ".yml", ".yaml",
@@ -164,6 +166,8 @@ export function AiGenerateModal({
   currentQuestionCount?: number;
 }) {
   const [mode, setMode] = useState<"own" | "bank">("own");
+  const { canUploadFiles, isLoading: subscriptionLoading, upgradeHref, upgradeMessage } =
+    useFileUploadAccess();
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -397,6 +401,13 @@ export function AiGenerateModal({
 
   const addFiles = useCallback(
     (rawFiles: FileList | File[]) => {
+      if (!canUploadFiles) {
+        setError(upgradeMessage);
+        if (!subscriptionLoading) {
+          toast.error("Upgrade required", { description: upgradeMessage });
+        }
+        return;
+      }
       setError("");
       const incoming = Array.from(rawFiles);
       for (const f of incoming) {
@@ -408,7 +419,7 @@ export function AiGenerateModal({
       }
       setFiles((prev) => [...prev, ...incoming]);
     },
-    [validateFile]
+    [validateFile, canUploadFiles, subscriptionLoading, upgradeMessage]
   );
 
   const removeFile = (index: number) => {
@@ -428,6 +439,13 @@ export function AiGenerateModal({
   const quizLimitError = getQuizLimitError(currentQuestionCount, requestedQuestionCount);
 
   const handleGenerate = async () => {
+    if (!canUploadFiles) {
+      setError(upgradeMessage);
+      if (!subscriptionLoading) {
+        toast.error("Upgrade required", { description: upgradeMessage });
+      }
+      return;
+    }
     if (files.length === 0) return;
     const limitError = getQuizLimitError(currentQuestionCount, FILE_GENERATION_COUNT);
     if (limitError) {
@@ -615,6 +633,7 @@ export function AiGenerateModal({
         });
       } else {
         if (files.length === 0) throw new Error("Uploaded files are no longer available.");
+        if (!canUploadFiles) throw new Error(upgradeMessage);
         rawQuestions = await generateQuestionsFromFiles(files, {
           numberOfQuestions: 1,
           questionTypes: ["mcq"],
@@ -1177,9 +1196,19 @@ export function AiGenerateModal({
                     <div
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={handleDrop}
-                      onClick={() => inputRef.current?.click()}
+                      onClick={() => {
+                        if (!canUploadFiles) {
+                          setError(upgradeMessage);
+                          if (!subscriptionLoading) {
+                            toast.error("Upgrade required", { description: upgradeMessage });
+                          }
+                          return;
+                        }
+                        inputRef.current?.click();
+                      }}
                       className={cn(
-                        "flex min-h-[190px] flex-1 cursor-pointer flex-col justify-center rounded-[16px] border-2 border-dashed p-5 text-center transition-colors",
+                        "flex min-h-[190px] flex-1 flex-col justify-center rounded-[16px] border-2 border-dashed p-5 text-center transition-colors",
+                        canUploadFiles ? "cursor-pointer" : "cursor-not-allowed",
                         files.length > 0
                           ? "border-[var(--qs-ok)] bg-[var(--qs-okbg)]"
                           : "border-[var(--qs-line)] bg-[var(--qs-bg)] hover:border-[var(--qs-brand)]"
@@ -1191,6 +1220,7 @@ export function AiGenerateModal({
                         accept={ACCEPT}
                         multiple
                         className="hidden"
+                        disabled={!canUploadFiles || subscriptionLoading}
                         onChange={(e) => {
                           if (e.target.files?.length) addFiles(e.target.files);
                           e.target.value = "";
@@ -1232,6 +1262,19 @@ export function AiGenerateModal({
                             + Add more files
                           </button>
                         </div>
+                      ) : !subscriptionLoading && !canUploadFiles ? (
+                        <>
+                          <span className="mx-auto grid h-11 w-11 place-items-center rounded-[13px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)]">
+                            <Lock className="h-5 w-5" />
+                          </span>
+                          <p className="mt-2.5 text-sm font-extrabold text-[var(--qs-ink)]">File uploads are paid-only</p>
+                          <p className="mt-0.5 text-[11px] font-medium text-[var(--qs-muted)]">
+                            <Link href={upgradeHref} className="font-extrabold text-[var(--qs-brand)] underline">
+                              Upgrade your plan
+                            </Link>{" "}
+                            to generate questions from your material.
+                          </p>
+                        </>
                       ) : (
                         <>
                           <span className="mx-auto grid h-11 w-11 place-items-center rounded-[13px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)]">
