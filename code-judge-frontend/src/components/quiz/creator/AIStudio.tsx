@@ -187,7 +187,11 @@ export default function AIStudio({
   const [bankTopicId, setBankTopicId] = useState<number | null>(null);
   const [bankKind, setBankKind] = useState<"any" | "theory" | "numerical">("any");
 
-  const { consume, refund, completeRequest, balance, isLowCredit, recommendedPack } = useAICreditConsumption();
+  const { balance, refresh } = useAICreditConsumption();
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
   const { canUploadFiles, isLoading: subscriptionLoading, upgradeHref, upgradeMessage } =
     useFileUploadAccess();
 
@@ -290,6 +294,7 @@ export default function AIStudio({
       setIsGenerating(false);
       setActiveTab("review");
       setShowReviewOverlay(true);
+      void refresh();
       toast.success(`Generated ${questions.length} questions!`);
     } catch (error) {
       console.error("Generation error:", error);
@@ -366,6 +371,7 @@ export default function AIStudio({
       setIsGenerating(false);
       setActiveTab("review");
       setShowReviewOverlay(true);
+      void refresh();
       toast.success(`Generated ${questions.length} questions (Easy ${bankEasy} · Medium ${bankMedium} · Hard ${bankHard})`);
     } catch (error) {
       console.error("Bank generation failed:", error);
@@ -425,6 +431,7 @@ export default function AIStudio({
           item.id === questionId ? { ...preview, credits: item.credits } : item
         )
       );
+      void refresh();
       toast.success(`Question regenerated (${question.difficulty})`);
     } catch (error) {
       toast.error("Could not regenerate question", {

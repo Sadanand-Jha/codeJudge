@@ -21,7 +21,7 @@ import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { formatPricingAmount } from "@/services/pricing";
 import type { PricingCreditPack } from "@/types/pricing";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 /* ============================================
    Animated credit progress bar
@@ -84,8 +84,13 @@ function StatCard({
    ============================================ */
 export default function AICreditsDashboard({ compact = false }: { compact?: boolean }) {
   const { balance, stats, creator, fairUsage, abuse } = useAICreditsStore();
+  const refresh = useAICreditsStore((state) => state.refresh);
   const { catalog } = usePricingCatalog();
   const packs = catalog.creditPacks;
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
   const maxValidityMonths = packs.reduce((max, pack) => Math.max(max, pack.validityMonths), 0);
   const [buyPackOpen, setBuyPackOpen] = useState(false);
 

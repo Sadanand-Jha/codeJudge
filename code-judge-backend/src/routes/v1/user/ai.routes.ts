@@ -18,6 +18,7 @@ import { Router } from "express";
 import multer from "multer";
 import { authenticate } from "../../../middleware/auth.ts";
 import { requireActiveAiUser } from "../../../middleware/requireActiveAiUser.ts";
+import { requireAiCredits } from "../../../middleware/requireAiCredits.ts";
 import { requirePaidPlan } from "../../../middleware/requirePaidPlan.ts";
 import {
   chat,
@@ -31,8 +32,9 @@ import { randomizeUploadFilename } from "../../../utils/uploadName.ts";
 
 const router = Router();
 
-// AI requests are never anonymous: only currently active user accounts may
-// invoke generation, document analysis, or chat capabilities.
+// AI requests are never anonymous. Reading or deleting the question bank only
+// needs an active account; the endpoints that consume model tokens also need
+// a positive credit balance.
 router.use(authenticate, requireActiveAiUser);
 
 /**
@@ -50,7 +52,7 @@ const upload = multer({
 
 // Streaming chat — JSON body: `{ message?: string }` (legacy) or
 // `{ messages: [{ role, content }] }`.
-router.post("/chat", chat);
+router.post("/chat", requireAiCredits, chat);
 
 // Streaming chat + document context. `prompt` is a text field, `files` may be
 // repeated binary parts (max 25). Text is extracted server-side and the model

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { CalendarClock, History } from "lucide-react";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
@@ -22,6 +22,7 @@ import {
   buildOrderSummary,
   createCreditOrder,
   openRazorpayCheckout,
+  RazorpayCheckoutDismissedError,
   verifyCreditPayment,
   type CreditOrder,
   type CreditPurchasePack,
@@ -45,6 +46,10 @@ export function AICreditsPage({
   const balance = useAICreditsStore((s) => s.balance);
   const refreshCredits = useAICreditsStore((s) => s.refresh);
   const purchasePack = useAICreditsStore((s) => s.purchasePack);
+
+  useEffect(() => {
+    void refreshCredits();
+  }, [refreshCredits]);
   const { catalog, isLoading: catalogLoading, error: catalogError, refresh: refreshCatalog } = usePricingCatalog();
   const packs = catalog.creditPacks;
   const state =
@@ -109,8 +114,14 @@ export function AICreditsPage({
         itemName: summary.pack.name,
         prefill: { method: args.method },
         notes: { method: args.method },
-        onDismiss: () => setPhase("cancelled"),
+      }).catch((error: unknown) => {
+        if (error instanceof RazorpayCheckoutDismissedError) return null;
+        throw error;
       });
+      if (!payment) {
+        setPhase("cancelled");
+        return;
+      }
       setProcessingNote("Verifying payment…");
       const verified = await verifyCreditPayment(order, payment);
       await purchasePack(summary.pack.id, {

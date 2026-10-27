@@ -4,6 +4,7 @@ import { Router } from "express";
 
 import adminRoutes from "./admin/index.ts"
 import userRoutes from "./user/index.ts"
+import billingRoutes from "./billing.routes.ts"
 import platformRoutes from "./platform.routes.ts"
 import pricingRoutes from "./pricing.routes.ts"
 import { getAvatar } from "../../controllers/avatar.controller.ts";
@@ -15,6 +16,10 @@ const protectedRouter = Router();
 // Public pricing catalog. Prices and packs are owned by /platform and read by
 // the marketing pages, so this must stay ahead of the regular-user guard.
 protectedRouter.use("/pricing", pricingRoutes)
+
+// Razorpay checkout and webhooks. The router keeps /billing/webhook public and
+// applies authenticate to every purchase/read endpoint after it.
+protectedRouter.use("/billing", billingRoutes)
 
 // The platform console uses its own isolated owner session and performs its
 // authorization inside platformRoutes. Keep it ahead of the regular-user

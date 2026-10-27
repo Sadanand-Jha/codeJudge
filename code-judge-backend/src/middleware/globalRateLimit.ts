@@ -8,7 +8,7 @@ const WINDOW_SECONDS = 60;
 const BLOCK_DURATION_SECONDS = 30;
 
 // Paths that bypass global rate limiting (health checks, etc.)
-const BYPASS_PATHS = new Set(["/health"]);
+const BYPASS_PATHS = new Set(["/health", "/api/v1/billing/webhook"]);
 
 export async function globalRateLimit(req: Request, res: Response, next: NextFunction) {
   // Skip bypass paths

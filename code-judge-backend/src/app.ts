@@ -25,7 +25,7 @@ dns.setDefaultResultOrder("ipv4first");
 process.env.TZ = "UTC";
 
 // Trust proxy for Vercel (X-Forwarded-For, secure cookies)
-import type { Express } from "express";
+import type { Express, Request } from "express";
 
 const app: Express = express();
 const appFile = fileURLToPath(import.meta.url);
@@ -100,7 +100,19 @@ app.use(
 
 app.use(helmet());
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
-app.use(express.json({ limit: "10mb" }));
+// Razorpay webhooks must be verified against the exact raw request body, so
+// capture it only for the webhook path instead of holding a copy of every
+// upload payload in memory.
+app.use(
+  express.json({
+    limit: "10mb",
+    verify: (req, _res, buffer) => {
+      if (req.url?.startsWith("/api/v1/billing/webhook")) {
+        (req as Request & { rawBody?: Buffer }).rawBody = Buffer.from(buffer);
+      }
+    },
+  })
+);
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 
