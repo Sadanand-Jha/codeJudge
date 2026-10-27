@@ -9,6 +9,7 @@ import CreatorRoomsNavbar from "@/components/rooms/CreatorRoomsNavbar";
 import AppLayout from "@/components/layout/AppLayout";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { useAuthStore } from "@/store/authStore";
+import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { useTheme } from "@/context/ThemeContext";
 
 export default function CreatorStudioLayout({ children }: { children: React.ReactNode }) {
@@ -17,6 +18,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
   const [drawerOpen, setDrawerOpen] = useState(false);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const refreshCredits = useAICreditsStore((s) => s.refresh);
   const { theme, setTheme } = useTheme();
 
   // Studio is light-theme only (no toggle in the Studio navbar). Dark-mode
@@ -30,6 +32,14 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
       router.replace("/login");
     }
   }, [hasHydrated, isAuthenticated, router]);
+
+  // Load the credit balance as soon as the creator enters the Studio so the
+  // navbar credit pill is accurate without visiting a billing page first.
+  useEffect(() => {
+    if (hasHydrated && isAuthenticated) {
+      void refreshCredits();
+    }
+  }, [hasHydrated, isAuthenticated, refreshCredits]);
 
   if (!hasHydrated) {
     return (
