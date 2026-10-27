@@ -10,11 +10,12 @@ export const requirePaidPlan = async (req: Request, res: Response, next: NextFun
 
   try {
     const entitlements = await getEntitlements(userId);
-    if (!entitlements.isPaid) {
+    const hasPaidPlan = entitlements.isPaid && entitlements.status !== "trialing";
+    if (!hasPaidPlan) {
       res.status(403).json({
         success: false,
         code: "SUBSCRIPTION_REQUIRED",
-        message: "File uploads are available on paid plans. Upgrade your plan to upload files.",
+        message: "This feature is available on paid plans. Upgrade your plan to continue.",
         upgradeUrl: "/pricing",
       });
       return;
@@ -24,7 +25,7 @@ export const requirePaidPlan = async (req: Request, res: Response, next: NextFun
     console.error("Paid plan check failed:", error);
     res.status(503).json({
       success: false,
-      message: "File upload access could not be verified. Please try again.",
+      message: "Paid plan access could not be verified. Please try again.",
       statusCode: 503,
     });
   }

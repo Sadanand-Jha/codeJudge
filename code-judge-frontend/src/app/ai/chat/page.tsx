@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import Link from "next/link";
 import {
   Sparkles,
   Plus,
@@ -36,6 +37,7 @@ import type { LiveUsage } from "@/services/ai";
 import { toast } from "@/lib/toast";
 import AIMessageRow from "@/components/ai/AIMessageRow";
 import { useAuthStore } from "@/store/authStore";
+import { useFileUploadAccess } from "@/hooks/useFileUploadAccess";
 
 const QUICK_ACTIONS = [
   { label: "Explain Code", icon: FileCode, prompt: "Explain this code step by step" },
@@ -304,6 +306,8 @@ export default function AIChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { canUseAi, hasPaidPlan, aiLoading, aiUpgradeHref, aiUpgradeMessage } =
+    useFileUploadAccess();
 
   const convoRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
@@ -377,6 +381,12 @@ const handleConvoScroll = useCallback(() => {
 
   const sendMessage = useCallback(async () => {
     if (!input.trim() || isLoading) return;
+    if (!canUseAi) {
+      if (!aiLoading) {
+        toast.error("Upgrade required", { description: aiUpgradeMessage });
+      }
+      return;
+    }
     const userMsg: Message = { id: `msg-${Date.now()}`, role: "user", content: input.trim(), timestamp: Date.now() };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
@@ -451,7 +461,7 @@ const handleConvoScroll = useCallback(() => {
       }
       setIsLoading(false);
     }
-  }, [input, isLoading, finalizeMessage, ensureConversationId]);
+  }, [input, isLoading, canUseAi, aiLoading, aiUpgradeMessage, finalizeMessage, ensureConversationId]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
@@ -545,7 +555,7 @@ const handleConvoScroll = useCallback(() => {
                     />
                     <button
                       onClick={isLoading ? stopGeneration : sendMessage}
-                      disabled={!isLoading && !input.trim()}
+                      disabled={!isLoading && (!input.trim() || aiLoading || !canUseAi)}
                       title={isLoading ? "Stop generating" : "Send"}
                       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-ai-accent text-accent-foreground transition-colors hover:bg-ai-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
                     >
@@ -553,9 +563,19 @@ const handleConvoScroll = useCallback(() => {
                     </button>
                   </div>
                 </div>
-                <p className="mt-1.5 text-center text-[10px] text-ai-text-sec">
-                  Enter to send · Shift+Enter for a new line
-                </p>
+                {!aiLoading && !canUseAi ? (
+                  <p className="mt-1.5 text-center text-[10px] text-ai-text-sec">
+                    AI chat needs a paid plan and AI credits.{" "}
+                    <Link href={aiUpgradeHref} className="font-semibold text-ai-accent underline">
+                      {hasPaidPlan ? "Buy credits" : "Upgrade"}
+                    </Link>{" "}
+                    to continue.
+                  </p>
+                ) : (
+                  <p className="mt-1.5 text-center text-[10px] text-ai-text-sec">
+                    Enter to send · Shift+Enter for a new line
+                  </p>
+                )}
               </div>
             </div>
           </div>

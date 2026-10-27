@@ -300,7 +300,11 @@ export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
                     </div>
                     <p className="mt-4 text-[15px] font-semibold text-text-primary">File uploads are paid-only</p>
                     <p className="mt-1 text-[13px] text-text-secondary">
-                      <Link href={upgradeHref} className="font-semibold text-pink-500 underline dark:text-ai-accent">
+                      <Link
+                        href={upgradeHref}
+                        onClick={(event) => event.stopPropagation()}
+                        className="font-semibold text-pink-500 underline dark:text-ai-accent"
+                      >
                         Upgrade your plan
                       </Link>{" "}
                       to generate questions from your materials.

@@ -6,6 +6,7 @@ import multer from "multer";
 import { authenticate } from "../../../middleware/auth.ts";
 import { requireActiveAiUser } from "../../../middleware/requireActiveAiUser.ts";
 import { requirePaidPlan } from "../../../middleware/requirePaidPlan.ts";
+import { requireAiCredits } from "../../../middleware/requireAiCredits.ts";
 import { generateSections, generatePaper, downloadPaper, generateQuestions, questionGeneratorCatalog, recordQuestionUsage, getSectionBlueprints, saveSectionBlueprint, useSectionBlueprint, removeSectionBlueprint } from "../../../controllers/testSection.controller.ts";
 import { randomizeUploadFilename } from "../../../utils/uploadName.ts";
 
@@ -46,12 +47,13 @@ const safeSingleUpload = (req: Request, res: Response, next: NextFunction) => {
 router.post(
   "/generate-sections",
   requirePaidPlan,
+  requireAiCredits,
   safeSingleUpload,
   generateSections
 );
 
 // Question paper from created sections + filtered database question bank (JSON body).
-router.post("/generate-paper", generatePaper);
+router.post("/generate-paper", requirePaidPlan, requireAiCredits, generatePaper);
 
 // Printable HTML download of a generated paper (JSON body: { paper }).
 router.post("/paper-download", downloadPaper);
@@ -61,6 +63,6 @@ router.post("/question-usage", recordQuestionUsage);
 
 // Teacher question picker: N subjective questions, hardness/category + curriculum filters.
 router.get("/question-generator/catalog", questionGeneratorCatalog);
-router.post("/generate-questions", generateQuestions);
+router.post("/generate-questions", requirePaidPlan, requireAiCredits, generateQuestions);
 
 export default router;

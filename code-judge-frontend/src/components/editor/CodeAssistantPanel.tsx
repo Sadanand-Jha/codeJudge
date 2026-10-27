@@ -23,6 +23,7 @@ import { useCodeAssistantStore } from "@/store/codeAssistantStore";
 import type { CodeAssistantMessage } from "@/store/codeAssistantStore";
 import AIMessageRow from "@/components/ai/AIMessageRow";
 import AILogo from "@/components/ai/AILogo";
+import { useFileUploadAccess } from "@/hooks/useFileUploadAccess";
 import SuggestionReviewOverlay from "./SuggestionReviewOverlay";
 import {
   EDITS_OPEN,
@@ -98,6 +99,8 @@ export default function CodeAssistantPanel({
 }: CodeAssistantPanelProps) {
   const open = useAIEditorStore((s) => s.open);
   const setPreparing = useAIEditorStore((s) => s.setPreparing);
+  const { canUseAi, hasPaidPlan, aiLoading, aiUpgradeHref, aiUpgradeMessage } =
+    useFileUploadAccess();
 
   const [currentContext, setCurrentContext] = useState<CodeContext | null>(null);
   const [suggestions, setSuggestions] = useState<PendingSuggestion[]>([]);
@@ -384,6 +387,12 @@ export default function CodeAssistantPanel({
   const handleSend = async (override?: string) => {
     const userPrompt = (override ?? prompt).trim();
     if (!userPrompt || sending) return;
+    if (!canUseAi) {
+      if (!aiLoading) {
+        toast.error("Upgrade required", { description: aiUpgradeMessage });
+      }
+      return;
+    }
     setPrompt("");
     setSending(true);
     setPreparing(true);
@@ -752,7 +761,7 @@ export default function CodeAssistantPanel({
               ) : (
                 <button
                   onClick={() => handleSend()}
-                  disabled={!prompt.trim()}
+                  disabled={!prompt.trim() || aiLoading || !canUseAi}
                   className={cn(
                     "inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-[0_2px_10px_rgba(59,130,246,0.25)] transition-all hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                   )}
@@ -761,6 +770,15 @@ export default function CodeAssistantPanel({
                   Ask AI
                 </button>
               )}
+              {!aiLoading && !canUseAi ? (
+                <p className="mt-2 text-center text-[10px] text-text-muted">
+                  AI chat needs a paid plan and AI credits.{" "}
+                  <a href={aiUpgradeHref} className="font-bold text-chat-rose underline">
+                    {hasPaidPlan ? "Buy credits" : "Upgrade"}
+                  </a>{" "}
+                  to continue.
+                </p>
+              ) : null}
             </div>
           </motion.aside>
         )}

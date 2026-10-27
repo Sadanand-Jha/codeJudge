@@ -119,8 +119,16 @@ export default function AiAssistantPanel({
   const [showWelcome, setShowWelcome] = useState(true);
   const [timeStage, setTimeStage] = useState(0);
   const { chatHistory, setChatHistory, addMessage, conversationId } = useChat();
-  const { canUploadFiles, isLoading: subscriptionLoading, upgradeHref, upgradeMessage } =
-    useFileUploadAccess();
+  const {
+    canUploadFiles,
+    canUseAi,
+    hasPaidPlan,
+    isLoading: subscriptionLoading,
+    aiLoading,
+    upgradeMessage,
+    aiUpgradeHref,
+    aiUpgradeMessage,
+  } = useFileUploadAccess();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const streamAbortRef = useRef<AbortController | null>(null);
@@ -267,6 +275,12 @@ export default function AiAssistantPanel({
     const readyFiles = files.filter((f) => f.status === "ready");
     if (readyFiles.length > 0 && !canUploadFiles) {
       toast.error("Upgrade required", { description: upgradeMessage });
+      return;
+    }
+    if (!canUseAi) {
+      if (!aiLoading) {
+        toast.error("Upgrade required", { description: aiUpgradeMessage });
+      }
       return;
     }
     const userPrompt = prompt.trim();
@@ -663,13 +677,13 @@ export default function AiAssistantPanel({
                     className="min-w-0 flex-1 resize-none border-0 bg-transparent text-xs text-text-primary placeholder:text-text-muted/60 focus:outline-none"
                   />
                 </div>
-                {!subscriptionLoading && !canUploadFiles ? (
+                {!aiLoading && !canUseAi ? (
                   <p className="mt-1 text-[10px] font-medium text-text-muted">
-                    File attachments are paid-only.{" "}
-                    <Link href={upgradeHref} className="font-bold text-chat-rose underline">
-                      Upgrade
+                    AI chat needs a paid plan and AI credits.{" "}
+                    <Link href={aiUpgradeHref} className="font-bold text-chat-rose underline">
+                      {hasPaidPlan ? "Buy credits" : "Upgrade"}
                     </Link>{" "}
-                    to upload files.
+                    to continue.
                   </p>
                 ) : (
                   <p className="mt-1 text-[10px] text-text-muted">
@@ -691,7 +705,12 @@ export default function AiAssistantPanel({
                 ) : (
                   <button
                     onClick={handleSend}
-                    disabled={!prompt.trim() || files.some((f) => f.status === "uploading")}
+                    disabled={
+                      !prompt.trim() ||
+                      files.some((f) => f.status === "uploading") ||
+                      aiLoading ||
+                      !canUseAi
+                    }
                     className={cn(
                       "inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 py-2.5 text-xs font-bold text-white shadow-[0_2px_10px_rgba(236,72,153,0.25)] transition-all hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                     )}

@@ -192,8 +192,16 @@ export default function AIStudio({
   useEffect(() => {
     void refresh();
   }, [refresh]);
-  const { canUploadFiles, isLoading: subscriptionLoading, upgradeHref, upgradeMessage } =
-    useFileUploadAccess();
+
+  const {
+    canUploadFiles,
+    canUseAi,
+    isLoading: subscriptionLoading,
+    aiLoading,
+    upgradeHref,
+    upgradeMessage,
+    aiUpgradeMessage,
+  } = useFileUploadAccess();
 
   // Calculate estimated credits
   useEffect(() => {
@@ -254,6 +262,10 @@ export default function AIStudio({
     const files = uploadedFiles.filter((f) => f.file).map((f) => f.file as File);
     if (files.length === 0) {
       toast.error("Please upload learning material first");
+      return;
+    }
+    if (!canUseAi) {
+      if (!aiLoading) toast.error("Upgrade required", { description: aiUpgradeMessage });
       return;
     }
     if (!canUploadFiles) {
@@ -338,6 +350,10 @@ export default function AIStudio({
   };
 
   const handleGenerateFromBank = async () => {
+    if (!canUseAi) {
+      if (!aiLoading) toast.error("Upgrade required", { description: aiUpgradeMessage });
+      return;
+    }
     const sum = bankEasy + bankMedium + bankHard;
     if (sum !== bankNumber) {
       toast.error("Distribution must sum to total", { description: `Easy (${bankEasy}) + Medium (${bankMedium}) + Hard (${bankHard}) = ${sum} ≠ ${bankNumber}` });
@@ -395,6 +411,10 @@ export default function AIStudio({
   const handleRegenerate = async (questionId: string) => {
     const question = generatedQuestions.find((item) => item.id === questionId);
     if (!question) return;
+    if (!canUseAi) {
+      if (!aiLoading) toast.error("Upgrade required", { description: aiUpgradeMessage });
+      return;
+    }
     setRegeneratingId(questionId);
     try {
       let rawQuestions: RawAIGeneratedQuestion[];

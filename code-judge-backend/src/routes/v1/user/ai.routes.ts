@@ -52,21 +52,21 @@ const upload = multer({
 
 // Streaming chat — JSON body: `{ message?: string }` (legacy) or
 // `{ messages: [{ role, content }] }`.
-router.post("/chat", requireAiCredits, chat);
+router.post("/chat", requirePaidPlan, requireAiCredits, chat);
 
 // Streaming chat + document context. `prompt` is a text field, `files` may be
 // repeated binary parts (max 25). Text is extracted server-side and the model
 // streams its reply over SSE.
-router.post("/chat-files", requirePaidPlan, upload.array("files", 25), chatWithFiles);
+router.post("/chat-files", requirePaidPlan, requireAiCredits, upload.array("files", 25), chatWithFiles);
 
 // One-shot question generation. Multipart form fields carry the generation
 // options (numberOfQuestions, questionTypes, difficulty, bloomsLevel, …) and
 // `files` carries the study material. Returns JSON `{ success, data }`.
-router.post("/generate-questions", requirePaidPlan, upload.array("files", 25), generateQuestionsFromUpload);
+router.post("/generate-questions", requirePaidPlan, requireAiCredits, upload.array("files", 25), generateQuestionsFromUpload);
 
 // Topic-scoped MCQ generation (fresh questions authored by the AI). JSON body,
 // no files. Generated questions are also persisted to quiz_question_bank.
-router.post("/generate-from-bank", generateFromQuestionBankHandler);
+router.post("/generate-from-bank", requirePaidPlan, requireAiCredits, generateFromQuestionBankHandler);
 
 // Creator's active bank rows (user-owned for 7 days, then system-owned).
 router.get("/question-bank", getMyQuestionBank);

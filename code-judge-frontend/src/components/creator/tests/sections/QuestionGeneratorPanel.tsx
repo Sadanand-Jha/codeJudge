@@ -20,6 +20,7 @@ import {
 import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
+import { useFileUploadAccess } from "@/hooks/useFileUploadAccess";
 import { generateSubjectiveQuestions } from "@/services/aiGenerate";
 import type { SubjectiveQuestion } from "./paperTypes";
 import { QuestionBankFilters } from "./QuestionBankFilters";
@@ -173,6 +174,7 @@ const compactCounter = ({
 
 export function QuestionGeneratorPanel() {
   const toast = useToast();
+  const { canUseAi, aiLoading, aiUpgradeMessage } = useFileUploadAccess();
   const abortRef = useRef<AbortController | null>(null);
 
   const [total, setTotal] = useState(5);
@@ -255,6 +257,13 @@ export function QuestionGeneratorPanel() {
       setError(`You can generate at most ${MAX_QUESTIONS} questions at a time.`);
       return;
     }
+    if (!canUseAi) {
+      setError(aiUpgradeMessage);
+      if (!aiLoading) {
+        toast.error({ title: "Upgrade required", description: aiUpgradeMessage });
+      }
+      return;
+    }
     if (sumMismatch || categorySumMismatch || !subjectId) return;
     setError(null);
     setQuestions([]);
@@ -295,7 +304,7 @@ export function QuestionGeneratorPanel() {
       setError(err instanceof Error ? err.message : "Failed to generate questions. Please try again.");
       setStatus("error");
     }
-  }, [total, easy, medium, hard, theory, numerical, reasoningEffort, subjectId, chapterIds, topicIds, syllabus, sumMismatch, categorySumMismatch, closeEffort, toast]);
+  }, [total, easy, medium, hard, theory, numerical, reasoningEffort, subjectId, chapterIds, topicIds, syllabus, sumMismatch, categorySumMismatch, closeEffort, toast, canUseAi, aiLoading, aiUpgradeMessage]);
 
   const handleCopyAll = useCallback(async () => {
     if (questions.length === 0) return;

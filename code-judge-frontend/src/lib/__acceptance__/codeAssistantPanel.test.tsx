@@ -313,6 +313,47 @@ async function passed() {
 }
 
 async function mountPanel(editor: any, monaco: any, open = true) {
+  const apiClient = (await import("@/lib/axios")).default;
+  const existingAdapter = apiClient.defaults.adapter as
+    | (Record<string, unknown> & { __aiAccessMock?: boolean })
+    | undefined;
+  if (!existingAdapter?.__aiAccessMock) {
+    const adapter = (async (config: { url?: string }) => {
+      const credits = config.url?.includes("/credits/balance");
+      return {
+        data: credits
+          ? {
+              balance: 1000,
+              planCredits: 1000,
+              purchasedCredits: 0,
+              planCreditsTotal: 1000,
+              purchasedCreditsTotal: 0,
+              nearestExpiry: null,
+            }
+          : {
+              planId: 1,
+              planSlug: "pro",
+              planName: "Pro",
+              status: "active",
+              isPaid: true,
+              startedAt: null,
+              currentPeriodStart: null,
+              currentPeriodEnd: null,
+              trialEnd: null,
+              cancelAtPeriodEnd: false,
+            },
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        config,
+      };
+    }) as unknown as Record<string, unknown> & {
+      __aiAccessMock?: boolean;
+    };
+    adapter.__aiAccessMock = true;
+    apiClient.defaults.adapter = adapter as unknown as typeof apiClient.defaults.adapter;
+  }
+
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);

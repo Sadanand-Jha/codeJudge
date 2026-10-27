@@ -201,7 +201,11 @@ export function UploadStep({
               File uploads are paid-only
             </p>
             <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">
-              <Link href={upgradeHref} className="font-extrabold text-[var(--qs-brand)] underline">
+              <Link
+                href={upgradeHref}
+                onClick={(event) => event.stopPropagation()}
+                className="font-extrabold text-[var(--qs-brand)] underline"
+              >
                 Upgrade your plan
               </Link>{" "}
               to generate a quiz from your problem list.

@@ -16,6 +16,7 @@ import {
 import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
+import { useFileUploadAccess } from "@/hooks/useFileUploadAccess";
 import { useQuestionApproval } from "@/hooks/useQuestionApproval";
 import { generateQuestionPaper, generateSubjectiveQuestions } from "@/services/aiGenerate";
 import { buildPaperNumbering, sectionsToPaperPayload } from "./paperTypes";
@@ -121,6 +122,7 @@ export function QuestionsStep({
   onPaperReady,
 }: QuestionsStepProps) {
   const toast = useToast();
+  const { canUseAi, aiLoading, aiUpgradeMessage } = useFileUploadAccess();
   const { approve, pendingId, isApproved } = useQuestionApproval();
   const abortRef = useRef<AbortController | null>(null);
 
@@ -163,6 +165,13 @@ export function QuestionsStep({
 
   const handleGenerate = useCallback(async () => {
     if (totalNeeded === 0 || !subjectId) return;
+    if (!canUseAi) {
+      setError(aiUpgradeMessage);
+      if (!aiLoading) {
+        toast.error({ title: "Upgrade required", description: aiUpgradeMessage });
+      }
+      return;
+    }
     setError(null);
     setPaper(null);
     setRegeneratePromptKey(null);
@@ -225,7 +234,7 @@ export function QuestionsStep({
       setError(errorMessage(err, "Failed to generate the question paper. Please try again."));
       setStatus("error");
     }
-  }, [sections, paperTitle, syllabus, subjectId, chapterIds, topicIds, overall, totalNeeded, durationMinutes, toast, onPaperReady, paperHeader, onPaperHeaderChange]);
+  }, [sections, paperTitle, syllabus, subjectId, chapterIds, topicIds, overall, totalNeeded, durationMinutes, toast, onPaperReady, paperHeader, onPaperHeaderChange, canUseAi, aiLoading, aiUpgradeMessage]);
 
   const paperHeading = paperTitle.trim() || paperHeader.heading.trim() || "Question Paper";
 
@@ -264,6 +273,12 @@ export function QuestionsStep({
   ) => {
     const scope = generatedScope ?? (subjectId ? { subjectId, chapterIds, topicIds, syllabus } : null);
     if (!paper || !scope || regeneratingKey) return;
+    if (!canUseAi) {
+      if (!aiLoading) {
+        toast.error({ title: "Upgrade required", description: aiUpgradeMessage });
+      }
+      return;
+    }
     const question = paper.sections[sectionIndex]?.questionGroups[groupIndex]?.questions[questionIndex];
     if (!question) return;
 
@@ -301,7 +316,7 @@ export function QuestionsStep({
     } finally {
       setRegeneratingKey(null);
     }
-  }, [paper, generatedScope, subjectId, chapterIds, topicIds, syllabus, regeneratingKey, toast]);
+  }, [paper, generatedScope, subjectId, chapterIds, topicIds, syllabus, regeneratingKey, toast, canUseAi, aiLoading, aiUpgradeMessage]);
 
   const handleRegenerateClick = useCallback((key: string) => {
     if (regeneratingKey !== null) return;

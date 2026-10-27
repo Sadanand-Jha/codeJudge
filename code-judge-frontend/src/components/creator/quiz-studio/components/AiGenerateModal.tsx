@@ -166,8 +166,15 @@ export function AiGenerateModal({
   currentQuestionCount?: number;
 }) {
   const [mode, setMode] = useState<"own" | "bank">("own");
-  const { canUploadFiles, isLoading: subscriptionLoading, upgradeHref, upgradeMessage } =
-    useFileUploadAccess();
+  const {
+    canUploadFiles,
+    canUseAi,
+    isLoading: subscriptionLoading,
+    aiLoading,
+    upgradeHref,
+    upgradeMessage,
+    aiUpgradeMessage,
+  } = useFileUploadAccess();
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -439,6 +446,13 @@ export function AiGenerateModal({
   const quizLimitError = getQuizLimitError(currentQuestionCount, requestedQuestionCount);
 
   const handleGenerate = async () => {
+    if (!canUseAi) {
+      setError(aiUpgradeMessage);
+      if (!aiLoading) {
+        toast.error("Upgrade required", { description: aiUpgradeMessage });
+      }
+      return;
+    }
     if (!canUploadFiles) {
       setError(upgradeMessage);
       if (!subscriptionLoading) {
@@ -530,6 +544,13 @@ export function AiGenerateModal({
         ];
 
   const handleGenerateFromBank = async () => {
+    if (!canUseAi) {
+      setError(aiUpgradeMessage);
+      if (!aiLoading) {
+        toast.error("Upgrade required", { description: aiUpgradeMessage });
+      }
+      return;
+    }
     if (bankNumber > MAX_BANK_QUESTIONS) {
       setError(`You can generate at most ${MAX_BANK_QUESTIONS} questions at a time.`);
       return;
@@ -612,6 +633,12 @@ export function AiGenerateModal({
   };
 
   const handleRegenerateQuestion = async (question: PreviewQuestion) => {
+    if (!canUseAi) {
+      if (!aiLoading) {
+        toast.error({ title: "Upgrade required", description: aiUpgradeMessage });
+      }
+      return;
+    }
     try {
       let rawQuestions: RawAIGeneratedQuestion[];
       if (mode === "bank") {
@@ -1269,7 +1296,11 @@ export function AiGenerateModal({
                           </span>
                           <p className="mt-2.5 text-sm font-extrabold text-[var(--qs-ink)]">File uploads are paid-only</p>
                           <p className="mt-0.5 text-[11px] font-medium text-[var(--qs-muted)]">
-                            <Link href={upgradeHref} className="font-extrabold text-[var(--qs-brand)] underline">
+                            <Link
+                              href={upgradeHref}
+                              onClick={(event) => event.stopPropagation()}
+                              className="font-extrabold text-[var(--qs-brand)] underline"
+                            >
                               Upgrade your plan
                             </Link>{" "}
                             to generate questions from your material.

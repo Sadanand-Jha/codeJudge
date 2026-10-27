@@ -74,8 +74,15 @@ export function AIGenerateModal({
   existingSectionCount,
 }: AIGenerateModalProps) {
   const toast = useToast();
-  const { canUploadFiles, isLoading: subscriptionLoading, upgradeHref, upgradeMessage } =
-    useFileUploadAccess();
+  const {
+    canUploadFiles,
+    canUseAi,
+    isLoading: subscriptionLoading,
+    aiLoading,
+    upgradeHref,
+    upgradeMessage,
+    aiUpgradeMessage,
+  } = useFileUploadAccess();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -168,6 +175,13 @@ export function AIGenerateModal({
   }, []);
 
   const startGeneration = useCallback(async () => {
+    if (!canUseAi) {
+      setError({ type: "upload", message: aiUpgradeMessage });
+      if (!aiLoading) {
+        toast.error({ title: "Upgrade required", description: aiUpgradeMessage });
+      }
+      return;
+    }
     if (!canUploadFiles) {
       setError({ type: "upload", message: upgradeMessage });
       return;
@@ -241,9 +255,16 @@ export function AIGenerateModal({
       setError({ type: errorType, message: errorMessage });
       setStatus("error");
     }
-  }, [files, simulateProgress, onGenerate, toast, handleClose, reset, canUploadFiles, upgradeMessage]);
+  }, [files, simulateProgress, onGenerate, toast, handleClose, reset, canUploadFiles, canUseAi, aiLoading, aiUpgradeMessage, upgradeMessage]);
 
   const handleGenerate = useCallback(async () => {
+    if (!canUseAi) {
+      setError({ type: "upload", message: aiUpgradeMessage });
+      if (!aiLoading) {
+        toast.error({ title: "Upgrade required", description: aiUpgradeMessage });
+      }
+      return;
+    }
     if (!canUploadFiles) {
       setError({ type: "upload", message: upgradeMessage });
       if (!subscriptionLoading) {
@@ -259,7 +280,7 @@ export function AIGenerateModal({
     }
 
     await startGeneration();
-  }, [files, existingSectionCount, canUploadFiles, subscriptionLoading, upgradeMessage, toast, startGeneration]);
+  }, [files, existingSectionCount, canUploadFiles, canUseAi, subscriptionLoading, aiLoading, upgradeMessage, aiUpgradeMessage, toast, startGeneration]);
 
   const isProcessing =
     status === "uploading" ||
@@ -416,7 +437,11 @@ export function AIGenerateModal({
                             File uploads are paid-only
                           </p>
                           <p className="mt-1 text-[11px] text-text-muted">
-                            <Link href={upgradeHref} className="font-semibold text-violet-600 underline dark:text-violet-300">
+                            <Link
+                              href={upgradeHref}
+                              onClick={(event) => event.stopPropagation()}
+                              className="font-semibold text-violet-600 underline dark:text-violet-300"
+                            >
                               Upgrade your plan
                             </Link>{" "}
                             to generate test sections from your material.

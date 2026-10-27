@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
+import { useFileUploadAccess } from "@/hooks/useFileUploadAccess";
 import { useQuestionApproval } from "@/hooks/useQuestionApproval";
 import {
   generateSubjectiveQuestions,
@@ -195,6 +196,7 @@ function StepSection({
 
 export function CreateProblemGenerator() {
   const toast = useToast();
+  const { canUseAi, aiLoading, aiUpgradeMessage } = useFileUploadAccess();
   const { approve, pendingId, isApproved } = useQuestionApproval();
   const abortRef = useRef<AbortController | null>(null);
   const editRef = useRef<HTMLDivElement | null>(null);
@@ -394,6 +396,13 @@ export function CreateProblemGenerator() {
       setError(`You can generate at most ${MAX_QUESTIONS} questions at a time.`);
       return;
     }
+    if (!canUseAi) {
+      setError(aiUpgradeMessage);
+      if (!aiLoading) {
+        toast.error({ title: "Upgrade required", description: aiUpgradeMessage });
+      }
+      return;
+    }
     if (!subjectId || difficultySum !== totalQuestions || categorySum !== totalQuestions) return;
     setError(null);
     setItems([]);
@@ -452,12 +461,21 @@ export function CreateProblemGenerator() {
     topicIds,
     syllabus,
     toast,
+    canUseAi,
+    aiLoading,
+    aiUpgradeMessage,
   ]);
 
   const regenerateOne = useCallback(
     async (index: number, instruction?: string) => {
       const item = items[index];
       if (!item || !subjectId || busyIndex !== null) return;
+      if (!canUseAi) {
+        if (!aiLoading) {
+          toast.error({ title: "Upgrade required", description: aiUpgradeMessage });
+        }
+        return;
+      }
       const diff = item.difficulty.toLowerCase();
       const kind = item.kind.toLowerCase();
       const difficultyCounts = ["easy", "medium", "hard"].includes(diff)
@@ -521,7 +539,7 @@ export function CreateProblemGenerator() {
         setBusyIndex(null);
       }
     },
-    [items, subjectId, busyIndex, chapterIds, topicIds, syllabus, toast]
+    [items, subjectId, busyIndex, chapterIds, topicIds, syllabus, toast, canUseAi, aiLoading, aiUpgradeMessage]
   );
 
   const handleRegenerateClick = (index: number) => {
