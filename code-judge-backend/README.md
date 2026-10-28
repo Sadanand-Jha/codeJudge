@@ -10,6 +10,7 @@ A robust backend service for the QuizSupport platform, handling code execution, 
 - **Submission System**: Track submissions, execution results, and statistics
 - **AI Hints Integration**: AI-powered hints for problem solving
 - **Real-time Updates**: Redis-based caching and job queuing
+- **Encrypted Quiz Copies**: Browser-encrypted quiz ciphertext, two-page key PDF, and stale-copy sync
 
 ## Quiz Grading
 
@@ -23,7 +24,38 @@ Related documentation:
 - [QUIZ_STUDENT_FLOW.md](./QUIZ_STUDENT_FLOW.md) - student attempt flow
 - [QUIZ_CREATION_FLOW.md](./QUIZ_CREATION_FLOW.md) - creator flow
 - [QUIZ_STUDENT_CALL_MAP.md](./QUIZ_STUDENT_CALL_MAP.md) - frontend/backend call map
-- [ENCRYPTED_QUIZ_FLOW.md](./ENCRYPTED_QUIZ_FLOW.md) - client-side encrypted quiz copy, key PDF, and unlock flow
+- [ENCRYPTED_QUIZ_FLOW.md](./ENCRYPTED_QUIZ_FLOW.md) - client-side encrypted quiz copy, key PDF, unlock flow, and stale-copy sync
+
+## Encrypted Quiz Copies
+
+Creators can store an encrypted copy of a quiz in addition to the normal
+editable copy. The browser encrypts the questions with a browser-generated key
+and uploads only the ciphertext; the key is never sent to the server. The
+creator receives a two-page PDF: page 1 contains the key, QR code, and
+fingerprint, while page 2 contains short instructions without implementation
+details.
+
+Question and option writes are tracked by database triggers. Any create,
+update, delete, reorder, or bulk import marks the stored encrypted copy as
+stale. On the next creator save or publish, the client re-encrypts the current
+questions with a new key, uploads the new ciphertext, and downloads a fresh key
+PDF. After its own plaintext sync, the client acknowledges the upload to clear
+the stale flag.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/admin/quiz/:quizId/secure-payload/meta` | Creator metadata (existence, version, stale state) |
+| `GET` | `/api/v1/admin/quiz/:quizId/secure-payload` | Creator ciphertext payload |
+| `POST` / `PUT` | `/api/v1/admin/quiz/:quizId/secure-payload` | Create/replace the encrypted copy |
+| `POST` | `/api/v1/admin/quiz/:quizId/secure-payload/ack` | Mark the current encrypted copy fresh after a sync |
+| `DELETE` | `/api/v1/admin/quiz/:quizId/secure-payload` | Remove the encrypted copy |
+| `GET` | `/api/v1/user/quiz/:quizId/secure-payload` | Participant ciphertext (opaque without the creator key) |
+
+Run
+`database/migrations/65_secure_quiz_payload_stale.sql`
+before deploying the stale-copy metadata changes. See
+[ENCRYPTED_QUIZ_FLOW.md](./ENCRYPTED_QUIZ_FLOW.md) for the full flow and
+manual test steps.
 
 ## Tech Stack
 

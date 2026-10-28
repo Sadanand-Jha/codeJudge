@@ -26,6 +26,8 @@ export interface SecureQuizPayloadRow {
   problemHtml: EncryptedBlobRow;
   wrappedKey: EncryptedBlobRow;
   keyFingerprint: string;
+  stale: boolean;
+  staleAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -36,6 +38,8 @@ export interface SecureQuizPayloadMetaRow {
   version: number;
   algorithm: string;
   keyFingerprint: string;
+  stale: boolean;
+  staleAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -46,6 +50,8 @@ const META_COLUMNS = `
   version,
   algorithm,
   key_fingerprint AS "keyFingerprint",
+  stale,
+  stale_at      AS "staleAt",
   created_at    AS "createdAt",
   updated_at    AS "updatedAt"
 `;
@@ -56,6 +62,8 @@ const FULL_COLUMNS = `
   version,
   algorithm,
   key_fingerprint   AS "keyFingerprint",
+  stale,
+  stale_at          AS "staleAt",
   created_at        AS "createdAt",
   updated_at        AS "updatedAt",
   questions_blob    AS questions,
@@ -73,9 +81,10 @@ export class SecureQuizRepository {
       `
       INSERT INTO quiz_secure_payloads (
         quiz_id, created_by, payload_id, version, algorithm,
-        questions_blob, problem_html_blob, wrapped_key, key_fingerprint
+        questions_blob, problem_html_blob, wrapped_key, key_fingerprint,
+        stale, stale_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8::jsonb, $9)
+      VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8::jsonb, $9, FALSE, NULL)
       ON CONFLICT (quiz_id) DO UPDATE SET
         created_by        = EXCLUDED.created_by,
         payload_id        = EXCLUDED.payload_id,
@@ -85,6 +94,8 @@ export class SecureQuizRepository {
         problem_html_blob = EXCLUDED.problem_html_blob,
         wrapped_key       = EXCLUDED.wrapped_key,
         key_fingerprint   = EXCLUDED.key_fingerprint,
+        stale             = FALSE,
+        stale_at          = NULL,
         updated_at        = NOW()
       RETURNING ${META_COLUMNS}
       `,
@@ -123,6 +134,24 @@ export class SecureQuizRepository {
       SELECT ${META_COLUMNS}
       FROM quiz_secure_payloads
       WHERE quiz_id = $1
+      `,
+      [quizId]
+    );
+    return result.rows.length > 0 ? result.rows[0] : null;
+  }
+
+  /**
+   * Clear the stale marker after the studio has finished its own plaintext
+   * sync for a save that also uploaded a fresh encrypted copy.
+   */
+  async markFresh(quizId: number): Promise<SecureQuizPayloadMetaRow | null> {
+    const result = await pool.query(
+      `
+      UPDATE quiz_secure_payloads
+         SET stale = FALSE,
+             stale_at = NULL
+       WHERE quiz_id = $1
+      RETURNING ${META_COLUMNS}
       `,
       [quizId]
     );

@@ -28,6 +28,12 @@ export class SecureQuizService {
     return this.repository.getMetaByQuizId(quizId);
   }
 
+  async markFresh(
+    quizId: number
+  ): Promise<SecureQuizPayloadMetaRow | null> {
+    return this.repository.markFresh(quizId);
+  }
+
   async remove(quizId: number): Promise<boolean> {
     return this.repository.deleteByQuizId(quizId);
   }

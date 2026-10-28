@@ -31,12 +31,19 @@ import {
 import { syncQuizQuestions, computeChangedQuestions, buildQuestionSnapshot } from "@/utils/quizQuestionSync";
 import { containsHtml, htmlToPlainText } from "@/utils/htmlText";
 import {
+  fingerprintKeyHex,
+  generateKeyHex,
   prepareQuiz,
   SecureSaveCancelledError,
   type PreparedQuiz,
 } from "@/lib/quizCrypto";
-import { getSecureQuizMeta } from "@/services/secureQuiz";
+import {
+  ackSecureQuizPayload,
+  getSecureQuizMeta,
+  saveSecureQuizPayload,
+} from "@/services/secureQuiz";
 import { SecureQuizKeyDialog } from "./components/SecureQuizKeyDialog";
+import { useQuizCryptoStore } from "@/store/quizCryptoStore";
 import { useRoomStore } from "@/store/roomStore";
 import {
   type StudioState,
@@ -96,6 +103,18 @@ function getProblemsRetryDelay(attempt: number): number {
 
 function waitForProblemsRetry(delay: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, delay));
+}
+
+/**
+ * Reuse the key already created in this session (so the downloaded PDF keeps
+ * working), or create a new one for the first encrypted save.
+ */
+async function resolveQuizCryptoKey(quizId: string) {
+  const stored = useQuizCryptoStore.getState().getKey(quizId);
+  if (stored) return { ...stored, reused: true };
+  const keyHex = generateKeyHex();
+  const keyFingerprint = await fingerprintKeyHex(keyHex);
+  return { keyHex, keyFingerprint, reused: false };
 }
 
 /** Sentinel error used when question validation blocks a save/navigation. */
@@ -842,14 +861,54 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     setSavingToServer(true);
     setSaveProgress({ saved: 0, total: generatedIds.size });
     try {
+      const quizId = state.serverQuizId;
+      const secureMeta = await getSecureQuizMeta(quizId);
+      const { keyHex, keyFingerprint, reused } = await resolveQuizCryptoKey(quizId);
+      const preparePayload = () =>
+        prepareQuiz(
+          {
+            questions: updatedQuestions,
+            title: state.info.title,
+          },
+          { quizId, title: state.info.title, keyHex }
+        );
+
+      if (reused) {
+        // The key already exists in this session — re-encrypt and upload
+        // without asking the teacher to download the PDF again.
+        const prepared = await preparePayload();
+        await saveSecureQuizPayload(quizId, prepared.payload);
+      } else {
+        await requestSecureKeyConfirmation({
+          quizId,
+          quizCode: state.info.code || quizId,
+          title: state.info.title,
+          keyHex,
+          keyFingerprint,
+          preparePayload,
+          replacing: Boolean(secureMeta.exists),
+        });
+        useQuizCryptoStore.getState().setKey(quizId, { keyHex, keyFingerprint });
+      }
+
       await syncQuizQuestions(
-        state.serverQuizId,
+        quizId,
         updatedQuestions,
         generatedIds,
         (saved, total) => setSaveProgress({ saved, total })
       );
-      secureContentDirtyRef.current = true;
-      writeSecureDirty(state.serverQuizId, true);
+      // The first payload was encrypted before the plaintext sync assigned
+      // server ids. Re-encrypt with the same teacher key after the sync so the
+      // decrypted content can be matched to the attempt's problem/option ids.
+      try {
+        const refreshed = await preparePayload();
+        await saveSecureQuizPayload(quizId, refreshed.payload);
+        await ackSecureQuizPayload(quizId);
+      } catch (error) {
+        console.warn("Could not refresh encrypted copy with server ids:", error);
+      }
+      secureContentDirtyRef.current = false;
+      writeSecureDirty(quizId, false);
       snapshotRef.current = buildQuestionSnapshot(updatedQuestions);
       setQuestionsDirty(true);
       setState((current) => ({
@@ -1190,7 +1249,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     quizId: string;
     quizCode: string;
     title: string;
-    prepared: PreparedQuiz;
+    keyHex: string;
+    keyFingerprint: string;
+    preparePayload: () => Promise<PreparedQuiz>;
     replacing: boolean;
   }
 
@@ -1366,28 +1427,49 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         // download the key PDF before any ciphertext is uploaded. Autosaves
         // and step navigation never pass `secure`, so only explicit Save /
         // Publish actions show the key dialog.
+        let secureUploaded = false;
+        let secureKeyHex: string | null = null;
         if (opts?.secure && state.questions.length > 0) {
           const meta = await getSecureQuizMeta(quizId);
           const needsSecureSave =
             secureContentDirtyRef.current ||
             readSecureDirty(quizId) ||
+            meta.stale === true ||
             !meta.exists ||
             (changedIds?.size ?? 0) > 0;
           if (needsSecureSave) {
-            const prepared = await prepareQuiz(
-              {
-                questions: state.questions,
+            const { keyHex, keyFingerprint, reused } = await resolveQuizCryptoKey(quizId);
+            const preparePayload = () =>
+              prepareQuiz(
+                {
+                  questions: state.questions,
+                  title: state.info.title,
+                },
+                { quizId, title: state.info.title, keyHex }
+              );
+
+            if (reused) {
+              // Reuse the key from the Zustand store so the key PDF the teacher
+              // already downloaded still unlocks this newer ciphertext.
+              const prepared = await preparePayload();
+              await saveSecureQuizPayload(quizId, prepared.payload);
+            } else {
+              await requestSecureKeyConfirmation({
+                quizId,
+                quizCode: savedCode,
                 title: state.info.title,
-              },
-              { quizId, title: state.info.title }
-            );
-            await requestSecureKeyConfirmation({
-              quizId,
-              quizCode: savedCode,
-              title: state.info.title,
-              prepared,
-              replacing: Boolean(meta.exists),
-            });
+                keyHex,
+                keyFingerprint,
+                preparePayload,
+                replacing: Boolean(meta.exists),
+              });
+              useQuizCryptoStore.getState().setKey(quizId, {
+                keyHex,
+                keyFingerprint,
+              });
+            }
+            secureUploaded = true;
+            secureKeyHex = keyHex;
             secureContentDirtyRef.current = false;
             writeSecureDirty(quizId, false);
           }
@@ -1401,6 +1483,33 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
           await syncQuizQuestions(quizId, state.questions, changedIds, (saved, total) => {
             setSaveProgress({ saved, total });
           });
+        }
+        // The plaintext sync above touches question rows and assigns server
+        // ids to new questions/options. Re-encrypt with the same key from the
+        // Zustand store so the uploaded payload matches the ids students will
+        // receive, then clear the stale marker. If this refresh fails, leave
+        // the copy stale so the next save retries it.
+        if (secureUploaded && secureKeyHex) {
+          try {
+            const refreshed = await prepareQuiz(
+              {
+                questions: state.questions,
+                title: state.info.title,
+              },
+              {
+                quizId,
+                title: state.info.title,
+                keyHex: secureKeyHex,
+              }
+            );
+            await saveSecureQuizPayload(quizId, refreshed.payload);
+            await ackSecureQuizPayload(quizId);
+          } catch (error) {
+            console.warn(
+              "Could not refresh encrypted copy with server ids:",
+              error
+            );
+          }
         }
         // Update snapshot so subsequent saves only diff against the new baseline.
         // Compare against the latest state so edits made during the request
@@ -1675,9 +1784,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
           quizId={securePrompt.quizId}
           quizCode={securePrompt.quizCode}
           title={securePrompt.title}
-          keyHex={securePrompt.prepared.keyHex}
-          keyFingerprint={securePrompt.prepared.keyFingerprint}
-          payload={securePrompt.prepared.payload}
+          keyHex={securePrompt.keyHex}
+          keyFingerprint={securePrompt.keyFingerprint}
+          preparePayload={securePrompt.preparePayload}
           replacing={securePrompt.replacing}
           onCompleted={handleSecureKeyCompleted}
           onCancel={handleSecureKeyCancel}

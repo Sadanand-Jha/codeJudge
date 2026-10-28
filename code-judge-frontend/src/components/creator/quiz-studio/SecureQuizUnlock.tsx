@@ -36,6 +36,7 @@ import {
   getSecureQuizPayload,
   type SecureQuizPayloadMeta,
 } from "@/services/secureQuiz";
+import { useQuizCryptoStore } from "@/store/quizCryptoStore";
 
 const TYPE_LABELS: Record<string, string> = {
   single_choice: "Single choice",
@@ -345,6 +346,10 @@ export function SecureQuizUnlock({ quizId }: { quizId: string }) {
       const opened = await unlockQuiz(nextPayload, normalized);
       setUnlocked(opened);
       setUnlockedKey(normalized);
+      useQuizCryptoStore.getState().setKey(quizId, {
+        keyHex: normalized,
+        keyFingerprint: opened.keyFingerprint,
+      });
     } catch (err) {
       setUnlockError(
         err instanceof Error
@@ -472,6 +477,16 @@ export function SecureQuizUnlock({ quizId }: { quizId: string }) {
               </>
             )}
           </div>
+
+          {meta.stale && (
+            <div className="flex gap-2.5 rounded-[12px] border-2 border-[var(--qs-warn)]/50 bg-[var(--qs-warnbg)] px-3 py-2.5">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--qs-warn)]" />
+              <p className="text-[11px] font-semibold leading-relaxed text-[var(--qs-ink)]">
+                Questions changed after this encrypted copy was saved. Re-save
+                from the quiz editor to create a new encrypted copy and key PDF.
+              </p>
+            </div>
+          )}
 
           {!unlocked ? (
             <div className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">

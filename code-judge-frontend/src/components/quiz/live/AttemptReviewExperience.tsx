@@ -37,6 +37,14 @@ import {
   type ReviewOption,
 } from "@/services/quiz";
 import { getApiErrorMessage } from "@/lib/apiError";
+import { unlockQuiz, type SecureQuizPayload } from "@/lib/quizCrypto";
+import { getStudentSecureQuizPayload } from "@/services/secureQuiz";
+import QuizKeyGate from "@/components/quiz/QuizKeyGate";
+import {
+  buildDecryptedQuizIndex,
+  mergeReviewRows,
+  type DecryptedQuizIndex,
+} from "@/utils/decryptedQuizContent";
 import { QuizStateScreen } from "./StudentQuizShell";
 import { useQuizSounds } from "@/hooks/useQuizSounds";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -236,6 +244,14 @@ function buildAttemptReviewData(result: QuizResult, review: QuestionReview[]): A
         .map((option) => htmlToPlainText(option.option_statement))
         .filter(Boolean)
         .map((value) => value.trim().toLowerCase());
+      if (row.correct_answer) {
+        const expected = htmlToPlainText(row.correct_answer).toLowerCase();
+        accepted.push(expected);
+        for (const part of expected.split(",")) {
+          const value = part.trim();
+          if (value) accepted.push(value);
+        }
+      }
       textMatched = accepted.includes(submitted);
     }
     const built: AttemptReviewQuestion = {
@@ -245,7 +261,7 @@ function buildAttemptReviewData(result: QuizResult, review: QuestionReview[]): A
       // order rather than the student's attempt order. The UI must always
       // present a simple 1, 2, 3… sequence.
       number: index + 1,
-      statement: row.problem_statement,
+      statement: row.problem_statement ?? "",
       difficulty: normalizeDifficulty(row.difficulty),
       options: options.map((option, optionIndex) => ({
         id: String(option.id),
@@ -359,12 +375,18 @@ function ScoreRing({ percentage }: { percentage: number }) {
 
 export default function AttemptReviewExperience({
   attemptId,
+  quizId,
 }: {
   attemptId: string;
+  quizId?: string;
 }) {
   const { playQuizSound } = useQuizSounds();
   const [selectedQuestion, setSelectedQuestion] = useState(0);
   const [data, setData] = useState<AttemptReviewData | null>(null);
+  const [baseResult, setBaseResult] = useState<QuizResult | null>(null);
+  const [rawReview, setRawReview] = useState<QuestionReview[]>([]);
+  const [securePayload, setSecurePayload] = useState<SecureQuizPayload | null>(null);
+  const [decryptedIndex, setDecryptedIndex] = useState<DecryptedQuizIndex | null>(null);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
@@ -389,20 +411,38 @@ export default function AttemptReviewExperience({
       setPending(false);
       setPendingMessage(null);
       setError(null);
+      setData(null);
+      setBaseResult(null);
+      setRawReview([]);
+      setSecurePayload(null);
+      setDecryptedIndex(null);
       try {
         const [result, review] = await Promise.all([
           getQuizResult(attemptId),
           getQuizReview(attemptId),
         ]);
-        if (!cancelled) {
-          setData(buildAttemptReviewData(result, review));
-          // The URL uses the public quiz code, while rating endpoints require
-          // the numeric database id. The owned attempt result is the trusted
-          // source that connects those two identifiers.
-          setResolvedRatingQuizId(String(result.quiz_id));
-          setSelectedQuestion(0);
-          playQuizSound("success");
+        if (cancelled) return;
+
+        // Encrypted quizzes return review rows without authored text. Fetch
+        // the ciphertext now; the key gate appears until it is decrypted.
+        let payload: SecureQuizPayload | null = null;
+        try {
+          payload = await getStudentSecureQuizPayload(quizId || String(result.quiz_id));
+        } catch (err: unknown) {
+          const status = (err as { response?: { status?: number } })?.response?.status;
+          if (status !== 404) throw err;
         }
+        if (cancelled) return;
+
+        setBaseResult(result);
+        setRawReview(review);
+        setSecurePayload(payload);
+        // The URL uses the public quiz code, while rating endpoints require
+        // the numeric database id. The owned attempt result is the trusted
+        // source that connects those two identifiers.
+        setResolvedRatingQuizId(String(result.quiz_id));
+        setSelectedQuestion(0);
+        playQuizSound("success");
       } catch (err: unknown) {
         if (!cancelled) {
           const status = (err as { response?: { status?: number } })?.response?.status;
@@ -422,7 +462,22 @@ export default function AttemptReviewExperience({
     return () => {
       cancelled = true;
     };
-  }, [attemptId, playQuizSound]);
+  }, [attemptId, quizId, playQuizSound]);
+
+  useEffect(() => {
+    if (!baseResult) return;
+    if (securePayload && !decryptedIndex) return;
+    const merged = decryptedIndex
+      ? mergeReviewRows(rawReview, decryptedIndex)
+      : rawReview;
+    setData(buildAttemptReviewData(baseResult, merged));
+  }, [baseResult, rawReview, securePayload, decryptedIndex]);
+
+  const handleUnlockReview = async (keyHex: string) => {
+    if (!securePayload) return;
+    const unlocked = await unlockQuiz(securePayload, keyHex);
+    setDecryptedIndex(buildDecryptedQuizIndex(unlocked));
+  };
 
   useEffect(() => {
     if (!resolvedRatingQuizId) return;
@@ -492,6 +547,16 @@ export default function AttemptReviewExperience({
             <ArrowLeft className="h-4 w-4" /> Back to quiz home
           </Link>
         }
+      />
+    );
+  }
+
+  if (securePayload && !decryptedIndex) {
+    return (
+      <QuizKeyGate
+        quizTitle={baseResult?.quiz_name || "Encrypted quiz"}
+        subtitle="This review contains encrypted questions and options. Paste the teacher key from the quiz PDF to decrypt them in this browser."
+        onSubmit={handleUnlockReview}
       />
     );
   }

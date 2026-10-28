@@ -34,6 +34,7 @@ import {
 import { getQuestionGeneratorCatalog } from "@/services/aiGenerate";
 import type { QuestionGeneratorCatalog } from "@/services/aiGenerate";
 import { toast } from "@/lib/toast";
+import { SecureSaveCancelledError } from "@/lib/quizCrypto";
 import type { AIQuestionPreview, LiveUsage, RawAIGeneratedQuestion } from "@/services/ai";
 import type { CreatorQuestion } from "../types";
 import { mapToCreatorQuestions } from "@/utils/aiToCreatorQuestion";
@@ -740,6 +741,10 @@ export function AiGenerateModal({
       setDone(true);
       toast.success(`Added ${questions.length} questions from AI`);
     } catch (err) {
+      if (err instanceof SecureSaveCancelledError) {
+        toast.info("Questions were not added because the encryption key was not saved.");
+        return;
+      }
       toast.error("Could not add questions", { description: (err as Error).message || "Please try again." });
     } finally {
       setAccepting(false);
@@ -758,6 +763,10 @@ export function AiGenerateModal({
       setReviewQuestions((prev) => prev.filter((q) => q.id !== question.id));
       toast.success("Question added to the quiz");
     } catch (err) {
+      if (err instanceof SecureSaveCancelledError) {
+        toast.info("Question was not added because the encryption key was not saved.");
+        return;
+      }
       toast.error("Could not add question", { description: (err as Error).message || "Please try again." });
     }
   };

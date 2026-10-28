@@ -327,6 +327,7 @@ two-page PDF, PNG, DOCX, and rejection of content over the branding area.
 | `code-judge-backend/REGISTRATION_FLOW.md` | User registration flow |
 | `code-judge-backend/QUIZ_MODULE_BACKEND.md` | Quiz module backend docs |
 | `code-judge-backend/AI_FILE_GENERATION_FLOW.md` | AI file generation flow |
+| `code-judge-backend/ENCRYPTED_QUIZ_FLOW.md` | Encrypted quiz copy, key PDF, unlock flow, and stale-copy sync |
 
 ---
 
@@ -354,6 +355,38 @@ two-page PDF, PNG, DOCX, and rejection of content over the branding area.
 - 📊 **Statistics** — Attempts, pass rate, avg score, completion rate
 - 🤝 **Collaborators** — Roles: owner, admin, editor, reviewer, moderator, viewer
 - ⏱️ **Scheduling** — Start/end times, registration deadline, attempt window
+
+---
+
+## 🔐 Encrypted Quiz Copies
+
+Creators can save an encrypted copy of a quiz alongside the normal editable
+copy. Questions are encrypted in the browser with a browser-generated key; the
+server stores only the ciphertext. The creator downloads a two-page key PDF:
+
+- **Page 1** — quiz ID, join code, encryption key, QR code, and key fingerprint.
+- **Page 2** — short instructions for keeping and using the key. No server,
+  browser, or encryption internals are exposed.
+
+The creator can reopen the encrypted copy at
+`/creator/quizzes/:id/secure`, paste the key or scan the QR code, and preview
+the decrypted quiz locally. Participants can fetch the opaque ciphertext
+through the participant endpoint, but it is unreadable without the creator's
+key.
+
+### Keeping the encrypted copy in sync
+
+Every question or option write (create, update, delete, reorder, bulk import,
+or direct API call) marks the stored encrypted copy as **stale** through
+database triggers. On the next creator save or publish, the studio detects the
+stale copy, re-encrypts the current questions with a new key, uploads a new
+ciphertext, and downloads a fresh key PDF. After its own plaintext sync it
+acknowledges the upload so normal edits do not keep showing the stale warning.
+
+Database migration `code-judge-backend/database/migrations/65_secure_quiz_payload_stale.sql`
+adds the stale columns and triggers. See
+[`code-judge-backend/ENCRYPTED_QUIZ_FLOW.md`](code-judge-backend/ENCRYPTED_QUIZ_FLOW.md)
+for the full flow, API endpoints, and testing steps.
 
 ---
 

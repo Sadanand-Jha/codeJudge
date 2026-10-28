@@ -80,6 +80,8 @@ function toMeta(exists: boolean, row?: any) {
     version: row.version,
     algorithm: row.algorithm,
     keyFingerprint: row.keyFingerprint,
+    stale: Boolean(row.stale),
+    staleAt: row.staleAt ?? null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -175,6 +177,40 @@ export const saveSecureQuizPayloadController = async (
     res.status(500).json({
       success: false,
       message: "Internal server error while saving the encrypted quiz",
+    });
+  }
+};
+
+/**
+ * Clear the stale marker after the studio's own plaintext question sync. The
+ * encrypted copy was uploaded earlier in the same save, so marking it current
+ * here keeps the next save from prompting for an unnecessary new key.
+ */
+export const ackSecureQuizPayloadController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const owner = await requireQuizOwner(req);
+    if (!owner.ok) {
+      res.status(owner.status).json({ success: false, message: owner.message });
+      return;
+    }
+    const row = await secureQuizService.markFresh(owner.quizId);
+    if (!row) {
+      res.status(404).json({
+        success: false,
+        message: "No encrypted copy exists for this quiz",
+      });
+      return;
+    }
+    res.set("Cache-Control", NO_STORE);
+    res.status(200).json({ success: true, data: toMeta(true, row) });
+  } catch (error) {
+    console.error("Error refreshing encrypted quiz metadata:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while refreshing the encrypted quiz",
     });
   }
 };

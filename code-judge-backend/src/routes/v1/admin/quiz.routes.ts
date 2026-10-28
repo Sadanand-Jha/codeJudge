@@ -53,6 +53,7 @@ import {
   getCreatorProfileOverview,
 } from "../../../controllers/adminQuizController.ts";
 import {
+  ackSecureQuizPayloadController,
   deleteSecureQuizPayloadController,
   getSecureQuizMetaController,
   getSecureQuizPayloadController,
@@ -99,6 +100,10 @@ router.put(
   "/:quizId/secure-payload",
   validate(secureQuizPayloadSchema),
   saveSecureQuizPayloadController
+);
+router.post(
+  "/:quizId/secure-payload/ack",
+  ackSecureQuizPayloadController
 );
 router.delete("/:quizId/secure-payload", deleteSecureQuizPayloadController);
 

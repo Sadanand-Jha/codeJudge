@@ -6,6 +6,14 @@ import {
   syncQuizProblemOptions,
   type QuizProblemOptionSyncResult,
 } from "./quizProblemOptions.ts";
+import {
+  decryptOptionRow,
+  decryptOptionRows,
+  decryptProblemRow,
+  decryptProblemRows,
+  decryptText,
+  encryptText,
+} from "../services/quizContentCrypto.service.ts";
 
 export class AdminQuizRepository {
   // ==================== SHARED LOOKUPS ====================
@@ -327,7 +335,7 @@ export class AdminQuizRepository {
       ORDER BY qp.question_number ASC, qp.id ASC
     `;
     const result = await pool.query(query, [quizId]);
-    return result.rows;
+    return decryptProblemRows(result.rows);
   }
 
   async getQuizProblemById(problemId: number | string): Promise<any | null> {
@@ -342,7 +350,7 @@ export class AdminQuizRepository {
       WHERE qp.id = $1 AND qp.deleted_at IS NULL LIMIT 1
     `;
     const result = await pool.query(query, [problemId]);
-    return result.rows.length ? result.rows[0] : null;
+    return result.rows.length ? decryptProblemRow(result.rows[0]) : null;
   }
 
   async getQuizProblemCount(quizId: string): Promise<number> {
@@ -361,7 +369,7 @@ export class AdminQuizRepository {
       ORDER BY qpo.sort_order ASC, qpo.id ASC
     `;
     const result = await pool.query(query, [problemId]);
-    return result.rows;
+    return decryptOptionRows(result.rows);
   }
 
   async createQuizProblem(data: {
@@ -380,12 +388,12 @@ export class AdminQuizRepository {
         FROM quiz_problems WHERE quiz_id = $1 RETURNING *
       `;
       const result = await client.query(query, [
-        data.quizId, data.problemStatement, data.problemDescription || null,
-        data.quizProblemType || null, data.explanation || null,
-        data.hint || null, data.difficulty || null, data.referenceNotes || null, data.internalComments || null,
+        data.quizId, encryptText(data.problemStatement), encryptText(data.problemDescription),
+        data.quizProblemType || null, encryptText(data.explanation),
+        encryptText(data.hint), data.difficulty || null, encryptText(data.referenceNotes), encryptText(data.internalComments),
       ]);
       await client.query("COMMIT");
-      return result.rows[0];
+      return decryptProblemRow(result.rows[0]);
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -405,10 +413,10 @@ export class AdminQuizRepository {
         CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) RETURNING *
     `;
     const result = await pool.query(query, [
-      data.problemId, data.optionStatement, data.optionDescription || null,
-      (data as any).matchingTarget ?? (data as any).matching_target ?? null, data.isCorrect,
+      data.problemId, encryptText(data.optionStatement), encryptText(data.optionDescription),
+      encryptText((data as any).matchingTarget ?? (data as any).matching_target ?? null), data.isCorrect,
     ]);
-    return result.rows[0];
+    return decryptOptionRow(result.rows[0]);
   }
 
   async updateQuizProblem(problemId: number, data: any): Promise<any> {
@@ -419,11 +427,15 @@ export class AdminQuizRepository {
       "problem_statement", "problem_description", "quiz_problem_type", "question_number",
       "explaination", "hint", "difficulty", "reference_notes", "internal_comments",
     ];
+    const encryptedFields = new Set([
+      "problem_statement", "problem_description", "explaination", "hint",
+      "reference_notes", "internal_comments",
+    ]);
     for (const field of updateableFields) {
       if (data[field] !== undefined) {
         paramCount++;
         fields.push(`${field} = $${paramCount}`);
-        values.push(data[field]);
+        values.push(encryptedFields.has(field) ? encryptText(data[field]) : data[field]);
       }
     }
     if (fields.length === 0) return null;
@@ -433,7 +445,7 @@ export class AdminQuizRepository {
     const result = await pool.query(
       `UPDATE quiz_problems SET ${fields.join(", ")} WHERE id = $${paramCount} AND deleted_at IS NULL RETURNING *`, values
     );
-    return result.rows[0];
+    return result.rows.length ? decryptProblemRow(result.rows[0]) : null;
   }
 
   async deleteQuizProblem(problemId: number): Promise<boolean> {
@@ -472,7 +484,7 @@ export class AdminQuizRepository {
         );
       }
       await client.query("COMMIT");
-      return newProblem.rows[0];
+      return decryptProblemRow(newProblem.rows[0]);
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -515,15 +527,15 @@ export class AdminQuizRepository {
         const values: any[] = [];
         let pc = 0;
         const uf: Record<string, any> = {
-          problem_statement: data.problemStatement,
-          problem_description: data.problemDescription ?? null,
+          problem_statement: encryptText(data.problemStatement),
+          problem_description: encryptText(data.problemDescription),
           quiz_problem_type: data.quizProblemType ?? null,
           question_number: data.questionNumber ?? null,
-          explaination: data.explanation ?? null,
-          hint: data.hint ?? null,
+          explaination: encryptText(data.explanation),
+          hint: encryptText(data.hint),
           difficulty: data.difficulty ?? null,
-          reference_notes: data.referenceNotes ?? null,
-          internal_comments: data.internalComments ?? null,
+          reference_notes: encryptText(data.referenceNotes),
+          internal_comments: encryptText(data.internalComments),
           marks: data.marks ?? null,
           negative_marks: data.negativeMarks ?? null,
         };
@@ -548,9 +560,9 @@ export class AdminQuizRepository {
            marks, negative_marks, created_at, updated_at)
            SELECT $1,$2,$3,$4,COALESCE(MAX(question_number), 0) + 1,$5,$6,$7,$8,$9,$10,$11,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
            FROM quiz_problems WHERE quiz_id = $1 RETURNING *`,
-          [data.quizId, data.problemStatement, data.problemDescription || null, data.quizProblemType || null,
-           data.explanation || null, data.hint || null, data.difficulty || null,
-           data.referenceNotes || null, data.internalComments || null, data.marks ?? null, data.negativeMarks ?? null]
+          [data.quizId, encryptText(data.problemStatement), encryptText(data.problemDescription), data.quizProblemType || null,
+           encryptText(data.explanation), encryptText(data.hint), data.difficulty || null,
+           encryptText(data.referenceNotes), encryptText(data.internalComments), data.marks ?? null, data.negativeMarks ?? null]
         );
         problem = result.rows[0];
       }
@@ -567,7 +579,7 @@ export class AdminQuizRepository {
 
       await client.query("COMMIT");
       return {
-        ...problem,
+        ...decryptProblemRow(problem),
         options: optionSync?.options ?? [],
         gradingChanged: Boolean(optionSync?.gradingChanged) || gradingFieldsChanged,
       };
@@ -802,7 +814,12 @@ export class AdminQuizRepository {
        ORDER BY qp.question_number ASC`,
       [attemptId]
     );
-    return result.rows;
+    return result.rows.map((row: any) => {
+      const next = decryptProblemRow(row);
+      if ("correct_answer" in next) next.correct_answer = decryptText(next.correct_answer);
+      if ("selected_statement" in next) next.selected_statement = decryptText(next.selected_statement);
+      return next;
+    });
   }
 
   // ==================== PARTICIPANTS ====================
@@ -940,7 +957,7 @@ export class AdminQuizRepository {
       const skipped = Math.max(0, totalAttemptsNum - totalResp);
       const accuracy = totalResp > 0 ? (correct / totalResp * 100) : 0;
       return {
-        id: q.id, question_number: q.question_number, problem_statement: q.problem_statement,
+        id: q.id, question_number: q.question_number, problem_statement: decryptText(q.problem_statement),
         problem_type: q.problem_type, difficulty: q.difficulty, difficulty_name: q.difficulty_name,
         total_responses: totalResp,
         correct_responses: correct, incorrect_responses: incorrect, skipped_count: skipped,

@@ -139,6 +139,7 @@ export interface QuizProblemOption {
 
 export interface PublicQuizProblemOption extends Omit<QuizProblemOption, "iscorrect"> {
   iscorrect?: never;
+  authored_index?: number;
 }
 
 export interface QuizTrapPayload {
@@ -150,6 +151,7 @@ export interface QuizTrapPayload {
 export interface PublicQuizProblem extends Omit<QuizProblem, "options"> {
   options: PublicQuizProblemOption[];
   trap?: QuizTrapPayload | null;
+  authored_index?: number;
 }
 
 export interface QuizRegistration {

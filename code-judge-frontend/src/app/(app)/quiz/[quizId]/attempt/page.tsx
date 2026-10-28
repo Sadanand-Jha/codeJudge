@@ -20,6 +20,14 @@ import {
 import { isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { consumeQuizBackNavigation } from "@/lib/quizBackNavigation";
+import { unlockQuiz, type SecureQuizPayload, type UnlockedQuiz } from "@/lib/quizCrypto";
+import { getStudentSecureQuizPayload } from "@/services/secureQuiz";
+import QuizKeyGate from "@/components/quiz/QuizKeyGate";
+import {
+  buildDecryptedQuizIndex,
+  mergeAttemptProblems,
+  type DecryptedQuizIndex,
+} from "@/utils/decryptedQuizContent";
 import {
   clearQuizAttemptAnswers,
   readQuizAttemptAnswers,
@@ -60,6 +68,10 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   const [attemptId, setAttemptId] = useState<number | null>(null);
   const [starting, setStarting] = useState(false);
   const [questions, setQuestions] = useState<PublicQuizProblem[]>([]);
+  const [securePayload, setSecurePayload] = useState<SecureQuizPayload | null>(null);
+  const [secureChecked, setSecureChecked] = useState(false);
+  const [secureError, setSecureError] = useState<string | null>(null);
+  const [decryptedIndex, setDecryptedIndex] = useState<DecryptedQuizIndex | null>(null);
   const [answers, setAnswers] = useState<Record<number, AnswerValue>>({});
   const [index, setIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
@@ -128,6 +140,45 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     load();
     return () => { cancelled = true; };
   }, [code]);
+
+  // Encrypted quizzes return identifiers/order only. Fetch the ciphertext and
+  // keep it in memory; the teacher key is requested on every page load.
+  useEffect(() => {
+    if (!quiz) return;
+    let cancelled = false;
+    setSecureChecked(false);
+    setSecureError(null);
+    void getStudentSecureQuizPayload(String(quiz.id))
+      .then((payload) => {
+        if (!cancelled) setSecurePayload(payload);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status === 404) {
+          setSecurePayload(null);
+          return;
+        }
+        setSecureError(
+          getApiErrorMessage(err, "Could not load the encrypted quiz.")
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setSecureChecked(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [quiz]);
+
+  const handleUnlockSecureQuiz = useCallback(
+    async (keyHex: string) => {
+      if (!securePayload) return;
+      const unlocked: UnlockedQuiz = await unlockQuiz(securePayload, keyHex);
+      setDecryptedIndex(buildDecryptedQuizIndex(unlocked));
+    },
+    [securePayload]
+  );
 
   // A student who already has an active attempt (refresh/resume) has already
   // submitted the registration form — skip it and let the server resume.
@@ -241,9 +292,14 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       const started = await startQuizAttempt(String(quiz.id), registrationData);
       const id = started.attempt.id as number;
       setAttemptId(id);
-      // The server returns the final per-attempt option order. The decoy label
-      // is derived from that exact order, so the client must not shuffle it.
-      setQuestions(started.problems ?? []);
+      // The server returns the final per-attempt order and identifiers only.
+      // Merge the decrypted text without reordering the server's option order.
+      const serverProblems = started.problems ?? [];
+      setQuestions(
+        decryptedIndex
+          ? mergeAttemptProblems(serverProblems, decryptedIndex)
+          : serverProblems
+      );
       if (started.resumed) {
         // Server responses make resume work across devices; the local draft is
         // applied last because it may contain a newer offline edit.
@@ -268,7 +324,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     } finally {
       setStarting(false);
     }
-  }, [blockedByBackNavigation, quiz, attemptId, starting]);
+  }, [blockedByBackNavigation, quiz, attemptId, starting, decryptedIndex]);
 
   // The server rejects saves/heartbeats once the teacher stops the quiz or
   // the scheduled window ends. Stop accepting local answers and submit the
@@ -371,6 +427,18 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   if (loading) return <StatusScreen loading text="Preparing your secure attempt…" />;
   if (error && !quiz) return <StatusScreen text={error} />;
   if (!quiz) return <StatusScreen text="This quiz could not be loaded." />;
+  if (!secureChecked) {
+    return <StatusScreen loading text="Checking the encrypted quiz…" />;
+  }
+  if (secureError) return <StatusScreen text={secureError} />;
+  if (securePayload && !decryptedIndex) {
+    return (
+      <QuizKeyGate
+        quizTitle={quiz.name}
+        onSubmit={handleUnlockSecureQuiz}
+      />
+    );
+  }
 
   return (
     <ExamModeShell
