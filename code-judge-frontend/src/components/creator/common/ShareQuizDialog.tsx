@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { formatDurationMinutes } from "@/lib/formatters";
 import { SITE_NAME, SITE_URL } from "@/lib/seo/site";
 import { copyQuizCode } from "@/services/quiz";
 import { toast } from "@/lib/toast";
@@ -15,6 +16,8 @@ export interface ShareQuizInfo {
   code: string;
   questions: number;
   status: ShareQuizStatus;
+  /** Time limit in minutes, when the quiz has one. */
+  duration?: number | null;
 }
 
 export type ShareStyleId = "clean" | "ticket" | "desi" | "hype";
@@ -256,6 +259,7 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
   const copyTimerRef = useRef<number | null>(null);
 
   const activeStyle = SHARE_STYLES.find((style) => style.id === styleId) ?? SHARE_STYLES[0];
+  const durationLabel = formatDurationMinutes(quiz.duration);
   const generatedMessage = buildShareMessage({ ...quiz, code }, styleId);
   const message = customMessage ?? generatedMessage;
   const whatsappHref = `https://wa.me/?text=${encodeURIComponent(message)}`;
@@ -430,7 +434,8 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
                 <div className="px-2.5 py-2 text-[#111b21] dark:text-[#e9edef]">
                   <b className="block text-[13px] font-bold leading-snug">{quiz.title}</b>
                   <span className="mt-0.5 block text-[12px] opacity-75">
-                    {quiz.questions} {quiz.questions === 1 ? "question" : "questions"}. Tap to join instantly.
+                    {quiz.questions} {quiz.questions === 1 ? "question" : "questions"}
+                    {durationLabel ? ` • ${durationLabel}` : ""}. Tap to join instantly.
                   </span>
                   <em className="mt-0.5 block text-[11px] not-italic opacity-60">
                     {SITE_URL.replace(/^https?:\/\//, "")}

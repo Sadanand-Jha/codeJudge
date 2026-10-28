@@ -1,5 +1,7 @@
 "use client";
 
+import { showUpgradeModal } from "@/lib/upgradePrompt";
+
 import { useRef, useState } from "react";
 import Link from "next/link";
 import {
@@ -185,7 +187,7 @@ export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
     if (n === 0) return;
     if (!canUploadFiles) {
       if (!subscriptionLoading) {
-        toast.error({ title: "Upgrade required", description: upgradeMessage });
+        showUpgradeModal({ message: upgradeMessage });
       }
       return;
     }
@@ -345,7 +347,7 @@ export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
                   onClick={() => {
                     if (!canUploadFiles) {
                       if (!subscriptionLoading) {
-                        toast.error({ title: "Upgrade required", description: upgradeMessage });
+                        showUpgradeModal({ message: upgradeMessage });
                       }
                       return;
                     }

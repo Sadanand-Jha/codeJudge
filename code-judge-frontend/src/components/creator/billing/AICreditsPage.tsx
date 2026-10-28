@@ -69,6 +69,7 @@ export function AICreditsPage({
   };
 
   const [packId, setPackId] = useState<string | null>(initialPackId ?? null);
+  const [dismissedInitialPack, setDismissedInitialPack] = useState(false);
   const [phase, setPhase] = useState<PurchasePhase>("summary");
   const [phaseError, setPhaseError] = useState<string | null>(null);
   const [processingNote, setProcessingNote] = useState("Creating your order…");
@@ -77,7 +78,9 @@ export function AICreditsPage({
   const selectedPackId =
     packId && packs.some((pack) => pack.id === packId)
       ? packId
-      : initialPackId && packs.some((pack) => pack.id === initialPackId)
+      : !dismissedInitialPack &&
+          initialPackId &&
+          packs.some((pack) => pack.id === initialPackId)
         ? initialPackId
         : null;
   const selected: PackOrderSummary | null = selectedPackId
@@ -93,6 +96,7 @@ export function AICreditsPage({
 
   const closeDialog = () => {
     if (phase === "processing") return;
+    setDismissedInitialPack(true);
     setPackId(null);
     setPhase("summary");
   };

@@ -1,5 +1,7 @@
 "use client";
 
+import { showUpgradeModal } from "@/lib/upgradePrompt";
+
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -218,7 +220,7 @@ export default function AIStudio({
     if (!files) return;
     if (!canUploadFiles) {
       if (!subscriptionLoading) {
-        toast.error("Upgrade required", { description: upgradeMessage });
+        showUpgradeModal({ message: upgradeMessage });
       }
       return;
     }
@@ -265,11 +267,11 @@ export default function AIStudio({
       return;
     }
     if (!canUseAi) {
-      if (!aiLoading) toast.error("Upgrade required", { description: aiUpgradeMessage });
+      if (!aiLoading) showUpgradeModal({ message: aiUpgradeMessage });
       return;
     }
     if (!canUploadFiles) {
-      toast.error("Upgrade required", { description: upgradeMessage });
+      showUpgradeModal({ message: upgradeMessage });
       return;
     }
 
@@ -351,7 +353,7 @@ export default function AIStudio({
 
   const handleGenerateFromBank = async () => {
     if (!canUseAi) {
-      if (!aiLoading) toast.error("Upgrade required", { description: aiUpgradeMessage });
+      if (!aiLoading) showUpgradeModal({ message: aiUpgradeMessage });
       return;
     }
     const sum = bankEasy + bankMedium + bankHard;
@@ -412,7 +414,7 @@ export default function AIStudio({
     const question = generatedQuestions.find((item) => item.id === questionId);
     if (!question) return;
     if (!canUseAi) {
-      if (!aiLoading) toast.error("Upgrade required", { description: aiUpgradeMessage });
+      if (!aiLoading) showUpgradeModal({ message: aiUpgradeMessage });
       return;
     }
     setRegeneratingId(questionId);

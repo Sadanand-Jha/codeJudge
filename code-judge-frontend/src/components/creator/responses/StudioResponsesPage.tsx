@@ -261,7 +261,8 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
   const [students, setStudents] = useState<Student[]>([]);
   const [quizName, setQuizName] = useState("Responses");
   const [quizStatus, setQuizStatus] = useState<string | null>(null);
-  const quizEnded = quizStatus === "ended" || quizStatus === "completed";
+  const normalizedQuizStatus = quizStatus?.trim().toLowerCase() ?? null;
+  const quizEnded = normalizedQuizStatus === "ended" || normalizedQuizStatus === "completed";
   const [resolvedQuizId, setResolvedQuizId] = useState(quizId);
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [timeStats, setTimeStats] = useState<{ avg: number | null; fastest: number | null; slowest: number | null }>({ avg: null, fastest: null, slowest: null });

@@ -1,5 +1,7 @@
 "use client";
 
+import { showUpgradeModal } from "@/lib/upgradePrompt";
+
 import { useCallback, useState, useRef } from "react";
 import {
   Upload,
@@ -16,7 +18,6 @@ import { FileCard } from "./FileCard";
 import type { UploadedFile } from "./types";
 import { AiStreamText } from "@/components/ui";
 import { useFileUploadAccess } from "@/hooks/useFileUploadAccess";
-import { useToast } from "@/hooks/useToast";
 
 const ACCEPTED_TYPES = {
   "application/pdf": "pdf",
@@ -83,7 +84,6 @@ export function UploadStep({
 }: {
   onFileAccepted: (file: UploadedFile) => void;
 }) {
-  const toast = useToast();
   const { canUploadFiles, isLoading: subscriptionLoading, upgradeHref, upgradeMessage } =
     useFileUploadAccess();
   const [dragging, setDragging] = useState(false);
@@ -94,7 +94,7 @@ export function UploadStep({
     (raw: File) => {
       if (!canUploadFiles) {
         if (!subscriptionLoading) {
-          toast.error({ title: "Upgrade required", description: upgradeMessage });
+          showUpgradeModal({ message: upgradeMessage });
         }
         return;
       }
@@ -102,7 +102,7 @@ export function UploadStep({
       setFile(validated);
       if (validated.valid) onFileAccepted(validated);
     },
-    [onFileAccepted, canUploadFiles, subscriptionLoading, upgradeMessage, toast]
+    [onFileAccepted, canUploadFiles, subscriptionLoading, upgradeMessage]
   );
 
   const onDrop = useCallback(
@@ -165,7 +165,7 @@ export function UploadStep({
         onClick={() => {
           if (!canUploadFiles) {
             if (!subscriptionLoading) {
-              toast.error({ title: "Upgrade required", description: upgradeMessage });
+              showUpgradeModal({ message: upgradeMessage });
             }
             return;
           }

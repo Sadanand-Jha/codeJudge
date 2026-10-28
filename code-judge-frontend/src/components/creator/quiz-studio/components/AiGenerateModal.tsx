@@ -1,5 +1,7 @@
 "use client";
 
+import { showUpgradeModal } from "@/lib/upgradePrompt";
+
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -411,7 +413,7 @@ export function AiGenerateModal({
       if (!canUploadFiles) {
         setError(upgradeMessage);
         if (!subscriptionLoading) {
-          toast.error("Upgrade required", { description: upgradeMessage });
+          showUpgradeModal({ message: upgradeMessage });
         }
         return;
       }
@@ -449,14 +451,14 @@ export function AiGenerateModal({
     if (!canUseAi) {
       setError(aiUpgradeMessage);
       if (!aiLoading) {
-        toast.error("Upgrade required", { description: aiUpgradeMessage });
+        showUpgradeModal({ message: aiUpgradeMessage });
       }
       return;
     }
     if (!canUploadFiles) {
       setError(upgradeMessage);
       if (!subscriptionLoading) {
-        toast.error("Upgrade required", { description: upgradeMessage });
+        showUpgradeModal({ message: upgradeMessage });
       }
       return;
     }
@@ -547,7 +549,7 @@ export function AiGenerateModal({
     if (!canUseAi) {
       setError(aiUpgradeMessage);
       if (!aiLoading) {
-        toast.error("Upgrade required", { description: aiUpgradeMessage });
+        showUpgradeModal({ message: aiUpgradeMessage });
       }
       return;
     }
@@ -635,7 +637,7 @@ export function AiGenerateModal({
   const handleRegenerateQuestion = async (question: PreviewQuestion) => {
     if (!canUseAi) {
       if (!aiLoading) {
-        toast.error({ title: "Upgrade required", description: aiUpgradeMessage });
+        showUpgradeModal({ message: aiUpgradeMessage });
       }
       return;
     }
@@ -1227,7 +1229,7 @@ export function AiGenerateModal({
                         if (!canUploadFiles) {
                           setError(upgradeMessage);
                           if (!subscriptionLoading) {
-                            toast.error("Upgrade required", { description: upgradeMessage });
+                            showUpgradeModal({ message: upgradeMessage });
                           }
                           return;
                         }

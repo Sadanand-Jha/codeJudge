@@ -62,3 +62,13 @@ export function isWithinWindow(dateValue: string | number | Date, windowMs: numb
   if (Number.isNaN(date.getTime())) return false;
   return Date.now() - date.getTime() < windowMs;
 }
+
+/** Quiz time limit in minutes — "45 min", "1h 30m". */
+export function formatDurationMinutes(minutes: number | null | undefined): string | null {
+  if (minutes == null || !Number.isFinite(minutes) || minutes <= 0) return null;
+  const total = Math.round(minutes);
+  if (total < 60) return `${total} min`;
+  const hours = Math.floor(total / 60);
+  const rest = total % 60;
+  return rest ? `${hours}h ${rest}m` : `${hours}h`;
+}

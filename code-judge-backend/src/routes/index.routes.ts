@@ -29,7 +29,7 @@ import authRoutes from "./auth.routes.ts"
 import { authenticate } from "../middleware/auth.ts";
 import { validate, quizGameConfigSchema } from "../middleware/validate.ts";
 import { getQuizGameConfig, upsertQuizGameConfig } from "../controllers/quiz.controller.ts";
-import { getBrandLogo } from "../controllers/secureMedia.controller.ts";
+import { getBrandLogo, getLandingImage } from "../controllers/secureMedia.controller.ts";
 
 const router = Router();
 
@@ -38,10 +38,11 @@ const router = Router();
 // existing session.
 router.use("/auth", authRoutes)
 
-// Brand logo (AES-encrypted) must be public — navbars, footers and auth
-// pages render before any session exists. All other secure-media stays
-// behind auth inside v1Routes.
+// Brand logo and landing screenshots (AES-encrypted) must be public — the
+// marketing page, navbars, footers and auth pages render before any session
+// exists. All other secure-media stays behind auth inside v1Routes.
 router.get("/v1/brand/logo", getBrandLogo);
+router.get("/v1/landing/image/:imageName", getLandingImage);
 
 router.use("/v1", v1Routes);
 

@@ -218,7 +218,12 @@ function PlanCard({
   );
 }
 
-export function MonthlyPlansPage() {
+export function MonthlyPlansPage({
+  initialPlanSlug = null,
+}: {
+  /** Deep link from the upgrade modal — opens this plan's checkout. */
+  initialPlanSlug?: string | null;
+}) {
   const balance = useAICreditsStore((state) => state.balance);
   const refreshCredits = useAICreditsStore((state) => state.refresh);
   const { subscription, isLoading, refresh: refreshSubscription } = useMySubscription();
@@ -229,6 +234,7 @@ export function MonthlyPlansPage() {
   const [phaseError, setPhaseError] = useState<string | null>(null);
   const [processingNote, setProcessingNote] = useState("Creating your order…");
   const [receipt, setReceipt] = useState<PlanPurchaseReceipt | null>(null);
+  const [dismissedInitialPlan, setDismissedInitialPlan] = useState(false);
 
   useEffect(() => {
     void refreshCredits();
@@ -256,8 +262,15 @@ export function MonthlyPlansPage() {
   const trialAvailable = !isLoading && !subscription;
   const isFreePlan = !isLoading && !isTrialActive && !isTrialExpired && !displayPlan;
 
+  const deepLinkPlan =
+    !dismissedInitialPlan && initialPlanSlug
+      ? catalog.plans.find((plan) => plan.slug === initialPlanSlug) ?? null
+      : null;
+  const activeCheckoutPlan = checkoutPlan ?? deepLinkPlan;
+
   const closeCheckout = () => {
     if (phase === "processing") return;
+    setDismissedInitialPlan(true);
     setCheckoutPlan(null);
     setPhase("summary");
     setPhaseError(null);
@@ -482,9 +495,9 @@ export function MonthlyPlansPage() {
       </section>
 
       <AnimatePresence>
-        {checkoutPlan && (
+        {activeCheckoutPlan && (
           <PlanCheckoutDialog
-            plan={checkoutPlan}
+            plan={activeCheckoutPlan}
             balance={balance.totalRemaining}
             phase={phase}
             phaseError={phaseError}
