@@ -12643,6 +12643,37 @@ textarea {
   }
 }
 
+.lpx .lpx-rooms {
+  align-items: end;
+  min-height: 0;
+  padding-bottom: 0;
+}
+
+.lpx .lpx-rooms .lpx-two {
+  align-items: end;
+}
+
+.lpx .lpx-rooms .lpx-two > div:first-child {
+  align-self: center;
+}
+
+.lpx .lpx-hand-shot {
+  justify-self: center;
+  width: min(100%, 440px);
+}
+
+.lpx .lpx-hand-shot .ss-shot {
+  border: 0;
+  border-radius: 0;
+  filter: drop-shadow(0 28px 46px rgba(6, 4, 20, 0.5));
+}
+
+@media (max-width: 980px) {
+  .lpx .lpx-hand-shot {
+    width: min(100%, 360px);
+  }
+}
+
 .lpx .ss-window {
   position: relative;
   min-width: 0;

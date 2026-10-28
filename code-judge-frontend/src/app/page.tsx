@@ -275,12 +275,12 @@ export default async function HomePage() {
               </Link>
             </div>
           </div>
-          <div className="lpx-room-shot">
+          <div className="lpx-hand-shot">
             <SecureLandingImage
-              name="rooms"
-              alt="My Rooms screen with joined classrooms, member counts and activity"
-              width={811}
-              height={1600}
+              name="hand-phone"
+              alt="The Rooms screen on a phone held in one hand, showing joined classrooms, member counts and activity"
+              width={700}
+              height={1057}
             />
           </div>
         </div>

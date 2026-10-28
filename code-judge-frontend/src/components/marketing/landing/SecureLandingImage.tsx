@@ -8,7 +8,8 @@ export type LandingImageName =
   | "quiz-builder"
   | "ai-question-generator"
   | "question-bank"
-  | "rooms";
+  | "rooms"
+  | "hand-phone";
 
 const imageUrlCache = new Map<string, string>();
 const inflightImages = new Map<string, Promise<string | null>>();

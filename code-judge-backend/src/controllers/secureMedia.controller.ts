@@ -165,6 +165,7 @@ const landingImageFiles: Record<string, string> = {
   "ai-question-generator": "ai_question_generator.png",
   "question-bank": "question_bank.png",
   rooms: "rooms.png",
+  "hand-phone": "hand-phone-transparent.png",
 };
 
 const landingImageCache = new Map<string, { signature: string; base64: string }>();
