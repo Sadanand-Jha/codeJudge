@@ -23,6 +23,7 @@ Related documentation:
 - [QUIZ_STUDENT_FLOW.md](./QUIZ_STUDENT_FLOW.md) - student attempt flow
 - [QUIZ_CREATION_FLOW.md](./QUIZ_CREATION_FLOW.md) - creator flow
 - [QUIZ_STUDENT_CALL_MAP.md](./QUIZ_STUDENT_CALL_MAP.md) - frontend/backend call map
+- [ENCRYPTED_QUIZ_FLOW.md](./ENCRYPTED_QUIZ_FLOW.md) - client-side encrypted quiz copy, key PDF, and unlock flow
 
 ## Tech Stack
 

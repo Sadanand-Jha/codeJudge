@@ -12,6 +12,7 @@ import {
   cloneQuizSchema,
   quizGameConfigSchema,
   quizGameMechanicsSchema,
+  secureQuizPayloadSchema,
 } from "../../../middleware/validate.ts";
 import {
   getAllQuizzes,
@@ -51,6 +52,13 @@ import {
   copyQuizCode,
   getCreatorProfileOverview,
 } from "../../../controllers/adminQuizController.ts";
+import {
+  deleteSecureQuizPayloadController,
+  getSecureQuizMetaController,
+  getSecureQuizPayloadController,
+  saveSecureQuizPayloadController,
+  secureQuizNoStore,
+} from "../../../controllers/secureQuiz.controller.ts";
 
 const router = Router();
 
@@ -74,6 +82,25 @@ router.get("/profile-overview", getCreatorProfileOverview);
 
 router.post("/:quizId/copy-code", copyQuizCode);
 router.post("/:quizId/regenerate-code", regenerateQuizCode);
+
+// ==================== ENCRYPTED QUIZ CONTENT ====================
+// The browser encrypts before upload; these endpoints only receive ciphertext
+// and a data key wrapped by the teacher's PDF key.
+
+router.use("/:quizId/secure-payload", secureQuizNoStore);
+router.get("/:quizId/secure-payload/meta", getSecureQuizMetaController);
+router.get("/:quizId/secure-payload", getSecureQuizPayloadController);
+router.post(
+  "/:quizId/secure-payload",
+  validate(secureQuizPayloadSchema),
+  saveSecureQuizPayloadController
+);
+router.put(
+  "/:quizId/secure-payload",
+  validate(secureQuizPayloadSchema),
+  saveSecureQuizPayloadController
+);
+router.delete("/:quizId/secure-payload", deleteSecureQuizPayloadController);
 
 // ==================== QUIZ CRUD ====================
 

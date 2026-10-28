@@ -30,6 +30,13 @@ import {
 } from "@/services/quiz";
 import { syncQuizQuestions, computeChangedQuestions, buildQuestionSnapshot } from "@/utils/quizQuestionSync";
 import { containsHtml, htmlToPlainText } from "@/utils/htmlText";
+import {
+  prepareQuiz,
+  SecureSaveCancelledError,
+  type PreparedQuiz,
+} from "@/lib/quizCrypto";
+import { getSecureQuizMeta } from "@/services/secureQuiz";
+import { SecureQuizKeyDialog } from "./components/SecureQuizKeyDialog";
 import { useRoomStore } from "@/store/roomStore";
 import {
   type StudioState,
@@ -53,7 +60,35 @@ import { DEFAULT_GAME_MECHANICS, normalizeGameMechanics, zeroAllMechanics } from
 
 const STORAGE_KEY = "studio_quiz_draft";
 const GAME_MECHANICS_STORAGE_PREFIX = "studio_game_mechanics_";
+const SECURE_DIRTY_STORAGE_PREFIX = "studio_secure_dirty_";
 const PROBLEMS_RETRY_MAX_DELAY_MS = 8_000;
+
+function secureDirtyStorageKey(quizId: string): string {
+  return `${SECURE_DIRTY_STORAGE_PREFIX}${quizId}`;
+}
+
+function readSecureDirty(quizId?: string | null): boolean {
+  if (!quizId || typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(secureDirtyStorageKey(quizId)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeSecureDirty(quizId: string | null | undefined, dirty: boolean): void {
+  if (!quizId || typeof window === "undefined") return;
+  try {
+    const key = secureDirtyStorageKey(quizId);
+    if (dirty) {
+      window.localStorage.setItem(key, "1");
+    } else {
+      window.localStorage.removeItem(key);
+    }
+  } catch {
+    return;
+  }
+}
 
 function getProblemsRetryDelay(attempt: number): number {
   return Math.min(1_000 * 2 ** Math.min(attempt - 1, 3), PROBLEMS_RETRY_MAX_DELAY_MS);
@@ -343,7 +378,14 @@ interface StudioContextValue {
   nextMobileStep: () => void;
   prevMobileStep: () => void;
   publish: () => void;
-  saveToServer: (opts?: { publish?: boolean }) => Promise<{ quizId: string; code: string }>;
+  saveToServer: (opts?: {
+    publish?: boolean;
+    setupOnly?: boolean;
+    skipParticipants?: boolean;
+    silentValidation?: boolean;
+    /** Encrypt in the browser and require the key PDF before uploading. */
+    secure?: boolean;
+  }) => Promise<{ quizId: string; code: string }>;
   savingToServer: boolean;
   /** True when the Questions step differs from the last saved snapshot. */
   questionsDirty: boolean;
@@ -806,8 +848,10 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         generatedIds,
         (saved, total) => setSaveProgress({ saved, total })
       );
+      secureContentDirtyRef.current = true;
+      writeSecureDirty(state.serverQuizId, true);
       snapshotRef.current = buildQuestionSnapshot(updatedQuestions);
-      setQuestionsDirty(false);
+      setQuestionsDirty(true);
       setState((current) => ({
         ...current,
         questions: updatedQuestions,
@@ -840,6 +884,8 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     // Drop its change-tracking entry so a later save doesn't try to upsert it.
     snapshotRef.current.delete(id);
 
+    secureContentDirtyRef.current = true;
+    writeSecureDirty(state.serverQuizId, true);
     // Never persisted to the backend — local-only removal, no API needed.
     if (!serverId) return;
 
@@ -876,7 +922,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     setState((s) => ({ ...s, questions: [...s.questions, copy], activeQuestionId: copy.id }));
   };
 
-  const reorderQuestions = (ids: string[]) =>
+  const reorderQuestions = (ids: string[]) => {
+    secureContentDirtyRef.current = true;
+    writeSecureDirty(state.serverQuizId, true);
     setState((s) => ({
       ...s,
       questions: ids
@@ -884,6 +932,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         .filter(Boolean)
         .map((q) => q as CreatorQuestion),
     }));
+  };
 
   const setActiveQuestion = (id: string | null) => {
     if (id !== state.activeQuestionId) {
@@ -1137,14 +1186,69 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
   const saveInFlightRef = useRef<Promise<{ quizId: string; code: string }> | null>(null);
   const [saveProgress, setSaveProgress] = useState<{ saved: number; total: number } | null>(null);
 
+  interface SecurePromptState {
+    quizId: string;
+    quizCode: string;
+    title: string;
+    prepared: PreparedQuiz;
+    replacing: boolean;
+  }
+
+  const [securePrompt, setSecurePrompt] = useState<SecurePromptState | null>(null);
+  const secureContentDirtyRef = useRef(false);
+  const securePromptResolverRef = useRef<{
+    resolve: () => void;
+    reject: (reason?: unknown) => void;
+  } | null>(null);
+
+  const requestSecureKeyConfirmation = useCallback(
+    (prompt: SecurePromptState): Promise<void> =>
+      new Promise<void>((resolve, reject) => {
+        securePromptResolverRef.current = { resolve, reject };
+        setSecurePrompt(prompt);
+      }),
+    []
+  );
+
+  const handleSecureKeyCompleted = useCallback(() => {
+    securePromptResolverRef.current?.resolve();
+    securePromptResolverRef.current = null;
+    setSecurePrompt(null);
+  }, []);
+
+  const handleSecureKeyCancel = useCallback(() => {
+    securePromptResolverRef.current?.reject(new SecureSaveCancelledError());
+    securePromptResolverRef.current = null;
+    setSecurePrompt(null);
+  }, []);
+
+  useEffect(
+    () => () => {
+      securePromptResolverRef.current?.reject(new SecureSaveCancelledError());
+      securePromptResolverRef.current = null;
+    },
+    []
+  );
+
   useEffect(() => {
     if (loading || questionsLoading) return;
     const questionsChanged = computeChangedQuestions(state.questions, snapshotRef.current).length > 0;
-    setQuestionsDirty(questionsChanged || buildQuizMetaSnapshot(state) !== quizSnapshotRef.current);
+    setQuestionsDirty(
+      questionsChanged ||
+        secureContentDirtyRef.current ||
+        readSecureDirty(state.serverQuizId) ||
+        buildQuizMetaSnapshot(state) !== quizSnapshotRef.current
+    );
   }, [state, loading, questionsLoading]);
 
   const saveToServer = async (
-    opts?: { publish?: boolean; setupOnly?: boolean; skipParticipants?: boolean; silentValidation?: boolean }
+    opts?: {
+      publish?: boolean;
+      setupOnly?: boolean;
+      skipParticipants?: boolean;
+      silentValidation?: boolean;
+      secure?: boolean;
+    }
   ): Promise<{ quizId: string; code: string }> => {
     while (saveInFlightRef.current) {
       if (!opts?.publish && !opts?.setupOnly) {
@@ -1257,6 +1361,37 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         const changedIds = changed.length > 0
           ? new Set(changed.map((q) => q.id))
           : null;
+
+        // Encrypted copy: encrypt in the browser and require the teacher to
+        // download the key PDF before any ciphertext is uploaded. Autosaves
+        // and step navigation never pass `secure`, so only explicit Save /
+        // Publish actions show the key dialog.
+        if (opts?.secure && state.questions.length > 0) {
+          const meta = await getSecureQuizMeta(quizId);
+          const needsSecureSave =
+            secureContentDirtyRef.current ||
+            readSecureDirty(quizId) ||
+            !meta.exists ||
+            (changedIds?.size ?? 0) > 0;
+          if (needsSecureSave) {
+            const prepared = await prepareQuiz(
+              {
+                questions: state.questions,
+                title: state.info.title,
+              },
+              { quizId, title: state.info.title }
+            );
+            await requestSecureKeyConfirmation({
+              quizId,
+              quizCode: savedCode,
+              title: state.info.title,
+              prepared,
+              replacing: Boolean(meta.exists),
+            });
+            secureContentDirtyRef.current = false;
+            writeSecureDirty(quizId, false);
+          }
+        }
 
         // Only call backend if something actually changed
         if (changedIds && changedIds.size > 0) {
@@ -1531,7 +1666,25 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     [state, stepIndex, mobileStepIndex, summary, questionsValid, savingToServer, questionsDirty, saveProgress, loading, loadError, questionsLoading, editMode, steps, mobileSteps, saveAudienceParticipants, audienceDirty, helpExtra]
   );
 
-  return <StudioContext.Provider value={value}>{children}</StudioContext.Provider>;
+  return (
+    <StudioContext.Provider value={value}>
+      {children}
+      {securePrompt && (
+        <SecureQuizKeyDialog
+          open
+          quizId={securePrompt.quizId}
+          quizCode={securePrompt.quizCode}
+          title={securePrompt.title}
+          keyHex={securePrompt.prepared.keyHex}
+          keyFingerprint={securePrompt.prepared.keyFingerprint}
+          payload={securePrompt.prepared.payload}
+          replacing={securePrompt.replacing}
+          onCompleted={handleSecureKeyCompleted}
+          onCancel={handleSecureKeyCancel}
+        />
+      )}
+    </StudioContext.Provider>
+  );
 }
 
 export function useStudio() {

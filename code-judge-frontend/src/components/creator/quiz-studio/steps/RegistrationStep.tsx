@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { isSecureSaveCancelledError } from "@/lib/quizCrypto";
 import {
   ArrowDown,
   ArrowLeft,
@@ -45,10 +46,15 @@ export function RegistrationStep({ embedded = false }: { embedded?: boolean } = 
     if (saving) return;
     setSaving(true);
     try {
-      await saveToServer();
+      await saveToServer({ secure: true });
       toast.success({ title: "Saved", description: "Your quiz has been saved." });
     } catch (err) {
-      if (!isQuestionValidationError(err)) {
+      if (isSecureSaveCancelledError(err)) {
+        toast.info({
+          title: "Encrypted save cancelled",
+          description: "The key PDF was not confirmed, so the encrypted copy was not updated.",
+        });
+      } else if (!isQuestionValidationError(err)) {
         toast.error({ title: "Could not save", description: err instanceof Error ? err.message : "Something went wrong." });
       }
     } finally {

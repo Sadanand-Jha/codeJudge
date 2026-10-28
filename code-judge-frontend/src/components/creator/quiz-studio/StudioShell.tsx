@@ -9,6 +9,7 @@ import { cn } from "@/lib/helpers";
 import { useStudio, useSaveStatus, isQuestionValidationError } from "./StudioProvider";
 import { toast } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiError";
+import { isSecureSaveCancelledError } from "@/lib/quizCrypto";
 
 export function StudioHeader() {
   const router = useRouter();
@@ -37,10 +38,15 @@ export function StudioHeader() {
     if (saving || savingToServer || saveDisabled) return;
     setSaving(true);
     try {
-      await saveToServer();
+      await saveToServer({ secure: true });
       toast.success({ title: "Saved", description: "Your quiz has been saved." });
     } catch (err) {
-      if (!isQuestionValidationError(err)) {
+      if (isSecureSaveCancelledError(err)) {
+        toast.info({
+          title: "Encrypted save cancelled",
+          description: "The key PDF was not confirmed, so the encrypted copy was not updated.",
+        });
+      } else if (!isQuestionValidationError(err)) {
         toast.error({ title: "Could not save", description: getApiErrorMessage(err, "Something went wrong.") });
       }
     } finally {
@@ -305,14 +311,19 @@ export function StudioFooter() {
     if (publishing) return;
     setPublishing(true);
     try {
-      await saveToServer({ publish: true });
+      await saveToServer({ publish: true, secure: true });
       toast.success({
         title: state.info.title || "Quiz published",
         description: isScheduledPublish ? "Your quiz has been scheduled." : "Your quiz is now live.",
       });
       publish();
     } catch (err) {
-      if (!isQuestionValidationError(err)) {
+      if (isSecureSaveCancelledError(err)) {
+        toast.info({
+          title: "Encrypted publish cancelled",
+          description: "The key PDF was not confirmed, so the quiz was not published.",
+        });
+      } else if (!isQuestionValidationError(err)) {
         toast.error({
           title: isScheduledPublish ? "Could not schedule quiz" : "Could not start quiz",
           description: err instanceof Error ? err.message : "Something went wrong.",

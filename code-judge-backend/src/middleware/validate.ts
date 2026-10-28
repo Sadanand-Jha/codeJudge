@@ -522,3 +522,64 @@ export const quizGameMechanicsSchema = z.object({
     quantity: z.number().int().min(0, "quantity must be >= 0"),
   })),
 });
+
+/**
+ * Encrypted quiz payload (client-side E2E encryption).
+ *
+ * The body contains only base64 ciphertext + a wrapped data key. The
+ * teacher's key is never accepted here; `keyFingerprint` is a SHA-256 hash of
+ * that key and is only used for a fast client-side mismatch check.
+ *
+ * Size limits keep the complete body below Express' 10 MB JSON limit.
+ */
+const secureQuizBlobSchema = z
+  .object({
+    iv: z
+      .string()
+      .trim()
+      .length(16, "iv must be a 12-byte base64 value")
+      .regex(/^[A-Za-z0-9+/]{16}$/, "iv must be base64"),
+    ct: z
+      .string()
+      .trim()
+      .min(24, "ct is too short")
+      .max(4_000_000, "ct is too large")
+      .regex(/^[A-Za-z0-9+/]+={0,2}$/, "ct must be base64"),
+  })
+  .strict();
+
+export const secureQuizPayloadSchema = z
+  .object({
+    quizId: z
+      .string()
+      .trim()
+      .min(1, "quizId is required")
+      .max(128, "quizId is too long")
+      .regex(/^[A-Za-z0-9_-]+$/, "quizId contains invalid characters"),
+    version: z.number().int().min(1).max(10),
+    algorithm: z.literal("AES-256-GCM").optional(),
+    questions: secureQuizBlobSchema,
+    problemHtml: secureQuizBlobSchema,
+    wrappedKey: z
+      .object({
+        iv: z
+          .string()
+          .trim()
+          .length(16, "iv must be a 12-byte base64 value")
+          .regex(/^[A-Za-z0-9+/]{16}$/, "iv must be base64"),
+        ct: z
+          .string()
+          .trim()
+          .min(24, "ct is too short")
+          .max(512, "wrapped key is too large")
+          .regex(/^[A-Za-z0-9+/]+={0,2}$/, "ct must be base64"),
+      })
+      .strict(),
+    keyFingerprint: z
+      .string()
+      .trim()
+      .regex(/^[0-9a-fA-F]{64}$/, "keyFingerprint must be 64 hex characters")
+      .transform((value) => value.toLowerCase()),
+    createdAt: z.string().trim().max(64).optional(),
+  })
+  .strict();

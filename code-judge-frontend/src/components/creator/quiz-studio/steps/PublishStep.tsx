@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Send, Check, BarChart3, Copy, Loader2 } from "lucide-react";
+import { Send, Check, BarChart3, Copy, Loader2, KeyRound, ShieldCheck } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
 import { buildShareMessage, WhatsAppIcon } from "@/components/creator/common/ShareQuizDialog";
 import { copyQuizCode } from "@/services/quiz";
@@ -13,6 +13,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useSavedAvatar } from "@/store/avatarStore";
 import { toast } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiError";
+import { isSecureSaveCancelledError } from "@/lib/quizCrypto";
 import { StudioStepLayout } from "../primitives";
 import { formatDateTimeIST } from "../components/timing/helpers";
 import { cn } from "@/lib/helpers";
@@ -56,13 +57,20 @@ export function PublishStep({
     if (saving) return;
     setSaving(true);
     try {
-      await saveToServer();
+      await saveToServer({ secure: true });
       toast.success({
         title: state.info.title || "Quiz saved",
         description: "Your changes have been saved.",
       });
       router.push("/creator/quizzes");
     } catch (err) {
+      if (isSecureSaveCancelledError(err)) {
+        toast.info({
+          title: "Encrypted save cancelled",
+          description: "The key PDF was not confirmed, so the encrypted copy was not updated.",
+        });
+        return;
+      }
       toast.error({
         title: "Could not save quiz",
         description: getApiErrorMessage(err, "Something went wrong. Please try again."),
@@ -76,7 +84,7 @@ export function PublishStep({
     if (saving) return;
     setSaving(true);
     try {
-      const { code } = await saveToServer({ publish: true });
+      const { code } = await saveToServer({ publish: true, secure: true });
       const link = buildJoinLink(code);
       await navigator.clipboard.writeText(link).catch(() => {});
       toast.success({
@@ -85,6 +93,13 @@ export function PublishStep({
       });
       onPublish();
     } catch (err) {
+      if (isSecureSaveCancelledError(err)) {
+        toast.info({
+          title: "Encrypted publish cancelled",
+          description: "The key PDF was not confirmed, so the quiz was not published.",
+        });
+        return;
+      }
       toast.error({
         title: "Could not start quiz",
         description: getApiErrorMessage(err, "Something went wrong. Please try again."),
@@ -174,6 +189,44 @@ export function PublishStep({
               </div>
             ))}
           </dl>
+
+          <div className="mt-5 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-4">
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] border-2 border-[var(--qs-ink)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]">
+                <ShieldCheck className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-extrabold text-[var(--qs-ink)]">
+                  End-to-end encrypted copy
+                </p>
+                <p className="mt-1 text-[11px] font-medium leading-relaxed text-[var(--qs-muted)]">
+                  Questions and HTML problem statements are encrypted in your
+                  browser. Saving downloads a key PDF first; the encrypted copy
+                  is uploaded only after you confirm. QuizSupport cannot read
+                  the encrypted copy.
+                </p>
+                {state.serverQuizId ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      router.push(
+                        `/creator/quizzes/${encodeURIComponent(
+                          String(state.serverQuizId)
+                        )}/secure`
+                      )
+                    }
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-[11px] font-extrabold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+                  >
+                    <KeyRound className="h-3.5 w-3.5" /> Open encrypted copy
+                  </button>
+                ) : (
+                  <p className="mt-2 text-[10px] font-bold text-[var(--qs-muted)]">
+                    Save the quiz once to create the encrypted copy.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
 
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t-2 border-[var(--qs-line)] pt-4">
             <p className="text-[11px] font-medium text-[var(--qs-muted)]">
@@ -456,6 +509,14 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
                 className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-4 py-2 text-sm font-extrabold text-[#1a1240] transition-transform duration-150 hover:-translate-y-px active:translate-y-0"
               >
                 <BarChart3 className="h-4 w-4" /> View Responses
+              </a>
+            )}
+            {state.serverQuizId && (
+              <a
+                href={`/creator/quizzes/${state.serverQuizId}/secure`}
+                className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2 text-sm font-bold text-[var(--qs-ink)] transition-colors duration-150 hover:border-[var(--qs-brand)]"
+              >
+                <KeyRound className="h-4 w-4" /> Open encrypted copy
               </a>
             )}
             <button

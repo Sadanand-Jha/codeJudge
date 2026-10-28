@@ -2,6 +2,7 @@
 // submissions, game config, collaboration, and result generation under /api/v1/user/quiz.
 import { Router } from "express";
 import { authenticate } from "../../../middleware/auth.ts";
+import { secureQuizNoStore } from "../../../controllers/secureQuiz.controller.ts";
 import { validate, quizSchema, quizStatusSchema, quizRegistrationSchema, quizRatingSchema, quizProblemSchema, quizProblemOptionSchema, reorderQuizProblemsSchema, saveQuizResponseSchema, submitQuizAttemptSchema, cloneQuizSchema, joinQuizSchema, quizGameConfigSchema, quizGameMechanicsSchema, reportViolationSchema, startQuizAttemptSchema, paperPdfSchema } from "../../../middleware/validate.ts";
 import {
   getAllQuizzes,
@@ -66,6 +67,7 @@ import {
   upsertQuizGameMechanics,
 } from "../../../controllers/quiz.controller.ts";
 import { renderPaperPdfController } from "../../../controllers/paperPdf.controller.ts";
+import { getStudentSecureQuizPayloadController } from "../../../controllers/secureQuiz.controller.ts";
 const router = Router();
 
 // All quiz routes require authentication
@@ -131,6 +133,14 @@ router.get("/game-mechanics", getAllGameMechanics);
 router.get("/:quizId/game-mechanics", getQuizGameMechanics);
 // PUT /api/v1/user/quiz/:quizId/game-mechanics — upsert mechanics for a quiz
 router.put("/:quizId/game-mechanics", validate(quizGameMechanicsSchema), upsertQuizGameMechanics);
+
+// Encrypted quiz ciphertext for signed-in participants. The payload cannot be
+// read without the teacher's key, which is never uploaded.
+router.get(
+  "/:quizId/secure-payload",
+  secureQuizNoStore,
+  getStudentSecureQuizPayloadController
+);
 
 // Anonymous aggregate rating state + one immutable learner rating.
 router.get("/:quizId/rating", getQuizRating);
