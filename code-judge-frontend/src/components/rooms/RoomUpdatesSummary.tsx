@@ -19,7 +19,7 @@ export default function RoomUpdatesSummary({
   const seedRoom = useRoomContentStore((s) => s.seedRoom);
 
   useEffect(() => {
-    rooms.forEach((room) => seedRoom(room.id, room.name));
+    rooms.forEach((room) => seedRoom(room.id));
   }, [rooms, seedRoom]);
 
   const roomById = useMemo(

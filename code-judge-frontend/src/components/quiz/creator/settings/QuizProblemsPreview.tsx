@@ -178,8 +178,8 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
   const handleAdd = async () => {
     if (adding) return;
     const store = useQuizProblemsStore.getState();
-    if (store.problems.length >= 25) {
-      toast.error({ title: "Problem limit reached", description: "A quiz can have at most 25 problems." });
+    if (store.problems.length >= 40) {
+      toast.error({ title: "Problem limit reached", description: "A quiz can have at most 40 problems." });
       return;
     }
     setAdding(true);
@@ -195,9 +195,9 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
   };
 
   const handleImportQuestions = (questions: CreatorQuestion[]) => {
-    const slots = 25 - problems.length;
+    const slots = 40 - problems.length;
     if (slots <= 0) {
-      toast.error({ title: "Problem limit reached", description: "A quiz can have at most 25 problems." });
+      toast.error({ title: "Problem limit reached", description: "A quiz can have at most 40 problems." });
       return;
     }
     const fresh = questions
@@ -434,7 +434,7 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
         {importOpen && (
           <QuestionBankImportModal
             existingBankIds={existingBankIds}
-            remainingSlots={25 - problems.length}
+            remainingSlots={40 - problems.length}
             onClose={() => setImportOpen(false)}
             onImport={handleImportQuestions}
           />
@@ -1085,7 +1085,7 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
       {importOpen && (
         <QuestionBankImportModal
           existingBankIds={existingBankIds}
-          remainingSlots={25 - problems.length}
+          remainingSlots={40 - problems.length}
           onClose={() => setImportOpen(false)}
           onImport={handleImportQuestions}
         />
