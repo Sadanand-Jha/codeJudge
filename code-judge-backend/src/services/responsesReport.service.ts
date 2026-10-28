@@ -84,6 +84,17 @@ function registrationValue(value: unknown): string {
   return String(value);
 }
 
+export async function countQuizResponses(quizId: number): Promise<number> {
+  const result = await pool.query(
+    `SELECT COUNT(*)::int AS count
+       FROM quiz_attempt
+      WHERE quiz_id = $1
+        AND deleted_at IS NULL`,
+    [quizId]
+  );
+  return Number(result.rows[0]?.count ?? 0);
+}
+
 export async function generateResponsesReport(quizId: number): Promise<ResponsesReportResult> {
   const quizResult = await pool.query(
     `SELECT q.id, q.name, q.code, q.registration_fields, u.username AS creator_username

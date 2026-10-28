@@ -43,6 +43,8 @@ export interface PaperMeta {
   date?: string;
   totalMarks?: number | string;
   totalQuestions?: number | string;
+  /** Questions a student must attempt, when different from totalQuestions. */
+  attemptQuestions?: number | string;
   duration?: string;
   difficulty?: string;
   /** Human-readable value shown in instructions, e.g. "0.25" or "None". */
@@ -57,6 +59,8 @@ export interface PaperOptions {
   showStudentBlock?: boolean;
   shuffleQuestions?: boolean;
   shuffleOptions?: boolean;
+  /** Draw an answer bubble before each MCQ option label. */
+  mcqBubbles?: boolean;
   /** "two-column" lays the questions out in two newspaper-style columns. */
   layout?: "single" | "two-column";
 }
@@ -72,22 +76,29 @@ export interface PaperBuildInput {
 const CHOICE_TYPES = new Set(["single_choice", "multiple_choice", "true_false"]);
 
 const FONT_FILES = {
-  sans: "/fonts/NotoSans-var.ttf",
+  serifRegular: "/fonts/LiberationSerif-Regular.ttf",
+  serifBold: "/fonts/LiberationSerif-Bold.ttf",
+  serifItalic: "/fonts/LiberationSerif-Italic.ttf",
+  serifBoldItalic: "/fonts/LiberationSerif-BoldItalic.ttf",
   devanagari: "/fonts/NotoSansDevanagari-var.ttf",
-  mono: "/fonts/NotoSansMono-var.ttf",
+  mono: "/fonts/LiberationMono-Regular.ttf",
 } as const;
 
-const PAPER_LOGO_FILE = "/logos/name.png";
-
 export function buildPaperFontCss(fonts: {
-  sans: string;
+  serifRegular: string;
+  serifBold: string;
+  serifItalic: string;
+  serifBoldItalic: string;
   devanagari: string;
   mono: string;
 }): string {
   return [
-    `@font-face{font-family:'Noto Sans';src:url(data:font/ttf;base64,${fonts.sans}) format('truetype');font-weight:100 900;font-style:normal;font-display:block;}`,
-    `@font-face{font-family:'Noto Sans Devanagari';src:url(data:font/ttf;base64,${fonts.devanagari}) format('truetype');font-weight:100 900;font-style:normal;font-display:block;}`,
-    `@font-face{font-family:'Noto Sans Mono';src:url(data:font/ttf;base64,${fonts.mono}) format('truetype');font-weight:100 900;font-style:normal;font-display:block;}`,
+    `@font-face{font-family:'Liberation Serif';src:url(data:font/ttf;base64,${fonts.serifRegular}) format('truetype');font-weight:400;font-style:normal;font-display:block;}`,
+    `@font-face{font-family:'Liberation Serif';src:url(data:font/ttf;base64,${fonts.serifBold}) format('truetype');font-weight:700;font-style:normal;font-display:block;}`,
+    `@font-face{font-family:'Liberation Serif';src:url(data:font/ttf;base64,${fonts.serifItalic}) format('truetype');font-weight:400;font-style:italic;font-display:block;}`,
+    `@font-face{font-family:'Liberation Serif';src:url(data:font/ttf;base64,${fonts.serifBoldItalic}) format('truetype');font-weight:700;font-style:italic;font-display:block;}`,
+    `@font-face{font-family:'Paper Devanagari';src:url(data:font/ttf;base64,${fonts.devanagari}) format('truetype');font-weight:100 900;font-style:normal;font-display:block;}`,
+    `@font-face{font-family:'Liberation Mono';src:url(data:font/ttf;base64,${fonts.mono}) format('truetype');font-weight:400;font-style:normal;font-display:block;}`,
   ].join("\n");
 }
 
@@ -106,21 +117,20 @@ async function fetchAsBase64(url: string): Promise<string> {
   return btoa(binary);
 }
 
-/** Loads the bundled Noto fonts and brand logo once, caching the CSS. */
+/** Loads the bundled print fonts once, caching the CSS. */
 export function loadPaperFontCss(): Promise<string> {
   if (!fontCssPromise) {
     fontCssPromise = Promise.all([
-      fetchAsBase64(FONT_FILES.sans),
+      fetchAsBase64(FONT_FILES.serifRegular),
+      fetchAsBase64(FONT_FILES.serifBold),
+      fetchAsBase64(FONT_FILES.serifItalic),
+      fetchAsBase64(FONT_FILES.serifBoldItalic),
       fetchAsBase64(FONT_FILES.devanagari),
       fetchAsBase64(FONT_FILES.mono),
-      fetchAsBase64(PAPER_LOGO_FILE).catch(() => ""),
     ])
-      .then(([sans, devanagari, mono, logo]) => {
-        const brandCss = logo
-          ? `\n.brand-logo{display:block;width:22mm;height:4.5mm;background:url(data:image/png;base64,${logo}) center/contain no-repeat;}`
-          : "";
-        return `${buildPaperFontCss({ sans, devanagari, mono })}${brandCss}`;
-      })
+      .then(([serifRegular, serifBold, serifItalic, serifBoldItalic, devanagari, mono]) =>
+        buildPaperFontCss({ serifRegular, serifBold, serifItalic, serifBoldItalic, devanagari, mono })
+      )
       .catch((error) => {
         fontCssPromise = null;
         throw error;
@@ -137,13 +147,24 @@ const esc = (value: string): string =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
+/** Keep hyphenated compounds together instead of letting the line breaker split them. */
+function protectCompounds(html: string): string {
+  return html.replace(/([^\s<>]+-[^\s<>]+)/g, '<span class="nw">$1</span>');
+}
+
+/** Render caret exponents as real superscripts: 2^128 → 2<sup>128</sup>. */
+function renderExponents(html: string): string {
+  return html.replace(/(\d+(?:\.\d+)?)\^(\d+)/g, "$1<sup>$2</sup>");
+}
+
 function normalizeInline(html: string): string {
-  return html
+  const normalized = html
     .replace(/<(\/?)(b|strong|i|em|u|sub|sup|code)(?:\s[^>]*)?>/gi, "<$1$2>")
     .replace(/<[^>]*>/g, "")
     .replace(/&nbsp;/gi, " ")
     .replace(/<(?!\/?(?:b|strong|i|em|u|sub|sup|code)>)/g, "&lt;")
     .replace(/&(?!amp;|lt;|gt;|nbsp;|quot;|#\d+;)/g, "&amp;");
+  return protectCompounds(renderExponents(normalized));
 }
 
 interface CodeSegment {
@@ -294,35 +315,32 @@ function renderSegments(segments: RichSegment[]): string {
     .join("");
 }
 
-function plainLength(html: string): number {
-  return html
-    .replace(/<[^>]*>/g, "")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .trim().length;
-}
-
-function renderOptions(question: PaperQuestion, twoColumns: boolean): string {
+function renderOptions(question: PaperQuestion, optionsConfig: PaperOptions, twoColumns: boolean): string {
   const options = (question.options ?? []).filter((o) => o.content?.trim() || o.imageUrl);
   if (options.length < 2) return "";
   if (question.type && !CHOICE_TYPES.has(question.type)) return "";
-  const lengths = options.map((option) => plainLength(option.content ?? ""));
+
   const hasImages = options.some((option) => option.imageUrl);
-  const fourColumns =
-    !twoColumns && !hasImages && options.length === 4 && lengths.every((length) => length > 0 && length < 25);
-  const twoCols = !hasImages && lengths.every((length) => length > 0 && length < 45);
+  // The browser measurement pass makes the final 4 -> 2 -> 1 decision. This
+  // initial class keeps the live preview useful before that pass runs.
+  const initialLayout =
+    hasImages || options.length > 4
+      ? "opts-1"
+      : options.length === 4 && !twoColumns
+        ? "opts-4"
+        : "opts-2";
+
   const items = options
     .map((option, index) => {
       const label = `(${String.fromCharCode(65 + index)})`;
+      const bubble = optionsConfig.mcqBubbles ? `<span class="bubble" aria-hidden="true">○</span>` : "";
       const body = option.content?.trim() ? normalizeInline(option.content) : "";
       const image = option.imageUrl ? `<img src="${esc(option.imageUrl)}" alt="">` : "";
       const content = body || image || `<span class="muted">[Image]</span>`;
-      return `<div class="opt"><span class="ol">${label}</span><span class="oc">${content}</span></div>`;
+      return `<div class="opt"><span class="opt-label">${bubble}${label}</span><span class="opt-text">${content}</span></div>`;
     })
     .join("");
-  return `<div class="opts${fourColumns ? " four" : twoCols ? " two" : ""}">${items}</div>`;
+  return `<div class="opts ${initialLayout}" data-options data-count="${options.length}"${hasImages ? ' data-has-images="true"' : ""}>${items}</div>`;
 }
 
 function renderQuestionImages(question: PaperQuestion): string {
@@ -375,21 +393,35 @@ export function correctAnswerText(question: PaperQuestion): string {
   return value.length > 160 ? `${value.slice(0, 157)}…` : value;
 }
 
-function renderQuestion(question: PaperQuestion, index: number, twoColumns: boolean): string {
+function formatMarks(value: number): string {
+  return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
+}
+
+function renderQuestion(question: PaperQuestion, index: number, options: PaperOptions, twoColumns: boolean): string {
   const body = renderSegments(richToSegments(question.title));
-  return `<div class="q">
-  <div class="qn">Q${index + 1}</div>
-  <div class="qb">${body}${renderOptions(question, twoColumns)}${renderQuestionImages(question)}</div>
-</div>`;
+  const marks =
+    typeof question.marks === "number" && question.marks > 0
+      ? `<span class="q-marks">[${formatMarks(question.marks)}]</span>`
+      : "";
+  return `<article class="question" data-question="${index + 1}">
+  <span class="q-no">${index + 1}.</span>
+  ${marks}
+  <div class="q-text">${body}</div>
+  ${renderOptions(question, options, twoColumns)}
+  ${renderQuestionImages(question)}
+</article>`;
 }
 
 function renderMetaGrid(meta: PaperMeta): string {
   const cells: Array<[string, string]> = [];
   if (meta.subject?.trim()) cells.push(["Subject", meta.subject.trim()]);
-  if (meta.course?.trim()) cells.push(["Class / Semester", meta.course.trim()]);
   if (meta.date?.trim()) cells.push(["Date", meta.date.trim()]);
-  if (meta.duration?.trim()) cells.push(["Time allowed", meta.duration.trim()]);
+  if (meta.duration?.trim()) cells.push(["Duration", meta.duration.trim()]);
+  if (meta.totalMarks !== undefined && String(meta.totalMarks).trim()) {
+    cells.push(["Maximum Marks", String(meta.totalMarks).trim()]);
+  }
   if (meta.setName?.trim()) cells.push(["Set", meta.setName.trim()]);
+  if (!cells.length) return "";
   return `<div class="meta">${cells
     .map(([label, value]) => `<div class="cell"><span class="lbl">${esc(label)}:</span><span class="val">${esc(value)}</span></div>`)
     .join("")}</div>`;
@@ -405,17 +437,36 @@ function renderStudentBlock(meta: PaperMeta, options: PaperOptions, student: Pap
 </div>`;
 }
 
+function isChoiceQuestion(question: PaperQuestion): boolean {
+  if (question.type) return CHOICE_TYPES.has(question.type);
+  return (question.options?.length ?? 0) >= 2;
+}
+
+function isDescriptiveQuestion(question: PaperQuestion): boolean {
+  if (question.type) return !CHOICE_TYPES.has(question.type);
+  return (question.options?.length ?? 0) < 2;
+}
+
+function positiveInteger(value: number | string | undefined): number | null {
+  if (value === undefined) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : null;
+}
+
 export function paperInstructionLines(meta: PaperMeta, questions: PaperQuestion[]): string[] {
-  const negative = meta.negativeMarking && meta.negativeMarking.trim() ? meta.negativeMarking.trim() : "None";
   const total = questions.length;
-  const hasChoice = questions.some((question) => !question.type || CHOICE_TYPES.has(question.type));
-  return [
-    `Total questions: ${total}. Questions to attempt: ${total}.`,
-    "All questions are compulsory.",
-    ...(hasChoice ? ["Choose the most appropriate option for each multiple-choice question."] : []),
-    ...(negative.toLocaleLowerCase() !== "none" ? [`Negative marking: ${negative}.`] : []),
-    "Write your answers in the answer book unless instructed otherwise.",
-  ].slice(0, 6);
+  const attempt = positiveInteger(meta.attemptQuestions);
+  const negative = meta.negativeMarking?.trim() ?? "None";
+  const hasChoice = questions.some(isChoiceQuestion);
+  const hasDescriptive = questions.some(isDescriptiveQuestion);
+
+  const lines = [`Total questions: ${total}.`];
+  if (attempt !== null && attempt !== total) lines.push(`Questions to attempt: ${attempt}.`);
+  if (attempt === null || attempt === total) lines.push("All questions are compulsory.");
+  if (hasChoice) lines.push("Circle or tick the correct option.");
+  if (hasDescriptive) lines.push("Write your answers in the answer book.");
+  if (negative.toLocaleLowerCase() !== "none") lines.push(`Negative marking: ${negative}.`);
+  return lines;
 }
 
 export function customInstructionLines(value?: string): string[] {
@@ -425,11 +476,26 @@ export function customInstructionLines(value?: string): string[] {
     .filter(Boolean);
 }
 
+function instructionKey(line: string): string {
+  return line
+    .toLocaleLowerCase()
+    .replace(/[.!;:]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function renderInstructions(meta: PaperMeta, questions: PaperQuestion[]): string {
+  const required = paperInstructionLines(meta, questions);
   const custom = customInstructionLines(meta.instructions);
-  const lines = custom.length ? custom : paperInstructionLines(meta, questions);
+  const seen = new Set<string>();
+  const lines = [...required, ...custom].filter((line) => {
+    const key = instructionKey(line);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   return `<div class="instr">
-  <div class="ititle">General instructions</div>
+  <div class="instr-title">General instructions</div>
   <ol>${lines.map((line) => `<li>${esc(line)}</li>`).join("")}</ol>
 </div>`;
 }
@@ -457,18 +523,27 @@ function sectionTitle(questions: PaperQuestion[]): string {
 
 function renderPaperSection(meta: PaperMeta, questions: PaperQuestion[], options: PaperOptions, student: PaperStudent | null): string {
   const twoColumns = options.layout === "two-column";
+  const sectionMarks = questions.reduce(
+    (sum, question) => sum + (typeof question.marks === "number" && question.marks > 0 ? question.marks : 0),
+    0
+  );
   const header = `<header class="phead">
-  ${meta.creatorName?.trim() ? `<div class="inst">${esc(meta.creatorName.trim())}</div>` : ""}
+  ${meta.creatorName?.trim() ? `<div class="creator">${esc(meta.creatorName.trim())}</div>` : ""}
   <h1 class="ptitle">${esc(meta.title || "Question Paper")}</h1>
+  ${meta.course?.trim() ? `<p class="psubtitle">${esc(meta.course.trim())}</p>` : ""}
   ${renderMetaGrid(meta)}
   ${renderStudentBlock(meta, options, student)}
   <div class="rule"></div>
 </header>
 ${renderInstructions(meta, questions)}
-<div class="banner"><span><span class="bl">Section A</span> — ${esc(sectionTitle(questions))}</span></div>
-<p class="secinstr">All questions are compulsory.</p>`;
-  const body = questions.map((question, index) => renderQuestion(question, index, twoColumns)).join("");
-  return `<section class="paper">${header}<main class="qs${twoColumns ? " two" : ""}">${body}</main><div class="end">End of question paper</div><div class="brand"><span class="brand-logo" role="img" aria-label="QuizSupport"></span></div></section>`;
+<div class="section-head">
+  <span>Section A — ${esc(sectionTitle(questions))}</span>
+  ${sectionMarks > 0 ? `<span class="section-marks">${formatMarks(sectionMarks)} marks</span>` : ""}
+</div>`;
+  const body = questions
+    .map((question, index) => renderQuestion(question, index, options, twoColumns))
+    .join("");
+  return `<section class="paper">${header}<main class="qs${twoColumns ? " two" : ""}">${body}</main><div class="end">End of question paper</div></section>`;
 }
 
 export function buildPaperBody(input: PaperBuildInput): string {
@@ -477,7 +552,7 @@ export function buildPaperBody(input: PaperBuildInput): string {
   const sections = list
     .map((student, index) => {
       const section = renderPaperSection(meta, questions, options, student);
-      return index === 0 ? section : `<section class="pgbreak"></section>${section}`;
+      return index === 0 ? section : `<div class="pgbreak"></div>${section}`;
     })
     .join("");
   const key = options.includeAnswerKey ? renderAnswerKey(meta, questions) : "";
@@ -489,90 +564,98 @@ export function buildAnswerKeyBody(input: { meta: PaperMeta; questions: PaperQue
 }
 
 const PAPER_CSS = `
-@page { size: A4; margin: 20mm 20mm 22mm; }
+@page { size: A4; margin: 15mm 15mm 18mm; }
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body {
-  font-family: 'Times New Roman', 'Liberation Serif', Times, serif;
-  font-size: 12pt;
-  line-height: 1.15;
+  font-family: 'Liberation Serif', 'Paper Devanagari', serif;
+  font-size: 10.5pt;
+  line-height: 1.25;
   color: #000;
   background: #fff;
-  text-align: justify;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
+  text-align: left;
+  word-break: normal;
+  overflow-wrap: normal;
+  hyphens: manual;
 }
-.inst { font-size: 16pt; font-weight: 700; text-transform: uppercase; text-align: center; margin: 0 0 1.5mm; }
-.ptitle { font-size: 14pt; font-weight: 700; text-align: center; margin: 0 0 3mm; }
-.meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2mm 6mm; font-size: 11pt; text-align: left; margin: 0 0 3mm; }
+p { margin: 0; }
+.creator { margin: 0 0 1.5mm; font-size: 10pt; font-weight: 700; text-align: center; text-transform: uppercase; }
+.ptitle { margin: 0 0 1mm; font-size: 15pt; line-height: 1.15; font-weight: 700; text-align: center; }
+.psubtitle { margin: 0 0 2.5mm; font-size: 10pt; line-height: 1.2; text-align: center; }
+.meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1mm 5mm; margin: 2mm 0 2.5mm; font-size: 10pt; }
 .meta .cell { display: flex; gap: 1.2mm; min-width: 0; }
-.meta .lbl { font-weight: 700; white-space: nowrap; }
-.meta .val { font-weight: 400; min-width: 0; overflow-wrap: anywhere; }
-.rule { border-top: 1.5pt solid #000; margin: 0 0 3mm; }
-.student { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; font-size: 11pt; text-align: left; margin: 0 0 2.5mm; }
-.student .f { display: flex; align-items: baseline; gap: 1mm; min-width: 0; }
-.student .fill { flex: 1; min-width: 30mm; border-bottom: 0.75pt solid #000; padding: 0 1mm 0.5mm; min-height: 1.2em; }
-.instr { border: 1pt solid #000; background: #F2F2F2; padding: 2.5mm 3mm; font-size: 10.5pt; line-height: 1.3; break-inside: avoid; margin: 0 0 4mm; }
-.instr .ititle { font-weight: 700; margin: 0 0 1mm; }
+.meta .lbl { flex: none; font-weight: 700; white-space: nowrap; }
+.meta .val { min-width: 0; overflow-wrap: normal; }
+.rule { margin: 0 0 2.5mm; border-top: 0.75pt solid #000; }
+.student { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; margin: 0 0 2.5mm; font-size: 10pt; }
+.student .f { display: flex; align-items: baseline; gap: 1.5mm; min-width: 0; }
+.student .fill { flex: 1; min-width: 22mm; min-height: 1.3em; padding: 0 1mm 0.4mm; border-bottom: 0.5pt solid #000; }
+.instr { margin: 0 0 3.5mm; padding: 2mm 2.5mm; border: 0.5pt solid #000; font-size: 10pt; line-height: 1.25; break-inside: avoid; }
+.instr-title { margin: 0 0 1mm; font-size: 9pt; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
 .instr ol { margin: 0; padding-left: 5mm; }
-.instr li { margin: 0 0 0.7mm; }
-.banner { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 4mm; background: #F2F2F2; border-top: 1pt solid #000; border-bottom: 1pt solid #000; padding: 1.5mm 2.5mm; font-size: 12pt; font-weight: 700; text-align: left; break-after: avoid; }
-.banner .bl { text-transform: uppercase; }
-.secinstr { font-size: 10.5pt; font-style: italic; color: #555; margin: 2mm 0 1mm; break-after: avoid; }
+.instr li { margin: 0 0 0.4mm; }
+.instr li:last-child { margin-bottom: 0; }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 4mm; margin: 0 0 3mm; padding: 1mm 0; border-top: 0.75pt solid #000; border-bottom: 0.75pt solid #000; font-size: 10.5pt; font-weight: 700; break-after: avoid; }
+.section-marks { flex: none; font-size: 10pt; white-space: nowrap; }
 .qs { margin: 0; }
-.qs.two { column-count: 2; column-gap: 8mm; column-rule: 0.5pt solid #BBB; }
-@media print { .qs.two { column-fill: auto; } }
-.q { display: grid; grid-template-columns: 12mm minmax(0, 1fr); column-gap: 2mm; margin: 4mm 0 0; break-inside: avoid; }
-.q:first-child { margin-top: 0; }
-.q .qn { font-size: 12pt; font-weight: 700; text-align: left; padding-top: 0.2mm; }
-.q .qb { font-size: 12pt; font-weight: 400; min-width: 0; overflow-wrap: break-word; }
-.q .qb p { margin: 0 0 1.5mm; }
-.q .qb p:last-child { margin-bottom: 0; }
-.opts { margin: 1.5mm 0 0 6mm; display: grid; gap: 1mm; }
-.opts.four { grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 4mm; }
-.opts.two { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 6mm; }
-.opt { display: grid; grid-template-columns: 6mm minmax(0, 1fr); column-gap: 1.5mm; font-size: 11pt; font-weight: 400; line-height: 1.25; }
-.opt .ol { font-weight: 400; text-align: left; }
-.opt .oc { min-width: 0; overflow-wrap: break-word; }
+.qs.two { column-count: 2; column-gap: 8mm; column-rule: 0.5pt solid #000; column-fill: balance; }
+.question { position: relative; margin: 0 0 3mm; padding-left: 9mm; break-inside: avoid; }
+.question:last-child { margin-bottom: 0; }
+.q-no { position: absolute; top: 0; left: 0; font-weight: 700; }
+.q-marks { position: absolute; top: 0; right: 0; font-size: 10pt; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.q-text { min-width: 0; padding-right: 9mm; word-break: normal; overflow-wrap: normal; hyphens: manual; }
+.q-text .ln { margin: 0 0 1mm; }
+.q-text .ln:last-child { margin-bottom: 0; }
+.opts { display: grid; column-gap: 4mm; row-gap: 1mm; margin-top: 1.2mm; }
+.opts-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.opts-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.opts-1 { grid-template-columns: minmax(0, 1fr); }
+.opt { display: grid; grid-template-columns: 7mm minmax(0, 1fr); align-items: start; min-width: 0; font-size: 10pt; line-height: 1.25; break-inside: avoid; word-break: normal; overflow-wrap: normal; hyphens: manual; }
+.opt-label { white-space: nowrap; }
+.opt-label .bubble { display: inline-block; width: 3.2mm; }
+.opt-text { min-width: 0; word-break: normal; overflow-wrap: normal; hyphens: manual; }
 .opt img { max-width: 100%; height: auto; margin-top: 1mm; }
-.muted { color: #555; font-style: italic; }
-pre.code { font-family: 'Courier New', 'Liberation Mono', Consolas, monospace; font-size: 10.5pt; font-weight: 400; background: #F5F5F5; border: 0.5pt solid #999; padding: 1.5mm 2mm; margin: 1.5mm 0 0; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; line-height: 1.25; }
+.nw { white-space: nowrap; }
+sup, sub { font-size: 66%; line-height: 0; }
+sup { vertical-align: super; }
+sub { vertical-align: sub; }
+.muted { font-style: italic; }
+pre.code { margin: 1.5mm 0 0; padding: 1.5mm 2mm; border: 0.5pt solid #000; font-family: 'Liberation Mono', monospace; font-size: 10pt; line-height: 1.25; white-space: pre-wrap; overflow-wrap: normal; break-inside: avoid; }
 .qs.two pre.code { font-size: 9.5pt; }
 .tblwrap { margin: 1.5mm 0 0; break-inside: avoid; }
-table.tbl { border-collapse: collapse; width: 100%; font-size: 10.5pt; font-weight: 400; }
-.qs.two table.tbl { font-size: 10pt; table-layout: fixed; }
-table.tbl th, table.tbl td { border: 0.75pt solid #000; padding: 1mm 1.5mm; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
-table.tbl th { font-weight: 700; background: #F2F2F2; }
-.qimg { text-align: center; margin: 3mm 0 0; break-inside: avoid; }
+table.tbl { width: 100%; border-collapse: collapse; font-size: 10pt; }
+.qs.two table.tbl { table-layout: fixed; }
+table.tbl th, table.tbl td { padding: 1mm 1.5mm; border: 0.5pt solid #000; text-align: left; vertical-align: top; overflow-wrap: normal; }
+table.tbl th { font-weight: 700; }
+.qimg { margin: 3mm 0 0; text-align: center; break-inside: avoid; }
 .qimg img { max-width: 100%; height: auto; }
-.qimg .cap { font-size: 10.5pt; font-style: italic; color: #555; margin-top: 1mm; }
-.end { text-align: center; font-size: 10.5pt; font-style: italic; margin: 8mm 0 0; break-before: avoid; }
-.brand { display: flex; align-items: center; justify-content: center; margin: 4mm 0 0; break-before: avoid; }
+.qimg .cap { margin-top: 1mm; font-size: 9.5pt; font-style: italic; }
+.end { margin: 4mm 0 0; font-size: 9.5pt; font-style: italic; text-align: center; break-before: avoid; }
 .pgbreak { break-before: page; }
 .keypage { break-before: page; }
-.keytitle { font-size: 14pt; font-weight: 700; text-align: center; margin: 0 0 1mm; }
-.keymeta { font-size: 10.5pt; color: #555; text-align: center; margin: 0 0 4mm; }
-table.key { border-collapse: collapse; width: 100%; font-size: 11pt; font-weight: 400; }
-table.key th, table.key td { border: 0.75pt solid #000; padding: 1.5mm 2.5mm; text-align: left; vertical-align: middle; }
-table.key thead th { background: #F2F2F2; font-weight: 700; }
+.keytitle { margin: 0 0 1mm; font-size: 14pt; font-weight: 700; text-align: center; }
+.keymeta { margin: 0 0 4mm; font-size: 10pt; text-align: center; }
+table.key { width: 100%; border-collapse: collapse; font-size: 10pt; }
+table.key th, table.key td { padding: 1.5mm 2.5mm; border: 0.5pt solid #000; text-align: left; vertical-align: middle; }
+table.key thead th { font-weight: 700; }
 table.key .num { width: 16mm; }
 `;
 
 const PREVIEW_CSS = `
-body { background: #E6E6E6; padding: 0; }
-.paper { background: #fff; width: 210mm; padding: 20mm; margin: 0 auto; min-height: 297mm; box-shadow: 0 2px 18px rgba(0,0,0,0.18); }
+body { background: #fff; }
+.paper { width: 210mm; margin: 0 auto; padding: 15mm 15mm 18mm; background: #fff; }
 .pgbreak, .keypage { break-before: auto; }
 .pgbreak { height: 8mm; }
-.pgbreak + .paper { border-top: 0.5pt dashed #BBB; padding-top: 16mm; }
-.keypage { border-top: 0.5pt dashed #BBB; margin-top: 12mm; padding-top: 12mm; }
+.pgbreak + .paper { border-top: 0.5pt dashed #999; padding-top: 16mm; }
+.keypage { margin-top: 12mm; padding-top: 12mm; border-top: 0.5pt dashed #999; }
 `;
 
 export function buildPaperDocument(input: PaperBuildInput, fontCss: string): string {
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(input.meta.title || "Question Paper")}</title><style>${fontCss}${PAPER_CSS}</style></head><body>${buildPaperBody(input)}</body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(input.meta.title || "Question Paper")}</title><meta name="author" content="QuizSupport"><style>${fontCss}${PAPER_CSS}</style></head><body>${buildPaperBody(input)}</body></html>`;
 }
 
 export function buildAnswerKeyDocument(input: { meta: PaperMeta; questions: PaperQuestion[] }, fontCss: string): string {
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(input.meta.title || "Question Paper")} — Answer Key</title><style>${fontCss}${PAPER_CSS}</style></head><body>${buildAnswerKeyBody(input)}</body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(input.meta.title || "Question Paper")} — Answer Key</title><meta name="author" content="QuizSupport"><style>${fontCss}${PAPER_CSS}</style></head><body>${buildAnswerKeyBody(input)}</body></html>`;
 }
 
 export function buildPaperPreviewDocument(
@@ -584,7 +667,7 @@ export function buildPaperPreviewDocument(
     mode === "key"
       ? buildAnswerKeyBody(input as { meta: PaperMeta; questions: PaperQuestion[] })
       : buildPaperBody(input as PaperBuildInput);
-  return `<!doctype html><html><head><meta charset="utf-8"><style>${fontCss}${PAPER_CSS}${PREVIEW_CSS}</style></head><body>${body}</body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><style>${fontCss}${PAPER_CSS}${PREVIEW_CSS}</style></head><body>${body}</body></html>`;
 }
 
 function shuffle<T>(items: T[]): T[] {
