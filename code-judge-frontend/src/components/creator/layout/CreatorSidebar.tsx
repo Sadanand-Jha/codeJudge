@@ -4,7 +4,6 @@ import Link from "next/link";
 import {
   ClipboardList,
   Database,
-  FilePlus2,
   Users,
   Settings,
   Wallet,
@@ -56,8 +55,7 @@ const _FULL_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
   {
     label: "Quizzes",
     items: [
-      { label: "All Quizzes", href: "/creator/quizzes", icon: ListChecks, match: (p) => p === "/creator/quizzes" || (p.startsWith("/creator/quizzes/") && !p.startsWith("/creator/quizzes/create") && !p.startsWith("/creator/quizzes/ai-generate")) },
-      { label: "Create Quiz", href: "/creator/quizzes/create", icon: FilePlus2, match: (p) => p === "/creator/quizzes/create" || p === "/creator/quizzes/ai-generate" },
+      { label: "All Quizzes", href: "/creator/quizzes", icon: ListChecks, match: (p) => p === "/creator/quizzes" || p.startsWith("/creator/quizzes/") },
       { label: "Tests", href: "/creator/tests", icon: ClipboardList, match: (p) => p === "/creator/tests" || (p.startsWith("/creator/tests/") && !p.startsWith("/creator/tests/create")), color: "purple" },
       { label: "Create Test", href: "/creator/tests/create", icon: NotebookPen, match: (p) => p === "/creator/tests/create", color: "purple" },
     ],
@@ -78,7 +76,7 @@ const _FULL_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
       { label: "Batches", href: "/creator/batches", icon: Boxes },
       { label: "Organizations", href: "/creator/organizations", icon: Building2 },
       { label: "Invitations", href: "/creator/invitations", icon: MailPlus },
-      { label: "Rooms", href: "/creator/rooms", icon: UserRound },
+      { label: "My Rooms", href: "/creator/rooms", icon: UserRound },
     ],
   },
   {

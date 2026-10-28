@@ -211,8 +211,8 @@ export class userRepository {
             ), chosen_role AS (
                 SELECT id FROM role WHERE LOWER(name) = $5 LIMIT 1
             )
-            INSERT INTO users (Username, Email, Password, role_id, avatar_id)
-            SELECT LOWER($1), LOWER($2), $3, chosen_role.id, chosen_avatar.id
+            INSERT INTO users (Username, Email, Password, role_id, avatar_id, isactive)
+            SELECT LOWER($1), LOWER($2), $3, chosen_role.id, chosen_avatar.id, TRUE
             FROM chosen_avatar CROSS JOIN chosen_role
             RETURNING *
         `;

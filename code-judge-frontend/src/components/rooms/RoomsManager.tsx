@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   Archive,
   ArchiveRestore,
+  Clock,
   Copy,
   Download,
   Eye,
@@ -243,14 +244,14 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
   if (loadingRooms) {
     return (
       <div className="min-h-full bg-[var(--qs-bg)]">
-        <div className="mx-auto max-w-[1280px] px-4 py-6 pb-20 sm:px-6">
-          <div className="mb-6">
+        <div className="mx-auto max-w-[1280px] px-4 py-4 pb-20 sm:px-6 sm:py-6">
+          <div className="mb-5 sm:mb-6">
             <div className="app-skeleton h-9 w-44 rounded" />
-            <div className="app-skeleton mt-2 h-4 w-72 rounded" />
+            <div className="app-skeleton mt-2 h-4 w-72 max-w-full rounded" />
           </div>
-          <div className="mb-4 flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:mb-5 sm:grid sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-4">
+          <div className="mb-4 grid grid-cols-2 gap-2.5 sm:mb-5 sm:gap-3.5 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="min-w-[132px] flex-1 shrink-0 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 sm:min-w-0 sm:rounded-[18px] sm:p-4">
+              <div key={i} className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 px-3 sm:rounded-[18px] sm:p-4">
                 <div className="app-skeleton h-3 w-16 rounded sm:w-20" />
                 <div className="app-skeleton mt-3 h-6 w-12 rounded sm:h-7 sm:w-14" />
               </div>
@@ -275,13 +276,13 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
 
   return (
     <div className="min-h-full bg-[var(--qs-bg)]">
-      <div className="mx-auto max-w-[1280px] px-4 py-6 pb-20 sm:px-6">
+      <div className="mx-auto max-w-[1280px] px-4 py-4 pb-20 sm:px-6 sm:py-6">
 
         {/* Top */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="mb-5 flex flex-col items-start gap-3.5 sm:mb-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
           <div className="min-w-0">
-            <h1 className="text-[28px] font-extrabold leading-none tracking-[-0.02em] text-[var(--qs-ink)] sm:text-[34px]">My Rooms</h1>
-            <p className="mt-0.5 truncate text-[var(--qs-muted)]">
+            <h1 className="text-[30px] font-extrabold leading-none tracking-[-0.02em] text-[var(--qs-ink)] sm:text-[34px]">My Rooms</h1>
+            <p className="mt-1 text-sm leading-[1.4] text-[var(--qs-muted)] sm:mt-0.5 sm:text-[15px]">
               Create and manage student groups that you can reuse across your quizzes.
             </p>
           </div>
@@ -314,20 +315,22 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
         )}
 
         {/* Stats */}
-        <div className="mb-4 flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:mb-5 sm:grid sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-4">
+        <div className="mb-4 grid grid-cols-2 gap-2.5 sm:mb-5 sm:gap-3.5 lg:grid-cols-4">
           {statCards.map((kpi) => (
             <div
               key={kpi.label}
               className={cn(
-                "min-w-[136px] flex-1 shrink-0 rounded-[16px] border-2 p-3 sm:min-w-0 sm:rounded-[18px] sm:p-4 sm:px-[18px]",
-                kpi.hi ? "border-[var(--qs-ink)] bg-[var(--qs-sun)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
+                "rounded-[14px] border-2 p-2.5 px-3 sm:rounded-[18px] sm:p-4 sm:px-[18px]",
+                kpi.hi
+                  ? "border-[var(--qs-ink)] bg-[var(--qs-sun)] shadow-[3px_3px_0_var(--qs-ink)]"
+                  : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
               )}
             >
               <small className={cn(
-                "flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] sm:gap-2 sm:text-xs",
+                "flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.06em] sm:gap-2 sm:text-xs sm:tracking-[0.08em]",
                 kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-muted)]"
               )}>
-                <span className="h-2 w-2 shrink-0 rounded-full sm:h-2.5 sm:w-2.5" style={{ background: kpi.color }} />
+                <span className="h-[7px] w-[7px] shrink-0 rounded-full sm:h-2.5 sm:w-2.5" style={{ background: kpi.color }} />
                 {kpi.label}
               </small>
               <b className={cn("mt-1.5 block text-[24px] font-extrabold leading-[1.1] sm:mt-2 sm:text-[32px] lg:text-[36px]", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-ink)]")}>
@@ -343,15 +346,15 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
         <RoomStudentSearch rooms={ownedRooms} basePath={basePath} />
 
         {/* Filter bar */}
-        <div className="mb-5 flex flex-wrap items-center gap-2.5">
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2.5">
           <div className="relative w-full sm:w-auto sm:min-w-[220px] sm:flex-[0_1_290px]">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
+            <Search className="absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--qs-muted)]" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search rooms…"
               aria-label="Search rooms"
-              className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-2.5 pl-9 pr-3.5 text-sm text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
+              className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-[11px] pl-10 pr-3.5 text-[15px] leading-5 text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] sm:py-2.5 sm:text-sm"
             />
           </div>
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-1">
@@ -364,7 +367,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
                   aria-pressed={active}
                   onClick={() => setFilter(f.id)}
                   className={cn(
-                    "rounded-full border-2 px-[13px] py-1.5 text-xs font-extrabold uppercase tracking-[0.06em] transition-colors",
+                    "rounded-full border-2 px-[13px] py-1.5 text-[13px] leading-[18px] font-extrabold uppercase tracking-[0.06em] transition-colors",
                     active
                       ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
                       : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
@@ -380,7 +383,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
             value={sort}
             onChange={(e) => setSort(e.target.value as SortKey)}
             aria-label="Sort rooms"
-            className="w-full shrink-0 cursor-pointer rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-[9px] text-sm font-bold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)] focus:border-[var(--qs-brand)] sm:w-auto"
+            className="w-full shrink-0 cursor-pointer rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-[11px] text-sm font-extrabold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)] focus:border-[var(--qs-brand)] sm:w-auto sm:py-[9px]"
           >
             {SORTS.map((s) => (
               <option key={s.id} value={s.id}>
@@ -391,15 +394,15 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
         </div>
 
         {/* Rooms table */}
-        <div className="relative mb-4 mr-4">
-          <div aria-hidden className="absolute left-4 top-4 -bottom-4 -right-4 rounded-[30px] bg-[var(--qs-sun)]" />
-          <div className="relative overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
-            <header className="flex flex-wrap items-start justify-between gap-3 px-4 pb-4 pt-5 sm:px-[26px]">
+        <div className="relative mb-4 mr-1 sm:mr-4">
+          <div aria-hidden className="absolute left-1 top-1 -bottom-1 -right-1 rounded-[18px] bg-[var(--qs-sun)] sm:left-4 sm:top-4 sm:-bottom-4 sm:-right-4 sm:rounded-[30px]" />
+          <div className="relative overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] sm:rounded-[26px]">
+            <header className="flex flex-col gap-2 px-4 pb-3 pt-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-3 sm:px-[26px] sm:pb-4 sm:pt-5">
               <div>
                 <h2 className="text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-2xl">Rooms</h2>
-                <p className="mt-0.5 text-sm text-[var(--qs-muted)]">Reusable student groups — open a room to manage its students.</p>
+                <p className="mt-0.5 text-[13px] leading-[1.4] text-[var(--qs-muted)] sm:text-sm">Reusable student groups — open a room to manage its students.</p>
               </div>
-              <p className="text-sm font-medium text-[var(--qs-muted)]">
+              <p className="text-[13px] font-medium text-[var(--qs-muted)] sm:text-sm">
                 {filtered.length} of {stats.rooms}
               </p>
             </header>
@@ -418,25 +421,25 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
             ) : (
               <>
                 {/* Mobile cards */}
-                <div className="space-y-2.5 border-t-2 border-[var(--qs-line)] p-4 md:hidden">
+                <div className="space-y-2.5 border-t-2 border-[var(--qs-line)] p-3 sm:p-4 md:hidden">
                   {filtered.map((room) => {
                     const count = room.memberCount ?? room.students.length;
                     return (
                       <div
                         key={room.id}
                         onClick={() => router.push(`${basePath}/${room.id}`)}
-                        className="cursor-pointer rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 transition-colors active:bg-[var(--qs-bg)]"
+                        className="cursor-pointer rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 transition-colors active:bg-[var(--qs-bg)]"
                       >
                         <div className="flex items-start gap-3">
-                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
-                            <Users className="h-4 w-4" strokeWidth={2.5} />
+                          <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+                            <Users className="h-5 w-5" strokeWidth={2.5} />
                           </span>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-start justify-between gap-2">
-                              <p className="truncate font-bold text-[var(--qs-ink)]">{room.name}</p>
+                              <p className="truncate text-[16px] font-extrabold text-[var(--qs-ink)]">{room.name}</p>
                               <span
                                 className={cn(
-                                  "shrink-0 rounded-full border-2 border-current px-2 py-px text-[10px] font-extrabold uppercase tracking-[0.05em]",
+                                  "shrink-0 rounded-[8px] border-2 border-current px-2 py-[2px] text-[11px] font-extrabold uppercase tracking-[0.05em]",
                                   room.archived ? "text-[#a85d00]" : "text-[var(--qs-ok)]"
                                 )}
                               >
@@ -446,7 +449,8 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
                             <p className="mt-0.5 truncate text-xs text-[var(--qs-muted)]">
                               {room.description || "No description"}
                             </p>
-                            <p className="mt-1.5 text-xs text-[var(--qs-muted)]">
+                            <p className="mt-1 flex min-w-0 items-center gap-1.5 truncate text-[12px] font-medium text-[var(--qs-muted)]">
+                              <Clock className="h-3 w-3 shrink-0" />
                               <b className="font-extrabold text-[var(--qs-ink)]">{count}</b> students · {timeAgo(room.updatedAt)}
                             </p>
                           </div>
@@ -528,7 +532,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
               </>
             )}
 
-            <div className="border-t-2 border-[var(--qs-line)] px-4 py-3.5 text-sm font-medium text-[var(--qs-muted)] sm:px-[26px]">
+            <div className="border-t-2 border-[var(--qs-line)] px-4 py-3 text-[13px] font-medium text-[var(--qs-muted)] sm:px-[26px] sm:py-3.5 sm:text-sm">
               Showing {filtered.length} of {stats.rooms} rooms
             </div>
           </div>

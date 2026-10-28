@@ -1,5 +1,7 @@
 "use client";
 
+import { showUpgradeModal } from "@/lib/upgradePrompt";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -209,7 +211,7 @@ export default function AiAssistantPanel({
     if (!incoming) return;
     if (!canUploadFiles) {
       if (!subscriptionLoading) {
-        toast.error("Upgrade required", { description: upgradeMessage });
+        showUpgradeModal({ message: upgradeMessage });
       }
       return;
     }
@@ -274,12 +276,12 @@ export default function AiAssistantPanel({
 
     const readyFiles = files.filter((f) => f.status === "ready");
     if (readyFiles.length > 0 && !canUploadFiles) {
-      toast.error("Upgrade required", { description: upgradeMessage });
+      showUpgradeModal({ message: upgradeMessage });
       return;
     }
     if (!canUseAi) {
       if (!aiLoading) {
-        toast.error("Upgrade required", { description: aiUpgradeMessage });
+        showUpgradeModal({ message: aiUpgradeMessage });
       }
       return;
     }

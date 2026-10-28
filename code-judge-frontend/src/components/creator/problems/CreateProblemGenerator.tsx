@@ -1,5 +1,7 @@
 "use client";
 
+import { showUpgradeModal } from "@/lib/upgradePrompt";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
@@ -399,7 +401,7 @@ export function CreateProblemGenerator() {
     if (!canUseAi) {
       setError(aiUpgradeMessage);
       if (!aiLoading) {
-        toast.error({ title: "Upgrade required", description: aiUpgradeMessage });
+        showUpgradeModal({ message: aiUpgradeMessage });
       }
       return;
     }
@@ -472,7 +474,7 @@ export function CreateProblemGenerator() {
       if (!item || !subjectId || busyIndex !== null) return;
       if (!canUseAi) {
         if (!aiLoading) {
-          toast.error({ title: "Upgrade required", description: aiUpgradeMessage });
+          showUpgradeModal({ message: aiUpgradeMessage });
         }
         return;
       }

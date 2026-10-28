@@ -21,6 +21,7 @@ const secureMediaService = new SecureMediaService();
 // the site picks it up on the next request (cache keyed on mtime + size).
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const logoDir = path.resolve(moduleDir, "../../public/logo");
+const landingImageDir = path.resolve(moduleDir, "../../public/images/landing_page");
 
 type LogoVariant = "full" | "mark";
 type LogoTheme = "light" | "dark";
@@ -150,6 +151,72 @@ export const getSecureMedia = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Internal server error while fetching secure media",
+    });
+  }
+};
+
+// --- Landing page studio screenshots (GET /api/v1/landing/image/:imageName) --
+// The marketing page never receives the raw PNGs: these files are AES-256-GCM
+// encrypted on every request (cached until the source file changes) and the
+// browser decrypts them with NEXT_PUBLIC_AES_SECRET_KEY. The allowlist keeps
+// the route scoped to the approved landing-page screenshots.
+const landingImageFiles: Record<string, string> = {
+  "quiz-builder": "quizBuilder.png",
+  "ai-question-generator": "ai_question_generator.png",
+  "question-bank": "question_bank.png",
+  rooms: "rooms.png",
+};
+
+const landingImageCache = new Map<string, { signature: string; base64: string }>();
+
+/**
+ * GET /api/v1/landing/image/:imageName (PUBLIC — the landing page is anonymous)
+ * Returns the AES-256-GCM encrypted PNG in the same envelope as brand/logo.
+ */
+export const getLandingImage = async (req: Request, res: Response) => {
+  const { imageName } = req.params;
+  const fileName = landingImageFiles[imageName];
+
+  if (!fileName) {
+    res.status(404).json({ success: false, message: "Image not found" });
+    return;
+  }
+
+  try {
+    const filePath = path.join(landingImageDir, fileName);
+    const stat = await fs.stat(filePath);
+    const signature = `${stat.mtimeMs}:${stat.size}`;
+    const cached = landingImageCache.get(imageName);
+    let encryptedBase64: string;
+
+    if (cached?.signature === signature) {
+      encryptedBase64 = cached.base64;
+    } else {
+      const source = await fs.readFile(filePath);
+      encryptedBase64 = secureMediaService.encrypt(source).toString("base64");
+      if (landingImageCache.size > 8) landingImageCache.clear();
+      landingImageCache.set(imageName, { signature, base64: encryptedBase64 });
+    }
+
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader("Content-Disposition", `attachment; filename="${imageName}.png.enc"`);
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Cache-Control", "public, max-age=3600");
+
+    res.status(200).json({
+      success: true,
+      data: encryptedBase64,
+      mimeType: "application/octet-stream",
+    });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      res.status(404).json({ success: false, message: "Image not found" });
+      return;
+    }
+    console.error("Error fetching landing image:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching landing image",
     });
   }
 };

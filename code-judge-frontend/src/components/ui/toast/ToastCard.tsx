@@ -15,11 +15,11 @@ interface ToastCardProps {
 const SWIPE_THRESHOLD = 80;
 
 const mobileTone: Record<ToastType, { card: string; bar: string }> = {
-  success: { card: "bg-[var(--qs-ok)] text-[var(--qs-bg)]", bar: "var(--qs-bg)" },
-  error: { card: "bg-[var(--qs-bad)] text-[var(--qs-on-bad)]", bar: "var(--qs-sun)" },
+  success: { card: "bg-[var(--qs-ok)] text-white", bar: "#ffffff" },
+  error: { card: "bg-[var(--qs-bad)] text-white", bar: "var(--qs-sun)" },
   warning: { card: "bg-[var(--qs-sun)] text-[#1a1240]", bar: "#1a1240" },
-  info: { card: "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]", bar: "var(--qs-sun)" },
-  loading: { card: "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]", bar: "var(--qs-sun)" },
+  info: { card: "bg-[var(--qs-brand)] text-white", bar: "var(--qs-sun)" },
+  loading: { card: "bg-[var(--qs-brand)] text-white", bar: "var(--qs-sun)" },
 };
 
 export function ToastCard({ toast, mobile = false }: ToastCardProps) {
@@ -142,7 +142,7 @@ export function ToastCard({ toast, mobile = false }: ToastCardProps) {
       className={
         mobile
           ? `group relative flex w-full cursor-pointer items-start gap-2.5 overflow-hidden border-b-2 border-[var(--qs-ink)] px-3.5 py-3 pr-10 outline-none ${mobileStyles.card}`
-          : `group relative flex w-full cursor-pointer items-start gap-3 overflow-hidden rounded-[16px] border-2 border-[#1A1240] bg-white p-3.5 pr-10 outline-none ${
+          : `group relative flex w-full cursor-pointer items-start gap-3 overflow-hidden rounded-[16px] border-2 border-[#1A1240] p-3.5 pr-10 outline-none ${mobileStyles.card} ${
               isError ? "toast-shake" : ""
             }`
       }
@@ -152,18 +152,12 @@ export function ToastCard({ toast, mobile = false }: ToastCardProps) {
 
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex items-center gap-2">
-          <h3
-            className={`truncate text-[14px] font-extrabold leading-snug tracking-tight ${
-              mobile ? "" : "text-[#1A1240]"
-            }`}
-          >
+          <h3 className="truncate text-[14px] font-extrabold leading-snug tracking-tight">
             {toast.title}
           </h3>
           {toast.timestamp && (
             <span
-              className={`shrink-0 text-[10.5px] font-semibold ${
-                mobile ? "opacity-70" : "text-[#8f8aa8]"
-              }`}
+              className="shrink-0 text-[10.5px] font-semibold opacity-70"
             >
               {toast.timestamp}
             </span>
@@ -171,9 +165,7 @@ export function ToastCard({ toast, mobile = false }: ToastCardProps) {
         </div>
         {toast.description && (
           <p
-            className={`text-[12.5px] font-medium leading-relaxed ${
-              mobile ? "opacity-85" : "text-[#5c5679]"
-            }`}
+            className="text-[12.5px] font-medium leading-relaxed opacity-85"
           >
             {toast.description}
           </p>
@@ -205,7 +197,7 @@ export function ToastCard({ toast, mobile = false }: ToastCardProps) {
           className={
             mobile
               ? "absolute right-2.5 top-2.5 flex h-7 w-7 items-center justify-center rounded-lg border-2 border-transparent opacity-75 transition-opacity hover:bg-black/10 hover:opacity-100"
-              : "absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full border-2 border-transparent text-[#8f8aa8] opacity-0 transition-all hover:border-[#1A1240] hover:bg-[#FFD23F] hover:text-[#1A1240] focus:opacity-100 group-hover:opacity-100"
+              : "absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full border-2 border-transparent opacity-70 transition-all hover:bg-black/10 hover:opacity-100 focus:opacity-100 group-hover:opacity-100"
           }
           aria-label="Dismiss notification"
         >
@@ -214,16 +206,12 @@ export function ToastCard({ toast, mobile = false }: ToastCardProps) {
       )}
 
       {!isPersistent && (
-        <div
-          className={`absolute bottom-0 left-0 h-[3px] w-full overflow-hidden ${
-            mobile ? "bg-black/15" : "bg-[#F0EBFF]"
-          }`}
-        >
+        <div className="absolute bottom-0 left-0 h-[3px] w-full overflow-hidden bg-black/15">
           <div
             className="h-full transition-none"
             style={{
               width: `${progress}%`,
-              background: mobile ? mobileStyles.bar : tone.solid,
+              background: mobileStyles.bar,
             }}
           />
         </div>

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/helpers";
 import { Timer } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 
 export interface SampleQuizQuestion {
   q: string;
@@ -69,33 +70,34 @@ export default function SampleQuizDemo({
   const question = activeQuestions[index];
   const canRotate = quizSets.length > 1 && !paused && !answered && !finished;
 
+  const resetProgress = useCallback(() => {
+    setQuestionIndex(0);
+    setScore(0);
+    setPicked(null);
+    setAnswered(false);
+    setRemaining(timerSeconds ?? 0);
+  }, [timerSeconds]);
+
   useEffect(() => {
     if (!timerSeconds || paused || picked !== null || finished) return;
     const timeout = window.setTimeout(() => {
       if (remaining <= 1) {
-        setQuestionIndex((current) => current + 1);
-        setPicked(null);
-        setAnswered(false);
-        setRemaining(timerSeconds);
+        resetProgress();
       } else {
         setRemaining(remaining - 1);
       }
     }, 1000);
     return () => window.clearTimeout(timeout);
-  }, [remaining, timerSeconds, paused, picked, finished]);
+  }, [remaining, timerSeconds, paused, picked, finished, resetProgress]);
 
   useEffect(() => {
     if (!canRotate) return;
     const timer = window.setInterval(() => {
       setSetIndex((current) => (current + 1) % quizSets.length);
-      setQuestionIndex(0);
-      setScore(0);
-      setPicked(null);
-      setAnswered(false);
-      setRemaining(timerSeconds ?? 0);
+      resetProgress();
     }, ROTATE_MS);
     return () => window.clearInterval(timer);
-  }, [canRotate, quizSets.length, timerSeconds]);
+  }, [canRotate, quizSets.length, resetProgress]);
 
   const pick = (option: number) => {
     if (picked !== null) return;
@@ -115,11 +117,7 @@ export default function SampleQuizDemo({
     if (quizSets.length > 1) {
       setSetIndex((current) => (current + 1) % quizSets.length);
     }
-    setQuestionIndex(0);
-    setScore(0);
-    setPicked(null);
-    setAnswered(false);
-    setRemaining(timerSeconds ?? 0);
+    resetProgress();
   };
 
   const displayLabel = activeSet.subject ? `${label} · ${activeSet.subject}` : label;
@@ -164,7 +162,10 @@ export default function SampleQuizDemo({
             ) : (
               <>
                 <div className="qs-meta">
-                  <span>{displayLabel}</span>
+                  <span className="qs-brandline">
+                    <SecureLogo size={16} variant="mark" rounded={false} />
+                    <span>{displayLabel}</span>
+                  </span>
                   <span>
                     Question {index + 1} of {activeQuestions.length}
                   </span>

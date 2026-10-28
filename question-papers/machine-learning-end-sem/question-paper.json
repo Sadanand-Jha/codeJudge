@@ -1,0 +1,267 @@
+{
+  "meta": {
+    "title": "Machine Learning",
+    "exam": "End Semester Examination",
+    "subtitle": "B.Tech. Computer Science and Engineering &middot; Semester V",
+    "code": "CS-ML-501",
+    "set": "Set A",
+    "date": "28 October 2026",
+    "duration": "3 Hours",
+    "maxMarks": 100,
+    "questionCount": 20
+  },
+  "instructions": [
+    "All questions are compulsory.",
+    "Marks are shown against each question.",
+    "Section A: ten MCQs, 2 marks each.",
+    "Sections B and C: five 4-mark and five 12-mark questions.",
+    "Answer all parts together in the answer booklet.",
+    "Non-programmable calculator permitted; show all steps."
+  ],
+  "sections": [
+    {
+      "id": "A",
+      "title": "Section A &mdash; Multiple Choice Questions",
+      "note": "Attempt all questions. Each question carries 2 marks.",
+      "marks": 20,
+      "questions": [
+        {
+          "no": 1,
+          "marks": 2,
+          "text": "Which statement best describes the bias&ndash;variance trade-off?",
+          "options": [
+            "Increasing capacity always reduces both bias and variance.",
+            "High bias causes underfitting; high variance causes overfitting.",
+            "Regularisation raises variance and lowers bias.",
+            "Adding training data raises variance without affecting bias."
+          ]
+        },
+        {
+          "no": 2,
+          "marks": 2,
+          "text": "Under the naive Bayes assumption, the features are:",
+          "options": [
+            "independent given the class",
+            "independent of the class",
+            "dependent on the evidence",
+            "always normally distributed"
+          ]
+        },
+        {
+          "no": 3,
+          "marks": 2,
+          "text": "In the Bayesian network A &rarr; B &larr; C, observing B makes A and C:",
+          "options": [
+            "independent",
+            "d-separated",
+            "conditionally dependent",
+            "marginally dependent"
+          ]
+        },
+        {
+          "no": 4,
+          "marks": 2,
+          "text": "In alpha&ndash;beta pruning, a branch can be pruned when its value is:",
+          "options": [
+            "worse than an ancestor&rsquo;s best available option",
+            "equal to the value of its parent node",
+            "better than every sibling subtree",
+            "undefined at a MAX node"
+          ]
+        },
+        {
+          "no": 5,
+          "marks": 2,
+          "text": "Logistic regression with weights w and bias b predicts probabilities using:",
+          "options": [
+            "&sigma;(w&middot;x + b)",
+            "w&middot;x + b",
+            "exp(w&middot;x)",
+            "max(0, w&middot;x + b)"
+          ]
+        },
+        {
+          "no": 6,
+          "marks": 2,
+          "text": "For a split of a node into children, information gain is:",
+          "options": [
+            "H(parent) &minus; H(children)",
+            "H(children) &minus; H(parent)",
+            "H(parent) + H(children)",
+            "H(parent) / H(children)"
+          ]
+        },
+        {
+          "no": 7,
+          "marks": 2,
+          "text": "The k-means algorithm seeks to minimise:",
+          "options": [
+            "the maximum distance between any two points",
+            "the sum of squared distances to assigned centroids",
+            "the number of non-empty clusters",
+            "the between-cluster variance"
+          ]
+        },
+        {
+          "no": 8,
+          "marks": 2,
+          "text": "In a soft-margin SVM, increasing the penalty parameter C generally:",
+          "options": [
+            "widens the margin and permits more violations",
+            "narrows the margin and penalises violations more",
+            "removes the need for slack variables",
+            "forces the kernel to become linear"
+          ]
+        },
+        {
+          "no": 9,
+          "marks": 2,
+          "text": "Principal component analysis projects data onto directions that:",
+          "options": [
+            "maximise class separation",
+            "maximise retained variance",
+            "minimise the feature count",
+            "maximise the number of clusters"
+          ]
+        },
+        {
+          "no": 10,
+          "marks": 2,
+          "text": "Repeated k-fold cross-validation is used mainly to:",
+          "options": [
+            "remove all overfitting from a model",
+            "estimate generalisation performance more reliably",
+            "increase the size of the training set",
+            "choose the number of folds automatically"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "title": "Section B &mdash; Short Answer Questions",
+      "note": "Attempt all questions. Each question carries 4 marks.",
+      "marks": 20,
+      "questions": [
+        {
+          "no": 11,
+          "marks": 4,
+          "text": "State Bayes&rsquo; theorem for events A and B. Hence express P(B|&not;A) in terms of the prior and the likelihoods, and explain why the denominator acts as a normaliser."
+        },
+        {
+          "no": 12,
+          "marks": 4,
+          "text": "Explain d-separation in a Bayesian network. For the graph X &rarr; Z &larr; Y, state whether X and Y are d-separated when Z is observed. Justify your answer."
+        },
+        {
+          "no": 13,
+          "marks": 4,
+          "text": "Compare L<sub>1</sub> and L<sub>2</sub> regularisation. Write the penalties ||w||<sub>1</sub> and ||w||<sub>2</sub><sup>2</sup>, and explain one practical difference between the resulting parameter estimates."
+        },
+        {
+          "no": 14,
+          "marks": 4,
+          "text": "Define precision and recall for a binary classifier at decision threshold &tau; &isin; [0, 1]. Explain the trade-off between them as &tau; is varied."
+        },
+        {
+          "no": 15,
+          "marks": 4,
+          "text": "For f(x) = e<sup>&minus;x</sup> + &radic;x on the domain [0, &infin;), write one gradient-descent update for x. State one condition on the learning rate &eta; for stable convergence."
+        }
+      ]
+    },
+    {
+      "id": "C",
+      "title": "Section C &mdash; Long Answer Questions",
+      "note": "Attempt all questions. Each question carries 12 marks. Answer all parts together.",
+      "marks": 60,
+      "questions": [
+        {
+          "no": 16,
+          "marks": 12,
+          "text": "Consider a multinomial naive Bayes spam filter with vocabulary size V and class token totals N<sub>spam</sub> and N<sub>ham</sub>.",
+          "parts": [
+            {
+              "label": "a",
+              "marks": 6,
+              "text": "Derive the decision rule from Bayes&rsquo; theorem and state the conditional independence assumption. Write the add-one smoothed estimate of P(w|y)."
+            },
+            {
+              "label": "b",
+              "marks": 6,
+              "text": "For a document with n<sub>free</sub>=3, n<sub>offer</sub>=1, V=2000, N<sub>spam</sub>=N<sub>ham</sub>=1000 and equal priors, compute the likelihood ratio P(document|spam)/P(document|ham)."
+            }
+          ]
+        },
+        {
+          "no": 17,
+          "marks": 12,
+          "text": "Consider the Bayesian network with edges A &rarr; C, B &rarr; C, C &rarr; D, and C &rarr; E.",
+          "parts": [
+            {
+              "label": "a",
+              "marks": 6,
+              "text": "Define d-separation and the Markov blanket. Give the Markov blanket of C. Are A and B independent given C? Given C and D? Justify."
+            },
+            {
+              "label": "b",
+              "marks": 6,
+              "text": "Explain why exact inference is hard in general Bayesian networks and describe one approximate inference method."
+            }
+          ]
+        },
+        {
+          "no": 18,
+          "marks": 12,
+          "text": "Consider a binary dataset S with 10 examples: 6 positive and 4 negative.",
+          "parts": [
+            {
+              "label": "a",
+              "marks": 6,
+              "text": "Define entropy and information gain. Compute H(S) and the gain for a split into S<sub>1</sub>=(4+,1&minus;) and S<sub>2</sub>=(2+,3&minus;). Leave logarithms exact."
+            },
+            {
+              "label": "b",
+              "marks": 6,
+              "text": "State and explain two techniques for reducing overfitting in decision trees."
+            }
+          ]
+        },
+        {
+          "no": 19,
+          "marks": 12,
+          "text": "Consider a two-layer network h = &sigma;(W<sub>1</sub>x + b<sub>1</sub>), o = W<sub>2</sub>h + b<sub>2</sub>, with softmax output p and cross-entropy loss L.",
+          "parts": [
+            {
+              "label": "a",
+              "marks": 6,
+              "text": "Write the forward pass and loss. Derive &part;L/&part;W<sub>1</sub>, identifying where &sigma;&prime;(z) appears."
+            },
+            {
+              "label": "b",
+              "marks": 6,
+              "text": "Explain the vanishing-gradient problem in deep sigmoid networks and state one remedy."
+            }
+          ]
+        },
+        {
+          "no": 20,
+          "marks": 12,
+          "text": "Consider a dataset with 1,000 samples and 50 numerical features.",
+          "parts": [
+            {
+              "label": "a",
+              "marks": 6,
+              "text": "Compare k-means and a GMM in assumptions, assignment, and objective. State how PCA selects components and the variance retained by k components."
+            },
+            {
+              "label": "b",
+              "marks": 6,
+              "text": "Describe nested cross-validation for comparing three tuned models. Why is it less optimistic than reusing the same folds?"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

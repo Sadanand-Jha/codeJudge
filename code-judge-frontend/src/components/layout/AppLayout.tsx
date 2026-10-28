@@ -173,7 +173,7 @@ const _fullNavGroups: { label: string; items: NavItemData[] }[] = [
   },
   {
     label: "ROOMS",
-    items: [{ label: "My Rooms", icon: Users, href: "/rooms/my" }],
+    items: [{ label: "Rooms", icon: Users, href: "/rooms/my" }],
   },
   {
     label: "PREPARATION",
@@ -203,7 +203,7 @@ const _focusNavGroups: { label: string; items: NavItemData[] }[] = [
   {
     label: "ROOMS",
     items: [
-      { label: "My Rooms", icon: Users, href: "/rooms/my" },
+      { label: "Rooms", icon: Users, href: "/rooms/my" },
     ],
   },
 ];

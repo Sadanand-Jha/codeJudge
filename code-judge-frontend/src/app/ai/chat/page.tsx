@@ -1,5 +1,7 @@
 "use client";
 
+import { showUpgradeModal } from "@/lib/upgradePrompt";
+
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
@@ -383,7 +385,7 @@ const handleConvoScroll = useCallback(() => {
     if (!input.trim() || isLoading) return;
     if (!canUseAi) {
       if (!aiLoading) {
-        toast.error("Upgrade required", { description: aiUpgradeMessage });
+        showUpgradeModal({ message: aiUpgradeMessage });
       }
       return;
     }
