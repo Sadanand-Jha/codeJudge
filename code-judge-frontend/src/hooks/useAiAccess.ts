@@ -14,9 +14,9 @@ export const AI_UPGRADE_CREDITS_HREF = "/pricing/credits";
 /**
  * Server-authoritative access check for AI features.
  *
- * AI requests require both an active paid plan and a positive credit balance.
- * The backend enforces the same rules; this hook keeps the UI from starting
- * requests that are guaranteed to fail.
+ * AI requests require both an active plan (including an active trial) and a
+ * positive credit balance. The backend enforces the same rules; this hook
+ * keeps the UI from starting requests that are guaranteed to fail.
  */
 export function useAiAccess() {
   const { subscription, isLoading: subscriptionLoading } = useMySubscription();
@@ -34,8 +34,7 @@ export function useAiAccess() {
     };
   }, [refreshCredits]);
 
-  const hasPaidPlan =
-    subscription?.isPaid === true && subscription.status !== "trialing";
+  const hasPaidPlan = subscription?.isPaid === true;
   const hasAiCredits = totalRemaining > 0;
   const aiLoading = subscriptionLoading || creditsLoading;
   const canUseAi = hasPaidPlan && hasAiCredits;

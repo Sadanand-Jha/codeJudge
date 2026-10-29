@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { PricingFooter, PricingNav } from "@/components/pricing/PricingChrome";
+import { BASIC_TRIAL_CREDITS } from "@/lib/constants";
 import {
   formatPricingAmount,
   getPricingCatalogServer,
@@ -52,7 +53,7 @@ function buildFaqs(catalog: PricingCatalog) {
     {
       q: "Is there a free trial?",
       a: trialPlan
-        ? `Yes. ${trialPlan.name} includes a ${trialPlan.trialDays}-day trial${trialPlan.credits > 0 ? ` with ${trialPlan.credits} AI credits` : ""}. Request it from billing; the owner approves each request. No card required.`
+        ? `Yes. ${trialPlan.name} includes a ${trialPlan.trialDays}-day trial with ${BASIC_TRIAL_CREDITS} AI credits. Request it from billing; the owner approves each request. No card required.`
         : "Trial availability depends on the current plans shown above.",
     },
     {

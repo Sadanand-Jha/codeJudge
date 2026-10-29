@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { BASIC_TRIAL_CREDITS } from "@/lib/constants";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { formatTrialEnd, getTrialState, useMySubscription } from "@/hooks/useMySubscription";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
@@ -344,7 +345,7 @@ export function MonthlyPlansPage({
         title="Monthly plans"
         subtitle={
           isTrialActive && trialPlan
-            ? `Your ${trialPlan.trialDays}-day ${trialPlan.name} trial is active with ${trialPlan.credits} AI credits. Paid plans include monthly credits.`
+            ? `Your ${trialPlan.trialDays}-day ${trialPlan.name} trial is active with ${BASIC_TRIAL_CREDITS} AI credits. Paid plans include monthly credits.`
             : isTrialExpired && trialPlan
               ? `Your ${trialPlan.name} trial has ended. Upgrade to keep creating quizzes without limits.`
               : "Paid plans include monthly AI credits."
@@ -405,7 +406,7 @@ export function MonthlyPlansPage({
             <span className="inline-flex items-center gap-1.5">
               <Sparkles className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
               {isTrialActive
-                ? `${trialPlan?.credits ?? 20} trial AI credits`
+                ? `${BASIC_TRIAL_CREDITS} trial AI credits`
                 : isTrialExpired
                   ? "Trial ended · upgrade for AI credits"
                   : displayPlan && displayPlan.credits > 0

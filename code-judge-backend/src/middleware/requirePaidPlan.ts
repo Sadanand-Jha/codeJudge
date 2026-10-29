@@ -10,8 +10,7 @@ export const requirePaidPlan = async (req: Request, res: Response, next: NextFun
 
   try {
     const entitlements = await getEntitlements(userId);
-    const hasPaidPlan = entitlements.isPaid && entitlements.status !== "trialing";
-    if (!hasPaidPlan) {
+    if (!entitlements.isPaid) {
       res.status(403).json({
         success: false,
         code: "SUBSCRIPTION_REQUIRED",

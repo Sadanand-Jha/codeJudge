@@ -11,7 +11,6 @@ export interface TrialPlanRow {
   name: string;
   slug: string;
   trial_days: number;
-  credits: number;
 }
 
 export interface TrialSubscriptionRow {
@@ -56,18 +55,7 @@ export interface TrialRequestSummary {
 }
 
 const TRIAL_PLAN_SELECT = `
-  SELECT p.id, p.name, p.slug, p.trial_days,
-         COALESCE((
-           SELECT CASE
-                    WHEN jsonb_typeof(pe.value) = 'number'
-                      THEN (pe.value #>> '{}')::int
-                    WHEN pe.value = 'true'::jsonb THEN -1
-                    ELSE 0
-                  END
-           FROM plan_entitlements pe
-           WHERE pe.plan_id = p.id
-             AND pe.key = 'ai_credits_per_month'
-         ), 0)::int AS credits
+  SELECT p.id, p.name, p.slug, p.trial_days
   FROM plans p`;
 
 const REQUEST_SELECT = `

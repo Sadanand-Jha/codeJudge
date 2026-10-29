@@ -272,8 +272,7 @@ function UpgradeModalContent({
   }, [onClose]);
 
   const accessChecking = subscriptionLoading || creditsSyncing;
-  const hasPaidPlan =
-    subscription?.isPaid === true && subscription.status !== "trialing";
+  const hasPaidPlan = subscription?.isPaid === true;
   const isTrialing = subscription?.status === "trialing";
   const totalRemaining = Math.max(0, balance.totalRemaining);
   const monthlyRemaining = Math.max(

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Check, Sparkles } from "lucide-react";
 import { PricingFooter, PricingNav } from "@/components/pricing/PricingChrome";
+import { BASIC_TRIAL_CREDITS } from "@/lib/constants";
 import {
   formatPricingAmount,
   getPricingCatalogServer,
@@ -141,7 +142,9 @@ export default async function StartFreeTrialPage() {
 
                     <p className="qp-plan-credits">
                       <Sparkles size={14} aria-hidden />
-                      Includes {plan.credits} AI credits / month
+                      {isTrial
+                        ? `Includes ${BASIC_TRIAL_CREDITS} AI credits for the ${plan.trialDays}-day trial`
+                        : `Includes ${plan.credits} AI credits / month`}
                     </p>
 
                     <ul className="qp-features">

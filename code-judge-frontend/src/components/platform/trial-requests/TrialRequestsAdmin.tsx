@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Check, RefreshCw, Search, ShieldCheck, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { BASIC_TRIAL_CREDITS } from "@/lib/constants";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { useToast } from "@/hooks/useToast";
 import {
@@ -280,7 +281,7 @@ export function TrialRequestsAdmin() {
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <span className="text-[11px] font-semibold text-[var(--qs-muted)]">
               {reviewAction === "approve"
-                ? `Starts the ${selected.planName} trial for 7 days and grants 20 AI credits.`
+                ? `Starts the ${selected.planName} trial for 7 days and grants ${BASIC_TRIAL_CREDITS} AI credits.`
                 : "The user can submit another request after rejection."}
             </span>
             <button

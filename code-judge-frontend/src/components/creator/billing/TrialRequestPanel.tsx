@@ -12,6 +12,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { BASIC_TRIAL_CREDITS } from "@/lib/constants";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { formatTrialEnd } from "@/hooks/useMySubscription";
 import { useTrialStatus } from "@/hooks/useTrialStatus";
@@ -80,7 +81,7 @@ export function TrialRequestPanel() {
 
   const planName = status.plan?.name ?? "Basic";
   const trialDays = status.plan?.trialDays ?? 7;
-  const credits = status.plan?.credits ?? 20;
+  const credits = status.plan?.credits ?? BASIC_TRIAL_CREDITS;
   const latest = status.latestRequest;
   const requestedOn = latest ? formatTrialEnd(latest.requestedAt) : null;
   const reviewNote = latest?.reviewNote;
