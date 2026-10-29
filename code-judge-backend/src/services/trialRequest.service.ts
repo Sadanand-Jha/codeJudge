@@ -1,6 +1,6 @@
 // User-requested Basic trial workflow. Requests are reviewed by an owner;
 // approval converts the user's free subscription into a 7-day Basic trial and
-// grants the plan's AI credits as a zero-value paid order.
+// grants the fixed trial AI credits as a zero-value paid order.
 import { getCreditBalance, insertCreditTransaction } from "../repositories/billing.repository.ts";
 import { orderNumber } from "./billing/calculations.ts";
 import { withEntitlementLock } from "./entitlements/guards.ts";
@@ -29,7 +29,7 @@ import {
   updateSubscriptionToTrial,
 } from "../repositories/trialRequest.repository.ts";
 
-const DEFAULT_TRIAL_CREDITS = 20;
+export const TRIAL_CREDITS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type TrialEligibilityReason =
@@ -108,17 +108,13 @@ function iso(value: Date | null): string | null {
   return value ? value.toISOString() : null;
 }
 
-function trialCredits(plan: TrialPlanRow): number {
-  return plan.credits > 0 ? plan.credits : DEFAULT_TRIAL_CREDITS;
-}
-
 function planView(plan: TrialPlanRow): TrialPlanView {
   return {
     id: plan.id,
     name: plan.name,
     slug: plan.slug,
     trialDays: plan.trial_days,
-    credits: trialCredits(plan),
+    credits: TRIAL_CREDITS,
   };
 }
 
@@ -332,7 +328,7 @@ export class TrialRequestService {
       const clock = await client.query("SELECT CURRENT_TIMESTAMP AS now");
       const now = new Date(clock.rows[0].now as string | Date);
       const trialEndsAt = new Date(now.getTime() + plan.trial_days * DAY_MS);
-      const credits = trialCredits(plan);
+      const credits = TRIAL_CREDITS;
       const note = normalizeNote(reviewNote);
       const actorId = actor.actorId ?? null;
       const requestNotes = `Basic trial approved from request #${request.id}`;

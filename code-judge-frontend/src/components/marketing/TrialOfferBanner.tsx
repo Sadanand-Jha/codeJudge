@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { BASIC_TRIAL_CREDITS } from "@/lib/constants";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { useTrialStatus } from "@/hooks/useTrialStatus";
 import { formatPricingAmount, getPlanDiscount } from "@/services/pricing";
@@ -26,7 +27,7 @@ export function TrialOfferBanner({
   const basicDiscount = basicPlan ? getPlanDiscount(basicPlan) : 0;
   const { status: trialStatus } = useTrialStatus();
   const trialDays = trialPlan?.trialDays ?? 0;
-  const trialCredits = trialPlan?.credits ?? 20;
+  const trialCredits = BASIC_TRIAL_CREDITS;
   const isTrialEligible = trialStatus?.eligible === true;
 
   if (!isTrialEligible) return null;

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight, Check, Lock, Sparkles } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { BASIC_TRIAL_CREDITS } from "@/lib/constants";
 import { formatTrialEnd, getTrialState, useMySubscription } from "@/hooks/useMySubscription";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { formatPricingAmount, type PricingPlan } from "@/services/pricing";
@@ -213,7 +214,7 @@ export function CreditPacks({
     <div>
       <p className="mb-6 mt-2 text-[14px] text-[var(--qs-muted)]">
         {trialState === "active" ? (
-          `${trialLabel} · ${trialPlan?.credits ?? 20} AI credits${trialEndsOn ? ` · ends ${trialEndsOn}` : ""}.`
+          `${trialLabel} · ${BASIC_TRIAL_CREDITS} AI credits${trialEndsOn ? ` · ends ${trialEndsOn}` : ""}.`
         ) : trialState === "expired" ? (
           `${trialLabel} expired · no monthly AI credits. Add a one-time pack when you need credits.`
         ) : (

@@ -16,6 +16,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { BASIC_TRIAL_CREDITS } from "@/lib/constants";
 import { formatTrialEnd, getTrialState, useMySubscription } from "@/hooks/useMySubscription";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { getBillingTransactions, type BillingTransaction } from "@/services/billing";
@@ -156,7 +157,6 @@ function CreditsCard({
   const activePlanId = subscription?.planSlug ?? balance.planId;
   const trialEndsOn = formatTrialEnd(subscription?.trialEnd ?? null);
   const trialPlanName = catalog.plans.find((plan) => plan.trialDays > 0)?.name ?? "Trial";
-  const trialCredits = catalog.plans.find((plan) => plan.trialDays > 0)?.credits ?? 20;
   const planName =
     catalog.plans.find((plan) => plan.slug === activePlanId)?.name ??
     (subscription?.status === "free" ? "Free plan" : "Current");
@@ -187,13 +187,13 @@ function CreditsCard({
         <p className="mt-2 text-[13px] text-[var(--qs-muted)]">
           {isTrialActive ? (
             <>
-              {trialPlanName} trial · {trialCredits} trial AI credits ·{" "}
+              {trialPlanName} trial · {BASIC_TRIAL_CREDITS} trial AI credits ·{" "}
               {balance.purchasedCredits.toLocaleString("en-IN")} purchased
               {trialEndsOn ? ` · ends ${trialEndsOn}` : ""}
             </>
           ) : isTrialExpired ? (
             <>
-              {trialPlanName} trial expired · {trialCredits} trial AI credits ·{" "}
+              {trialPlanName} trial expired · {BASIC_TRIAL_CREDITS} trial AI credits ·{" "}
               {balance.purchasedCredits.toLocaleString("en-IN")} purchased
               {trialEndsOn ? ` · ended ${trialEndsOn}` : ""}
             </>
@@ -479,7 +479,6 @@ function PlanSummaryStrip({
   const trialEndsOn = formatTrialEnd(subscription?.trialEnd ?? null);
   const plan = catalog.plans.find((candidate) => candidate.slug === activePlanId);
   const trialPlanName = catalog.plans.find((candidate) => candidate.trialDays > 0)?.name ?? "Trial";
-  const trialCredits = catalog.plans.find((candidate) => candidate.trialDays > 0)?.credits ?? 20;
   if (!isTrial && !isTrialExpired && !plan) return null;
 
   return (
@@ -521,7 +520,7 @@ function PlanSummaryStrip({
         <span className="inline-flex items-center gap-1.5">
           <Sparkles className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
           {isTrialActive
-            ? `${trialCredits} trial AI credits`
+            ? `${BASIC_TRIAL_CREDITS} trial AI credits`
             : isTrialExpired
               ? "Trial ended · upgrade for AI credits"
               : plan && plan.credits > 0
