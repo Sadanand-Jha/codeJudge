@@ -15,6 +15,7 @@ import { getApiErrorMessage } from "@/lib/apiError";
 import { formatTrialEnd, getTrialState, useMySubscription } from "@/hooks/useMySubscription";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { useToast } from "@/hooks/useToast";
+import { useTrialStatus } from "@/hooks/useTrialStatus";
 import {
   openRazorpayCheckout,
   RazorpayCheckoutDismissedError,
@@ -24,6 +25,7 @@ import { createPlanOrder, verifyPlanPayment } from "@/services/billing";
 import { formatPricingAmount, getPlanDiscount, type PricingPlan } from "@/services/pricing";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { PlanCheckoutDialog, type PlanPurchaseReceipt } from "./PlanCheckoutDialog";
+import { TrialRequestPanel } from "./TrialRequestPanel";
 import type { PurchasePhase } from "./credits/OrderSummaryDialog";
 import { PageHeader } from "./ui";
 
@@ -188,7 +190,7 @@ function PlanCard({
         </span>
       ) : showTrialCta ? (
         <Link
-          href="/register"
+          href="#trial-request"
           className={cn(
             "flex w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] py-[13px] text-[14px] font-extrabold transition-all",
             isHot
@@ -196,7 +198,7 @@ function PlanCard({
               : "bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:bg-[var(--qs-ink)] hover:text-[var(--qs-bg)]"
           )}
         >
-          {plan.cta || `Start ${plan.trialDays}-day free trial`}
+          {`Request ${plan.trialDays}-day free trial`}
           <ArrowRight className="h-4 w-4" />
         </Link>
       ) : (
@@ -228,6 +230,7 @@ export function MonthlyPlansPage({
   const refreshCredits = useAICreditsStore((state) => state.refresh);
   const { subscription, isLoading, refresh: refreshSubscription } = useMySubscription();
   const { catalog, isLoading: catalogLoading, error: catalogError, refresh: refreshCatalog } = usePricingCatalog();
+  const { status: trialStatus } = useTrialStatus();
   const toast = useToast();
   const [checkoutPlan, setCheckoutPlan] = useState<PricingPlan | null>(null);
   const [phase, setPhase] = useState<PurchasePhase>("summary");
@@ -259,7 +262,7 @@ export function MonthlyPlansPage({
         : "Trial expired"
       : displayPlan?.name ?? "Free plan";
   const trialEndsOn = formatTrialEnd(subscription?.trialEnd ?? null);
-  const trialAvailable = !isLoading && !subscription;
+  const trialAvailable = trialStatus?.eligible === true;
   const isFreePlan = !isLoading && !isTrialActive && !isTrialExpired && !displayPlan;
 
   const deepLinkPlan =
@@ -341,7 +344,7 @@ export function MonthlyPlansPage({
         title="Monthly plans"
         subtitle={
           isTrialActive && trialPlan
-            ? `Your ${trialPlan.trialDays}-day ${trialPlan.name} trial is active. Paid plans include monthly AI credits.`
+            ? `Your ${trialPlan.trialDays}-day ${trialPlan.name} trial is active with ${trialPlan.credits} AI credits. Paid plans include monthly credits.`
             : isTrialExpired && trialPlan
               ? `Your ${trialPlan.name} trial has ended. Upgrade to keep creating quizzes without limits.`
               : "Paid plans include monthly AI credits."
@@ -402,7 +405,7 @@ export function MonthlyPlansPage({
             <span className="inline-flex items-center gap-1.5">
               <Sparkles className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
               {isTrialActive
-                ? "Quizzes only · no AI credits"
+                ? `${trialPlan?.credits ?? 20} trial AI credits`
                 : isTrialExpired
                   ? "Trial ended · upgrade for AI credits"
                   : displayPlan && displayPlan.credits > 0
@@ -423,6 +426,8 @@ export function MonthlyPlansPage({
           </div>
         )}
       </section>
+
+      <TrialRequestPanel />
 
       {catalogLoading ? (
         <div className="mx-auto grid w-full max-w-4xl items-stretch gap-6 lg:grid-cols-2" aria-label="Loading plans">

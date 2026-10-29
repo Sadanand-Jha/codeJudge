@@ -10,6 +10,9 @@ import {
 } from "../../middleware/billing.validate.ts";
 import { validate } from "../../middleware/validate.ts";
 import {
+  createTrialRequestSchema,
+} from "../../middleware/trialRequest.validate.ts";
+import {
   createCreditOrderHandler,
   createPlanOrderHandler,
   getBillingConfigHandler,
@@ -20,6 +23,10 @@ import {
   verifyCreditOrderHandler,
   verifyPlanOrderHandler,
 } from "../../controllers/billing.controller.ts";
+import {
+  createTrialRequestHandler,
+  getTrialStatusHandler,
+} from "../../controllers/trialRequest.controller.ts";
 
 const router = Router();
 
@@ -41,6 +48,12 @@ router.post(
   verifyCreditOrderHandler
 );
 router.get("/credits/balance", getCreditBalanceHandler);
+router.get("/trial", getTrialStatusHandler);
+router.post(
+  "/trial/request",
+  validate(createTrialRequestSchema),
+  createTrialRequestHandler
+);
 router.post(
   "/plans/orders",
   validate(createPlanOrderSchema),

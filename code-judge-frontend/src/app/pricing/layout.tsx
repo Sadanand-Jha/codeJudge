@@ -8,7 +8,7 @@ export async function generateMetadata() {
   const planNames = paidPlans.map((plan) => plan.name).join(" and ");
   const offer = paidPlans.find((plan) => plan.offer)?.offer;
   const trialCopy = trialPlan
-    ? ` Start with a ${trialPlan.trialDays}-day quiz-only ${trialPlan.name} trial.`
+    ? ` Request a ${trialPlan.trialDays}-day ${trialPlan.name} trial with AI credits.`
     : "";
   const planCopy = planNames
     ? ` ${planNames} include monthly AI credits${offer ? ` at the ${offer.toLowerCase()}` : ""}.`

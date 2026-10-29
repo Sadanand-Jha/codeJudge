@@ -154,7 +154,7 @@ function buildFaqs(trialDays: number) {
       q: "Is there a subscription?",
       a:
         trialDays > 0
-          ? `Monthly plans start with a ${trialDays}-day quiz-only trial. AI credit packs are one-time, with no auto-renew.`
+          ? `Monthly plans include a ${trialDays}-day Basic trial with AI credits. Request it from billing; owner approval is required. AI credit packs are one-time, with no auto-renew.`
           : "Monthly plans renew monthly. AI credit packs are one-time, with no auto-renew.",
     },
   ];
@@ -190,11 +190,11 @@ export default async function HomePage() {
                 Launch offer
               </span>
               <p>
-                <b>{trialDays} days free trial.</b>
+                <b>{trialDays}-day Basic trial.</b>
               </p>
             </div>
             <Link href="/start-free-trial" className="lpx-btn lpx-btn-dark">
-              Start free trial
+              Request free trial
               <ArrowRight size={16} aria-hidden />
             </Link>
           </div>

@@ -8,9 +8,9 @@ import {
 } from "@/services/pricing";
 
 export const metadata = {
-  title: "Start your 7-day free trial · QuizSupport",
+  title: "Request your 7-day Basic trial · QuizSupport",
   description:
-    "Log in to start your 7-day quiz-only trial. Build quizzes, share one code and watch results land.",
+    "Log in and request the 7-day Basic trial from billing. Approved trials include Basic features and AI credits.",
 };
 
 const STEPS = [
@@ -19,12 +19,12 @@ const STEPS = [
     body: "Log in or create your account. No card required.",
   },
   {
-    title: "Start your trial",
-    body: "Get 7 days of the full quiz builder, access codes and instant results.",
+    title: "Request the trial",
+    body: "Open billing and submit a trial request. The owner reviews it before access starts.",
   },
   {
-    title: "Pick a plan",
-    body: "Move up when your quiz load grows. Paid plans add monthly AI credits.",
+    title: "Get Basic access",
+    body: "Approved trials run for 7 days with Basic features and AI credits. Pick a plan when you are ready.",
   },
 ];
 
@@ -41,19 +41,19 @@ export default async function StartFreeTrialPage() {
 
       <main id="top">
         <header className="wrap qp-hero qp-trial-hero">
-          <p className="eb">{trialDays}-day free trial</p>
+          <p className="eb">{trialDays}-day Basic trial</p>
           <h1>
             Try QuizSupport
             <br />
             <span>free for {trialDays} days</span>
           </h1>
           <p className="lead">
-            Log in to start your {trialDays}-day quiz-only trial. Build quizzes, share one
-            code and watch results land. Move up to a plan when your quiz load grows.
+            Log in, open billing and request the {trialDays}-day Basic trial. Approved trials
+            include Basic features and AI credits. Move up to a plan when your quiz load grows.
           </p>
           <div className="qp-actions">
-            <Link href="/login?next=/creator" className="btn pri">
-              Log in to start free trial <ArrowRight size={16} aria-hidden />
+            <Link href="/login?next=/creator/billing/plans" className="btn pri">
+              Log in to request trial <ArrowRight size={16} aria-hidden />
             </Link>
             <a href="#plans" className="btn">
               Compare plans
@@ -61,7 +61,8 @@ export default async function StartFreeTrialPage() {
           </div>
           <div className="qp-meta" aria-label="Trial highlights">
             <span>No card required</span>
-            <span>Quiz-only trial</span>
+            <span>Owner approval</span>
+            <span>AI credits included</span>
             <span>{offer}</span>
             <span>GST included</span>
           </div>
@@ -155,11 +156,11 @@ export default async function StartFreeTrialPage() {
                     </ul>
 
                     <Link
-                      href={isTrial ? "/login?next=/creator" : "/login?next=/pricing"}
+                      href={isTrial ? "/login?next=/creator/billing/plans" : "/login?next=/pricing"}
                       className="btn qp-plan-cta"
                     >
                       {isTrial
-                        ? "Log in to start free trial"
+                        ? "Log in to request trial"
                         : `Log in to choose ${plan.name}`}
                     </Link>
                   </article>
@@ -168,8 +169,8 @@ export default async function StartFreeTrialPage() {
             </div>
 
             <p className="qp-after">
-              Log in to start your free trial. Prices include GST. Plan changes take
-              effect from the next billing cycle.
+              Log in to request your trial from billing. Trials start after owner
+              approval. Prices include GST. Plan changes take effect from the next billing cycle.
             </p>
           </div>
         </section>
@@ -179,12 +180,12 @@ export default async function StartFreeTrialPage() {
             <div className="qp-trial-final-box">
               <p className="eb">Ready when you are</p>
               <h2>
-                Log in and start your <span className="qp-trial-grad">free trial</span>
+                Log in and request your <span className="qp-trial-grad">Basic trial</span>
               </h2>
-              <p>{trialDays} days, quiz-only, no card required.</p>
+              <p>{trialDays} days of Basic features and AI credits. Owner approval required. No card required.</p>
               <div className="qp-actions">
-                <Link href="/login?next=/creator" className="btn pri">
-                  Log in to start free trial <ArrowRight size={16} aria-hidden />
+                <Link href="/login?next=/creator/billing/plans" className="btn pri">
+                  Log in to request trial <ArrowRight size={16} aria-hidden />
                 </Link>
               </div>
             </div>

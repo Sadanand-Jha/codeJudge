@@ -484,6 +484,33 @@ export interface PlatformVersion {
   created_at: string;
 }
 
+export type PlatformTrialRequestStatus = "pending" | "approved" | "rejected" | "cancelled";
+
+export interface PlatformTrialRequest {
+  id: number;
+  userId: number;
+  username: string;
+  email: string;
+  planName: string;
+  planSlug: string;
+  status: PlatformTrialRequestStatus;
+  requestNote: string | null;
+  reviewNote: string | null;
+  reviewedBy: number | null;
+  reviewerEmail: string | null;
+  requestedAt: string;
+  reviewedAt: string | null;
+  trialStartedAt: string | null;
+  trialEndsAt: string | null;
+  creditsGranted: number;
+}
+
+export interface PlatformTrialRequestSummary {
+  pending: number;
+  approved: number;
+  rejected: number;
+}
+
 async function get<T>(path: string, params?: Record<string, string | number>): Promise<T> {
   const key = `${path}?${new URLSearchParams(
     Object.entries(params ?? {}).map(([name, value]) => [name, String(value)])
@@ -616,6 +643,38 @@ export const platformApi = {
   search: (q: string) => get<{ users: { id: number; username: string; email: string }[]; quizzes: { id: number; name: string; code: string }[]; attempts: { id: number; quiz_id: number; user_id: number; status: string; username: string | null }[] }>("/search", { q }),
   alerts: () => get<{ items: { severity: string; message: string; link: string }[] }>("/alerts"),
   subscriptionPlans: () => get<{ plans: PlatformPlan[] }>("/subscriptions/plans"),
+  trialRequests: (filters?: {
+    status?: PlatformTrialRequestStatus;
+    search?: string;
+  }) => {
+    const params: Record<string, string> = {};
+    if (filters?.status) params.status = filters.status;
+    if (filters?.search?.trim()) params.search = filters.search.trim();
+    return get<{
+      requests: PlatformTrialRequest[];
+      summary: PlatformTrialRequestSummary;
+    }>("/subscriptions/trial-requests", params);
+  },
+  approveTrialRequest: (requestId: number, note?: string) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<{
+        request: PlatformTrialRequest;
+        subscriptionId: number;
+        orderId: string;
+        creditsGranted: number;
+      }>(`/v1/platform/subscriptions/trial-requests/${requestId}/approve`, {
+        note: note?.trim() || null,
+      });
+      return response.data;
+    }),
+  rejectTrialRequest: (requestId: number, note?: string) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<{ request: PlatformTrialRequest }>(
+        `/v1/platform/subscriptions/trial-requests/${requestId}/reject`,
+        { note: note?.trim() || null }
+      );
+      return response.data;
+    }),
   subscriptionRegistry: () =>
     get<{ registry: EntitlementDefinition[] }>("/subscriptions/registry"),
   updateSubscriptionPlan: (planId: number, payload: SubscriptionPlanUpdate) =>

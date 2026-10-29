@@ -19,6 +19,7 @@ const CRUMB_LABELS: Record<string, string> = {
   quizzes: "Quiz analytics",
   top: "Top quizzes",
   pricing: "Pricing",
+  "trial-requests": "Trial requests",
   users: "User analytics",
   progress: "Student progress",
   "question-import": "Question ingestion",
