@@ -42,6 +42,8 @@ interface QuizCard {
   rating: number;
   status: QuizStatus;
   duration: number | null;
+  startAt: string | null;
+  endAt: string | null;
 }
 
 type QuizListRecord = Quiz & {
@@ -63,6 +65,8 @@ function mapQuizToCard(q: QuizListRecord): QuizCard {
     rating: Number(q.rating) || 0,
     status: deriveQuizStatus(q),
     duration: q.duration ?? null,
+    startAt: q.starttime ?? null,
+    endAt: q.endtime ?? null,
   };
 }
 
@@ -205,7 +209,8 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
             </p>
           </div>
           <AiGenerateButton
-            href="/creator/quizzes/create"
+            href={WHOLE_QUIZ_AI_ENABLED ? "/creator/quizzes/ai-generate" : "/creator/quizzes/create"}
+            comingSoon={!WHOLE_QUIZ_AI_ENABLED}
             size="md"
             label="Generate with AI"
             className="shrink-0"
@@ -242,7 +247,9 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
         <div className="rounded-[16px] border-2 border-dashed border-[var(--qs-line)] px-6 py-16 text-center">
           <p className="qs-display text-[20px] font-extrabold text-[var(--qs-ink)]">No quizzes yet</p>
           <p className="mx-auto mt-1.5 max-w-sm text-[13px] text-[var(--qs-muted)]">
-            Create one from scratch. AI quiz generation is coming soon.
+            {WHOLE_QUIZ_AI_ENABLED
+              ? "Create one from scratch, or generate a complete quiz with AI."
+              : "Create one from scratch. AI quiz generation is coming soon."}
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-2">
             <Link href="/creator/quizzes/create" className={BTN_PRI_SM}>
@@ -250,7 +257,8 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
               New quiz
             </Link>
             <AiGenerateButton
-              href="/creator/quizzes/create"
+              href={WHOLE_QUIZ_AI_ENABLED ? "/creator/quizzes/ai-generate" : "/creator/quizzes/create"}
+              comingSoon={!WHOLE_QUIZ_AI_ENABLED}
               size="sm"
               label="Generate with AI"
             />
@@ -681,6 +689,8 @@ function QuizCardItem({
             questions: quiz.questions,
             status: quiz.status,
             duration: quiz.duration,
+            startAt: quiz.startAt,
+            endAt: quiz.endAt,
           }}
           onClose={() => setShareOpen(false)}
         />

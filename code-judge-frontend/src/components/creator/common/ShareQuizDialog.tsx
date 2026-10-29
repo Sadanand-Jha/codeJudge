@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { formatDurationMinutes } from "@/lib/formatters";
+import { formatDateTimeIST, formatDurationMinutes } from "@/lib/formatters";
 import { SITE_NAME, SITE_URL } from "@/lib/seo/site";
 import { copyQuizCode } from "@/services/quiz";
 import { toast } from "@/lib/toast";
@@ -18,6 +18,9 @@ export interface ShareQuizInfo {
   status: ShareQuizStatus;
   /** Time limit in minutes, when the quiz has one. */
   duration?: number | null;
+  /** Scheduled/start and end timestamps, when the quiz has them. */
+  startAt?: string | null;
+  endAt?: string | null;
 }
 
 export type ShareStyleId = "clean" | "ticket" | "desi" | "hype";
@@ -65,14 +68,33 @@ function statusLine(status: ShareQuizStatus): string {
   return "Tap to join";
 }
 
+function scheduleLine(quiz: ShareQuizInfo): string | null {
+  const start = quiz.startAt ? formatDateTimeIST(quiz.startAt) : null;
+  const end = quiz.endAt ? formatDateTimeIST(quiz.endAt) : null;
+  if (start && end) return `${start} – ${end}`;
+  if (start) return `Starts ${start}`;
+  if (end) return `Ends ${end}`;
+  return null;
+}
+
+function timingLines(quiz: ShareQuizInfo): string | null {
+  const schedule = scheduleLine(quiz);
+  const duration = formatDurationMinutes(quiz.duration);
+  const lines: string[] = [];
+  if (schedule) lines.push(`🗓️ ${schedule}`);
+  if (duration) lines.push(`⏱️ ${duration} time limit`);
+  return lines.length > 0 ? lines.join("\n") : null;
+}
+
 interface QuizMessageInput {
   title: string;
   count: number;
   code: string;
   url: string;
+  timing?: string | null;
 }
 
-function buildQuizLiveText({ title, count, code, url }: QuizMessageInput): string {
+function buildQuizLiveText({ title, count, code, url, timing }: QuizMessageInput): string {
   const E = {
     target: "\u{1F3AF}", memo: "\u{1F4DD}", q: "\u2753",
     timer: "\u23F1\uFE0F", key: "\u{1F511}", point: "\u{1F447}", rocket: "\u{1F680}",
@@ -84,6 +106,7 @@ function buildQuizLiveText({ title, count, code, url }: QuizMessageInput): strin
     ``,
     `${E.memo} *${title}*`,
     `${E.q} ${count} questions`,
+    ...(timing ? [timing] : []),
     ``,
     `${E.key} *Join code*`,
     "```" + spaced + "```",
@@ -103,6 +126,8 @@ export function buildShareMessage(quiz: ShareQuizInfo, style: ShareStyleId): str
   const link = joinLink(quiz.code);
   const show = formatJoinCode(quiz.code);
   const questions = `${quiz.questions} ${quiz.questions === 1 ? "question" : "questions"}`;
+  const timing = timingLines(quiz);
+  const timingBlock = timing ? `\n${timing}` : "";
 
   if (style === "ticket") {
     return `🎟️🔥 *QUIZ PASS* 🔥🎟️
@@ -110,7 +135,7 @@ export function buildShareMessage(quiz: ShareQuizInfo, style: ShareStyleId): str
    🎯 *${quiz.title}*
 ╚════════════════════╝
 
-📚 ${questions}  •  ${statusLine(quiz.status)}
+📚 ${questions}  •  ${statusLine(quiz.status)}${timingBlock}
 
 🎫 *YOUR ENTRY CODE*
 \`\`\`${show}\`\`\`
@@ -127,6 +152,7 @@ ${link}
       count: quiz.questions,
       code: quiz.code,
       url: link,
+      timing,
     });
   }
 
@@ -138,7 +164,7 @@ ${link}
 ┗━━━━━━━━━━━━━━━━━━┛
 
 ${intro}
-
+${timing ? `${timing}\n` : ""}
 👇 *Seedha join karo*
 ${link}
 
@@ -152,7 +178,7 @@ ${link}
    🎯 *${quiz.title}*
 ┗━━━━━━━━━━━━━━━━━━┛
 
-📚 ${questions}  •  ${statusLine(quiz.status)}
+📚 ${questions}  •  ${statusLine(quiz.status)}${timingBlock}
 
 🔑 *Join code:* \`\`\`${show}\`\`\`
 
@@ -260,6 +286,7 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
 
   const activeStyle = SHARE_STYLES.find((style) => style.id === styleId) ?? SHARE_STYLES[0];
   const durationLabel = formatDurationMinutes(quiz.duration);
+  const schedule = scheduleLine(quiz);
   const generatedMessage = buildShareMessage({ ...quiz, code }, styleId);
   const message = customMessage ?? generatedMessage;
   const whatsappHref = `https://wa.me/?text=${encodeURIComponent(message)}`;
@@ -447,7 +474,10 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
                       {quiz.questions} {quiz.questions === 1 ? "question" : "questions"}
                       {durationLabel ? ` • ${durationLabel}` : ""}. Tap to join instantly.
                     </span>
-                    <em className="mt-0.5 block text-[11px] not-italic opacity-60">
+                    {schedule ? (
+                    <span className="mt-0.5 block text-[11px] opacity-70">🗓️ {schedule}</span>
+                  ) : null}
+                  <em className="mt-0.5 block text-[11px] not-italic opacity-60">
                       {SITE_URL.replace(/^https?:\/\//, "")}
                     </em>
                   </div>

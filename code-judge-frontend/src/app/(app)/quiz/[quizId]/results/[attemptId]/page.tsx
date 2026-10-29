@@ -8,7 +8,13 @@ export default function QuizResultsReviewPage({
 }: {
   params: Promise<{ quizId: string; attemptId: string }>;
 }) {
-  const { attemptId } = use(params);
+  const { quizId, attemptId } = use(params);
 
-  return <AttemptReviewExperience attemptId={attemptId} key={attemptId} />;
+  return (
+    <AttemptReviewExperience
+      attemptId={attemptId}
+      quizId={quizId}
+      key={attemptId}
+    />
+  );
 }
