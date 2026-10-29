@@ -438,10 +438,11 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
 
   refresh: async (options) => {
     try {
-      const [snapshot, usage] = normalizeCreditSnapshot(await Promise.all([
+      const [rawSnapshot, usage] = await Promise.all([
         getCreditBalance(),
         getCreditUsage(getUserTimeZone()),
-      ]));
+      ]);
+      const snapshot = normalizeCreditSnapshot(rawSnapshot);
       if (!snapshot) throw new Error("Invalid credit balance response");
       const planTotal = snapshot.planCreditsTotal;
       const purchasedTotal = snapshot.purchasedCreditsTotal;
@@ -467,6 +468,15 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
           ...state.stats,
           remaining: snapshot.balance,
           monthlyAllowance: planTotal,
+          consumedToday: usage.consumedToday,
+          consumedThisMonth: usage.consumedThisMonth,
+          averageDailyUsage: usage.averageDailyUsage,
+          estimatedDaysRemaining:
+            usage.averageDailyUsage > 0
+              ? Math.floor(snapshot.balance / usage.averageDailyUsage)
+              : 0,
+          monthlyGraph: usage.monthlyGraph,
+          recentRequests: usage.recentRequests.map(toUsageEntry),
         },
         status: "ready",
         hasSnapshot: true,

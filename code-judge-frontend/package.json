@@ -11,7 +11,8 @@
     "test:ai-trap": "tsx src/lib/__acceptance__/aiTrap.test.tsx",
     "test:crypto": "tsx src/lib/__acceptance__/quizCrypto.test.ts",
     "test:crypto-v2": "tsx src/lib/crypto/__tests__/crypto.test.ts",
-    "test:quiz-crypto-v2": "tsx src/lib/__tests__/quizCryptoV2.test.ts"
+    "test:quiz-crypto-v2": "tsx src/lib/__tests__/quizCryptoV2.test.ts",
+    "test:credits": "tsx src/lib/__acceptance__/creditState.test.ts && tsx src/lib/__acceptance__/creditRefuel.test.ts && tsx src/lib/__acceptance__/generateWithAiButton.test.tsx"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",

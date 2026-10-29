@@ -17,9 +17,11 @@ import {
   ShieldCheck,
   Sparkles,
   TriangleAlert,
+  WandSparkles,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { toast } from "@/lib/toast";
 import { formatDate, formatDateTimeIST, timeAgo } from "@/lib/formatters";
 import { getUserTimeZone } from "@/lib/timezone";
 import { deriveQuizStatus, type EffectiveQuizStatus } from "@/lib/quizStatus";
@@ -335,21 +337,6 @@ function DashboardActionCard({
   cta: string;
   icon: LucideIcon;
 }) {
-const QUICK_ACTIONS: Array<{ title: string; sub: string; href: string; icon: LucideIcon; comingSoon?: boolean; ai?: boolean }> = [
-  { title: "New quiz", sub: "Build one by hand", href: "/creator/quizzes/create", icon: Plus },
-  {
-    title: "Generate with AI",
-    sub: WHOLE_QUIZ_AI_ENABLED ? "From files, topics or prompts" : "Coming soon",
-    href: "/creator/quizzes/ai-generate",
-    icon: WandSparkles,
-    comingSoon: !WHOLE_QUIZ_AI_ENABLED,
-    ai: true,
-  },
-  { title: "Paper builder", sub: "Print-ready papers", href: "/creator/tests/create", icon: FileText },
-  { title: "Question bank", sub: "Reuse your problems", href: "/creator/question-bank", icon: Database },
-];
-
-function QuickActions() {
   return (
     <Link
       href={href}
@@ -447,6 +434,85 @@ function DashboardActions({
         <ShieldCheck className="h-4 w-4 shrink-0 text-[#0B6B4A]" />
         Questions are encrypted in your browser before they reach our servers.
       </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Quick actions
+   ============================================================ */
+
+const QUICK_ACTIONS: Array<{ title: string; sub: string; href: string; icon: LucideIcon; comingSoon?: boolean; ai?: boolean }> = [
+  { title: "New quiz", sub: "Build one by hand", href: "/creator/quizzes/create", icon: Plus },
+  {
+    title: "Generate with AI",
+    sub: WHOLE_QUIZ_AI_ENABLED ? "From files, topics or prompts" : "Coming soon",
+    href: "/creator/quizzes/ai-generate",
+    icon: WandSparkles,
+    comingSoon: !WHOLE_QUIZ_AI_ENABLED,
+    ai: true,
+  },
+  { title: "Paper builder", sub: "Print-ready papers", href: "/creator/tests/create", icon: FileText },
+  { title: "Question bank", sub: "Reuse your problems", href: "/creator/question-bank", icon: Database },
+];
+
+function QuickActions() {
+  return (
+    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+      {QUICK_ACTIONS.map((action, index) => {
+        const Icon = action.icon;
+        const className =
+          "flex h-full items-center gap-3.5 rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3.5 transition-colors hover:border-[var(--qs-brand)]";
+        const content = (
+          <>
+            <i className="grid h-11 w-11 shrink-0 place-items-center rounded-[13px] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+              <Icon className="h-5 w-5" />
+            </i>
+            <span className="min-w-0">
+              <b className="block truncate text-[14px] font-bold text-[var(--qs-ink)]">{action.title}</b>
+              <small className="block truncate text-[12px] text-[var(--qs-muted)]">{action.sub}</small>
+            </span>
+          </>
+        );
+        return (
+          <motion.div
+            key={action.title}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.04 }}
+          >
+            {action.ai ? (
+              <GenerateWithAiButton
+                href={action.href}
+                label={action.title}
+                comingSoon={action.comingSoon}
+                variant="plain"
+                className={cn(className, "w-full text-left")}
+              >
+                {content}
+              </GenerateWithAiButton>
+            ) : action.comingSoon ? (
+              <button
+                type="button"
+                aria-disabled="true"
+                onClick={() =>
+                  toast.info({
+                    title: "Coming soon",
+                    description: "AI quiz generation is not available yet.",
+                  })
+                }
+                className={cn(className, "w-full cursor-not-allowed text-left opacity-60")}
+              >
+                {content}
+              </button>
+            ) : (
+              <Link href={action.href} className={className}>
+                {content}
+              </Link>
+            )}
+          </motion.div>
+        );
+      })}
     </div>
   );
 }
@@ -1406,7 +1472,7 @@ export function CreatorDashboardPage() {
   }, [overview]);
 
   return (
-    <div className="creator-dashboard-page pb-2">
+    <div className="creator-dashboard-page pb-2" data-credit-page="dashboard">
       <DashboardHero greeting={greeting} firstName={firstName} vaultUnlocked={vaultUnlocked} />
 
       <DashboardActions
@@ -1418,30 +1484,10 @@ export function CreatorDashboardPage() {
 
       <div className="mt-2 space-y-5">
         <TrialOfferBanner />
-    <div className="space-y-5 pb-2" data-credit-page="dashboard">
-      {/* Header */}
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div className="min-w-0">
-          <h1 className="qs-display text-[28px] font-extrabold leading-[1.08] tracking-[-0.025em] text-[var(--qs-ink)] sm:text-[34px] lg:text-[38px]">
-            {greeting}, {firstName}
-          </h1>
-          <p className="mt-1.5 text-[14px] text-[var(--qs-muted)] sm:text-[15px]">
-            Here&apos;s what&apos;s happening with your quizzes.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/creator/quizzes/create" className={BTN_PRI}>
-            <Plus className="h-4 w-4" />
-            Create quiz
-          </Link>
-        </div>
-      </div>
 
-      <TrialOfferBanner />
+        <LowFuelStrip />
 
-      <LowFuelStrip />
-
-      <QuickActions />
+        <QuickActions />
 
         {status === "loading" && <DashboardSkeleton />}
 

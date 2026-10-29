@@ -184,10 +184,8 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
   return (
     <AppLayout header={<CreatorNavbar onMobileMenuToggle={() => setDrawerOpen(true)} />}>
       <div
-       
         className="qs-ui creator-mobile-calm flex min-h-0 flex-1 bg-[var(--qs-bg)]"
         data-credit-state={creditState}
-      
         onClickCapture={guardQuizCreation}
       >
         {/* Mobile drawer overlay */}
