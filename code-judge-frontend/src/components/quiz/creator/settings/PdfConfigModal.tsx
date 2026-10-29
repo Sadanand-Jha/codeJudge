@@ -363,6 +363,12 @@ export default function PdfConfigModal({
                       onChange={(value) => setOptions((o) => ({ ...o, showStudentBlock: value }))}
                     />
                     <ToggleRow
+                      label="MCQ answer bubbles"
+                      hint="Print a ○ before each option for circling or ticking."
+                      checked={!!options.mcqBubbles}
+                      onChange={(value) => setOptions((o) => ({ ...o, mcqBubbles: value }))}
+                    />
+                    <ToggleRow
                       label="Shuffle questions"
                       hint="Change the question order in the generated paper."
                       checked={!!options.shuffleQuestions}

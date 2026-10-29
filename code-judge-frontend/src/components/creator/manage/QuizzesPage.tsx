@@ -23,6 +23,7 @@ import { GenerateWithAiButton } from "@/components/creator/common/GenerateWithAi
 import { useData } from "@/lib/hooks/useData";
 import { Skeleton } from "@/components/creator/billing/ui";
 import { cn } from "@/lib/helpers";
+import { formatDurationMinutes } from "@/lib/formatters";
 import { deriveQuizStatus, type EffectiveQuizStatus } from "@/lib/quizStatus";
 import { deleteQuiz, getMyCreatedQuizzes, type Quiz } from "@/services/quiz";
 import { toast } from "@/lib/toast";
@@ -40,6 +41,9 @@ interface QuizCard {
   attempts: number;
   rating: number;
   status: QuizStatus;
+  duration: number | null;
+  startAt: string | null;
+  endAt: string | null;
 }
 
 type QuizListRecord = Quiz & {
@@ -60,6 +64,9 @@ function mapQuizToCard(q: QuizListRecord): QuizCard {
     attempts: Number(q.attempts) || 0,
     rating: Number(q.rating) || 0,
     status: deriveQuizStatus(q),
+    duration: q.duration ?? null,
+    startAt: q.starttime ?? null,
+    endAt: q.endtime ?? null,
   };
 }
 
@@ -202,7 +209,8 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
             </p>
           </div>
           <GenerateWithAiButton
-            href="/creator/quizzes/create"
+            href={WHOLE_QUIZ_AI_ENABLED ? "/creator/quizzes/ai-generate" : "/creator/quizzes/create"}
+            comingSoon={!WHOLE_QUIZ_AI_ENABLED}
             size="md"
             label="Generate with AI"
             className="shrink-0"
@@ -239,7 +247,9 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
         <div className="rounded-[16px] border-2 border-dashed border-[var(--qs-line)] px-6 py-16 text-center">
           <p className="qs-display text-[20px] font-extrabold text-[var(--qs-ink)]">No quizzes yet</p>
           <p className="mx-auto mt-1.5 max-w-sm text-[13px] text-[var(--qs-muted)]">
-            Create one from scratch. AI quiz generation is coming soon.
+            {WHOLE_QUIZ_AI_ENABLED
+              ? "Create one from scratch, or generate a complete quiz with AI."
+              : "Create one from scratch. AI quiz generation is coming soon."}
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-2">
             <Link href="/creator/quizzes/create" className={BTN_PRI_SM}>
@@ -247,7 +257,8 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
               New quiz
             </Link>
             <GenerateWithAiButton
-              href="/creator/quizzes/create"
+              href={WHOLE_QUIZ_AI_ENABLED ? "/creator/quizzes/ai-generate" : "/creator/quizzes/create"}
+              comingSoon={!WHOLE_QUIZ_AI_ENABLED}
               size="sm"
               label="Generate with AI"
             />
@@ -564,6 +575,7 @@ function QuizCardItem({
   // onDelete: () => void;
 }) {
   const hasAttempts = quiz.attempts > 0;
+  const durationLabel = formatDurationMinutes(quiz.duration);
   const [shareOpen, setShareOpen] = useState(false);
 
   return (
@@ -623,6 +635,11 @@ function QuizCardItem({
           <span className="inline-flex shrink-0 items-center rounded-full border-2 border-[var(--qs-line)] px-3 py-[5px] text-[13px] font-bold text-[var(--qs-muted)]">
             {quiz.questions} {quiz.questions === 1 ? "question" : "questions"}
           </span>
+          {durationLabel && (
+            <span className="inline-flex shrink-0 items-center rounded-full border-2 border-[var(--qs-line)] px-3 py-[5px] text-[13px] font-bold text-[var(--qs-muted)]">
+              {durationLabel}
+            </span>
+          )}
           <span className="inline-flex shrink-0 items-center rounded-full border-2 border-[var(--qs-line)] px-3 py-[5px] text-[13px] font-bold text-[var(--qs-muted)]">
             {hasAttempts ? `${quiz.attempts.toLocaleString("en-IN")} ${quiz.attempts === 1 ? "attempt" : "attempts"}` : "No attempts yet"}
           </span>
@@ -671,6 +688,9 @@ function QuizCardItem({
             code: quiz.code,
             questions: quiz.questions,
             status: quiz.status,
+            duration: quiz.duration,
+            startAt: quiz.startAt,
+            endAt: quiz.endAt,
           }}
           onClose={() => setShareOpen(false)}
         />

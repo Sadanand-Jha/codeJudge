@@ -1,13 +1,14 @@
 # Encrypted Quiz Payload Backend — Complete Flow
 
-> **TL;DR (Hinglish):** Teacher quiz save karta hai → browser me questions + problem HTML ek random DEK se encrypt hote hain → DEK ko teacher ke 64-hex key (KEK) se wrap kiya jata hai → teacher key PDF download karta hai → confirm karne ke baad sirf ciphertext backend par upload hota hai → baad me teacher PDF key paste karke browser me decrypt karta hai. Backend ke paas key kabhi nahi jaati, isliye backend encrypted copy ko padh nahi sakta.
+> **TL;DR (Hinglish):** Teacher quiz save karta hai → browser me questions + problem HTML ek random DEK se encrypt hote hain → DEK ko teacher ke 64-hex key (KEK) se wrap kiya jata hai → teacher key PDF download karta hai → confirm karne ke baad sirf ciphertext backend par upload hota hai → students ko sirf IDs/order milte hain aur wo har page load par PDF key paste karke browser me decrypt karte hain. Backend ke paas key kabhi nahi jaati, isliye backend encrypted copy ko padh nahi sakta.
 
 This document explains the complete encrypted-quiz flow added on top of the existing quiz system:
 
 1. **Encrypted quiz copy** (`quiz_secure_payloads`): questions + HTML problem statements ka client-side encrypted snapshot.
-2. **Teacher key PDF**: browser-generated PDF/QR containing the 64-hex key.
-3. **Unlock page**: `/creator/quizzes/:id/secure`, jahan teacher key paste karke ciphertext decrypt karta hai.
-4. **Participant ciphertext endpoint**: signed-in users ke liye opaque payload (future client-side quiz rendering ke liye).
+2. **Teacher key PDF**: browser-generated one-page PDF/QR containing the 64-hex key and unlock instructions.
+3. **Unlock surfaces**: `/creator/quizzes/:id/secure` (read-only preview), student attempt page, and student review page. The key is requested again on every refresh.
+4. **Participant ciphertext endpoint**: signed-in users ke liye opaque payload, used by the key-gated attempt/review screens.
+5. **Stale tracking**: har question/option write encrypted copy ko stale mark karta hai, taaki next save naya key PDF banaye.
 
 It covers file map, crypto format, database schema, API contracts, save/unlock flows, security rules, migration, testing, and known limitations.
 
@@ -15,7 +16,7 @@ It covers file map, crypto format, database schema, API contracts, save/unlock f
 
 ## 1. Why this backend exists
 
-The existing quiz runtime stores questions in plaintext because server-side grading, live quiz sessions, leaderboards, and result generation need them. The encrypted copy is a **separate, portable snapshot** with different rules:
+The existing quiz runtime needs plaintext on the server for grading, live quiz sessions, leaderboards, and result generation. Its question/option columns are encrypted at rest (see section 9), but the app key can decrypt them. The teacher-key encrypted copy is a **separate, server-unreadable snapshot** plus a client-facing delivery rule:
 
 - The teacher's key is generated in the browser and downloaded as a PDF. It is **never uploaded**.
 - The backend stores only:
@@ -26,8 +27,9 @@ The existing quiz runtime stores questions in plaintext because server-side grad
 - The backend cannot decrypt the encrypted copy. It can only return the blobs.
 - The encrypted copy is bound to the quiz through AES-GCM AAD, so ciphertext from one quiz cannot be replayed as another quiz's payload.
 - The teacher can open `/creator/quizzes/:id/secure` later, paste the PDF key, and decrypt locally.
+- When a payload exists, client-facing attempt/review APIs return **IDs, order, and correctness flags only**. The browser restores all authored text from the key-protected payload. Legacy quizzes without a payload keep the old plaintext response until they are saved again from Studio.
 
-This gives teachers a server-unreadable backup of authored content without breaking the existing plaintext runtime.
+This gives teachers a server-unreadable backup of authored content and keeps question text out of student API responses.
 
 ---
 
@@ -38,11 +40,16 @@ This gives teachers a server-unreadable backup of authored content without break
 | File | What it does | Why it exists |
 |---|---|---|
 | `database/migrations/64_secure_quiz_payloads.sql` | Creates `quiz_secure_payloads` with ciphertext blobs, wrapped key, fingerprint, version, algorithm, timestamps, and JSONB shape checks. | One encrypted snapshot per quiz. `quiz_id` is the primary key and cascades with the quiz. |
-| `src/repositories/secureQuiz.repository.ts` | All SQL for upsert/get/get-meta/delete. Aliases `payload_id AS "quizId"` in the full payload response. | Keeps ciphertext SQL in one reviewable place. |
-| `src/services/secureQuiz.service.ts` | `save`, `get`, `getMeta`, `remove`. | Thin business layer between controllers and repository. |
+| `database/migrations/65_secure_quiz_payload_stale.sql` | Adds `stale`/`stale_at` and triggers on `quiz_problems` + `quiz_problem_options` that mark the encrypted copy stale after any write. | Keeps the encrypted copy synchronized with every question-related API without touching each controller. |
+| `src/services/quizContentCrypto.service.ts` | AES-256-GCM helpers for text, problem rows, and option rows. | Central at-rest encryption and transparent legacy plaintext handling for quiz runtime questions. |
+| `src/scripts/encryptQuizContent.ts` | Idempotent backfill for `quiz_problems` and `quiz_problem_options`. | Encrypts existing plaintext quiz runtime rows in place. |
+| `src/repositories/secureQuiz.repository.ts` | All SQL for upsert/get/get-meta/mark-fresh/delete. Aliases `payload_id AS "quizId"` in the full payload response. | Keeps ciphertext SQL in one reviewable place. |
+| `src/services/secureQuiz.service.ts` | `save`, `get`, `getMeta`, `markFresh`, `remove`. | Thin business layer between controllers and repository. |
 | `src/controllers/secureQuiz.controller.ts` | Owner-checked admin endpoints + participant ciphertext endpoint. Enforces `body.quizId === String(owner.quizId)`, sets `Cache-Control: no-store`, never logs request bodies. | HTTP boundary: ownership, validation, response shape, cache policy. |
+| `src/controllers/quiz.controller.ts` | Sanitizes `startQuizAttempt` and `getQuizReview` responses when a payload exists; adds `authored_index` for legacy-payload fallback; sanitizes the public problems endpoint for non-owners. | Keeps authored text out of student HTTP responses. |
+| `src/services/quizDecoy.ts` | `sanitizeAttemptProblem` / `sanitizeAttemptForStudent`. | Shared allow-list for student-facing attempt rows. |
 | `src/middleware/validate.ts` | `secureQuizBlobSchema` + `secureQuizPayloadSchema`. Rejects malformed IV/ciphertext/fingerprint before DB work. | Zod is the payload gate. |
-| `src/routes/v1/admin/quiz.routes.ts` | Mounts `GET /:quizId/secure-payload/meta`, `GET /:quizId/secure-payload`, `POST`/`PUT /:quizId/secure-payload`, `DELETE /:quizId/secure-payload` before generic quiz routes. | Admin/creator access. |
+| `src/routes/v1/admin/quiz.routes.ts` | Mounts `GET /:quizId/secure-payload/meta`, `GET /:quizId/secure-payload`, `POST`/`PUT /:quizId/secure-payload`, `POST /:quizId/secure-payload/ack`, `DELETE /:quizId/secure-payload` before generic quiz routes. | Admin/creator access. |
 | `src/routes/v1/user/quiz.routes.ts` | Mounts `GET /:quizId/secure-payload` for signed-in participants. | Future client-side quiz rendering; payload is useless without the teacher key. |
 | `src/migrate.ts` | Existing migration runner; auto-applies `database/migrations/*.sql`. | Migration 64 is picked up like every other migration. |
 | `src/app.ts` | Existing JSON body limit remains `10mb`. | Ciphertext is base64-encoded and larger than plaintext. |
@@ -52,10 +59,14 @@ This gives teachers a server-unreadable backup of authored content without break
 | File | What it does |
 |---|---|
 | `code-judge-frontend/src/lib/quizCrypto.ts` | WebCrypto core: `prepareQuiz`, `unlockQuiz`, `downloadKeyPdf`, key normalization/format/fingerprint helpers, `SecureSaveCancelledError`. |
-| `code-judge-frontend/src/services/secureQuiz.ts` | Axios calls for meta/full payload/save/delete. Normalizes older responses where `payloadId` must be used as the AAD `quizId`. |
+| `code-judge-frontend/src/services/secureQuiz.ts` | Axios calls for meta/full payload/save/delete/student payload. Normalizes older responses where `payloadId` must be used as the AAD `quizId`. |
 | `code-judge-frontend/src/components/creator/quiz-studio/components/SecureQuizKeyDialog.tsx` | Key display/copy, PDF download, confirmation checkbox, ciphertext upload. |
-| `code-judge-frontend/src/components/creator/quiz-studio/StudioProvider.tsx` | Decides when re-encryption is needed; runs the secure save prompt; tracks secure-dirty state. |
+| `code-judge-frontend/src/components/creator/quiz-studio/StudioProvider.tsx` | Decides when re-encryption is needed; runs the secure save prompt; tracks secure-dirty state; re-encrypts after the plaintext sync so new server ids are included. |
 | `code-judge-frontend/src/components/creator/quiz-studio/SecureQuizUnlock.tsx` | Key paste, fingerprint check, browser decryption, read-only preview. |
+| `code-judge-frontend/src/components/quiz/QuizKeyGate.tsx` | Shared student/teacher key-entry gate used by attempt and review. |
+| `code-judge-frontend/src/utils/decryptedQuizContent.ts` | Builds a decrypted index and merges authored text into sanitized attempt/review rows by id or authored position. |
+| `code-judge-frontend/src/app/(app)/quiz/[quizId]/attempt/page.tsx` | Fetches the student payload, gates the attempt on the key, and merges decrypted text without changing server order. |
+| `code-judge-frontend/src/components/quiz/live/AttemptReviewExperience.tsx` | Fetches the payload, gates the review, and merges decrypted question/option/explanation text. |
 | `code-judge-frontend/src/app/creator/quizzes/[id]/secure/page.tsx` | `/creator/quizzes/:id/secure` route. |
 
 ---
@@ -100,7 +111,7 @@ The same AAD is used for both content blobs and the wrapped key. The backend add
 | HTML problem statements | **No** | Separately encrypted blob. |
 | Key fingerprint | Yes | Non-secret verification value. |
 | Quiz id, payload id, version, algorithm | Yes | Routing/metadata. |
-| Plaintext runtime questions | **Yes** | Existing quiz system still stores/serves them for grading and live quiz. See section 9. |
+| Plaintext runtime questions | **Yes (internal)** | Stored as at-rest ciphertext, decrypted by the server for grading/live features. Student HTTP responses are sanitized when a payload exists. See section 9. |
 
 ---
 
@@ -229,6 +240,7 @@ All admin endpoints require authentication and **quiz ownership** (`quiz.created
 | `GET` | `/admin/quiz/:quizId/secure-payload` | Owner | Returns the full ciphertext payload for unlocking. |
 | `POST` | `/admin/quiz/:quizId/secure-payload` | Owner | Creates/replaces the encrypted copy. |
 | `PUT` | `/admin/quiz/:quizId/secure-payload` | Owner | Alias for `POST` (same schema/handler). |
+| `POST` | `/admin/quiz/:quizId/secure-payload/ack` | Owner | Clears `stale` after the studio finishes its own plaintext question sync. |
 | `DELETE` | `/admin/quiz/:quizId/secure-payload` | Owner | Deletes the encrypted copy; plaintext quiz is unaffected. |
 | `GET` | `/user/quiz/:quizId/secure-payload` | Signed-in user | Returns ciphertext for a published/non-draft quiz. |
 
@@ -260,11 +272,15 @@ Response when an encrypted copy exists:
     "version": 1,
     "algorithm": "AES-256-GCM",
     "keyFingerprint": "64-lowercase-hex-characters",
+    "stale": false,
+    "staleAt": null,
     "createdAt": "2026-10-28T10:00:00.000Z",
     "updatedAt": "2026-10-28T10:00:00.000Z"
   }
 }
 ```
+
+`stale` becomes `true` when any `quiz_problems` or `quiz_problem_options` row is inserted, updated, or deleted after the encrypted copy was saved. `staleAt` records when it happened. The studio treats a stale copy like a missing one and asks for a fresh key PDF on the next explicit save.
 
 Response when no copy exists:
 
@@ -354,7 +370,8 @@ The plaintext quiz and its questions are not touched.
 - Requires authentication.
 - Refuses missing quizzes (`404`) and `draft` quizzes (`403`).
 - Returns the same ciphertext payload shape as the owner endpoint.
-- Intended for future in-browser quiz rendering where the participant receives the teacher's key out-of-band. Without that key, the payload is opaque.
+- Used by the student attempt and review pages. The participant receives the teacher's key out-of-band (PDF/QR); without it the payload is opaque.
+- For legacy quizzes with no payload, the attempt/review pages fall back to the existing plaintext start/review responses.
 
 ---
 
@@ -379,10 +396,22 @@ Teacher presses Save / Publish
   → teacher downloads PDF (jsPDF + QR, generated locally)
   → teacher ticks "I have saved the key PDF"
   → dialog POSTs ciphertext + wrapped key to backend
-  → backend validates, upserts one row, returns metadata
+  → backend validates, upserts one row (stale = false), returns metadata
   → dialog closes, save continues
-  → plaintext questions sync (existing runtime)
+  → plaintext questions sync (existing runtime) → assigns server ids and
+    triggers mark stale = true
+  → prepareQuiz() again with the SAME key; POST refreshed ciphertext so the
+    payload includes the new server ids
+  → POST /secure-payload/ack clears stale for this save
 ```
+
+The first upload must happen before the plaintext sync because the teacher has
+to own the key before any ciphertext leaves the browser. The second upload
+re-encrypts the same content with the same key after the sync, so decrypted
+questions/options can be matched to the attempt's server ids. If the refresh
+upload fails, the copy stays stale and the next save prompts again.
+
+If a question or option is later changed through any other question API, the database trigger sets `stale = true`. The next explicit Save/Publish sees `meta.stale` and re-encrypts the quiz with a new key.
 
 If the teacher cancels the dialog:
 
@@ -428,7 +457,27 @@ Teacher opens /creator/quizzes/:id/secure
 
 The key stays in React state for the current tab. It is cleared on "Lock", on unmount, and never persisted to storage or sent to the server.
 
-### 7.4 Wrong key / tampered payload
+### 7.4 Student attempt/review flow (key on every load)
+
+```text
+Student opens /quiz/:code/attempt
+  → GET quiz metadata, then GET /user/quiz/:id/secure-payload
+  → 404: legacy quiz → existing plaintext start/review flow
+  → 200: show QuizKeyGate
+  → student pastes PDF key
+  → fingerprint check + unwrap DEK + decrypt in the browser
+  → POST /start (or resume) returns shuffled problems with ids/order only
+  → merge decrypted title/options/description by server id; fall back to
+    authored_index for payloads created before server-id linking
+  → if the page is refreshed, the ciphertext is fetched again and the key
+    gate is shown again
+```
+
+The review page follows the same gate. The server still owns correctness:
+review rows carry `iscorrect`, `selected_option`, and metadata, while the
+browser restores only the authored question/option text and explanation.
+
+### 7.5 Wrong key / tampered payload
 
 - Wrong key → fingerprint mismatch → `"Could not unlock the quiz. The key is wrong or the encrypted copy is damaged."`
 - Ciphertext tampering → AES-GCM authentication fails → same generic error.
@@ -436,7 +485,7 @@ The key stays in React state for the current tab. It is cleared on "Lock", on un
 - Unsupported version/algorithm → explicit error.
 - Malformed base64/IV/shape → `"Encrypted data is malformed."` or `"Encrypted quiz data is malformed."`
 
-### 7.5 Key rotation
+### 7.6 Key rotation
 
 Every re-encryption generates a **new KEK**. The old PDF stops working as soon as the new payload is uploaded. The dialog warns about this when `meta.exists === true`. There is no server-side key rotation or recovery.
 
@@ -447,11 +496,14 @@ Every re-encryption generates a **new KEK**. The old PDF stops working as soon a
 `StudioProvider.saveToServer` handles the secure branch inside `if (!opts?.setupOnly)` after the quiz setup is saved and `changedIds` is computed:
 
 ```ts
+let secureKeyHex: string | null = null;
+let secureUploaded = false;
 if (opts?.secure && state.questions.length > 0) {
   const meta = await getSecureQuizMeta(quizId);
   const needsSecureSave =
     secureContentDirtyRef.current ||
     readSecureDirty(quizId) ||
+    meta.stale === true ||
     !meta.exists ||
     (changedIds?.size ?? 0) > 0;
 
@@ -460,6 +512,7 @@ if (opts?.secure && state.questions.length > 0) {
       { questions: state.questions, title: state.info.title },
       { quizId, title: state.info.title }
     );
+    secureKeyHex = prepared.keyHex;
 
     await requestSecureKeyConfirmation({
       quizId,
@@ -469,9 +522,20 @@ if (opts?.secure && state.questions.length > 0) {
       replacing: Boolean(meta.exists),
     });
 
+    secureUploaded = true;
     secureContentDirtyRef.current = false;
     writeSecureDirty(quizId, false);
   }
+}
+
+// ...plaintext sync assigns server ids and marks the ciphertext stale...
+if (secureUploaded && secureKeyHex) {
+  const refreshed = await prepareQuiz(
+    { questions: state.questions, title: state.info.title },
+    { quizId, title: state.info.title, keyHex: secureKeyHex }
+  );
+  await saveSecureQuizPayload(quizId, refreshed.payload);
+  await ackSecureQuizPayload(quizId);
 }
 ```
 
@@ -485,26 +549,30 @@ Why this order:
 
 ---
 
-## 9. Important limitation: the plaintext runtime still exists
+## 9. Runtime storage: quiz questions encrypted at rest
 
-This is **not** full end-to-end encryption of the live quiz runtime. It is an encrypted, server-unreadable **copy** layered on top of the existing system.
+The E2E encrypted copy remains **server-unreadable**. Separately, **quiz runtime questions only** are encrypted at rest with an application key:
 
-Why:
-
-- The current quiz player serves questions from the backend.
-- Grading, correct-answer checks, live sessions, leaderboards, and result generation run server-side.
-- Those features need plaintext questions.
-
-Therefore, after the encrypted copy is uploaded, the existing save flow still syncs plaintext questions to `quiz_problem` / options. Anyone with backend/database access can read the runtime questions even though `quiz_secure_payloads` is unreadable.
+- `quiz_problems` and `quiz_problem_options` store AES-256-GCM ciphertext
+  (`enc:v1:<iv>:<tag>:<ciphertext>`) in their text columns.
+- Repositories decrypt on read, so grading, review, analytics, and the quiz
+  editor still receive plaintext.
+- `QUIZ_CONTENT_ENCRYPTION_KEY` (or `AES_SECRET_KEY`) is held by the backend,
+  therefore **database-only access cannot read quiz questions**, but the
+  running server can. This is not full E2E for live quizzes.
+- Existing rows are encrypted in place with
+  `npm run encrypt:quiz-content` (idempotent; supports `--dry-run`).
+- Question banks (`quiz_question_bank`, `subjective_question_bank`) and saved
+  test papers are intentionally **not** encrypted in this phase.
 
 If the product later needs **true E2E** for live quizzes:
 
 - The participant client must receive ciphertext + a key delivery mechanism.
 - Grading must move to the client or use a secure multi-party/zero-knowledge design.
 - Leaderboard/result generation must change.
-- The plaintext sync must be removed or restricted.
+- Runtime plaintext handling in the server must be removed or restricted.
 
-Do not describe the encrypted copy as "the backend can never read any quiz content" without this caveat. The accurate claim is: **the encrypted copy itself is unreadable by the backend; the existing plaintext runtime is separate.**
+The accurate claim is: **the encrypted copy is unreadable by the backend; quiz runtime questions are encrypted at rest but decryptable by the app.**
 
 ---
 
@@ -539,6 +607,7 @@ Or apply the SQL manually:
 
 ```bash
 psql "$DATABASE_URL" -f database/migrations/64_secure_quiz_payloads.sql
+psql "$DATABASE_URL" -f database/migrations/65_secure_quiz_payload_stale.sql
 ```
 
 Verify:
@@ -547,7 +616,7 @@ Verify:
 \d quiz_secure_payloads
 ```
 
-Expected: `quiz_id` primary key, three JSONB blobs, `key_fingerprint CHAR(64)`, timestamp columns, check constraints, and `idx_quiz_secure_payloads_updated_at`.
+Expected: `quiz_id` primary key, three JSONB blobs, `key_fingerprint CHAR(64)`, `stale BOOLEAN`, `stale_at TIMESTAMPTZ`, timestamp columns, check constraints, and `idx_quiz_secure_payloads_updated_at`. Migration 65 also creates `trg_quiz_problems_secure_stale` and `trg_quiz_problem_options_secure_stale`.
 
 ### 11.2 Environment
 
@@ -640,6 +709,8 @@ Expected: `schema ok 123 16 <ct-length>` (or at least no Zod error).
 10. Paste the PDF key; verify questions decrypt and render.
 11. Try a wrong key; verify the generic unlock error.
 12. Edit a question, Save again, download the new PDF; verify the old key no longer unlocks the new payload.
+13. Edit a question through a non-studio API and check `GET /secure-payload/meta`; verify `stale` is `true` and `staleAt` is set.
+14. Save from the studio; verify the new payload is uploaded and `stale` returns to `false` after the sync completes.
 
 ---
 
@@ -689,9 +760,10 @@ Expected: `schema ok 123 16 <ct-length>` (or at least no Zod error).
 ## 16. Quick reference
 
 ```text
-Save:   browser encrypts → key PDF → confirm → POST ciphertext → plaintext sync
+Save:   browser encrypts → key PDF → confirm → POST ciphertext → plaintext sync → ack
 Unlock: GET ciphertext → paste key → SHA-256 fingerprint check → unwrap DEK → decrypt
-Meta:   exists + version + algorithm + fingerprint + timestamps (no ciphertext)
+Meta:   exists + version + algorithm + fingerprint + stale + timestamps (no ciphertext)
+Stale:  any question/option write → stale = true; fresh upload or ack → stale = false
 Delete: removes encrypted copy only; plaintext quiz unaffected
 Key:    64 hex chars = 32 bytes; never uploaded
 Crypto: AES-256-GCM, 12-byte IV, AAD = quizId

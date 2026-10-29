@@ -146,7 +146,7 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
 
   useEffect(() => {
     if (!room) return;
-    seedRoom(room.id, room.name);
+    seedRoom(room.id);
   }, [room, seedRoom]);
 
   const roomAnnouncements = useMemo(

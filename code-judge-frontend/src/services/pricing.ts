@@ -13,6 +13,30 @@ const BACKEND_URL =
     ? "http://localhost:8000"
     : "https://api.quizsupport.com");
 
+const PUBLIC_BACKEND_URL = "https://api.quizsupport.com";
+
+function pricingUrls(path: string): string[] {
+  const urls = new Set<string>();
+  if (process.env.PRICING_API_URL) {
+    urls.add(`${process.env.PRICING_API_URL.replace(/\/$/, "")}/api/v1${path}`);
+  }
+  urls.add(`${BACKEND_URL.replace(/\/$/, "")}/api/v1${path}`);
+  urls.add(`${PUBLIC_BACKEND_URL}/api/v1${path}`);
+  return [...urls];
+}
+
+async function fetchPricing(path: string): Promise<Response | null> {
+  for (const url of pricingUrls(path)) {
+    try {
+      const response = await fetch(url, { next: { revalidate: 60 } });
+      if (response.ok) return response;
+    } catch {
+      // Try the next backend origin.
+    }
+  }
+  return null;
+}
+
 /** Neutral placeholder used while loading and when the catalog is unavailable. */
 export const EMPTY_PRICING: PricingCatalog = {
   plans: [],
@@ -42,10 +66,8 @@ export async function getPricingCatalog(): Promise<PricingCatalog> {
 /** Server-side catalog fetch for marketing pages. */
 export async function getPricingCatalogServer(): Promise<PricingCatalog> {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/v1/pricing`, {
-      next: { revalidate: 60 },
-    });
-    if (!response.ok) return EMPTY_PRICING;
+    const response = await fetchPricing("/pricing");
+    if (!response) return EMPTY_PRICING;
     const payload = (await response.json()) as { data?: unknown };
     return readCatalog(payload.data);
   } catch {
@@ -86,10 +108,8 @@ export function formatPricingAmount(value: number, currency = "INR"): string {
 
 export async function getPricingContentServer(): Promise<Record<string, string>> {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/v1/pricing/content`, {
-      next: { revalidate: 60 },
-    });
-    if (!response.ok) return {};
+    const response = await fetchPricing("/pricing/content");
+    if (!response) return {};
     const payload = (await response.json()) as { data?: { content?: unknown } };
     const content = payload.data?.content;
     if (!content || typeof content !== "object") return {};

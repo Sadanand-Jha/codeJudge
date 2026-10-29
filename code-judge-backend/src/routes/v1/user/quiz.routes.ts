@@ -68,6 +68,7 @@ import {
 } from "../../../controllers/quiz.controller.ts";
 import { renderPaperPdfController } from "../../../controllers/paperPdf.controller.ts";
 import { getStudentSecureQuizPayloadController } from "../../../controllers/secureQuiz.controller.ts";
+import { getStudentSecureContentController } from "../../../controllers/quizCrypto.controller.ts";
 const router = Router();
 
 // All quiz routes require authentication
@@ -140,6 +141,14 @@ router.get(
   "/:quizId/secure-payload",
   secureQuizNoStore,
   getStudentSecureQuizPayloadController
+);
+
+// Per-question ciphertext for signed-in participants. Correct-answer flags,
+// answer hashes and the wrapped DEK are never included.
+router.get(
+  "/:quizId/client-crypto",
+  secureQuizNoStore,
+  getStudentSecureContentController
 );
 
 // Anonymous aggregate rating state + one immutable learner rating.

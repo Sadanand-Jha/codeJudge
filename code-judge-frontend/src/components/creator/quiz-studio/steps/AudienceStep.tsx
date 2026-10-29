@@ -15,7 +15,7 @@ import { cn } from "@/lib/helpers";
 import { getAvatarUrlById } from "@/config/dicebear";
 import { useStudio } from "../StudioProvider";
 import { toast } from "@/lib/toast";
-import { useRoomStore, getEligibleCount } from "@/store/roomStore";
+import { useRoomStore } from "@/store/roomStore";
 import SelectRoomsModal from "@/components/quiz/creator/settings/audience/SelectRoomsModal";
 import CreateRoomModal from "@/components/quiz/creator/settings/audience/CreateRoomModal";
 import { fetchMyRooms, getRoom } from "@/services/rooms";
@@ -207,22 +207,12 @@ export function AudienceStep({ embedded = false }: { embedded?: boolean } = {}) 
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRoomIdsKey, rooms, setRooms]);
-  const eligibleCount = useMemo(() => getEligibleCount(rooms, roomIds), [rooms, roomIds]);
   const selectedRoomsNeedMembers = roomIds.some((roomId) => {
     const room = rooms.find((candidate) => candidate.id === roomId);
     return Boolean(room && (room.memberCount ?? 0) > 0 && room.students.length === 0);
   });
   const audienceLoading = a.mode === "classroom" &&
     (roomListLoading || restoringAudience || roomLoadsInFlight > 0 || selectedRoomsNeedMembers);
-
-  /** Students of a room allowed to attempt — defaults to every active member. */
-  const allowedStudentsOf = (roomId: string) => {
-    const room = rooms.find((r) => r.id === roomId);
-    if (!room) return [] as string[];
-    const selected = selections[roomId];
-    if (!selected) return room.students.filter((s) => s.active).map((s) => s.rollNumber);
-    return room.students.filter((s) => s.active && selected.includes(s.rollNumber)).map((s) => s.rollNumber);
-  };
 
   const toggleStudent = (roomId: string, rollNumber: string) => {
     const room = rooms.find((r) => r.id === roomId);
@@ -235,20 +225,6 @@ export function AudienceStep({ embedded = false }: { embedded?: boolean } = {}) 
     else base.add(rollNumber);
     updateAudience({ roomStudentSelections: { ...selections, [roomId]: [...base] } });
   };
-
-  const setAllStudents = (roomId: string, allow: boolean) => {
-    const room = rooms.find((r) => r.id === roomId);
-    if (!room) return;
-    updateAudience({
-      roomStudentSelections: {
-        ...selections,
-        [roomId]: allow ? room.students.filter((s) => s.active).map((s) => s.rollNumber) : [],
-      },
-    });
-  };
-
-  const removeRoom = (roomId: string) =>
-    updateAudience({ roomIds: a.roomIds.filter((id) => id !== roomId) });
 
   return (
     <StudioStepLayout embedded={embedded}>
@@ -303,75 +279,13 @@ export function AudienceStep({ embedded = false }: { embedded?: boolean } = {}) 
       {audienceLoading && <AudienceLoadingSkeleton />}
 
       {a.mode === "classroom" && !audienceLoading && (
-        <div className="w-full min-w-0 max-w-full overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 sm:p-5 space-y-3 sm:space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <h3 className="break-words text-xs font-extrabold uppercase tracking-wider text-[var(--qs-muted)]">
-                Rooms
-              </h3>
-              <p className="mt-0.5 break-words text-xs font-medium leading-relaxed text-[var(--qs-muted)]">
-                Students in the selected rooms can register and attempt this quiz.
-              </p>
-            </div>
-            <div className="flex w-full sm:w-auto gap-2">
-              <button
-                type="button"
-                onClick={() => setSelectRoomsOpen(true)}
-                className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5 sm:py-1.5 text-xs font-bold text-[var(--qs-ink)] transition-colors duration-150 hover:border-[var(--qs-brand)]"
-              >
-                <Users className="h-3.5 w-3.5" /> Select Rooms
-              </button>
-            </div>
-          </div>
-
-          {selectedRooms.length === 0 ? (
-            <div className="rounded-[14px] border-2 border-dashed border-[var(--qs-line)] p-6 text-center">
-              <Users className="mx-auto h-6 w-6 text-[var(--qs-muted)]" />
-              <p className="mt-2 break-words text-xs font-medium leading-relaxed text-[var(--qs-muted)]">
-                No rooms selected yet. Pick rooms or create a new one to restrict
-                this quiz to their members.
-              </p>
-            </div>
-          ) : (
-            <ul className="divide-y-2 divide-[var(--qs-line)] overflow-hidden rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)]">
-              {selectedRooms.map((room) => {
-                const allowed = new Set(allowedStudentsOf(room.id));
-                const activeStudents = room.students.filter((s) => s.active);
-                return (
-                  <li key={room.id} className="flex min-w-0 items-center gap-2 sm:gap-3 px-3 sm:px-3.5 py-2.5">
-                    <button
-                      type="button"
-                      onClick={() => removeRoom(room.id)}
-                      title="Remove room"
-                      className="shrink-0 rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-1 text-[var(--qs-muted)] transition-colors duration-150 hover:border-[var(--qs-bad)] hover:text-[var(--qs-bad)]"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-[var(--qs-ink)]">{room.name}</p>
-                      {room.description && (
-                        <p className="truncate text-xs font-medium text-[var(--qs-muted)]">{room.description}</p>
-                      )}
-                    </div>
-                    <span className="shrink-0 whitespace-nowrap text-xs font-bold text-[var(--qs-muted)]">
-                      {allowed.size}/{activeStudents.length} allowed
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      )}
-
-      {a.mode === "classroom" && !audienceLoading && selectedRooms.length > 0 && (
         <AllStudentsPanel
           selectedRooms={selectedRooms}
           selections={selections}
           rooms={rooms}
           toggleStudent={toggleStudent}
           updateAudience={updateAudience}
-          eligibleCount={eligibleCount}
+          onSelectRooms={() => setSelectRoomsOpen(true)}
           onSave={saveAudienceParticipants}
           dirty={audienceDirty}
         />
@@ -510,7 +424,7 @@ interface AllStudentsPanelProps {
   rooms: Array<{ id: string; students: Array<{ id: string; name: string; rollNumber: string; username?: string; active: boolean; avatarId?: number; avatarUrl?: string | null }> }>;
   toggleStudent: (roomId: string, rollNumber: string) => void;
   updateAudience: (patch: Record<string, unknown>) => void;
-  eligibleCount: number;
+  onSelectRooms: () => void;
   onSave: () => Promise<void>;
   dirty: boolean;
 }
@@ -521,7 +435,7 @@ function AllStudentsPanel({
   rooms,
   toggleStudent,
   updateAudience,
-  eligibleCount,
+  onSelectRooms,
   onSave,
   dirty,
 }: AllStudentsPanelProps) {
@@ -539,7 +453,6 @@ function AllStudentsPanel({
         avatarId: number;
         avatarUrl?: string | null;
         roomIds: string[];
-        roomNames: string[];
         isAllowed: boolean;
       }
     >();
@@ -554,7 +467,6 @@ function AllStudentsPanel({
           : true;
         if (existing) {
           existing.roomIds.push(room.id);
-          existing.roomNames.push(room.name);
           existing.isAllowed = existing.isAllowed || allowed;
         } else {
           seen.set(key, {
@@ -564,7 +476,6 @@ function AllStudentsPanel({
             avatarId: student.avatarId ?? 1,
             avatarUrl: student.avatarUrl,
             roomIds: [room.id],
-            roomNames: [room.name],
             isAllowed: allowed,
           });
         }
@@ -603,16 +514,29 @@ function AllStudentsPanel({
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h3 className="break-words text-xs font-extrabold uppercase tracking-wider text-[var(--qs-muted)]">
-            All Students
+            Students
           </h3>
           <p className="mt-0.5 break-words text-xs font-medium leading-relaxed text-[var(--qs-muted)]">
-            <span className="font-black text-[var(--qs-ink)]">{allStudents.length}</span> unique{" "}
-            {allStudents.length === 1 ? "student" : "students"} across selected rooms.
-            {" "}
-            <span className="font-black text-[var(--qs-ok)]">{selectedCount}</span> allowed.
+            {selectedRooms.length === 0 ? (
+              "Select rooms to view the students who can attempt this quiz."
+            ) : (
+              <>
+                <span className="font-black text-[var(--qs-ink)]">{allStudents.length}</span> unique{" "}
+                {allStudents.length === 1 ? "student" : "students"}.
+                {" "}
+                <span className="font-black text-[var(--qs-ok)]">{selectedCount}</span> allowed.
+              </>
+            )}
           </p>
         </div>
-        <div className="grid grid-cols-3 gap-1.5 sm:flex sm:w-auto sm:gap-2">
+        <div className="grid grid-cols-2 gap-1.5 sm:flex sm:w-auto sm:gap-2">
+          <button
+            type="button"
+            onClick={onSelectRooms}
+            className="inline-flex items-center justify-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 py-2 sm:px-2.5 sm:py-1 text-xs font-bold text-[var(--qs-ink)] transition-colors duration-150 hover:border-[var(--qs-brand)]"
+          >
+            <Users className="h-3.5 w-3.5" /> Select Rooms
+          </button>
           <button
             type="button"
             onClick={() => toggleAll(true)}
@@ -670,7 +594,14 @@ function AllStudentsPanel({
         )}
       </div>
 
-      {allStudents.length === 0 ? (
+      {selectedRooms.length === 0 ? (
+        <div className="rounded-[14px] border-2 border-dashed border-[var(--qs-line)] p-6 text-center">
+          <Users className="mx-auto h-6 w-6 text-[var(--qs-muted)]" />
+          <p className="mt-2 break-words text-xs font-medium leading-relaxed text-[var(--qs-muted)]">
+            No rooms selected yet. Use Select Rooms to add students to this quiz.
+          </p>
+        </div>
+      ) : allStudents.length === 0 ? (
         <div className="rounded-[14px] border-2 border-dashed border-[var(--qs-line)] p-6 text-center">
           <Users className="mx-auto h-6 w-6 text-[var(--qs-muted)]" />
           <p className="mt-2 break-words text-xs font-medium leading-relaxed text-[var(--qs-muted)]">
@@ -726,16 +657,6 @@ function AllStudentsPanel({
                   <p className="truncate text-[11px] sm:text-[10px] font-medium text-[var(--qs-muted)]">
                     {student.rollNumber}
                   </p>
-                </div>
-                <div className="hidden sm:flex shrink-0 flex-wrap gap-1 max-w-[90px] justify-end">
-                  {student.roomNames.slice(0,2).map((rn) => (
-                    <span
-                      key={rn}
-                      className="truncate max-w-[80px] rounded-[6px] border-2 border-[var(--qs-brand)]/20 bg-[var(--qs-poly-1)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--qs-brand)]"
-                    >
-                      {rn}
-                    </span>
-                  ))}
                 </div>
                 <span
                   className={cn(

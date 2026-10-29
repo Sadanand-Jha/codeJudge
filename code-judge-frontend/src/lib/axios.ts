@@ -1,4 +1,5 @@
 import axios from "axios";
+import { showUpgradeModalForError } from "@/lib/upgradePrompt";
 
 const rawBase =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
@@ -56,6 +57,9 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
+    if (error?.response?.status === 403) {
+      showUpgradeModalForError(error.response.data);
+    }
     return Promise.reject(error);
   }
 );

@@ -140,6 +140,19 @@ const assertQuizOwnership = async (
   return { ok: true, quiz };
 };
 
+function rejectEncryptedPlaintextWrite(quiz: any, res: Response): boolean {
+  if (Number(quiz?.crypto_version) === 1) {
+    res.status(409).json({
+      success: false,
+      code: "QUIZ_ENCRYPTED",
+      message:
+        "This quiz is end-to-end encrypted. Save its questions from Studio so they stay encrypted.",
+    });
+    return true;
+  }
+  return false;
+}
+
 // ==================== CREATOR QUIZ DASHBOARD ====================
 
 export const getAllQuizzes = async (req: Request, res: Response) => {
@@ -463,6 +476,16 @@ export const cloneQuiz = async (req: Request, res: Response) => {
       return;
     }
 
+    if (Number(access.quiz?.crypto_version) === 1) {
+      res.status(409).json({
+        success: false,
+        code: "QUIZ_ENCRYPTED",
+        message:
+          "End-to-end encrypted quizzes cannot be cloned because their ciphertext is bound to the original quiz id.",
+      });
+      return;
+    }
+
     const clonedQuiz = await quizService.cloneQuiz(Number(quizId), name, code, userId);
     res.status(201).json({ success: true, message: "Quiz cloned successfully", data: clonedQuiz });
   } catch (error) {
@@ -651,6 +674,8 @@ export const addQuizProblem = async (req: Request, res: Response) => {
       return;
     }
 
+    if (rejectEncryptedPlaintextWrite(access.quiz, res)) return;
+
     const problemCount = await quizService.getQuizProblemCount(String(quizId));
     if (problemCount >= MAX_QUESTIONS_PER_QUIZ) {
       res.status(400).json({ success: false, message: `A quiz can have at most ${MAX_QUESTIONS_PER_QUIZ} questions` });
@@ -695,6 +720,8 @@ export const updateQuizProblem = async (req: Request, res: Response) => {
       res.status(access.status).json({ success: false, message: access.message });
       return;
     }
+
+    if (rejectEncryptedPlaintextWrite(access.quiz, res)) return;
 
     const updatedProblem = await quizService.updateQuizProblem(Number(problemId), req.body);
     try {
@@ -770,6 +797,8 @@ export const duplicateQuizProblem = async (req: Request, res: Response) => {
       return;
     }
 
+    if (rejectEncryptedPlaintextWrite(access.quiz, res)) return;
+
     const duplicatedProblem = await quizService.duplicateQuizProblem(Number(problemId));
     try {
       await scheduleQuizRecalculation(Number(target.quiz_id));
@@ -839,6 +868,8 @@ export const addQuizProblemOption = async (req: Request, res: Response) => {
       return;
     }
 
+    if (rejectEncryptedPlaintextWrite(access.quiz, res)) return;
+
     const option = await quizService.createQuizProblemOption({
       ...req.body,
       problemId: Number(problemId),
@@ -876,6 +907,8 @@ export const saveQuizProblemFull = async (req: Request, res: Response) => {
       return;
     }
 
+    if (rejectEncryptedPlaintextWrite(access.quiz, res)) return;
+
     // Own-quiz constraint: a problemId may only be upserted when it already
     // belongs to this quiz. Without this, a caller owning quiz A could pass
     // quizId=A with problemId from quiz B and overwrite someone else's question.
@@ -891,7 +924,7 @@ export const saveQuizProblemFull = async (req: Request, res: Response) => {
       }
     }
 
-    const MAX_PROBLEMS = 25;
+    const MAX_PROBLEMS = 40;
     if (!body.problemId) {
       const problemCount = await quizService.getQuizProblemCount(String(quizId));
       if (problemCount >= MAX_PROBLEMS) {

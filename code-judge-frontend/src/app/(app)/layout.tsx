@@ -17,9 +17,11 @@ export default function AppGroupLayout({ children }: { children: React.ReactNode
 
   useEffect(() => {
     if (hasHydrated && needsAuth && !isAuthenticated) {
-      router.replace("/login");
+      const search = typeof window === "undefined" ? "" : window.location.search;
+      const nextPath = `${pathname}${search}`;
+      router.replace(`/login?next=${encodeURIComponent(nextPath)}`);
     }
-  }, [hasHydrated, needsAuth, isAuthenticated, router]);
+  }, [hasHydrated, needsAuth, isAuthenticated, pathname, router]);
 
   if (!hasHydrated || (needsAuth && !isAuthenticated)) {
     return <AppLayout>{null}</AppLayout>;

@@ -461,6 +461,15 @@ export default function RegistrationForm() {
     playQuizSound("navigate");
   };
 
+  const signInPrompt = (
+    <p className="mt-5 border-t-2 border-[var(--qs-line)] pt-4 text-center text-xs text-[var(--qs-muted)]">
+      Already have an account?{" "}
+      <Link href="/login" className="inline-flex items-center gap-1 font-bold text-[var(--qs-brand)] transition-colors hover:underline">
+        <LogIn className="h-3.5 w-3.5" /> Sign in
+      </Link>
+    </p>
+  );
+
   return (
     <div className="qs-ui relative flex min-h-dvh items-center justify-center overflow-x-hidden px-4 py-20 sm:px-6 lg:px-8 lg:pb-8 lg:pt-4">
       <AuthBackground />
@@ -625,6 +634,7 @@ export default function RegistrationForm() {
               </div>
             </form>
           )}
+          {signInPrompt}
         </div>
         </div>
           )}
@@ -975,16 +985,9 @@ export default function RegistrationForm() {
                   )}
                 </motion.div>
               </AnimatePresence>
+              {signInPrompt}
             </div>
           )}
-
-        {/* Footer */}
-        <p className="mt-4 text-center text-xs text-[var(--qs-muted)] sm:mt-6">
-          Already have an account?{" "}
-          <Link href="/login" className="inline-flex items-center gap-1 font-bold text-[var(--qs-brand)] transition-colors hover:underline">
-            <LogIn className="h-3.5 w-3.5" /> Sign in
-          </Link>
-        </p>
       </div>
       </div>
     </div>

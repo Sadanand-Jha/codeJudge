@@ -1,5 +1,7 @@
 "use client";
 
+import { showUpgradeModal } from "@/lib/upgradePrompt";
+
 import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -25,7 +27,6 @@ import { AiStreamText } from "@/components/ui";
 import { generateTestSectionsFromPDF } from "@/services/aiGenerate";
 import { convertAIResponseToSections } from "./convertAIResponse";
 import type {
-  AIGenerateResponse,
   AIGenerateStatus,
   AIGenerateError,
 } from "./aiTypes";
@@ -116,7 +117,7 @@ export function AIGenerateModal({
     if (!canUploadFiles) {
       setError({ type: "upload", message: upgradeMessage });
       if (!subscriptionLoading) {
-        toast.error({ title: "Upgrade required", description: upgradeMessage });
+        showUpgradeModal({ message: upgradeMessage });
       }
       return;
     }
@@ -141,7 +142,7 @@ export function AIGenerateModal({
       setError(null);
       return next;
     });
-  }, [canUploadFiles, subscriptionLoading, upgradeMessage, toast]);
+  }, [canUploadFiles, subscriptionLoading, upgradeMessage]);
 
   const removeFile = useCallback((index: number) => {
     setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index));
@@ -178,7 +179,7 @@ export function AIGenerateModal({
     if (!canUseAi) {
       setError({ type: "upload", message: aiUpgradeMessage });
       if (!aiLoading) {
-        toast.error({ title: "Upgrade required", description: aiUpgradeMessage });
+        showUpgradeModal({ message: aiUpgradeMessage });
       }
       return;
     }
@@ -261,14 +262,14 @@ export function AIGenerateModal({
     if (!canUseAi) {
       setError({ type: "upload", message: aiUpgradeMessage });
       if (!aiLoading) {
-        toast.error({ title: "Upgrade required", description: aiUpgradeMessage });
+        showUpgradeModal({ message: aiUpgradeMessage });
       }
       return;
     }
     if (!canUploadFiles) {
       setError({ type: "upload", message: upgradeMessage });
       if (!subscriptionLoading) {
-        toast.error({ title: "Upgrade required", description: upgradeMessage });
+        showUpgradeModal({ message: upgradeMessage });
       }
       return;
     }
@@ -280,7 +281,7 @@ export function AIGenerateModal({
     }
 
     await startGeneration();
-  }, [files, existingSectionCount, canUploadFiles, canUseAi, subscriptionLoading, aiLoading, upgradeMessage, aiUpgradeMessage, toast, startGeneration]);
+  }, [files, existingSectionCount, canUploadFiles, canUseAi, subscriptionLoading, aiLoading, upgradeMessage, aiUpgradeMessage, startGeneration]);
 
   const isProcessing =
     status === "uploading" ||
@@ -384,7 +385,7 @@ export function AIGenerateModal({
                         if (!canUploadFiles) {
                           setError({ type: "upload", message: upgradeMessage });
                           if (!subscriptionLoading) {
-                            toast.error({ title: "Upgrade required", description: upgradeMessage });
+                            showUpgradeModal({ message: upgradeMessage });
                           }
                           return;
                         }

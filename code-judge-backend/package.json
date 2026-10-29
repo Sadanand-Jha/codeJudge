@@ -20,10 +20,12 @@
     "test:document-export": "tsx src/scripts/testDocumentExport.ts",
     "test:rooms": "tsx src/__tests__/roomAccess.test.ts",
     "test:decoy": "tsx src/__tests__/quizDecoy.test.ts",
+    "test:answer-hash": "tsx src/__tests__/answerHash.test.ts",
     "test:billing": "tsx src/__tests__/billing.test.ts",
     "test:ai-credits": "tsx src/__tests__/aiCredits.test.ts",
     "test:entitlements": "tsx src/services/entitlements/__tests__/resolver.test.ts",
-    "test:entitlements:db": "tsx src/services/entitlements/__tests__/concurrency.test.ts"
+    "test:entitlements:db": "tsx src/services/entitlements/__tests__/concurrency.test.ts",
+    "encrypt:quiz-content": "tsx src/scripts/encryptQuizContent.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.6.0",

@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toast";
 import { ThemeProvider } from "@/context/ThemeContext";
 import AuthHydrator from "@/components/providers/AuthHydrator";
 import ModalScrollLock from "@/components/providers/ModalScrollLock";
+import { UpgradeModalHost } from "@/components/upgrade/UpgradeModal";
 import { STORAGE_KEYS, LEGACY_STORAGE_KEYS } from "@/utils/storageKeys";
 import {
   SITE_URL,
@@ -189,6 +190,7 @@ export default function RootLayout({
           <ModalScrollLock />
           {children}
         </ThemeProvider>
+        <UpgradeModalHost />
         <Toaster />
       </body>
     </html>

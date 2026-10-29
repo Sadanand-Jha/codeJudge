@@ -7,13 +7,16 @@ import { QuizService } from "../services/database/quiz.service.ts";
 import { ResultGenerationService } from "../services/resultGeneration.service.ts";
 import { sendCollaboratorInviteEmail } from "../services/email.ts";
 import { sendResponsesReportEmail } from "../services/email.service.ts";
-import { generateResponsesReport } from "../services/responsesReport.service.ts";
+import { countQuizResponses, generateResponsesReport } from "../services/responsesReport.service.ts";
 import { reserveResponseEmailQuota } from "../services/responseEmailRateLimit.ts";
 import { enqueueQuizResultCalculation, enqueueSubmittedQuizAttempt, finalizeExpiredQuizAttempts, processQuizSubmission, scheduleQuizRecalculation } from "../services/quizSubmission.service.ts";
 import { QuizCreationLimitError } from "../services/quizCreationLimits.ts";
 import { QuizQuestionLimitError } from "../services/quizQuestionLimits.ts";
-import { prepareAttemptDecoys, TRAP_STRENGTH_DEFAULT } from "../services/quizDecoy.service.ts";
-import { sanitizeAttemptForStudent } from "../services/quizDecoy.ts";
+import {
+  sanitizeAttemptForStudent,
+  sanitizeAttemptProblem,
+} from "../services/quizDecoy.ts";
+import { SecureQuizService } from "../services/secureQuiz.service.ts";
 import { getEntitlements, sendEntitlementError } from "../services/entitlement.service.ts";
 import { isQuizCodeConflictError } from "../utils/databaseError.ts";
 import {
@@ -58,6 +61,24 @@ const hasLiveQuizWorkers = async (): Promise<boolean> => {
 
 const quizService = new QuizService();
 const resultGenerationService = new ResultGenerationService();
+const secureQuizService = new SecureQuizService();
+
+/**
+ * Refuse plaintext question writes for client-encrypted quizzes. Silently
+ * accepting them would put the authored text back on the server.
+ */
+function rejectEncryptedPlaintextWrite(quiz: any, res: Response): boolean {
+  if (Number(quiz?.crypto_version) === 1) {
+    res.status(409).json({
+      success: false,
+      code: "QUIZ_ENCRYPTED",
+      message:
+        "This quiz is end-to-end encrypted. Save its questions from Studio so they stay encrypted.",
+    });
+    return true;
+  }
+  return false;
+}
 
 /**
  * Student-safe quiz DTO. Creator identity is limited to public display fields
@@ -94,6 +115,7 @@ const toStudentQuiz = (quiz: Record<string, any>) => {
   show_results_immediately: quiz.show_results_immediately === true,
   leaderboard: quiz.leaderboard === true,
   registration_fields: Array.isArray(quiz.registration_fields) ? quiz.registration_fields : null,
+  crypto_version: Number(quiz.crypto_version) === 1 ? 1 : 0,
   });
 };
 
@@ -266,8 +288,6 @@ export const getQuizByCode = async (req: Request, res: Response) => {
     }
 
     const quiz = await quizService.getQuizByCode(code);
-
-    console.log(quiz, "this is the reposne");
 
     const status = String(quiz?.status ?? "").toLowerCase();
     if (!quiz || !["scheduled", "live"].includes(status)) {
@@ -644,6 +664,15 @@ export const cloneQuiz = async (req: Request, res: Response) => {
       });
       return;
     }
+    if (Number(quiz.crypto_version) === 1) {
+      res.status(409).json({
+        success: false,
+        code: "QUIZ_ENCRYPTED",
+        message:
+          "End-to-end encrypted quizzes cannot be cloned because their ciphertext is bound to the original quiz id.",
+      });
+      return;
+    }
 
     const clonedQuiz = await quizService.cloneQuiz(Number(quizId), name, code, Number(userId));
 
@@ -809,8 +838,9 @@ export const addQuizProblem = async (req: Request, res: Response) => {
       });
       return;
     }
+    if (rejectEncryptedPlaintextWrite(quiz, res)) return;
 
-    const MAX_PROBLEMS = 25;
+    const MAX_PROBLEMS = 40;
     const problemCount = await quizService.getQuizProblemCount(String(quizId));
     if (problemCount >= MAX_PROBLEMS) {
       res.status(400).json({
@@ -886,6 +916,7 @@ export const updateQuizProblem = async (req: Request, res: Response) => {
       });
       return;
     }
+    if (rejectEncryptedPlaintextWrite(quiz, res)) return;
 
     const updatedProblem = await quizService.updateQuizProblem(Number(problemId), body);
 
@@ -951,6 +982,7 @@ export const saveQuizProblemFull = async (req: Request, res: Response) => {
       });
       return;
     }
+    if (rejectEncryptedPlaintextWrite(quiz, res)) return;
 
     // Own-quiz constraint: a problemId may only be upserted when it already
     // belongs to this quiz, preventing cross-quiz overwrites.
@@ -972,7 +1004,7 @@ export const saveQuizProblemFull = async (req: Request, res: Response) => {
       }
     }
 
-    const MAX_PROBLEMS = 25;
+    const MAX_PROBLEMS = 40;
     if (!body.problemId) {
       const problemCount = await quizService.getQuizProblemCount(String(quizId));
       if (problemCount >= MAX_PROBLEMS) {
@@ -1128,6 +1160,7 @@ export const duplicateQuizProblem = async (req: Request, res: Response) => {
       });
       return;
     }
+    if (rejectEncryptedPlaintextWrite(quiz, res)) return;
 
     const duplicatedProblem = await quizService.duplicateQuizProblem(Number(problemId));
 
@@ -1251,6 +1284,7 @@ export const addQuizProblemOption = async (req: Request, res: Response) => {
       });
       return;
     }
+    if (rejectEncryptedPlaintextWrite(quiz, res)) return;
 
     const option = await quizService.createQuizProblemOption({
       ...body,
@@ -1312,11 +1346,27 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
       return;
     }
 
-    // Fetch the authored correctness flags for server-side decoy selection.
-    // prepareAttemptDecoys whitelists the student payload before anything is
-    // returned, so iscorrect never crosses the wire.
-    const problems = await attachQuizProblemOptions(quizId, true);
+    // When an encrypted copy exists it is the only client-facing source of
+    // question and option text: the attempt response carries identifiers and
+    // ordering only, and the browser decrypts the text with the teacher key.
+    // Legacy (unencrypted) quizzes keep the old plaintext response until they
+    // are saved again from Studio.
     const quiz = await quizService.getQuizById(quizId);
+    const hasSecurePayload =
+      Number(quiz?.crypto_version) === 1 ||
+      Boolean(await secureQuizService.getMeta(Number(quizId)));
+    const problems = await attachQuizProblemOptions(quizId, false);
+    // Record authored positions so the browser can map decrypted text even for
+    // old payloads that predate server-side id linking (and while options are
+    // shuffled per attempt).
+    const authoredProblems = problems.map((problem: any, problemIndex: number) => ({
+      ...problem,
+      authored_index: problemIndex,
+      options: (problem.options ?? []).map((option: any, optionIndex: number) => ({
+        ...option,
+        authored_index: optionIndex,
+      })),
+    }));
 
     const stableShuffle = <T>(items: T[], seed: number): T[] => {
       const output = [...items];
@@ -1340,29 +1390,19 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
       // Student attempts always receive a stable per-attempt order. The seed
       // keeps refresh/resume consistent while different attempts can differ;
       // creator and Studio views continue to use the authored order.
-      const orderedProblems = stableShuffle(problems, Number(attempt.id)).map((problem: any) => ({
+      const orderedProblems = stableShuffle(authoredProblems, Number(attempt.id)).map((problem: any) => ({
         ...problem,
         options: stableShuffle(problem.options ?? [], Number(attempt.id) + Number(problem.id)),
       }));
-      const prepared = await prepareAttemptDecoys(orderedProblems, attempt.decoy_map);
-      if (prepared.changed) {
-        try {
-          const refreshed = await quizService.updateQuizAttempt(Number(attempt.id), {
-            decoy_map: prepared.decoyMap,
-          });
-          if (refreshed) attempt = refreshed;
-        } catch {
-          // A failed map write is non-fatal: the same deterministic option
-          // order lets the next resume regenerate and persist it.
-        }
-      }
       return {
         attempt: sanitizeAttemptForStudent(attempt),
-        problems: prepared.problems,
+        problems: hasSecurePayload
+          ? orderedProblems.map(sanitizeAttemptProblem)
+          : orderedProblems,
         savedResponses,
         remainingSeconds,
         resumed,
-        trapStrength: TRAP_STRENGTH_DEFAULT,
+        trapStrength: 0,
       };
     };
 
@@ -2281,6 +2321,30 @@ export const getQuizResult = async (req: Request, res: Response) => {
 };
 
 /**
+ * Strip authored text from a review row. The client restores it from the
+ * teacher-key protected payload; correctness flags and selected answers stay
+ * on the server response so grading remains authoritative.
+ */
+function sanitizeReviewForEncryptedQuiz(review: any[]): any[] {
+  return review.map((row) => ({
+    problem_id: row.problem_id,
+    question_number: row.question_number,
+    problem_type: row.problem_type,
+    difficulty: row.difficulty,
+    payload_ct: row.payload_ct,
+    payload_aad_id: row.payload_aad_id,
+    options: Array.isArray(row.options)
+      ? row.options.map((option: any) => ({
+          id: option.id,
+          iscorrect: option.iscorrect === true,
+        }))
+      : [],
+    selected_option: row.selected_option,
+    answered_at: row.answered_at,
+  }));
+}
+
+/**
  * GET /api/v1/user/quiz/result/:attemptId/review
  * Get question-wise review for a quiz attempt
  */
@@ -2318,10 +2382,14 @@ export const getQuizReview = async (req: Request, res: Response) => {
     }
 
     const review = await quizService.getQuestionWiseReview(Number(attemptId), Number(userId));
+    const reviewQuiz = await quizService.getQuizById(String(result.quiz_id));
+    const hasSecurePayload =
+      Number(reviewQuiz?.crypto_version) === 1 ||
+      Boolean(await secureQuizService.getMeta(Number(result.quiz_id)));
 
     res.status(200).json({
       success: true,
-      data: review,
+      data: hasSecurePayload ? sanitizeReviewForEncryptedQuiz(review) : review,
     });
   } catch (error) {
     console.error("Error fetching quiz review:", error);
@@ -2664,12 +2732,25 @@ export const getQuizProblemsPublicController = async (req: Request, res: Respons
       res.status(403).json({ success: false, message: access.reason || "Quiz access denied" });
       return;
     }
-    
+
+    const quiz = await quizService.getQuizById(quizId);
+    const isOwner = Boolean(quiz) && Number(quiz.createdby) === Number(userId);
+    const hasSecurePayload =
+      Number(quiz?.crypto_version) === 1 ||
+      Boolean(await secureQuizService.getMeta(Number(quizId)));
     const problemsWithOptions = await attachQuizProblemOptions(quizId, false);
+    // Non-owners get identifiers/order only once an encrypted copy exists; the
+    // browser restores the authored text from the teacher-key payload.
+    const data =
+      hasSecurePayload && !isOwner
+        ? problemsWithOptions.map((problem: any) =>
+            sanitizeAttemptProblem(problem)
+          )
+        : problemsWithOptions;
 
     res.status(200).json({
       success: true,
-      data: problemsWithOptions,
+      data,
     });
   } catch (error) {
     console.error("Error fetching public quiz problems:", error);
@@ -3172,6 +3253,15 @@ export const sendQuizResponsesEmail = async (req: Request, res: Response) => {
         success: false,
         message: "Emailing response reports is available on paid plans. Upgrade your plan to use this feature.",
         data: { reason: "subscription_required", upgradeUrl: "/pricing" },
+      });
+      return;
+    }
+
+    const responseCount = await countQuizResponses(numericQuizId);
+    if (responseCount === 0) {
+      res.status(400).json({
+        success: false,
+        message: "No responses yet. The report can be emailed once at least one student attempts this quiz.",
       });
       return;
     }

@@ -92,7 +92,9 @@ export function isSecureSaveCancelledError(
 ): error is SecureSaveCancelledError {
   return (
     error instanceof SecureSaveCancelledError ||
-    (error instanceof Error && error.name === "SecureSaveCancelledError")
+    (error instanceof Error &&
+      (error.name === "SecureSaveCancelledError" ||
+        error.name === "KekGateCancelledError"))
   );
 }
 
@@ -486,169 +488,1192 @@ export async function downloadKeyPdf(
 ): Promise<KeyPdfResult> {
   const normalizedKey = normalizeKeyHex(keyHex);
   const groups = normalizedKey.match(/.{8}/g) ?? [normalizedKey];
-  const keyLines = [
-    groups.slice(0, 4).join("-"),
-    groups.slice(4).join("-"),
-  ];
-  const fingerprint = await fingerprintKeyHex(normalizedKey);
+  const fingerprint = (
+    options.keyFingerprint?.trim().toLowerCase() ||
+    (await fingerprintKeyHex(normalizedKey))
+  ).replace(/[^0-9a-f]/g, "");
+  const displayTitle = title?.trim() || "Untitled Quiz";
+  const quizLabel = options.serverQuizId?.trim() || quizId;
 
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "mm", format: "a4", compress: true });
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 18;
-  const contentWidth = pageWidth - margin * 2;
-
   doc.setProperties({
-    title: `Quiz key - ${title || "Untitled Quiz"}`,
-    subject: "QuizSupport end-to-end encryption key",
+    title: "QuizSupport – Encrypted Quiz Key",
+    subject: "QuizSupport end-to-end encrypted quiz key",
     author: "QuizSupport",
     creator: "QuizSupport",
   });
 
-  // Header band.
-  doc.setFillColor(26, 18, 64);
-  doc.rect(0, 0, pageWidth, 34, "F");
-  doc.setFillColor(255, 214, 0);
-  doc.rect(0, 34, pageWidth, 3, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text("QUIZSUPPORT", margin, 15);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.text("END-TO-END ENCRYPTED QUIZ KEY", margin, 21);
-  doc.setFontSize(8);
-  doc.text("Keep this PDF private. It is the only key to your questions.", margin, 27);
+  const PX = 25.4 / 96;
+  const mm = (value: number) => value * PX;
+  const pt = (value: number) => value * 0.75;
 
-  doc.setTextColor(26, 18, 64);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(20);
-  const titleLines = doc.splitTextToSize(title || "Untitled Quiz", contentWidth - 52);
-  doc.text(titleLines.slice(0, 2), margin, 52);
+  type RGB = [number, number, number];
+  const color = (hexValue: string): RGB => [
+    parseInt(hexValue.slice(1, 3), 16),
+    parseInt(hexValue.slice(3, 5), 16),
+    parseInt(hexValue.slice(5, 7), 16),
+  ];
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(92, 86, 120);
-  const metaParts = [
-    `Quiz ID: ${quizId}`,
-    options.quizCode ? `Join code: ${options.quizCode}` : null,
-    options.serverQuizId ? `Server ID: ${options.serverQuizId}` : null,
-  ].filter(Boolean) as string[];
-  doc.text(metaParts.join("   |   "), margin, 60);
+  const INK = color("#1B1446");
+  const PURPLE = color("#6C3CF0");
+  const YELLOW = color("#FDCB3F");
+  const BG = color("#F3F2FC");
+  const MUTED = color("#6B6890");
+  const LINE = color("#E1DDF7");
+  const KEY_BG = color("#F5F3FF");
+  const KEY_DASH = color("#C9BDF7");
+  const KEY_SHADOW = color("#CFC4FA");
+  const HOW_SHADOW = color("#D9D1FF");
+  const WARN_BG = color("#FFF3CF");
+  const WARN_SHADOW = color("#F4A62A");
+  const WARN_HEAD = color("#9A4A00");
+  const WARN_TEXT = color("#5B3A0A");
+  const SUBTITLE = color("#B9B2E6");
 
-  // Key box + QR. The QR sits beside the key so neither overlaps.
-  const qrSize = 40;
-  const qrGap = 8;
-  const keyBoxWidth = contentWidth - qrSize - qrGap;
-  const keyBoxY = 70;
-  doc.setDrawColor(26, 18, 64);
-  doc.setLineWidth(0.6);
-  doc.setFillColor(248, 247, 255);
-  doc.roundedRect(margin, keyBoxY, keyBoxWidth, 44, 3, 3, "FD");
-  doc.setTextColor(92, 86, 120);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.text("TEACHER KEY - PASTE THIS TO UNLOCK", margin + 6, keyBoxY + 8);
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
 
-  doc.setTextColor(26, 18, 64);
-  doc.setFont("courier", "bold");
-  doc.setFontSize(13);
-  doc.text(keyLines[0], margin + 6, keyBoxY + 20);
-  doc.text(keyLines[1], margin + 6, keyBoxY + 31);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.8);
-  doc.setTextColor(92, 86, 120);
+  const setFill = (value: RGB) =>
+    doc.setFillColor(value[0], value[1], value[2]);
+  const setDraw = (value: RGB) =>
+    doc.setDrawColor(value[0], value[1], value[2]);
+  const setText = (value: RGB) =>
+    doc.setTextColor(value[0], value[1], value[2]);
+
+  let bodyFont = "helvetica";
+  let bodyHasMedium = false;
+  let monoFont = "courier";
+  let monoWeight: "normal" | "bold" = "bold";
+
+  const loadBase64 = async (path: string): Promise<string | null> => {
+    try {
+      if (typeof fetch !== "function") return null;
+      const response = await fetch(path);
+      if (!response.ok) return null;
+      const blob = await response.blob();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result ?? ""));
+        reader.onerror = () =>
+          reject(reader.error ?? new Error("Font read failed"));
+        reader.readAsDataURL(blob);
+      });
+      const comma = dataUrl.indexOf(",");
+      return comma >= 0 ? dataUrl.slice(comma + 1) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const loadImage = async (path: string): Promise<string | null> => {
+    try {
+      if (typeof fetch !== "function") return null;
+      const response = await fetch(path);
+      if (!response.ok) return null;
+      const blob = await response.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result ?? ""));
+        reader.onerror = () =>
+          reject(reader.error ?? new Error("Image read failed"));
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return null;
+    }
+  };
+
+  const [poppinsRegular, poppinsMedium, poppinsBold, jetBrainsBold] =
+    await Promise.all([
+      loadBase64("/fonts/Poppins-Regular.ttf"),
+      loadBase64("/fonts/Poppins-Medium.ttf"),
+      loadBase64("/fonts/Poppins-Bold.ttf"),
+      loadBase64("/fonts/JetBrainsMono-Bold.ttf"),
+    ]);
+
+  if (poppinsRegular && poppinsBold) {
+    doc.addFileToVFS("Poppins-Regular.ttf", poppinsRegular);
+    doc.addFont("Poppins-Regular.ttf", "Poppins", "normal");
+    doc.addFileToVFS("Poppins-Bold.ttf", poppinsBold);
+    doc.addFont("Poppins-Bold.ttf", "Poppins", "bold");
+    if (poppinsMedium) {
+      doc.addFileToVFS("Poppins-Medium.ttf", poppinsMedium);
+      doc.addFont("Poppins-Medium.ttf", "Poppins", "medium");
+      bodyHasMedium = true;
+    }
+    bodyFont = "Poppins";
+  }
+  if (jetBrainsBold) {
+    doc.addFileToVFS("JetBrainsMono-Bold.ttf", jetBrainsBold);
+    doc.addFont("JetBrainsMono-Bold.ttf", "JetBrainsMono", "normal");
+    monoFont = "JetBrainsMono";
+    monoWeight = "normal";
+  }
+
+  const weightFor = (weight: "normal" | "medium" | "bold") => {
+    if (bodyFont !== "Poppins") return weight === "bold" ? "bold" : "normal";
+    if (weight === "medium" && !bodyHasMedium) return "normal";
+    return weight;
+  };
+
+  const useBody = (
+    sizePx: number,
+    weight: "normal" | "medium" | "bold" = "normal"
+  ) => {
+    doc.setFont(bodyFont, weightFor(weight));
+    doc.setFontSize(pt(sizePx));
+  };
+
+  const useMono = (sizePx: number) => {
+    doc.setFont(monoFont, monoWeight);
+    doc.setFontSize(pt(sizePx));
+  };
+
+  const logo = await loadImage("/logos/dark_mark.png");
+
+  const drawLock = (
+    cx: number,
+    cy: number,
+    size: number,
+    stroke: RGB
+  ) => {
+    setDraw(stroke);
+    doc.setLineWidth(Math.max(0.28, size * 0.14));
+    doc.circle(cx, cy - size * 0.28, size * 0.32, "S");
+    doc.roundedRect(
+      cx - size * 0.55,
+      cy - size * 0.08,
+      size * 1.1,
+      size * 0.82,
+      size * 0.18,
+      size * 0.18,
+      "S"
+    );
+    doc.circle(cx, cy + size * 0.24, size * 0.1, "F");
+  };
+
+  const drawKeyIcon = (
+    cx: number,
+    cy: number,
+    size: number,
+    stroke: RGB
+  ) => {
+    setDraw(stroke);
+    doc.setLineWidth(Math.max(0.35, size * 0.1));
+    doc.circle(cx - size * 0.25, cy + size * 0.24, size * 0.2, "S");
+    doc.line(
+      cx - size * 0.08,
+      cy + size * 0.08,
+      cx + size * 0.42,
+      cy - size * 0.42
+    );
+    doc.line(
+      cx + size * 0.23,
+      cy - size * 0.23,
+      cx + size * 0.38,
+      cy - size * 0.08
+    );
+  };
+
+  const drawWarning = (cx: number, cy: number, size: number, stroke: RGB) => {
+    setDraw(stroke);
+    setFill(stroke);
+    doc.setLineWidth(Math.max(0.4, size * 0.08));
+    doc.triangle(
+      cx,
+      cy - size * 0.5,
+      cx + size * 0.52,
+      cy + size * 0.4,
+      cx - size * 0.52,
+      cy + size * 0.4,
+      "S"
+    );
+    doc.line(cx, cy - size * 0.12, cx, cy + size * 0.1);
+    doc.circle(cx, cy + size * 0.25, size * 0.045, "F");
+  };
+
+  const typedWidth = (text: string, charSpace = 0) =>
+    doc.getTextWidth(text) + charSpace * Math.max(0, text.length - 1);
+
+  const drawRichLines = (
+    segments: { text: string; bold?: boolean; color?: RGB }[],
+    x: number,
+    y: number,
+    maxWidth: number,
+    sizePx: number,
+    lineHeightFactor = 1.2,
+    align: "left" | "center" = "left"
+  ) => {
+    const lineHeight = mm(sizePx * lineHeightFactor);
+    const space = (bold: boolean) => {
+      useBody(sizePx, bold ? "bold" : "normal");
+      return doc.getTextWidth(" ");
+    };
+    const words: {
+      text: string;
+      bold?: boolean;
+      color?: RGB;
+      width: number;
+    }[] = [];
+    for (const segment of segments) {
+      const pieces = segment.text.split(/\s+/).filter(Boolean);
+      for (const piece of pieces) {
+        useBody(sizePx, segment.bold ? "bold" : "normal");
+        words.push({
+          text: piece,
+          bold: segment.bold,
+          color: segment.color,
+          width: doc.getTextWidth(piece),
+        });
+      }
+    }
+
+    const lines: typeof words[] = [];
+    let current: typeof words = [];
+    let currentWidth = 0;
+    for (const word of words) {
+      const gap = current.length > 0 ? space(Boolean(word.bold)) : 0;
+      if (current.length > 0 && currentWidth + gap + word.width > maxWidth) {
+        lines.push(current);
+        current = [word];
+        currentWidth = word.width;
+      } else {
+        current.push(word);
+        currentWidth += gap + word.width;
+      }
+    }
+    if (current.length > 0) lines.push(current);
+
+    lines.forEach((line, lineIndex) => {
+      let lineWidth = 0;
+      line.forEach((word, wordIndex) => {
+        lineWidth +=
+          (wordIndex > 0 ? space(Boolean(word.bold)) : 0) + word.width;
+      });
+      let cursor = align === "center" ? x + (maxWidth - lineWidth) / 2 : x;
+      line.forEach((word, wordIndex) => {
+        useBody(sizePx, word.bold ? "bold" : "normal");
+        if (word.color) setText(word.color);
+        if (wordIndex > 0) cursor += space(Boolean(word.bold));
+        doc.text(
+          word.text,
+          cursor,
+          y + lineIndex * lineHeight + mm(sizePx * 0.82)
+        );
+        cursor += word.width;
+      });
+    });
+
+    return { height: lines.length * lineHeight, lines: lines.length };
+  };
+
+  // Background + header -----------------------------------------------------
+  setFill(BG);
+  doc.rect(0, 0, pageWidth, pageHeight, "F");
+
+  const headerContentH = mm(229);
+  const headerTotalH = mm(238);
+  setFill(INK);
+  doc.rect(0, 0, pageWidth, headerContentH, "F");
+
+  const polygons: [number[], string][] = [
+    [[0, 0, 85, 0, 106, 57], "#1B1446"],
+    [[0, 0, 106, 57, 0, 87], "#2B2268"],
+    [[85, 0, 180, 0, 164, 57], "#2B2268"],
+    [[85, 0, 164, 57, 106, 57], "#3A2F8C"],
+    [[180, 0, 291, 0, 284, 90], "#2B2268"],
+    [[180, 0, 284, 90, 164, 57], "#2B2268"],
+    [[291, 0, 351, 0, 325, 106], "#1B1446"],
+    [[291, 0, 325, 106, 284, 90], "#31277A"],
+    [[351, 0, 442, 0, 470, 88], "#3A2F8C"],
+    [[351, 0, 470, 88, 325, 106], "#201858"],
+    [[442, 0, 535, 0, 536, 60], "#221A5A"],
+    [[442, 0, 536, 60, 470, 88], "#3A2F8C"],
+    [[535, 0, 598, 0, 588, 81], "#251C60"],
+    [[535, 0, 588, 81, 536, 60], "#251C60"],
+    [[598, 0, 707, 0, 679, 62], "#1B1446"],
+    [[598, 0, 679, 62, 588, 81], "#251C60"],
+    [[707, 0, 794, 0, 794, 65], "#251C60"],
+    [[707, 0, 794, 65, 679, 62], "#1B1446"],
+    [[0, 87, 106, 57, 86, 155], "#2B2268"],
+    [[0, 87, 86, 155, 0, 133], "#221A5A"],
+    [[106, 57, 164, 57, 198, 160], "#1B1446"],
+    [[106, 57, 198, 160, 86, 155], "#201858"],
+    [[164, 57, 284, 90, 273, 159], "#201858"],
+    [[164, 57, 273, 159, 198, 160], "#3A2F8C"],
+    [[284, 90, 325, 106, 363, 156], "#1B1446"],
+    [[284, 90, 363, 156, 273, 159], "#1B1446"],
+    [[325, 106, 470, 88, 427, 186], "#1B1446"],
+    [[325, 106, 427, 186, 363, 156], "#2B2268"],
+    [[470, 88, 536, 60, 560, 178], "#221A5A"],
+    [[470, 88, 560, 178, 427, 186], "#2B2268"],
+    [[536, 60, 588, 81, 630, 148], "#201858"],
+    [[536, 60, 630, 148, 560, 178], "#3A2F8C"],
+    [[588, 81, 679, 62, 689, 147], "#31277A"],
+    [[588, 81, 689, 147, 630, 148], "#201858"],
+    [[679, 62, 794, 65, 794, 135], "#2B2268"],
+    [[679, 62, 794, 135, 689, 147], "#31277A"],
+    [[0, 133, 86, 155, 105, 238], "#201858"],
+    [[0, 133, 105, 238, 0, 238], "#3A2F8C"],
+    [[86, 155, 198, 160, 170, 238], "#221A5A"],
+    [[86, 155, 170, 238, 105, 238], "#201858"],
+    [[198, 160, 273, 159, 286, 238], "#2B2268"],
+    [[198, 160, 286, 238, 170, 238], "#3A2F8C"],
+    [[273, 159, 363, 156, 346, 238], "#2B2268"],
+    [[273, 159, 346, 238, 286, 238], "#1B1446"],
+    [[363, 156, 427, 186, 469, 238], "#2B2268"],
+    [[363, 156, 469, 238, 346, 238], "#2B2268"],
+    [[427, 186, 560, 178, 551, 238], "#201858"],
+    [[427, 186, 551, 238, 469, 238], "#1B1446"],
+    [[560, 178, 630, 148, 587, 238], "#251C60"],
+    [[560, 178, 587, 238, 551, 238], "#221A5A"],
+    [[630, 148, 689, 147, 688, 238], "#221A5A"],
+    [[630, 148, 688, 238, 587, 238], "#31277A"],
+    [[689, 147, 794, 135, 794, 238], "#251C60"],
+    [[689, 147, 794, 238, 688, 238], "#1B1446"],
+  ];
+  const scaleX = pageWidth / 794;
+  const scaleY = headerContentH / 238;
+  for (const [points, fill] of polygons) {
+    setFill(color(fill));
+    doc.triangle(
+      points[0] * scaleX,
+      points[1] * scaleY,
+      points[2] * scaleX,
+      points[3] * scaleY,
+      points[4] * scaleX,
+      points[5] * scaleY,
+      "F"
+    );
+  }
+  setFill(YELLOW);
+  doc.rect(0, headerContentH, pageWidth, headerTotalH - headerContentH, "F");
+
+  const hrowTop = mm(30);
+  const hrowLeft = mm(46);
+  const hrowRight = pageWidth - mm(46);
+  const logoBox = mm(50);
+  const logoH = logoBox * (468 / 512);
+  if (logo) {
+    doc.addImage(
+      logo,
+      "PNG",
+      hrowLeft,
+      hrowTop + (logoBox - logoH) / 2,
+      logoBox,
+      logoH
+    );
+  } else {
+    setFill(YELLOW);
+    doc.circle(
+      hrowLeft + logoBox / 2,
+      hrowTop + logoBox / 2,
+      logoBox * 0.38,
+      "F"
+    );
+  }
+
+  useBody(23, "bold");
+  const wordY = hrowTop + logoBox / 2 + mm(23 * 0.36);
+  const wordX = hrowLeft + logoBox + mm(10);
+  setText([255, 255, 255]);
+  doc.text("Quiz", wordX, wordY, { charSpace: mm(-0.4) });
+  const quizW = doc.getTextWidth("Quiz") + mm(-0.4) * 3;
+  setText(YELLOW);
+  doc.text("Support", wordX + quizW + mm(0.2), wordY, {
+    charSpace: mm(-0.4),
+  });
+
+  const privacyText = "PRIVATE · DO NOT SHARE";
+  const privacySpace = mm(1.1);
+  useBody(9.5, "bold");
+  const privacyTextW = typedWidth(privacyText, privacySpace);
+  const privacyW =
+    mm(11) + mm(12) + mm(7) + privacyTextW + mm(14) + mm(1.6) * 2;
+  const privacyH = mm(9.5 * 1.2 + 10 + 1.6 * 2);
+  const privacyX = hrowRight - privacyW;
+  const privacyY = hrowTop + (logoBox - privacyH) / 2;
+  setDraw(YELLOW);
+  doc.setLineWidth(mm(1.6));
+  doc.roundedRect(
+    privacyX,
+    privacyY,
+    privacyW,
+    privacyH,
+    privacyH / 2,
+    privacyH / 2,
+    "S"
+  );
+  drawLock(
+    privacyX + mm(11) + mm(6),
+    privacyY + privacyH / 2,
+    mm(12),
+    YELLOW
+  );
+  setText(YELLOW);
   doc.text(
-    `Fingerprint: ${fingerprint.replace(/(.{16})/g, "$1 ").trim()}`,
-    margin + 6,
-    keyBoxY + 39,
-    { maxWidth: keyBoxWidth - 12 }
+    privacyText,
+    privacyX + mm(11) + mm(12) + mm(7),
+    privacyY + privacyH / 2,
+    { baseline: "middle", charSpace: privacySpace }
   );
 
-  // QR code (optional; the PDF remains usable if the encoder is unavailable).
+  const titleX = mm(46);
+  const titleTop = mm(104);
+  const titleLineHeight = mm(31 * 1.12);
+  useBody(31, "bold");
+  setText([255, 255, 255]);
+  doc.text(
+    "End-to-end encrypted",
+    titleX,
+    titleTop + mm(31 * 0.9),
+    { charSpace: mm(-0.8) }
+  );
+  setText(YELLOW);
+  doc.text(
+    "quiz key",
+    titleX,
+    titleTop + mm(31 * 0.9) + titleLineHeight,
+    { charSpace: mm(-0.8) }
+  );
+  useBody(11.5, "normal");
+  setText(SUBTITLE);
+  doc.text(
+    "Keep this PDF private. It is the only key to your questions.",
+    titleX,
+    titleTop +
+      mm(31 * 0.9) +
+      titleLineHeight +
+      mm(10) +
+      mm(11.5 * 0.85)
+  );
+
+  const badgeSize = mm(98);
+  const badgeX = pageWidth - mm(52) - badgeSize;
+  const badgeY = mm(92);
+  const badgeRadius = mm(26);
+  const badgeAngle = (6 * Math.PI) / 180;
+  const badgeCx = badgeX + badgeSize / 2;
+  const badgeCy = badgeY + badgeSize / 2;
+  const pointsToPt = 72 / 25.4;
+  const badgeCenterX = badgeCx * pointsToPt;
+  const badgeCenterY = (pageHeight - badgeCy) * pointsToPt;
+  const badgeCos = Math.cos(badgeAngle);
+  const badgeSin = Math.sin(badgeAngle);
+  doc.saveGraphicsState();
+  doc.setCurrentTransformationMatrix(
+    doc.Matrix(
+      badgeCos,
+      badgeSin,
+      -badgeSin,
+      badgeCos,
+      badgeCenterX - badgeCos * badgeCenterX + badgeSin * badgeCenterY,
+      badgeCenterY - badgeSin * badgeCenterX - badgeCos * badgeCenterY
+    )
+  );
+  setFill(PURPLE);
+  doc.roundedRect(
+    badgeX + mm(7),
+    badgeY + mm(7),
+    badgeSize,
+    badgeSize,
+    badgeRadius,
+    badgeRadius,
+    "F"
+  );
+  setFill(YELLOW);
+  setDraw([15, 10, 48]);
+  doc.setLineWidth(mm(3.5));
+  doc.roundedRect(
+    badgeX,
+    badgeY,
+    badgeSize,
+    badgeSize,
+    badgeRadius,
+    badgeRadius,
+    "FD"
+  );
+  drawKeyIcon(badgeCx, badgeCy, mm(50), INK);
+  doc.restoreGraphicsState();
+
+  // Main content ------------------------------------------------------------
+  const mainX = mm(46);
+  const mainRight = pageWidth - mm(46);
+  const mainW = mainRight - mainX;
+  let cursorY = mm(262);
+
+  const tagText = "ENCRYPTED QUIZ";
+  const tagSpace = mm(1.3);
+  useBody(9, "bold");
+  const tagTextW = typedWidth(tagText, tagSpace);
+  const tagW = mm(11) + mm(10) + mm(7) + tagTextW + mm(11) + mm(1.6) * 2;
+  const tagH = mm(9 * 1.5 + 6 + 1.6 * 2);
+  setFill(color("#E9E2FF"));
+  setDraw(PURPLE);
+  doc.setLineWidth(mm(1.6));
+  doc.roundedRect(mainX, cursorY, tagW, tagH, tagH / 2, tagH / 2, "FD");
+  drawLock(mainX + mm(11) + mm(5), cursorY + tagH / 2, mm(10), PURPLE);
+  setText(PURPLE);
+  doc.text(
+    tagText,
+    mainX + mm(11) + mm(10) + mm(7),
+    cursorY + tagH / 2,
+    { baseline: "middle", charSpace: tagSpace }
+  );
+
+  const chipSize = 10.5;
+  const chipPadX = mm(13);
+  const chipPadY = mm(4);
+  const chipBorder = mm(1.8);
+  useBody(chipSize, "normal");
+  const chipSpecs = [
+    { label: "Quiz ID", value: quizId },
+    { label: "Server ID", value: quizLabel },
+  ].map((chip) => {
+    useBody(chipSize, "normal");
+    const labelW = doc.getTextWidth(`${chip.label} `);
+    useBody(chipSize, "bold");
+    const valueW = doc.getTextWidth(chip.value);
+    return {
+      ...chip,
+      labelW,
+      valueW,
+      width: chipPadX * 2 + chipBorder * 2 + labelW + valueW,
+      height: mm(chipSize * 1.2) + chipPadY * 2 + chipBorder * 2,
+    };
+  });
+  const chipsW =
+    chipSpecs.reduce((sum, chip) => sum + chip.width, 0) + mm(8);
+  const titleMaxW = mainW - chipsW - mm(12);
+  useBody(36, "bold");
+  const titleLines: string[] = doc.splitTextToSize(displayTitle, titleMaxW);
+  const titleLineH = mm(36 * 1.1);
+  const qrowBottom =
+    cursorY + tagH + mm(8) + titleLines.length * titleLineH;
+
+  useBody(36, "bold");
+  setText(INK);
+  titleLines.forEach((line, index) => {
+    doc.text(
+      line,
+      mainX,
+      cursorY + tagH + mm(8) + mm(36 * 0.86) + index * titleLineH,
+      { charSpace: mm(-1.1) }
+    );
+  });
+
+  let chipRight = mainRight;
+  const chipY = qrowBottom - mm(4) - chipSpecs[0].height;
+  for (let index = chipSpecs.length - 1; index >= 0; index -= 1) {
+    const chip = chipSpecs[index];
+    const chipX = chipRight - chip.width;
+    setFill([255, 255, 255]);
+    setDraw(LINE);
+    doc.setLineWidth(chipBorder);
+    doc.roundedRect(
+      chipX,
+      chipY,
+      chip.width,
+      chip.height,
+      chip.height / 2,
+      chip.height / 2,
+      "FD"
+    );
+    useBody(chipSize, "normal");
+    setText(MUTED);
+    doc.text(
+      `${chip.label} `,
+      chipX + chipPadX,
+      chipY + chip.height / 2,
+      { baseline: "middle" }
+    );
+    useBody(chipSize, "bold");
+    setText(INK);
+    doc.text(
+      chip.value,
+      chipX + chipPadX + chip.labelW,
+      chipY + chip.height / 2,
+      { baseline: "middle" }
+    );
+    chipRight = chipX - mm(8);
+  }
+
+  const gap = mm(22);
+  const qrCardW = mm(186);
+  const keyCardW = mainW - qrCardW - gap;
+  const cardBorder = mm(3);
+  const keyPadX = mm(22);
+  const keyPadTop = mm(20);
+  const keyPadBottom = mm(16);
+  const keyInnerW = keyCardW - keyPadX * 2 - cardBorder * 2;
+
+  const keyLabelText = "TEACHER KEY · PASTE THIS TO UNLOCK";
+  const keyLabelSpace = mm(1.2);
+  useBody(9, "bold");
+  const keyLabelTextW = typedWidth(keyLabelText, keyLabelSpace);
+  const keyLabelW =
+    mm(9) + mm(12) + mm(7) + keyLabelTextW + mm(12) + mm(2) * 2;
+  const keyLabelH = mm(9 * 1.2 + 10 + 2 * 2);
+
+  let keyFontPx = 15.5;
+  let chipW = 0;
+  let chipH = 0;
+  let rowW = 0;
+  const dashW = mm(10);
+  const chipGap = mm(3);
+  const keywrapInnerW = keyInnerW - mm(10) * 2 - mm(2) * 2;
+  for (let attempt = 0; attempt < 24; attempt += 1) {
+    useMono(keyFontPx);
+    chipW = doc.getTextWidth(groups[0] ?? "") + mm(12) + mm(2) * 2;
+    chipH = mm(keyFontPx * 1.25 + 12 + 2 * 2);
+    rowW = chipW * 4 + dashW * 3 + chipGap * 6;
+    if (rowW <= keywrapInnerW || keyFontPx <= 10) break;
+    keyFontPx -= 0.25;
+  }
+  const keywrapH =
+    mm(2) * 2 + mm(14) * 2 + mm(7) * 3 + chipH * 2;
+  const fpSize = 7.4;
+  const fpLineH = mm(fpSize * 1.5);
+  const fpLabel = "FINGERPRINT";
+  const fpLabelSpace = mm(0.8);
+  useBody(fpSize, "bold");
+  const fpLabelW = typedWidth(fpLabel, fpLabelSpace);
+  const fpGroups = fingerprint.match(/.{1,16}/g) ?? [fingerprint];
+  useMono(fpSize);
+  const fpGroupWidths = fpGroups.map((group) => doc.getTextWidth(group));
+  const fpGap = mm(6);
+  const fpAvailable = keyInnerW - fpLabelW - mm(8);
+  let fpLines = 1;
+  let fpLineWidth = 0;
+  for (let index = 0; index < fpGroupWidths.length; index += 1) {
+    const addition =
+      fpGroupWidths[index] + (index > 0 ? fpGap : 0);
+    if (index > 0 && fpLineWidth + addition > fpAvailable) {
+      fpLines += 1;
+      fpLineWidth = fpGroupWidths[index];
+    } else {
+      fpLineWidth += addition;
+    }
+  }
+  const fpH = fpLines * fpLineH;
+
+  const keyCardH =
+    cardBorder * 2 +
+    keyPadTop +
+    keyLabelH +
+    mm(16) +
+    keywrapH +
+    mm(12) +
+    fpH +
+    mm(4) +
+    keyPadBottom;
+
+  const qrPadX = mm(16);
+  const qrInnerW = qrCardW - qrPadX * 2 - cardBorder * 2;
+  const qrBoxSize = mm(140);
+  const qrInner = qrBoxSize - mm(8) * 2 - mm(2.2) * 2;
+  const scanH = mm(13);
+  useBody(7.6, "normal");
+  const qrSmallLines: string[] = doc.splitTextToSize(
+    "Scan with your phone to copy the key",
+    qrInnerW
+  );
+  const qrSmallH = qrSmallLines.length * mm(7.6 * 1.2);
+  const qrContentH =
+    qrBoxSize + mm(11) + scanH + mm(3) + qrSmallH;
+  const qrCardH =
+    cardBorder * 2 + mm(16) + mm(13) + qrContentH;
+  const gridH = Math.max(keyCardH, qrCardH);
+  const gridY = qrowBottom + mm(26);
+
+  // Key card
+  setFill(YELLOW);
+  doc.roundedRect(
+    mainX + mm(8),
+    gridY + mm(8),
+    keyCardW,
+    gridH,
+    mm(22),
+    mm(22),
+    "F"
+  );
+  setFill([255, 255, 255]);
+  setDraw(INK);
+  doc.setLineWidth(cardBorder);
+  doc.roundedRect(
+    mainX,
+    gridY,
+    keyCardW,
+    gridH,
+    mm(22),
+    mm(22),
+    "FD"
+  );
+
+  const keyContentX = mainX + cardBorder + keyPadX;
+  let keyY = gridY + cardBorder + keyPadTop;
+  setFill(PURPLE);
+  doc.roundedRect(
+    keyContentX,
+    keyY,
+    keyLabelW,
+    keyLabelH,
+    keyLabelH / 2,
+    keyLabelH / 2,
+    "F"
+  );
+  drawKeyIcon(
+    keyContentX + mm(9) + mm(6),
+    keyY + keyLabelH / 2,
+    mm(12),
+    YELLOW
+  );
+  setText([255, 255, 255]);
+  doc.text(
+    keyLabelText,
+    keyContentX + mm(9) + mm(12) + mm(7),
+    keyY + keyLabelH / 2,
+    { baseline: "middle", charSpace: keyLabelSpace }
+  );
+  keyY += keyLabelH + mm(16);
+
+  const keywrapX = keyContentX;
+  const keywrapW = keyCardW - keyPadX * 2 - cardBorder * 2;
+  setFill(KEY_BG);
+  setDraw(KEY_DASH);
+  doc.setLineWidth(mm(2));
+  doc.setLineDashPattern([mm(3), mm(2)], 0);
+  doc.roundedRect(
+    keywrapX,
+    keyY,
+    keywrapW,
+    keywrapH,
+    mm(16),
+    mm(16),
+    "FD"
+  );
+  doc.setLineDashPattern([], 0);
+
+  const rowGap = mm(7);
+  let rowY = keyY + mm(2) + mm(14) + rowGap;
+  for (let row = 0; row < 2; row += 1) {
+    let rowX = keywrapX + (keywrapW - rowW) / 2;
+    for (let col = 0; col < 4; col += 1) {
+      const group = groups[row * 4 + col] ?? "";
+      setFill(KEY_SHADOW);
+      doc.roundedRect(
+        rowX + mm(2.5),
+        rowY + mm(2.5),
+        chipW,
+        chipH,
+        mm(9),
+        mm(9),
+        "F"
+      );
+      setFill([255, 255, 255]);
+      setDraw(INK);
+      doc.setLineWidth(mm(2));
+      doc.roundedRect(
+        rowX,
+        rowY,
+        chipW,
+        chipH,
+        mm(9),
+        mm(9),
+        "FD"
+      );
+      useMono(keyFontPx);
+      setText(INK);
+      doc.text(
+        group,
+        rowX + chipW / 2,
+        rowY + chipH / 2,
+        { align: "center", baseline: "middle", charSpace: mm(0.2) }
+      );
+      rowX += chipW;
+      if (col < 3) {
+        useBody(13, "bold");
+        setText(PURPLE);
+        doc.text("–", rowX + chipGap + dashW / 2, rowY + chipH / 2, {
+          align: "center",
+          baseline: "middle",
+        });
+        rowX += chipGap + dashW + chipGap;
+      }
+    }
+    rowY += chipH + rowGap;
+  }
+
+  keyY += keywrapH + mm(12);
+  let fpX = keyContentX;
+  useBody(fpSize, "bold");
+  setText(INK);
+  doc.text(fpLabel, fpX, keyY + mm(fpSize * 0.82), {
+    charSpace: fpLabelSpace,
+  });
+  fpX += fpLabelW + mm(8);
+  useMono(fpSize);
+  setText(MUTED);
+  let fpLine = 0;
+  let fpLineUsed = 0;
+  fpGroups.forEach((group, index) => {
+    const width = fpGroupWidths[index];
+    const addition = width + (fpLineUsed > 0 ? fpGap : 0);
+    if (fpLineUsed > 0 && fpLineUsed + addition > fpAvailable) {
+      fpLine += 1;
+      fpLineUsed = 0;
+    }
+    const x = fpX + fpLineUsed + (fpLineUsed > 0 ? fpGap : 0);
+    doc.text(
+      group,
+      x,
+      keyY + fpLine * fpLineH + mm(fpSize * 0.82)
+    );
+    fpLineUsed += (fpLineUsed > 0 ? fpGap : 0) + width;
+  });
+
+  // QR card
+  const qrX = mainX + keyCardW + gap;
+  setFill(PURPLE);
+  doc.roundedRect(
+    qrX + mm(8),
+    gridY + mm(8),
+    qrCardW,
+    gridH,
+    mm(22),
+    mm(22),
+    "F"
+  );
+  setFill([255, 255, 255]);
+  setDraw(INK);
+  doc.setLineWidth(cardBorder);
+  doc.roundedRect(
+    qrX,
+    gridY,
+    qrCardW,
+    gridH,
+    mm(22),
+    mm(22),
+    "FD"
+  );
+  const qrContentY = gridY + (gridH - (cardBorder * 2 + qrContentH)) / 2 + cardBorder;
+  const qrBoxX = qrX + (qrCardW - qrBoxSize) / 2;
+  setFill([255, 255, 255]);
+  setDraw(INK);
+  doc.setLineWidth(mm(2.2));
+  doc.roundedRect(
+    qrBoxX,
+    qrContentY,
+    qrBoxSize,
+    qrBoxSize,
+    mm(14),
+    mm(14),
+    "FD"
+  );
   try {
     const QRCode = (await import("qrcode")).default;
     const qrDataUrl = await QRCode.toDataURL(normalizedKey, {
       margin: 1,
-      width: 640,
+      width: 720,
       errorCorrectionLevel: "M",
-      color: { dark: "#1a1240", light: "#ffffff" },
+      color: { dark: "#1B1446", light: "#ffffff" },
     });
-    const qrX = margin + keyBoxWidth + qrGap;
-    const qrY = 74;
-    doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.setTextColor(92, 86, 120);
-    doc.text("SCAN TO COPY", qrX + qrSize / 2, qrY + qrSize + 5, {
+    doc.addImage(
+      qrDataUrl,
+      "PNG",
+      qrBoxX + mm(8) + mm(2.2),
+      qrContentY + mm(8) + mm(2.2),
+      qrInner,
+      qrInner
+    );
+  } catch {
+    useBody(7, "normal");
+    setText(MUTED);
+    doc.text("QR unavailable", qrX + qrCardW / 2, qrContentY + qrBoxSize / 2, {
       align: "center",
     });
-  } catch {
-    // QR is a convenience; the printed key is authoritative.
   }
 
-  // Instructions below the key/QR block.
-  const instructionsY = 126;
-  doc.setTextColor(26, 18, 64);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text("How to unlock this quiz", margin, instructionsY);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
-  doc.setTextColor(60, 54, 86);
-  const instructions = [
-    "1. Keep this PDF safe. Anyone with this key can read the quiz.",
-    "2. To view the encrypted copy, open Quiz Studio and choose",
-    "   \"Open encrypted copy\" on the Review & publish step.",
-    "3. Paste the full key (spaces and dashes are ignored).",
-    "4. The key is checked in your browser and is never uploaded.",
-  ];
-  doc.text(instructions, margin, instructionsY + 7, {
-    lineHeightFactor: 1.5,
+  let qrY = qrContentY + qrBoxSize + mm(11);
+  useBody(9.5, "bold");
+  setText(INK);
+  const scanText = "SCAN TO COPY";
+  const scanSpace = mm(1.3);
+  const scanTextW = typedWidth(scanText, scanSpace);
+  const scanTotalW = mm(13) + mm(6) + scanTextW;
+  const scanX = qrX + (qrCardW - scanTotalW) / 2;
+  setDraw(INK);
+  doc.setLineWidth(mm(1.6));
+  const scanCx = scanX + mm(6.5);
+  const scanCy = qrY + scanH / 2;
+  const scanSize = mm(13);
+  const corner = scanSize * 0.28;
+  doc.line(scanCx - scanSize / 2, scanCy - scanSize / 2 + corner, scanCx - scanSize / 2, scanCy - scanSize / 2);
+  doc.line(scanCx - scanSize / 2, scanCy - scanSize / 2, scanCx - scanSize / 2 + corner, scanCy - scanSize / 2);
+  doc.line(scanCx + scanSize / 2 - corner, scanCy - scanSize / 2, scanCx + scanSize / 2, scanCy - scanSize / 2);
+  doc.line(scanCx + scanSize / 2, scanCy - scanSize / 2, scanCx + scanSize / 2, scanCy - scanSize / 2 + corner);
+  doc.line(scanCx - scanSize / 2, scanCy + scanSize / 2 - corner, scanCx - scanSize / 2, scanCy + scanSize / 2);
+  doc.line(scanCx - scanSize / 2, scanCy + scanSize / 2, scanCx - scanSize / 2 + corner, scanCy + scanSize / 2);
+  doc.line(scanCx + scanSize / 2 - corner, scanCy + scanSize / 2, scanCx + scanSize / 2, scanCy + scanSize / 2);
+  doc.line(scanCx + scanSize / 2, scanCy + scanSize / 2, scanCx + scanSize / 2, scanCy + scanSize / 2 - corner);
+  doc.line(scanCx - scanSize / 2, scanCy, scanCx + scanSize / 2, scanCy);
+  setText(INK);
+  doc.text(scanText, scanX + mm(13) + mm(6), scanCy, {
+    baseline: "middle",
+    charSpace: scanSpace,
+  });
+  qrY += scanH + mm(3);
+  useBody(7.6, "normal");
+  setText(MUTED);
+  qrSmallLines.forEach((line, index) => {
+    doc.text(line, qrX + qrCardW / 2, qrY + mm(7.6 * 0.82) + index * mm(7.6 * 1.2), {
+      align: "center",
+    });
   });
 
-  // Warning box.
-  const warningY = 190;
-  doc.setFillColor(255, 243, 214);
-  doc.setDrawColor(168, 93, 0);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(margin, warningY, contentWidth, 28, 3, 3, "FD");
-  doc.setTextColor(168, 93, 0);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.text("IMPORTANT", margin + 6, warningY + 8);
-  doc.setFont("helvetica", "normal");
+  // How-to card
+  const howBorder = mm(2.5);
+  const howPadTop = mm(20);
+  const howPadX = mm(24);
+  const howPadBottom = mm(14);
+  const howInnerW = mainW - howPadX * 2 - howBorder * 2;
+  const howTitleSize = 15;
+  const howTitleH = mm(howTitleSize * 1.2);
+  const howTitleGap = mm(12);
+  const stepSize = 11;
+  const stepLineH = mm(stepSize * 1.55);
+  const stepPadY = mm(8.6);
+  const numSize = mm(25);
+  const numGap = mm(13);
+  const stepTextW = howInnerW - numSize - numGap;
+
+  const steps: { text: string; bold?: boolean; color?: RGB }[][] = [
+    [{ text: "Keep this PDF safe. Anyone with this key can read the quiz." }],
+    [
+      { text: "To view the encrypted copy, open " },
+      { text: "Quiz Studio", bold: true },
+      { text: " and choose " },
+      { text: "“Open encrypted copy”", bold: true },
+      { text: " on the Review & publish step." },
+    ],
+    [
+      { text: "Paste the full key " },
+      { text: "(spaces and dashes are ignored)", color: MUTED },
+      { text: "." },
+    ],
+    [
+      { text: "The key is checked in your browser and is " },
+      { text: "never uploaded", bold: true },
+      { text: "." },
+    ],
+  ];
+
+  const stepHeights = steps.map((segments) => {
+    const measured = drawRichLines(
+      segments,
+      0,
+      -1000,
+      stepTextW,
+      stepSize,
+      1.55
+    );
+    return Math.max(numSize + mm(1), measured.height) + stepPadY * 2;
+  });
+  const howH =
+    howBorder * 2 +
+    howPadTop +
+    howTitleH +
+    howTitleGap +
+    stepHeights.reduce((sum, height) => sum + height, 0) +
+    howPadBottom;
+  const howY = gridY + gridH + mm(35);
+
+  setFill(HOW_SHADOW);
+  doc.roundedRect(
+    mainX + mm(6),
+    howY + mm(6),
+    mainW,
+    howH,
+    mm(22),
+    mm(22),
+    "F"
+  );
+  setFill([255, 255, 255]);
+  setDraw(INK);
+  doc.setLineWidth(howBorder);
+  doc.roundedRect(mainX, howY, mainW, howH, mm(22), mm(22), "FD");
+
+  const howInnerX = mainX + howBorder + howPadX;
+  let howCursorY = howY + howBorder + howPadTop;
+  drawLock(
+    howInnerX + mm(9.5),
+    howCursorY + howTitleH / 2,
+    mm(19),
+    PURPLE
+  );
+  useBody(howTitleSize, "bold");
+  setText(INK);
   doc.text(
-    doc.splitTextToSize(
-      "QuizSupport cannot recover this key. If you lose this PDF, the encrypted copy of your quiz cannot be opened. Saving encrypted content again creates a new key and replaces the old encrypted copy.",
-      contentWidth - 12
-    ),
-    margin + 6,
-    warningY + 13,
-    { lineHeightFactor: 1.35 }
+    "How to unlock this quiz",
+    howInnerX + mm(19) + mm(9),
+    howCursorY + howTitleH / 2,
+    { baseline: "middle" }
+  );
+  howCursorY += howTitleH + howTitleGap;
+
+  steps.forEach((segments, index) => {
+    if (index > 0) {
+      setDraw(LINE);
+      doc.setLineWidth(mm(1.6));
+      doc.setLineDashPattern([mm(3), mm(2)], 0);
+      doc.line(howInnerX, howCursorY, howInnerX + howInnerW, howCursorY);
+      doc.setLineDashPattern([], 0);
+    }
+    const itemTop = howCursorY;
+    howCursorY += stepPadY;
+    const numCx = howInnerX + numSize / 2;
+    const numCy = howCursorY + numSize / 2;
+    setFill(YELLOW);
+    setDraw(INK);
+    doc.setLineWidth(mm(2.2));
+    doc.circle(numCx, numCy, numSize / 2, "FD");
+    useBody(11.5, "bold");
+    setText(INK);
+    doc.text(String(index + 1), numCx, numCy, {
+      align: "center",
+      baseline: "middle",
+    });
+    drawRichLines(
+      segments,
+      howInnerX + numSize + numGap,
+      howCursorY,
+      stepTextW,
+      stepSize,
+      1.55
+    );
+    howCursorY = itemTop + stepHeights[index];
+  });
+
+  // Important card
+  const impBorder = mm(3);
+  const impPadTop = mm(17);
+  const impPadX = mm(22);
+  const impPadBottom = mm(17);
+  const impInnerW = mainW - impPadX * 2 - impBorder * 2;
+  const impIconSize = mm(50);
+  const impGap = mm(16);
+  const impTextW = impInnerW - impIconSize - impGap;
+  const impHeadSize = 10;
+  const impBodySize = 11;
+  useBody(impBodySize, "normal");
+  const impBodyLines: string[] = doc.splitTextToSize(
+    "QuizSupport cannot recover this key. If you lose this PDF, the encrypted copy of your quiz cannot be opened. Saving encrypted content again creates a new key and replaces the old encrypted copy.",
+    impTextW
+  );
+  const impBodyH = impBodyLines.length * mm(impBodySize * 1.55);
+  const impTextH = mm(impHeadSize * 1.2) + mm(4) + impBodyH;
+  const impContentH = Math.max(impIconSize, impTextH);
+  const impH = impBorder * 2 + impPadTop + impContentH + impPadBottom;
+  const impY = howY + howH + mm(33);
+
+  setFill(WARN_SHADOW);
+  doc.roundedRect(
+    mainX + mm(7),
+    impY + mm(7),
+    mainW,
+    impH,
+    mm(22),
+    mm(22),
+    "F"
+  );
+  setFill(WARN_BG);
+  setDraw(INK);
+  doc.setLineWidth(impBorder);
+  doc.roundedRect(mainX, impY, mainW, impH, mm(22), mm(22), "FD");
+
+  const impInnerX = mainX + impBorder + impPadX;
+  const impInnerY = impY + impBorder + impPadTop;
+  const impIconX = impInnerX;
+  const impIconY = impInnerY + (impContentH - impIconSize) / 2;
+  setFill(YELLOW);
+  setDraw(INK);
+  doc.setLineWidth(mm(2.8));
+  doc.roundedRect(
+    impIconX,
+    impIconY,
+    impIconSize,
+    impIconSize,
+    mm(15),
+    mm(15),
+    "FD"
+  );
+  drawWarning(
+    impIconX + impIconSize / 2,
+    impIconY + impIconSize / 2,
+    mm(28),
+    INK
   );
 
-  // Footer.
-  doc.setDrawColor(225, 222, 238);
-  doc.setLineWidth(0.3);
-  doc.line(margin, pageHeight - 22, pageWidth - margin, pageHeight - 22);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(120, 114, 148);
+  const impTextX = impIconX + impIconSize + impGap;
+  const impTextY = impInnerY + (impContentH - impTextH) / 2;
+  useBody(impHeadSize, "bold");
+  setText(WARN_HEAD);
+  doc.text("IMPORTANT", impTextX, impTextY + mm(impHeadSize * 0.82), {
+    charSpace: mm(1.5),
+  });
+  useBody(impBodySize, "medium");
+  setText(WARN_TEXT);
+  const impBodyTop = impTextY + mm(impHeadSize * 1.2) + mm(4);
+  impBodyLines.forEach((line, index) => {
+    doc.text(
+      line,
+      impTextX,
+      impBodyTop + mm(impBodySize * 0.82) + index * mm(impBodySize * 1.55)
+    );
+  });
+
+  // Footer ------------------------------------------------------------------
+  const footLineY = pageHeight - mm(26) - mm(34);
+  setDraw(LINE);
+  doc.setLineWidth(mm(2));
+  doc.line(mainX, footLineY, mainRight, footLineY);
+  const footContentTop = footLineY + mm(2) + mm(12);
+  if (logo) {
+    const footLogoH = mm(20) * (468 / 512);
+    doc.addImage(
+      logo,
+      "PNG",
+      mainX,
+      footContentTop + (mm(20) - footLogoH) / 2,
+      mm(20),
+      footLogoH
+    );
+  }
+  useBody(8.2, "normal");
+  setText(MUTED);
   doc.text(
     "Generated in your browser by QuizSupport. The key was not sent to the server.",
-    margin,
-    pageHeight - 15
+    mainX + mm(20) + mm(8),
+    footContentTop + mm(20) / 2,
+    { baseline: "middle" }
   );
+  const stamp = new Date().toLocaleString("en-US", {
+    month: "numeric",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  });
   doc.text(
-    `Version ${QUIZ_CRYPTO_VERSION}  |  ${new Date().toLocaleString()}`,
-    pageWidth - margin,
-    pageHeight - 15,
-    { align: "right" }
+    `Version ${QUIZ_CRYPTO_VERSION}  |  ${stamp}`,
+    mainRight,
+    footContentTop + mm(20) / 2,
+    { align: "right", baseline: "middle" }
   );
 
-  const fileName = `quiz-key-${safeFilePart(quizId)}.pdf`;
+  const fileName = `quizsupport-encrypted-key-${safeFilePart(quizLabel)}.pdf`;
   doc.save(fileName);
   return { fileName, keyFingerprint: fingerprint };
 }

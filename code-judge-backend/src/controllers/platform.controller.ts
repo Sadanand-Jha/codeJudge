@@ -1,3 +1,4 @@
+import { decryptText } from "../services/quizContentCrypto.service.ts";
 import type { Request, Response } from "express";
 import { pool } from "../config/database.js";
 import redisClient from "../config/redis.js";
@@ -458,14 +459,18 @@ export const getQuizzes = async (_req: Request, res: Response) => {
        WHERE p.deleted_at IS NULL GROUP BY 1 ORDER BY 2 DESC`
     ).then((r) => r.rows).catch(() => null);
     const hardest = await pool.query(
-      `SELECT p.id, p.quiz_id, LEFT(p.problem_statement, 120) AS statement,
+      `SELECT p.id, p.quiz_id, p.problem_statement AS statement,
               COUNT(*)::int AS responses,
               AVG(CASE WHEN r.is_attempted THEN 0 ELSE 1 END)::float AS skip_rate,
               AVG(r.time_spent_seconds)::float AS avg_time_s
        FROM quiz_problems p LEFT JOIN quiz_student_response r ON r.problem_id = p.id
        WHERE p.deleted_at IS NULL GROUP BY p.id HAVING COUNT(r.id) > 0 ORDER BY skip_rate DESC NULLS LAST LIMIT 10`
     ).then((r) => r.rows).catch(() => []);
-    return { byStatus, stats, funnel, top, questionTypes: qtypes, hardest, totalQuestions: qtypes?.reduce((s: number, t: { n: number }) => s + num(t.n), 0) ?? null };
+    const hardestProblemStatements = hardest.map((row: any) => ({
+      ...row,
+      statement: (decryptText(row.statement) ?? "").slice(0, 120),
+    }));
+    return { byStatus, stats, funnel, top, questionTypes: qtypes, hardest: hardestProblemStatements, totalQuestions: qtypes?.reduce((s: number, t: { n: number }) => s + num(t.n), 0) ?? null };
   });
   if (!data) {
     res.json({ success: false, message: "Quiz analytics unavailable", statusCode: 503 });

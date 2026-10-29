@@ -1,5 +1,7 @@
 "use client";
 
+import { showUpgradeModal } from "@/lib/upgradePrompt";
+
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -32,6 +34,7 @@ import {
 import { getQuestionGeneratorCatalog } from "@/services/aiGenerate";
 import type { QuestionGeneratorCatalog } from "@/services/aiGenerate";
 import { toast } from "@/lib/toast";
+import { SecureSaveCancelledError } from "@/lib/quizCrypto";
 import type { AIQuestionPreview, LiveUsage, RawAIGeneratedQuestion } from "@/services/ai";
 import type { CreatorQuestion } from "../types";
 import { mapToCreatorQuestions } from "@/utils/aiToCreatorQuestion";
@@ -52,8 +55,8 @@ const ACCEPT = [
 ].join(",");
 
 const MAX_SIZE_MB = 20;
-const MAX_BANK_QUESTIONS = 25;
-const MAX_QUIZ_QUESTIONS = 25;
+const MAX_BANK_QUESTIONS = 40;
+const MAX_QUIZ_QUESTIONS = 40;
 const FILE_GENERATION_COUNT = 20;
 
 const THINKING_PHASES = [
@@ -411,7 +414,7 @@ export function AiGenerateModal({
       if (!canUploadFiles) {
         setError(upgradeMessage);
         if (!subscriptionLoading) {
-          toast.error("Upgrade required", { description: upgradeMessage });
+          showUpgradeModal({ message: upgradeMessage });
         }
         return;
       }
@@ -449,14 +452,14 @@ export function AiGenerateModal({
     if (!canUseAi) {
       setError(aiUpgradeMessage);
       if (!aiLoading) {
-        toast.error("Upgrade required", { description: aiUpgradeMessage });
+        showUpgradeModal({ message: aiUpgradeMessage });
       }
       return;
     }
     if (!canUploadFiles) {
       setError(upgradeMessage);
       if (!subscriptionLoading) {
-        toast.error("Upgrade required", { description: upgradeMessage });
+        showUpgradeModal({ message: upgradeMessage });
       }
       return;
     }
@@ -547,7 +550,7 @@ export function AiGenerateModal({
     if (!canUseAi) {
       setError(aiUpgradeMessage);
       if (!aiLoading) {
-        toast.error("Upgrade required", { description: aiUpgradeMessage });
+        showUpgradeModal({ message: aiUpgradeMessage });
       }
       return;
     }
@@ -635,7 +638,7 @@ export function AiGenerateModal({
   const handleRegenerateQuestion = async (question: PreviewQuestion) => {
     if (!canUseAi) {
       if (!aiLoading) {
-        toast.error({ title: "Upgrade required", description: aiUpgradeMessage });
+        showUpgradeModal({ message: aiUpgradeMessage });
       }
       return;
     }
@@ -738,6 +741,10 @@ export function AiGenerateModal({
       setDone(true);
       toast.success(`Added ${questions.length} questions from AI`);
     } catch (err) {
+      if (err instanceof SecureSaveCancelledError) {
+        toast.info("Questions were not added because the encryption key was not saved.");
+        return;
+      }
       toast.error("Could not add questions", { description: (err as Error).message || "Please try again." });
     } finally {
       setAccepting(false);
@@ -756,6 +763,10 @@ export function AiGenerateModal({
       setReviewQuestions((prev) => prev.filter((q) => q.id !== question.id));
       toast.success("Question added to the quiz");
     } catch (err) {
+      if (err instanceof SecureSaveCancelledError) {
+        toast.info("Question was not added because the encryption key was not saved.");
+        return;
+      }
       toast.error("Could not add question", { description: (err as Error).message || "Please try again." });
     }
   };
@@ -1227,7 +1238,7 @@ export function AiGenerateModal({
                         if (!canUploadFiles) {
                           setError(upgradeMessage);
                           if (!subscriptionLoading) {
-                            toast.error("Upgrade required", { description: upgradeMessage });
+                            showUpgradeModal({ message: upgradeMessage });
                           }
                           return;
                         }

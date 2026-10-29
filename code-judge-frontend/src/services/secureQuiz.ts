@@ -8,6 +8,8 @@ export interface SecureQuizPayloadMeta {
   version?: number;
   algorithm?: string;
   keyFingerprint?: string;
+  stale?: boolean;
+  staleAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -53,6 +55,20 @@ export async function getSecureQuizPayload(
   return { ...data, quizId: String(data.payloadId ?? data.quizId) };
 }
 
+/**
+ * Fetch the ciphertext payload as a signed-in quiz participant. The payload
+ * cannot be read without the teacher key, which never leaves the browser.
+ */
+export async function getStudentSecureQuizPayload(
+  quizId: string | number
+): Promise<SecureQuizPayload> {
+  const response = await apiClient.get<SecureQuizPayloadResponse>(
+    `/v1/user/quiz/${encodeURIComponent(String(quizId))}/secure-payload`
+  );
+  const data = response.data;
+  return { ...data, quizId: String(data.payloadId ?? data.quizId) };
+}
+
 /** Upload ciphertext + the wrapped key. Plaintext is never sent. */
 export async function saveSecureQuizPayload(
   quizId: string | number,
@@ -61,6 +77,16 @@ export async function saveSecureQuizPayload(
   const response = await apiClient.post<SavedSecureQuizPayload>(
     quizPath(quizId),
     payload
+  );
+  return response.data;
+}
+
+/** Mark the encrypted copy as current after the studio's own plaintext sync. */
+export async function ackSecureQuizPayload(
+  quizId: string | number
+): Promise<SecureQuizPayloadMeta> {
+  const response = await apiClient.post<SecureQuizPayloadMeta>(
+    `${quizPath(quizId)}/ack`
   );
   return response.data;
 }

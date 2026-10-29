@@ -1,4 +1,5 @@
 import { getAuthHeaders } from "@/lib/authHeaders";
+import { showUpgradeModalForError } from "@/lib/upgradePrompt";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 
 const rawBase =
@@ -279,6 +280,7 @@ export const generateQuestionsFromFiles = async (
   const payload = (await response.json().catch(() => ({}))) as GenerateFromFilesResponse;
 
   if (!response.ok || !payload.success) {
+    showUpgradeModalForError(payload);
     throw new Error(payload.message || `Request failed with status ${response.status}`);
   }
 
@@ -384,6 +386,7 @@ export const generateFromQuestionBank = async (
   });
   const payload = (await response.json().catch(() => ({}))) as GenerateFromBankResponse;
   if (!response.ok || !payload.success) {
+    showUpgradeModalForError(payload);
     throw new Error(payload.message || `Request failed with status ${response.status}`);
   }
   if (payload.data?.usage) options.onUsage?.(payload.data.usage);
@@ -483,6 +486,7 @@ const consumeSSEResponse = async (
     let detail = "";
     try {
       const data = await response.json();
+      showUpgradeModalForError(data);
       detail = data?.message || "";
     } catch {
       // Ignore — fall back to the status text below.
@@ -641,6 +645,7 @@ export async function deleteMyQuestionBankQuestion(questionId: number): Promise<
   });
   const json = await response.json().catch(() => ({}));
   if (!response.ok || json.success === false) {
+    showUpgradeModalForError(json);
     throw new Error(json.message || `Request failed with status ${response.status}`);
   }
 }
@@ -657,6 +662,7 @@ export async function getMyQuestionBank(signal?: AbortSignal): Promise<UserBankQ
   });
   const json = await response.json().catch(() => ({}));
   if (!response.ok || json.success === false) {
+    showUpgradeModalForError(json);
     throw new Error(json.message || `Request failed with status ${response.status}`);
   }
   return json.data?.questions ?? [];

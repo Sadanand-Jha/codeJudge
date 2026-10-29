@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, type MouseEvent } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { CreatorSidebar } from "./CreatorSidebar";
@@ -15,6 +15,8 @@ import {
   useAICreditsStore,
 } from "@/store/aiCreditsStore";
 import { useCreditState } from "@/hooks/useCreditState";
+import { useMySubscription } from "@/hooks/useMySubscription";
+import { showUpgradeModal } from "@/lib/upgradePrompt";
 import { useTheme } from "@/context/ThemeContext";
 
 export default function CreatorStudioLayout({ children }: { children: React.ReactNode }) {
@@ -26,7 +28,13 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
   const refreshCredits = useAICreditsStore((s) => s.refresh);
   const hydrateCache = useAICreditsStore((s) => s.hydrateCache);
   const { state: creditState } = useCreditState();
+  const { subscription, isLoading: subscriptionLoading } = useMySubscription();
   const { theme, setTheme } = useTheme();
+  const needsMonthlyPlan =
+    !subscriptionLoading &&
+    subscription != null &&
+    !subscription.isPaid &&
+    subscription.status !== "trialing";
 
   // Studio is light-theme only (no toggle in the Studio navbar). Dark-mode
   // styling across Studio components is intentionally left untouched.
@@ -87,6 +95,52 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
     };
   }, [hasHydrated, isAuthenticated, refreshCredits]);
 
+  useEffect(() => {
+    if (!needsMonthlyPlan || pathname !== "/creator/quizzes/create") return;
+    showUpgradeModal({
+      code: "MONTHLY_PLAN_REQUIRED",
+      tab: "plans",
+      eyebrow: "Creator Studio",
+      title: "Choose a plan to start creating",
+      titleAccent: "plan",
+      description: "Monthly plans unlock quiz creation and include AI credits.",
+      message: "You need at least a monthly plan to get started.",
+    });
+    router.replace("/creator/quizzes");
+  }, [needsMonthlyPlan, pathname, router]);
+
+  const guardQuizCreation = (event: MouseEvent<HTMLDivElement>) => {
+    if (
+      !needsMonthlyPlan ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const anchor = target.closest("a[href]");
+    if (!(anchor instanceof HTMLAnchorElement)) return;
+    const url = new URL(anchor.href, window.location.origin);
+    if (url.origin !== window.location.origin || url.pathname !== "/creator/quizzes/create") {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    showUpgradeModal({
+      code: "MONTHLY_PLAN_REQUIRED",
+      tab: "plans",
+      eyebrow: "Creator Studio",
+      title: "Choose a plan to start creating",
+      titleAccent: "plan",
+      description: "Monthly plans unlock quiz creation and include AI credits.",
+      message: "You need at least a monthly plan to get started.",
+    });
+  };
+
   if (!hasHydrated) {
     return (
       <AppLayout>
@@ -130,8 +184,11 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
   return (
     <AppLayout header={<CreatorNavbar onMobileMenuToggle={() => setDrawerOpen(true)} />}>
       <div
+       
         className="qs-ui creator-mobile-calm flex min-h-0 flex-1 bg-[var(--qs-bg)]"
         data-credit-state={creditState}
+      
+        onClickCapture={guardQuizCreation}
       >
         {/* Mobile drawer overlay */}
         <AnimatePresence>

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type {
   AICreditBalance,
+  AICreditUsageEntry,
   AICreditUsageStats,
   CreatorAIUsage,
   AICreditPurchase,
@@ -16,17 +17,52 @@ import {
   type AICreditFeatureId,
   type CreditPurchasePack,
 } from "@/config/aiCredits";
-import { getCreditBalance } from "@/services/aiCredits";
+import { getCreditBalance, getCreditUsage } from "@/services/aiCredits";
 import {
   normalizeCreditSnapshot,
   type CreditBalanceStatus,
   type NormalizedCreditSnapshot,
 } from "@/lib/creditState";
+import { getUserTimeZone } from "@/lib/timezone";
 
 interface CreditMetadata {
   promptHash?: string;
   userAgent?: string;
   sessionId?: string;
+}
+
+const AI_REASON_META: Record<
+  string,
+  { id: AICreditFeatureId; label: string }
+> = {
+  ai_chat: { id: "ai-hint", label: "AI Chat" },
+  ai_chat_files: { id: "ai-hint", label: "AI Chat with Files" },
+  ai_generate_questions: { id: "ai-quiz-generation", label: "AI Quiz Generation" },
+  ai_generate_bank: { id: "ai-question-improvement", label: "AI Question Bank" },
+  ai_generate_problems: { id: "ai-quiz-generation", label: "AI Problem Generation" },
+  ai_generate_paper: { id: "ai-quiz-generation", label: "AI Paper Generation" },
+  ai_generate_sections: { id: "ai-quiz-generation", label: "AI Section Generation" },
+};
+
+function toUsageEntry(row: {
+  id: string;
+  reason: string;
+  credits: number;
+  createdAt: string;
+}): AICreditUsageEntry {
+  const meta = AI_REASON_META[row.reason] ?? {
+    id: "ai-quiz-generation" as AICreditFeatureId,
+    label: "AI Generation",
+  };
+  const timestamp = Date.parse(row.createdAt);
+  return {
+    id: row.id,
+    featureId: meta.id,
+    featureLabel: meta.label,
+    credits: row.credits,
+    status: "success",
+    timestamp: Number.isFinite(timestamp) ? timestamp : Date.now(),
+  };
 }
 
 /* ============================================
@@ -402,7 +438,10 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
 
   refresh: async (options) => {
     try {
-      const snapshot = normalizeCreditSnapshot(await getCreditBalance());
+      const [snapshot, usage] = normalizeCreditSnapshot(await Promise.all([
+        getCreditBalance(),
+        getCreditUsage(getUserTimeZone()),
+      ]));
       if (!snapshot) throw new Error("Invalid credit balance response");
       const planTotal = snapshot.planCreditsTotal;
       const purchasedTotal = snapshot.purchasedCreditsTotal;

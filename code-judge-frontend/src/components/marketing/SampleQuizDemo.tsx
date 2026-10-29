@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/helpers";
+import { Timer } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 
 export interface SampleQuizQuestion {
   q: string;
@@ -38,11 +40,17 @@ interface SampleQuizDemoProps {
   sets?: SampleQuizSet[];
   questions?: SampleQuizQuestion[];
   label?: string;
+  timerSeconds?: number;
 }
 
 const ROTATE_MS = 6000;
 
-export default function SampleQuizDemo({ sets, questions = SAMPLE_QUESTIONS, label = "Sample quiz" }: SampleQuizDemoProps) {
+export default function SampleQuizDemo({
+  sets,
+  questions = SAMPLE_QUESTIONS,
+  label = "Sample quiz",
+  timerSeconds,
+}: SampleQuizDemoProps) {
   const quizSets = useMemo<SampleQuizSet[]>(
     () => (sets && sets.length > 0 ? sets : [{ subject: "", questions }]),
     [sets, questions]
@@ -54,6 +62,7 @@ export default function SampleQuizDemo({ sets, questions = SAMPLE_QUESTIONS, lab
   const [picked, setPicked] = useState<number | null>(null);
   const [paused, setPaused] = useState(false);
   const [answered, setAnswered] = useState(false);
+  const [remaining, setRemaining] = useState(timerSeconds ?? 0);
 
   const activeSet = quizSets[setIndex % quizSets.length];
   const activeQuestions = activeSet.questions;
@@ -61,17 +70,34 @@ export default function SampleQuizDemo({ sets, questions = SAMPLE_QUESTIONS, lab
   const question = activeQuestions[index];
   const canRotate = quizSets.length > 1 && !paused && !answered && !finished;
 
+  const resetProgress = useCallback(() => {
+    setQuestionIndex(0);
+    setScore(0);
+    setPicked(null);
+    setAnswered(false);
+    setRemaining(timerSeconds ?? 0);
+  }, [timerSeconds]);
+
+  useEffect(() => {
+    if (!timerSeconds || paused || picked !== null || finished) return;
+    const timeout = window.setTimeout(() => {
+      if (remaining <= 1) {
+        resetProgress();
+      } else {
+        setRemaining(remaining - 1);
+      }
+    }, 1000);
+    return () => window.clearTimeout(timeout);
+  }, [remaining, timerSeconds, paused, picked, finished, resetProgress]);
+
   useEffect(() => {
     if (!canRotate) return;
     const timer = window.setInterval(() => {
       setSetIndex((current) => (current + 1) % quizSets.length);
-      setQuestionIndex(0);
-      setScore(0);
-      setPicked(null);
-      setAnswered(false);
+      resetProgress();
     }, ROTATE_MS);
     return () => window.clearInterval(timer);
-  }, [canRotate, quizSets.length]);
+  }, [canRotate, quizSets.length, resetProgress]);
 
   const pick = (option: number) => {
     if (picked !== null) return;
@@ -83,16 +109,15 @@ export default function SampleQuizDemo({ sets, questions = SAMPLE_QUESTIONS, lab
   const next = () => {
     setQuestionIndex((current) => current + 1);
     setPicked(null);
+    setAnswered(false);
+    setRemaining(timerSeconds ?? 0);
   };
 
   const restart = () => {
     if (quizSets.length > 1) {
       setSetIndex((current) => (current + 1) % quizSets.length);
     }
-    setQuestionIndex(0);
-    setScore(0);
-    setPicked(null);
-    setAnswered(false);
+    resetProgress();
   };
 
   const displayLabel = activeSet.subject ? `${label} · ${activeSet.subject}` : label;
@@ -137,13 +162,23 @@ export default function SampleQuizDemo({ sets, questions = SAMPLE_QUESTIONS, lab
             ) : (
               <>
                 <div className="qs-meta">
-                  <span>{displayLabel}</span>
+                  <span className="qs-brandline">
+                    <SecureLogo size={16} variant="mark" rounded={false} />
+                    <span>{displayLabel}</span>
+                  </span>
                   <span>
                     Question {index + 1} of {activeQuestions.length}
                   </span>
+                  {timerSeconds ? (
+                    <span className="qs-timer" aria-live="off">
+                      <Timer size={14} aria-hidden />
+                      {String(Math.floor(remaining / 60)).padStart(2, "0")}:
+                      {String(remaining % 60).padStart(2, "0")}
+                    </span>
+                  ) : null}
                 </div>
                 <div className="qs-bar mb-5">
-                  <b style={{ width: `${(index / activeQuestions.length) * 100}%` }} />
+                  <b style={{ width: `${((index + 1) / activeQuestions.length) * 100}%` }} />
                 </div>
                 <h3 className="text-[25px] leading-[1.15]">{question.q}</h3>
                 <div className="mt-4 grid gap-2.5">

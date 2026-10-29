@@ -13,6 +13,7 @@ import {
   quizGameConfigSchema,
   quizGameMechanicsSchema,
   secureQuizPayloadSchema,
+  quizClientContentSchema,
 } from "../../../middleware/validate.ts";
 import {
   getAllQuizzes,
@@ -53,12 +54,17 @@ import {
   getCreatorProfileOverview,
 } from "../../../controllers/adminQuizController.ts";
 import {
+  ackSecureQuizPayloadController,
   deleteSecureQuizPayloadController,
   getSecureQuizMetaController,
   getSecureQuizPayloadController,
   saveSecureQuizPayloadController,
   secureQuizNoStore,
 } from "../../../controllers/secureQuiz.controller.ts";
+import {
+  getTeacherSecureContentController,
+  saveTeacherSecureContentController,
+} from "../../../controllers/quizCrypto.controller.ts";
 
 const router = Router();
 
@@ -100,7 +106,26 @@ router.put(
   validate(secureQuizPayloadSchema),
   saveSecureQuizPayloadController
 );
+router.post(
+  "/:quizId/secure-payload/ack",
+  ackSecureQuizPayloadController
+);
 router.delete("/:quizId/secure-payload", deleteSecureQuizPayloadController);
+
+// ==================== CLIENT-ENCRYPTED CONTENT (v2) ====================
+// Per-question ciphertext plus the DEK wrapped by the teacher's KEK. The
+// server never receives question text, media references or explanations.
+router.get(
+  "/:quizId/client-crypto",
+  secureQuizNoStore,
+  getTeacherSecureContentController
+);
+router.put(
+  "/:quizId/client-crypto",
+  secureQuizNoStore,
+  validate(quizClientContentSchema),
+  saveTeacherSecureContentController
+);
 
 // ==================== QUIZ CRUD ====================
 

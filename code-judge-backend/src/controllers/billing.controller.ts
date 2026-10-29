@@ -187,6 +187,33 @@ export const getCreditBalanceHandler = async (
 };
 
 /**
+ * Returns AI credit consumption for the dashboard. Invalid or missing
+ * timezone values fall back to UTC so the query never fails on user input.
+ */
+export const getCreditUsageHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const requested =
+    typeof req.query.timezone === "string" ? req.query.timezone.trim() : "";
+  let timeZone = "UTC";
+  if (requested) {
+    try {
+      new Intl.DateTimeFormat("en-US", { timeZone: requested }).format();
+      timeZone = requested;
+    } catch {
+      timeZone = "UTC";
+    }
+  }
+  try {
+    const data = await billingService.getCreditUsage(userIdFrom(req), timeZone);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    sendBillingError(res, error);
+  }
+};
+
+/**
  * Returns a bounded page of the user's billing orders. The limit query parameter is clamped to a safe range.
  */
 export const listTransactionsHandler = async (

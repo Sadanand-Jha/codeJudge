@@ -1,5 +1,7 @@
 "use client";
 
+import { showUpgradeModal } from "@/lib/upgradePrompt";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -389,7 +391,7 @@ export default function CodeAssistantPanel({
     if (!userPrompt || sending) return;
     if (!canUseAi) {
       if (!aiLoading) {
-        toast.error("Upgrade required", { description: aiUpgradeMessage });
+        showUpgradeModal({ message: aiUpgradeMessage });
       }
       return;
     }

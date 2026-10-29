@@ -1,5 +1,7 @@
 "use client";
 
+import { showUpgradeModal } from "@/lib/upgradePrompt";
+
 import { useState, useRef, useCallback, useEffect, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
@@ -261,7 +263,7 @@ export function QuestionGeneratorPanel() {
     if (!canUseAi) {
       setError(aiUpgradeMessage);
       if (!aiLoading) {
-        toast.error({ title: "Upgrade required", description: aiUpgradeMessage });
+        showUpgradeModal({ message: aiUpgradeMessage });
       }
       return;
     }

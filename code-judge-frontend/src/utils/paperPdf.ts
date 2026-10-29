@@ -6,7 +6,6 @@ import {
   buildAnswerKeyDocument,
   buildPaperDocument,
   loadPaperFontCss,
-  paperFooterLeft,
   preparePaperQuestions,
   type PaperMeta,
   type PaperOptions,
@@ -70,22 +69,20 @@ export async function getPaperPdfErrorMessage(error: unknown): Promise<string> {
   return "Something went wrong while building the question paper.";
 }
 
-const BRAND = "QuizSupport";
-const withBrand = (...parts: Array<string | undefined>) =>
-  [...parts.map((part) => part?.trim()), BRAND].filter(Boolean).join(" \u00b7 ");
-
 export async function downloadQuizPaperPdf(input: DownloadPaperInput, kind: PaperDownloadKind): Promise<number> {
   const fontCss = await loadPaperFontCss();
   const questions = preparePaperQuestions(input.questions, input.options);
   const base = slug(input.meta.title || "quiz");
-  const footerLeft = paperFooterLeft(input.meta);
-  const footerRight = withBrand(input.meta.setName ? `Set ${input.meta.setName}` : undefined);
+  // The paper title belongs in the running header only; the footer carries the
+  // page number, set label and brand logo.
+  const footerLeft = input.meta.setName?.trim() ? `Set ${input.meta.setName.trim()}` : "";
+  const footerRight = "";
 
   if (kind === "key") {
     const filename = `${base}-answer-key.pdf`;
     const html = buildAnswerKeyDocument({ meta: input.meta, questions }, fontCss);
     saveBlob(
-      await requestPdf(html, { left: footerLeft, right: withBrand("Answer key") }, `${base}-answer-key`, fontCss),
+      await requestPdf(html, { left: [footerLeft, "Answer key"].filter(Boolean).join(" \u00b7 "), right: footerRight }, `${base}-answer-key`, fontCss),
       filename
     );
     return 1;

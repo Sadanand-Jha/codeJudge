@@ -16,7 +16,7 @@ import { cn } from "@/lib/helpers";
 import {
   downloadKeyPdf,
   formatKeyHex,
-  type SecureQuizPayload,
+  type PreparedQuiz,
 } from "@/lib/quizCrypto";
 import { saveSecureQuizPayload } from "@/services/secureQuiz";
 import { getApiErrorMessage } from "@/lib/apiError";
@@ -28,7 +28,8 @@ export interface SecureQuizKeyDialogProps {
   title: string;
   keyHex: string;
   keyFingerprint: string;
-  payload: SecureQuizPayload;
+  /** Encrypts the questions in the browser; runs only after the user confirms. */
+  preparePayload: () => Promise<PreparedQuiz>;
   /** True when an older encrypted copy will be replaced by this one. */
   replacing: boolean;
   onCompleted: (result: {
@@ -45,7 +46,7 @@ export function SecureQuizKeyDialog({
   title,
   keyHex,
   keyFingerprint,
-  payload,
+  preparePayload,
   replacing,
   onCompleted,
   onCancel,
@@ -86,7 +87,7 @@ export function SecureQuizKeyDialog({
     setDownloading(true);
     setError(null);
     try {
-      const result = await downloadKeyPdf(keyHex, payload.quizId, title, {
+      const result = await downloadKeyPdf(keyHex, quizId, title, {
         quizCode,
         serverQuizId: quizId,
         keyFingerprint,
@@ -117,10 +118,12 @@ export function SecureQuizKeyDialog({
     setUploading(true);
     setError(null);
     try {
-      await saveSecureQuizPayload(quizId, payload);
+      const prepared = await preparePayload();
+      await saveSecureQuizPayload(quizId, prepared.payload);
       onCompleted({
-        fileName: downloadedFileName ?? `quiz-key-${quizId}.pdf`,
-        keyFingerprint,
+        fileName:
+          downloadedFileName ?? `quizsupport-encrypted-key-${quizId}.pdf`,
+        keyFingerprint: prepared.keyFingerprint,
       });
     } catch (err) {
       setError(
@@ -172,9 +175,9 @@ export function SecureQuizKeyDialog({
                     Download your quiz key
                   </h2>
                   <p className="mt-1 text-xs font-medium leading-relaxed text-[var(--qs-muted)]">
-                    Your questions are encrypted in this browser. Download the
-                    key PDF first — the encrypted copy is uploaded only after
-                    you confirm you saved it.
+                    Your questions are encrypted in this browser when you press
+                    Done. Download the key PDF first — only the encrypted
+                    questions and options are sent to the backend.
                   </p>
                 </div>
               </div>
@@ -317,7 +320,7 @@ export function SecureQuizKeyDialog({
                   </>
                 ) : (
                   <>
-                    <ShieldCheck className="h-3.5 w-3.5" /> Save encrypted copy
+                    <ShieldCheck className="h-3.5 w-3.5" /> Done — encrypt & save
                   </>
                 )}
               </button>

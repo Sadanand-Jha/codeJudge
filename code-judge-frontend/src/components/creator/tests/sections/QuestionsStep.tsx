@@ -1,5 +1,7 @@
 "use client";
 
+import { showUpgradeModal } from "@/lib/upgradePrompt";
+
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -168,7 +170,7 @@ export function QuestionsStep({
     if (!canUseAi) {
       setError(aiUpgradeMessage);
       if (!aiLoading) {
-        toast.error({ title: "Upgrade required", description: aiUpgradeMessage });
+        showUpgradeModal({ message: aiUpgradeMessage });
       }
       return;
     }
@@ -275,7 +277,7 @@ export function QuestionsStep({
     if (!paper || !scope || regeneratingKey) return;
     if (!canUseAi) {
       if (!aiLoading) {
-        toast.error({ title: "Upgrade required", description: aiUpgradeMessage });
+        showUpgradeModal({ message: aiUpgradeMessage });
       }
       return;
     }

@@ -2,6 +2,12 @@
 // registration, attempt management, response saving, submissions, results,
 // reviews, leaderboard, and student quiz history.
 import { pool } from "../config/database.ts";
+import {
+  decryptOptionRows,
+  decryptProblemRow,
+  decryptProblemRows,
+  decryptText,
+} from "../services/quizContentCrypto.service.ts";
 
 /** Keep in sync with QuizRepository.MAX_QUIZ_ATTEMPTS (max attempts per user per quiz). */
 export const MAX_QUIZ_ATTEMPTS = 5;
@@ -133,7 +139,7 @@ export class UserQuizRepository {
       LEFT JOIN quiz_difficulty qd ON qd.id = qp.difficulty
       WHERE qp.quiz_id = $1 AND qp.deleted_at IS NULL ORDER BY qp.question_number ASC, qp.id ASC
     `, [quizId]);
-    return result.rows;
+    return decryptProblemRows(result.rows);
   }
 
   async getQuizProblemOptions(problemId: string): Promise<any[]> {
@@ -143,7 +149,7 @@ export class UserQuizRepository {
       FROM quiz_problem_options qpo WHERE qpo.problem_id = $1
       ORDER BY qpo.sort_order ASC, qpo.id ASC
     `, [problemId]);
-    return result.rows;
+    return decryptOptionRows(result.rows);
   }
 
   // ==================== REGISTRATION ====================
@@ -345,7 +351,7 @@ export class UserQuizRepository {
       JOIN quiz_problems qp ON qp.id = qsr.problem_id
       WHERE qa.id = $1 AND qa.user_id = $2 ORDER BY qp.question_number ASC
     `, [attemptId, userId]);
-    return result.rows;
+    return decryptProblemRows(result.rows);
   }
 
   // ==================== RESULTS & REVIEW ====================
@@ -371,7 +377,11 @@ export class UserQuizRepository {
       LEFT JOIN quiz_problem_type qpt ON qpt.id = qp.quiz_problem_type
       WHERE qa.id = $1 AND qa.user_id = $2 ORDER BY qp.question_number ASC
     `, [attemptId, userId]);
-    return result.rows;
+    return result.rows.map((row: any) => {
+      const next = decryptProblemRow(row);
+      if ("correct_answer" in next) next.correct_answer = decryptText(next.correct_answer);
+      return next;
+    });
   }
 
   // ==================== LEADERBOARD ====================
