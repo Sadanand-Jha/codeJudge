@@ -21,6 +21,14 @@ import {
 
 type UpgradeTab = UpgradeModalTab;
 
+type AccessReason =
+  | "checking"
+  | "plan_required"
+  | "credits_exhausted"
+  | "feature_locked"
+  | "ready"
+  | "unknown";
+
 const DEFAULT_TITLE = "Upgrade to keep generating with AI";
 const DEFAULT_TITLE_ACCENT = "AI";
 
@@ -233,11 +241,27 @@ function UpgradeModalContent({
 }) {
   const router = useRouter();
   const { catalog, isLoading, error, refresh } = usePricingCatalog();
-  const { subscription } = useMySubscription();
+  const {
+    subscription,
+    isLoading: subscriptionLoading,
+    refresh: refreshSubscription,
+  } = useMySubscription();
   const balance = useAICreditsStore((state) => state.balance);
-  const [tab, setTab] = useState<UpgradeTab>(detail.tab ?? "credits");
+  const refreshCredits = useAICreditsStore((state) => state.refresh);
+  const [creditsSyncing, setCreditsSyncing] = useState(true);
+  const [tab, setTab] = useState<UpgradeTab | null>(detail.tab ?? null);
   const [packId, setPackId] = useState<string | null>(null);
   const [planSlug, setPlanSlug] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void refreshCredits().finally(() => {
+      if (!cancelled) setCreditsSyncing(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshCredits]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -247,44 +271,206 @@ function UpgradeModalContent({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  const selectedPack =
-    catalog.creditPacks.find((pack) => pack.id === packId) ??
-    catalog.creditPacks.find((pack) => pack.popular) ??
-    catalog.creditPacks[0] ??
-    null;
-  const selectedPlan =
-    catalog.plans.find((plan) => plan.slug === planSlug) ??
-    catalog.plans.find((plan) => plan.featured) ??
-    catalog.plans[0] ??
-    null;
+  const accessChecking = subscriptionLoading || creditsSyncing;
+  const hasPaidPlan =
+    subscription?.isPaid === true && subscription.status !== "trialing";
+  const isTrialing = subscription?.status === "trialing";
+  const totalRemaining = Math.max(0, balance.totalRemaining);
+  const monthlyRemaining = Math.max(
+    0,
+    balance.monthlyCredits - balance.monthlyCreditsConsumed
+  );
+  const purchasedRemaining = Math.max(
+    0,
+    balance.purchasedCredits - balance.purchasedCreditsConsumed
+  );
+  const requiredCredits = Math.max(0, detail.requiredCredits ?? 0);
+  const creditShortfall =
+    requiredCredits > 1 && requiredCredits > totalRemaining
+      ? requiredCredits - totalRemaining
+      : 0;
+
+  let reason: AccessReason;
+  if (accessChecking) {
+    reason = "checking";
+  } else if (!subscription) {
+    reason = "unknown";
+  } else if (!hasPaidPlan) {
+    reason = "plan_required";
+  } else if (
+    totalRemaining <= 0 ||
+    detail.code === "NO_AI_CREDITS" ||
+    creditShortfall > 0
+  ) {
+    reason = "credits_exhausted";
+  } else if (
+    detail.code === "FEATURE_LOCKED" ||
+    detail.code === "MONTHLY_PLAN_REQUIRED"
+  ) {
+    reason = "feature_locked";
+  } else {
+    reason = "ready";
+  }
 
   const activePlan = catalog.plans.find(
     (plan) => plan.slug === subscription?.planSlug
   );
-  const hasPaidPlan =
-    subscription?.isPaid === true && subscription.status !== "trialing";
-  const currentPlanLabel = hasPaidPlan
-    ? activePlan?.name ?? "Active plan"
-    : balance.planId !== "free"
-      ? "Active plan"
-      : "Free plan";
-  const currentMessage =
-    detail.message ||
-    (hasPaidPlan
-      ? "Your AI credits are used up. Top up or move to a bigger plan."
-      : "AI generation is locked on your current plan.");
+  const planLabel = accessChecking
+    ? "Checking access"
+    : hasPaidPlan
+      ? subscription?.planName ?? activePlan?.name ?? "Active plan"
+      : isTrialing
+        ? "Free trial"
+        : subscription
+          ? "Free plan"
+          : "Plan unknown";
+
+  const reasonTitle =
+    reason === "plan_required"
+      ? "Monthly plan required"
+      : reason === "credits_exhausted"
+        ? "Not enough AI credits"
+        : reason === "feature_locked"
+          ? "Not included in your plan"
+          : reason === "unknown"
+            ? "Access could not be verified"
+            : null;
+
+  const reasonMessage = (() => {
+    switch (reason) {
+      case "checking":
+        return "Checking your current plan and AI credit balance…";
+      case "unknown":
+        return (
+          detail.message ??
+          "We couldn't verify your plan or credit balance. Retry, or choose an option below."
+        );
+      case "plan_required": {
+        if (purchasedRemaining > 0) {
+          return `You have ${purchasedRemaining.toLocaleString(
+            "en-IN"
+          )} purchased AI credits, but AI tools need an active monthly plan. Your credits stay valid and are used as soon as a plan is active.`;
+        }
+        if (isTrialing) {
+          return "AI tools need a paid monthly plan. Choose a plan to keep generating after the trial.";
+        }
+        return "AI tools need an active monthly plan. Every monthly plan includes AI credits each billing cycle.";
+      }
+      case "credits_exhausted": {
+        if (creditShortfall > 0) {
+          return `This action needs ${requiredCredits.toLocaleString(
+            "en-IN"
+          )} credits and you have ${totalRemaining.toLocaleString(
+            "en-IN"
+          )} left. Top up a pack or move to a bigger plan.`;
+        }
+        if (detail.code === "NO_AI_CREDITS" && detail.message) {
+          return detail.message;
+        }
+        if (monthlyRemaining <= 0 && balance.monthlyCredits > 0) {
+          return `You have used all ${balance.monthlyCredits.toLocaleString(
+            "en-IN"
+          )} AI credits included in your ${planLabel} plan. Top up instantly or upgrade for a larger monthly allowance.`;
+        }
+        return "You don't have enough AI credits for this action. Top up instantly or upgrade for a larger monthly allowance.";
+      }
+      case "feature_locked":
+        return (
+          detail.message ??
+          `This AI feature isn't included in your ${planLabel} plan. Choose a plan that unlocks it.`
+        );
+      default:
+        return (
+          detail.message ??
+          "Your plan and credits are active. Choose an option below to add more."
+        );
+    }
+  })();
+
+  const hasPurchasedCredits = balance.purchasedCredits > 0;
+  const showCreditPacks =
+    accessChecking || hasPaidPlan || !hasPurchasedCredits;
+  const showMonthlyPlans = accessChecking || !hasPaidPlan;
+  const availableTabs = (
+    [
+      { id: "credits", label: "AI credits", icon: Coins },
+      { id: "plans", label: "Monthly plans", icon: Sparkles },
+    ] as const
+  ).filter((option) =>
+    option.id === "credits" ? showCreditPacks : showMonthlyPlans
+  );
+
+  const recommendedTab: UpgradeTab =
+    reason === "credits_exhausted"
+      ? "credits"
+      : reason === "plan_required" || reason === "feature_locked"
+        ? "plans"
+        : "credits";
+  const preferredTab: UpgradeTab = tab ?? detail.tab ?? recommendedTab;
+  const effectiveTab: UpgradeTab =
+    preferredTab === "credits" && showCreditPacks
+      ? "credits"
+      : preferredTab === "plans" && showMonthlyPlans
+        ? "plans"
+        : showMonthlyPlans
+          ? "plans"
+          : "credits";
+
+  const coveringPlan =
+    creditShortfall > 0
+      ? [...catalog.plans]
+          .sort((a, b) => a.price - b.price)
+          .find((plan) => plan.credits >= creditShortfall)
+      : undefined;
+  const recommendedPlan =
+    coveringPlan ??
+    catalog.plans.find((plan) => plan.featured) ??
+    catalog.plans[0] ??
+    null;
+  const selectedPlan =
+    catalog.plans.find((plan) => plan.slug === planSlug) ?? recommendedPlan;
+
+  const coveringPack =
+    creditShortfall > 0
+      ? [...catalog.creditPacks]
+          .sort((a, b) => a.price - b.price)
+          .find((pack) => pack.credits >= creditShortfall)
+      : undefined;
+  const recommendedPack =
+    coveringPack ??
+    catalog.creditPacks.find((pack) => pack.popular) ??
+    catalog.creditPacks[0] ??
+    null;
+  const selectedPack =
+    catalog.creditPacks.find((pack) => pack.id === packId) ?? recommendedPack;
+
+  const retryAccess = () => {
+    void refreshSubscription();
+    setCreditsSyncing(true);
+    void refreshCredits().finally(() => setCreditsSyncing(false));
+  };
+
   const title = detail.title ?? DEFAULT_TITLE;
   const titleAccent = detail.title ? detail.titleAccent : DEFAULT_TITLE_ACCENT;
+  const description =
+    detail.description ??
+    (accessChecking
+      ? "Checking what your account already includes so we only show what you need."
+      : showMonthlyPlans && !showCreditPacks
+        ? "You already have AI credits. Choose a monthly plan to start using them with AI tools."
+        : showCreditPacks && !showMonthlyPlans
+          ? "Your plan is active. Add a one-time credit pack to keep generating right away."
+          : "Pick an AI credit pack for an instant top-up, or move to a monthly plan with credits included.");
 
   const startCheckout = () => {
-    if (tab === "credits" && selectedPack) {
+    if (effectiveTab === "credits" && selectedPack) {
       onClose();
       router.push(
         `/creator/billing/credits?pack=${encodeURIComponent(selectedPack.id)}`
       );
       return;
     }
-    if (tab === "plans" && selectedPlan) {
+    if (effectiveTab === "plans" && selectedPlan) {
       onClose();
       router.push(
         `/creator/billing/plans?plan=${encodeURIComponent(selectedPlan.slug)}`
@@ -293,9 +479,9 @@ function UpgradeModalContent({
   };
 
   const ctaLabel =
-    tab === "credits" && selectedPack
+    effectiveTab === "credits" && selectedPack
       ? `Buy ${selectedPack.name} · ${formatPricingAmount(selectedPack.price)}`
-      : tab === "plans" && selectedPlan
+      : effectiveTab === "plans" && selectedPlan
         ? `Upgrade to ${selectedPlan.name} · ${formatPricingAmount(
             selectedPlan.price,
             selectedPlan.currency
@@ -303,7 +489,9 @@ function UpgradeModalContent({
         : "Choose an option";
 
   const activeOptions =
-    tab === "credits" ? catalog.creditPacks.length : catalog.plans.length;
+    effectiveTab === "credits"
+      ? catalog.creditPacks.length
+      : catalog.plans.length;
 
   return (
     <motion.div
@@ -342,7 +530,7 @@ function UpgradeModalContent({
             type="button"
             onClick={onClose}
             aria-label="Close upgrade options"
-            className="absolute right-4 top-4 z-20 grid h-[38px] w-[38px] place-items-center rounded-[11px] border-2 border-white/25 bg-white/10 text-white transition-colors hover:border-[var(--qs-sun)] hover:bg-white/15 sm:right-6 sm:top-6 sm:h-[42px] sm:w-[42px]"
+            className="cursor-pointer absolute right-4 top-4 z-20 grid h-[38px] w-[38px] place-items-center rounded-[11px] border-2 border-white/25 bg-white/10 text-white transition-colors hover:border-[var(--qs-sun)] hover:bg-white/15 sm:right-6 sm:top-6 sm:h-[42px] sm:w-[42px]"
           >
             <X className="h-4 w-4" strokeWidth={3} />
           </button>
@@ -363,8 +551,7 @@ function UpgradeModalContent({
                 <AnimatedTitle title={title} accent={titleAccent} />
               </h2>
               <p className="qs-cinema-copy mt-1.5 text-[13px] leading-5 sm:text-sm">
-                {detail.description ??
-                  "Pick an AI credit pack for an instant top-up, or move to a monthly plan with credits included."}
+                {description}
               </p>
             </div>
           </header>
@@ -376,47 +563,87 @@ function UpgradeModalContent({
           transition={{ delay: 0.12, duration: 0.32, ease: "easeOut" }}
           className="p-5 sm:p-7"
         >
-        <div className="flex flex-wrap items-center justify-center gap-2.5 rounded-[14px] border-2 border-dashed border-[var(--qs-line)] px-4 py-3 text-center text-[13px] text-[var(--qs-muted)]">
-          <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--qs-bad)] px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.05em] text-[var(--qs-bad)]">
-            {currentPlanLabel}
+        <div
+          aria-live="polite"
+          className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1.5 rounded-[14px] border-2 border-dashed border-[var(--qs-line)] px-4 py-3 text-center text-[13px] text-[var(--qs-muted)]"
+        >
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border-2 px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.05em]",
+              !accessChecking && reason !== "unknown" && hasPaidPlan
+                ? "border-[var(--qs-ok)] text-[var(--qs-ok)]"
+                : accessChecking || reason === "unknown"
+                  ? "border-[var(--qs-line)] text-[var(--qs-muted)]"
+                  : "border-[var(--qs-bad)] text-[var(--qs-bad)]"
+            )}
+          >
+            {planLabel}
           </span>
-          {currentMessage}
+          {!accessChecking && totalRemaining > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--qs-line)] px-2.5 py-0.5 text-[11px] font-extrabold text-[var(--qs-ink)]">
+              <Coins className="h-3 w-3" />
+              {totalRemaining.toLocaleString("en-IN")} credits left
+            </span>
+          )}
+          <span className="basis-full">
+            {reasonTitle ? (
+              <strong className="font-extrabold text-[var(--qs-ink)]">
+                {reasonTitle}:{" "}
+              </strong>
+            ) : null}
+            {reasonMessage}
+          </span>
+          {reason === "unknown" && (
+            <button
+              type="button"
+              onClick={retryAccess}
+              className="cursor-pointer rounded-md px-1.5 py-0.5 text-[12px] font-extrabold text-[var(--qs-brand)] hover:underline"
+            >
+              Retry
+            </button>
+          )}
         </div>
 
-        <div
-          role="tablist"
-          aria-label="Upgrade options"
-          className="mt-4 flex gap-1.5 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-1.5"
-        >
-          {(
-            [
-              { id: "credits", label: "AI credits", icon: Coins },
-              { id: "plans", label: "Monthly plans", icon: Sparkles },
-            ] as const
-          ).map((option) => {
-            const Icon = option.icon;
-            const active = tab === option.id;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                aria-controls={`upgrade-panel-${option.id}`}
-                onClick={() => setTab(option.id)}
-                className={cn(
-                  "flex flex-1 items-center justify-center gap-1.5 rounded-[10px] px-3 py-2 text-[13px] font-extrabold transition-colors",
-                  active
-                    ? "border-2 border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
-                    : "border-2 border-transparent text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
+        {availableTabs.length === 1 ? (
+          <div className="mt-4 flex items-center justify-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2 text-[13px] font-extrabold text-[var(--qs-ink)]">
+            {availableTabs[0].id === "credits" ? (
+              <Coins className="h-4 w-4" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {availableTabs[0].label}
+          </div>
+        ) : (
+          <div
+            role="tablist"
+            aria-label="Upgrade options"
+            className="mt-4 flex gap-1.5 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-1.5"
+          >
+            {availableTabs.map((option) => {
+              const Icon = option.icon;
+              const active = effectiveTab === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  aria-controls={`upgrade-panel-${option.id}`}
+                  onClick={() => setTab(option.id)}
+                  className={cn(
+                    "flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[10px] px-3 py-2 text-[13px] font-extrabold transition-colors",
+                    active
+                      ? "border-2 border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
+                      : "border-2 border-transparent text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {isLoading ? (
           <div className="grid gap-3 py-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -436,61 +663,71 @@ function UpgradeModalContent({
             <button
               type="button"
               onClick={() => void refresh()}
-              className="mt-4 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2 text-[13px] font-extrabold text-[var(--qs-on-brand)]"
+              className="mt-4 cursor-pointer rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2 text-[13px] font-extrabold text-[var(--qs-on-brand)]"
             >
               Try again
             </button>
           </div>
         ) : activeOptions === 0 ? (
           <p className="py-10 text-center text-sm font-medium text-[var(--qs-muted)]">
-            No {tab === "credits" ? "credit packs" : "monthly plans"} are
+            No{" "}
+            {effectiveTab === "credits" ? "credit packs" : "monthly plans"} are
             available right now.
           </p>
         ) : (
-          <div
-            id={`upgrade-panel-${tab}`}
-            role="tabpanel"
-            className="grid grid-cols-1 gap-5 px-0 pb-3 pt-6 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3"
-          >
-            {tab === "credits"
-              ? catalog.creditPacks.map((pack) => (
-                  <PackCard
-                    key={pack.id}
-                    pack={pack}
-                    selected={selectedPack?.id === pack.id}
-                    onSelect={() => setPackId(pack.id)}
-                  />
-                ))
-              : catalog.plans.map((plan) => (
-                  <PlanCard
-                    key={plan.slug}
-                    plan={plan}
-                    selected={selectedPlan?.slug === plan.slug}
-                    onSelect={() => setPlanSlug(plan.slug)}
-                  />
-                ))}
-          </div>
+          <>
+            {effectiveTab === "credits" && reason === "plan_required" && (
+              <p className="mt-4 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3.5 py-2.5 text-left text-[12px] font-semibold leading-5 text-[var(--qs-muted)]">
+                Credit packs don&apos;t unlock AI on their own — you still need
+                a monthly plan. Your purchased credits stay valid and will be
+                waiting when you subscribe.
+              </p>
+            )}
+            <div
+              id={`upgrade-panel-${effectiveTab}`}
+              role="tabpanel"
+              className="grid grid-cols-1 gap-5 px-0 pb-3 pt-6 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3"
+            >
+              {effectiveTab === "credits"
+                ? catalog.creditPacks.map((pack) => (
+                    <PackCard
+                      key={pack.id}
+                      pack={pack}
+                      selected={selectedPack?.id === pack.id}
+                      onSelect={() => setPackId(pack.id)}
+                    />
+                  ))
+                : catalog.plans.map((plan) => (
+                    <PlanCard
+                      key={plan.slug}
+                      plan={plan}
+                      selected={selectedPlan?.slug === plan.slug}
+                      onSelect={() => setPlanSlug(plan.slug)}
+                    />
+                  ))}
+            </div>
+          </>
         )}
 
         <button
           type="button"
           onClick={startCheckout}
           disabled={isLoading || activeOptions === 0}
-          className="mt-2 w-full rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] py-3.5 text-base font-extrabold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-2 w-full cursor-pointer rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] py-3.5 text-base font-extrabold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50"
         >
           {ctaLabel}
         </button>
 
         <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 text-[12px] font-medium text-[var(--qs-muted)]">
           <span>
-            {tab === "credits"
+            {effectiveTab === "credits"
               ? "One-time purchase · Credits stack on every plan."
               : "Billed monthly · Cancel anytime"}
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md px-1.5 py-1 text-[13px] font-bold text-[var(--qs-brand)] hover:underline"
+            className="cursor-pointer rounded-md px-1.5 py-1 text-[13px] font-bold text-[var(--qs-brand)] hover:underline"
           >
             Maybe later
           </button>
