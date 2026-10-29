@@ -1,14 +1,27 @@
 import Link from "next/link";
 import { SecureLogo } from "@/components/common/SecureLogo";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 
 type PricingSection = "plans" | "credits";
 
-export function PricingNav({ active }: { active: PricingSection }) {
+export function PricingNav({
+  active,
+  followTheme = false,
+}: {
+  active: PricingSection;
+  followTheme?: boolean;
+}) {
   return (
     <nav aria-label="Main">
       <div className="wrap">
         <Link href="/" aria-label="QuizSupport home">
-          <SecureLogo size={42} variant="full" rounded={false} theme="dark" className="logo" />
+          <SecureLogo
+            size={42}
+            variant="full"
+            rounded={false}
+            theme={followTheme ? undefined : "dark"}
+            className="logo"
+          />
         </Link>
         <div className="nl">
           <Link href="/">Home</Link>
@@ -26,6 +39,7 @@ export function PricingNav({ active }: { active: PricingSection }) {
           >
             AI credits
           </Link>
+          {followTheme && <ThemeToggle variant="icon" />}
           <Link href="/login" className="btn sm">
             Log in
           </Link>
@@ -38,11 +52,17 @@ export function PricingNav({ active }: { active: PricingSection }) {
   );
 }
 
-export function PricingFooter() {
+export function PricingFooter({ followTheme = false }: { followTheme?: boolean }) {
   return (
     <footer>
       <div className="wrap">
-        <SecureLogo size={34} variant="full" rounded={false} theme="dark" className="logo" />
+        <SecureLogo
+          size={34}
+          variant="full"
+          rounded={false}
+          theme={followTheme ? undefined : "dark"}
+          className="logo"
+        />
         <div className="fl">
           <Link href="/about">About</Link>
           <Link href="/contact">Contact</Link>

@@ -19,19 +19,42 @@ export default function LandingReveal() {
       return;
     }
 
-    const observer = new IntersectionObserver(
+    let observer: IntersectionObserver | null = null;
+
+    const reveal = (element: HTMLElement) => {
+      if (element.classList.contains("is-revealed")) return;
+      element.classList.add("is-revealed");
+      observer?.unobserve(element);
+    };
+
+    observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return;
-          entry.target.classList.add("is-revealed");
-          observer.unobserve(entry.target);
+          reveal(entry.target as HTMLElement);
         });
       },
       { threshold: 0.08, rootMargin: "0px 0px -8% 0px" }
     );
 
-    targets.forEach((element) => observer.observe(element));
-    return () => observer.disconnect();
+    const revealReached = () => {
+      const limit = window.innerHeight * 0.92;
+      targets.forEach((element) => {
+        if (element.classList.contains("is-revealed")) return;
+        if (element.getBoundingClientRect().top < limit) reveal(element);
+      });
+    };
+
+    targets.forEach((element) => observer?.observe(element));
+    revealReached();
+
+    window.addEventListener("scroll", revealReached, { passive: true });
+    window.addEventListener("resize", revealReached);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("scroll", revealReached);
+      window.removeEventListener("resize", revealReached);
+    };
   }, []);
 
   return null;

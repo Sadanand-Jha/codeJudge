@@ -122,14 +122,20 @@ export default async function AICreditsPricingPage() {
   ];
 
   return (
-    <div className="qs-ui qs-lp qp-page min-h-screen">
-      <PricingNav active="credits" />
+    <div className="qs-ui qs-lp qp-page qp-themed-page min-h-screen">
+      <PricingNav active="credits" followTheme />
 
       <main id="top">
         <header className="wrap qp-credit-hero">
           <div className="qp-credit-hero-copy">
             <p className="eb">AI credit top-ups</p>
-            <h1>{content.credits_heading || "More AI. Same plan."}</h1>
+            <h1>
+              {content.credits_heading || (
+                <>
+                  More AI. <span className="qp-grad">Same plan.</span>
+                </>
+              )}
+            </h1>
             <p className="lead">
               {content.credits_subheading ||
                 `${planList} already include monthly AI credits. When you need more, add a one-time pack — no separate AI subscription.`}
@@ -186,7 +192,12 @@ export default async function AICreditsPricingPage() {
               <div>
                 <p className="eb">Choose a top-up</p>
                 <h2 className="t">
-                  {validity ? `Buy once. Use for ${validity} months.` : "Buy once. Top up when you need more."}
+                  Buy once.{" "}
+                  <span className="qp-grad">
+                    {validity
+                      ? `Use for ${validity} months.`
+                      : "Top up when you need more."}
+                  </span>
                 </h2>
               </div>
               <p className="d">
@@ -283,10 +294,7 @@ export default async function AICreditsPricingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {creditPacks.length === 0 && (
-                <p className="qp-pack-desc">No credit packs are available right now. Please check back later.</p>
-              )}
-              {creditPacks.map((pack) => (
+                  {creditPacks.map((pack) => (
                     <tr key={pack.id}>
                       <td>
                         <strong>{formatPricingAmount(pack.price)}</strong>
@@ -327,10 +335,13 @@ export default async function AICreditsPricingPage() {
         <section className="s qp-how">
           <div className="wrap">
             <p className="eb">How credits work</p>
-            <h2 className="t">Simple from top-up to first generation</h2>
-            <div className="qs-steps qp-steps">
-              {steps.map((step) => (
-                <div className="qs-step" key={step.title}>
+            <h2 className="t">
+              Simple from top-up to <span className="qp-grad">first generation</span>
+            </h2>
+            <div className="qp-trial-steps">
+              {steps.map((step, index) => (
+                <div className="qp-trial-step" key={step.title}>
+                  <b>{index + 1}</b>
                   <h3>{step.title}</h3>
                   <p>{step.body}</p>
                 </div>
@@ -356,7 +367,9 @@ export default async function AICreditsPricingPage() {
         <section className="s qp-faq" id="faq">
           <div className="wrap qp-faq-wrap">
             <p className="eb">Good to know</p>
-            <h2 className="t">Credit questions, answered</h2>
+            <h2 className="t">
+              Credit questions, <span className="qp-grad">answered</span>
+            </h2>
             {faqs.map((faq) => (
               <details className="fq" key={faq.q}>
                 <summary>{faq.q}</summary>
@@ -371,21 +384,15 @@ export default async function AICreditsPricingPage() {
             <div className="cta">
               <div>
                 <p className="eb">Ready when you are</p>
-                <h2>Top up only when you need it.</h2>
+                <h2>
+                  Top up only <span className="qp-grad">when you need it.</span>
+                </h2>
               </div>
               <div className="qp-cta-actions">
                 <a href="#packs" className="btn">
                   Choose a pack
                 </a>
-                <Link
-                  href="/register"
-                  className="btn"
-                  style={{
-                    background: "transparent",
-                    color: "var(--on-brand)",
-                    borderColor: "var(--on-brand)",
-                  }}
-                >
+                <Link href="/register" className="btn qp-cta-ghost">
                   Create an account
                 </Link>
               </div>
@@ -394,7 +401,7 @@ export default async function AICreditsPricingPage() {
         </section>
       </main>
 
-      <PricingFooter />
+      <PricingFooter followTheme />
     </div>
   );
 }

@@ -22,7 +22,6 @@ import FeatureTabs from "@/components/marketing/landing/FeatureTabs";
 import HeroPolygons from "@/components/marketing/landing/HeroPolygons";
 import LandingReveal from "@/components/marketing/landing/LandingReveal";
 import LpHeader from "@/components/marketing/landing/LpHeader";
-import LpJoinForm from "@/components/marketing/landing/LpJoinForm";
 import SampleQuizDemo from "@/components/marketing/SampleQuizDemo";
 import LpPricingTabs from "@/components/marketing/landing/LpPricingTabs";
 import StudioShowcase from "@/components/marketing/landing/StudioShowcase";
@@ -194,7 +193,7 @@ export default async function HomePage() {
                 <b>{trialDays} days free trial.</b>
               </p>
             </div>
-            <Link href="/pricing" className="lpx-btn lpx-btn-dark">
+            <Link href="/start-free-trial" className="lpx-btn lpx-btn-dark">
               Start free trial
               <ArrowRight size={16} aria-hidden />
             </Link>
@@ -204,7 +203,6 @@ export default async function HomePage() {
             <div>
               <h1>Choose a topic. AI writes your paper.</h1>
               <p className="lpx-lead">Pick subject and chapters. Share one code. Watch results land.</p>
-              <LpJoinForm />
             </div>
             <div className="lpx-hero-demo">
               <SampleQuizDemo timerSeconds={45} />
@@ -346,9 +344,22 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="lpx-section" id="pricing" data-reveal>
+      <section className="lpx-section lpx-price-section" id="pricing" data-reveal>
+        <div className="lpx-price-movie" aria-hidden="true">
+          <span className="lpx-hero-beam" />
+          <span className="lpx-hero-orb lpx-hero-orb-a" />
+          <span className="lpx-hero-orb lpx-hero-orb-b" />
+          <span className="lpx-hero-grain" />
+        </div>
         <div className="lpx-wrap">
-          <h2>Simple pricing. Pick what you need.</h2>
+          <span className="lpx-price-eye">Pricing</span>
+          <h2 className="lpx-price-title">
+            Simple pricing. <span>Serious quizzing.</span>
+          </h2>
+          <p className="lpx-lead lpx-price-sub">
+            Everything a teacher needs to build quizzes, host rooms and see results the
+            moment students finish.
+          </p>
           <LpPricingTabs
             plans={plans}
             creditPacks={creditPacks}
@@ -377,9 +388,6 @@ export default async function HomePage() {
           <Link href="/creator/quizzes/create" className="lpx-btn lpx-btn-dark">
             Start with a topic
           </Link>
-          <a href="#top" className="lpx-btn lpx-btn-outline-dark">
-            Join with a code
-          </a>
         </div>
       </section>
 
