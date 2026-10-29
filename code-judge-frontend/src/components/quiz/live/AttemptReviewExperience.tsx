@@ -37,7 +37,18 @@ import {
   type ReviewOption,
 } from "@/services/quiz";
 import { getApiErrorMessage } from "@/lib/apiError";
+import { importDekB64Url } from "@/lib/crypto";
 import { unlockQuiz, type SecureQuizPayload } from "@/lib/quizCrypto";
+import {
+  buildDecryptedIndexFromPayloads,
+  clearDekFragment,
+  decryptStudentProblems,
+  readDekFromLocationHash,
+  readStudentDek,
+  storeStudentDek,
+  type SecureQuestionPayload,
+} from "@/lib/quizCryptoV2";
+import { getStudentSecureContent } from "@/services/quizCrypto";
 import { getStudentSecureQuizPayload } from "@/services/secureQuiz";
 import QuizKeyGate from "@/components/quiz/QuizKeyGate";
 import {
@@ -382,7 +393,6 @@ export default function AttemptReviewExperience({
 }) {
   const { playQuizSound } = useQuizSounds();
   const [selectedQuestion, setSelectedQuestion] = useState(0);
-  const [data, setData] = useState<AttemptReviewData | null>(null);
   const [baseResult, setBaseResult] = useState<QuizResult | null>(null);
   const [rawReview, setRawReview] = useState<QuestionReview[]>([]);
   const [securePayload, setSecurePayload] = useState<SecureQuizPayload | null>(null);
@@ -411,7 +421,6 @@ export default function AttemptReviewExperience({
       setPending(false);
       setPendingMessage(null);
       setError(null);
-      setData(null);
       setBaseResult(null);
       setRawReview([]);
       setSecurePayload(null);
@@ -423,20 +432,59 @@ export default function AttemptReviewExperience({
         ]);
         if (cancelled) return;
 
-        // Encrypted quizzes return review rows without authored text. Fetch
-        // the ciphertext now; the key gate appears until it is decrypted.
+        // Encrypted quizzes return review rows without authored text.
+        const isClientEncrypted = review.some((row) => row.payload_ct);
         let payload: SecureQuizPayload | null = null;
-        try {
-          payload = await getStudentSecureQuizPayload(quizId || String(result.quiz_id));
-        } catch (err: unknown) {
-          const status = (err as { response?: { status?: number } })?.response?.status;
-          if (status !== 404) throw err;
+        let clientIndex: DecryptedQuizIndex | null = null;
+        if (isClientEncrypted) {
+          const fromHash = readDekFromLocationHash();
+          if (fromHash) {
+            storeStudentDek(result.quiz_id, fromHash);
+            clearDekFragment();
+          }
+          const dekValue = fromHash ?? readStudentDek(result.quiz_id);
+          if (!dekValue) {
+            throw new Error(
+              "This review is encrypted. Open the complete link your teacher shared — it contains the decryption key."
+            );
+          }
+          const dek = await importDekB64Url(dekValue, ["decrypt"]);
+          const content = await getStudentSecureContent(result.quiz_id);
+          const decrypted = await decryptStudentProblems(
+            String(result.quiz_id),
+            dek,
+            content.problems
+          );
+          const problems: Array<{
+            id: number;
+            payload: SecureQuestionPayload;
+            options: Array<{ id: number }>;
+          }> = [];
+          for (const problem of content.problems) {
+            const decryptedPayload = decrypted.get(problem.id);
+            if (decryptedPayload) {
+              problems.push({
+                id: problem.id,
+                payload: decryptedPayload,
+                options: problem.options,
+              });
+            }
+          }
+          clientIndex = buildDecryptedIndexFromPayloads(problems);
+        } else {
+          try {
+            payload = await getStudentSecureQuizPayload(quizId || String(result.quiz_id));
+          } catch (err: unknown) {
+            const status = (err as { response?: { status?: number } })?.response?.status;
+            if (status !== 404) throw err;
+          }
         }
         if (cancelled) return;
 
         setBaseResult(result);
         setRawReview(review);
         setSecurePayload(payload);
+        setDecryptedIndex(clientIndex);
         // The URL uses the public quiz code, while rating endpoints require
         // the numeric database id. The owned attempt result is the trusted
         // source that connects those two identifiers.
@@ -464,13 +512,13 @@ export default function AttemptReviewExperience({
     };
   }, [attemptId, quizId, playQuizSound]);
 
-  useEffect(() => {
-    if (!baseResult) return;
-    if (securePayload && !decryptedIndex) return;
+  const data = useMemo(() => {
+    if (!baseResult) return null;
+    if (securePayload && !decryptedIndex) return null;
     const merged = decryptedIndex
       ? mergeReviewRows(rawReview, decryptedIndex)
       : rawReview;
-    setData(buildAttemptReviewData(baseResult, merged));
+    return buildAttemptReviewData(baseResult, merged);
   }, [baseResult, rawReview, securePayload, decryptedIndex]);
 
   const handleUnlockReview = async (keyHex: string) => {

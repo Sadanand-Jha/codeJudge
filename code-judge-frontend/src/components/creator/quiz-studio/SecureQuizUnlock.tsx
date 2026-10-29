@@ -36,7 +36,9 @@ import {
   getSecureQuizPayload,
   type SecureQuizPayloadMeta,
 } from "@/services/secureQuiz";
+import { getQuizById, type QuizBasic } from "@/services/quiz";
 import { useQuizCryptoStore } from "@/store/quizCryptoStore";
+import { ClientEncryptedQuizPanel } from "./ClientEncryptedQuizPanel";
 
 const TYPE_LABELS: Record<string, string> = {
   single_choice: "Single choice",
@@ -285,7 +287,7 @@ function DecryptedQuestion({
   );
 }
 
-export function SecureQuizUnlock({ quizId }: { quizId: string }) {
+function SecureQuizUnlockV1({ quizId }: { quizId: string }) {
   const [meta, setMeta] = useState<SecureQuizPayloadMeta | null>(null);
   const [metaLoading, setMetaLoading] = useState(true);
   const [metaError, setMetaError] = useState<string | null>(null);
@@ -657,4 +659,79 @@ export function SecureQuizUnlock({ quizId }: { quizId: string }) {
       )}
     </div>
   );
+}
+
+export function SecureQuizUnlock({ quizId }: { quizId: string }) {
+  const [quiz, setQuiz] = useState<QuizBasic | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    getQuizById(quizId)
+      .then((loaded) => {
+        if (!cancelled) setQuiz(loaded);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setError(
+            getApiErrorMessage(err, "Could not load this quiz. Please try again.")
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [quizId, reloadKey]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="flex items-center gap-2 text-sm font-bold text-[var(--qs-muted)]">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading encrypted quiz…
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !quiz) {
+    return (
+      <div className="mx-auto w-full max-w-lg px-4 py-10">
+        <div className="rounded-[18px] border-2 border-[var(--qs-bad)]/40 bg-[var(--qs-badbg)] p-5">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-[var(--qs-bad)]" />
+            <div>
+              <p className="text-sm font-extrabold text-[var(--qs-bad)]">
+                Could not open the encrypted quiz
+              </p>
+              <p className="mt-1 text-xs font-medium leading-relaxed text-[var(--qs-ink)]">
+                {error ?? "Quiz not found."}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setLoading(true);
+                  setError(null);
+                  setReloadKey((value) => value + 1);
+                }}
+                className="mt-3 inline-flex items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-bad)] bg-[var(--qs-surface)] px-3 py-1.5 text-[11px] font-extrabold text-[var(--qs-bad)]"
+              >
+                <RefreshCw className="h-3.5 w-3.5" /> Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (Number(quiz.crypto_version) === 1) {
+    return <ClientEncryptedQuizPanel quiz={quiz} />;
+  }
+
+  return <SecureQuizUnlockV1 quizId={quizId} />;
 }

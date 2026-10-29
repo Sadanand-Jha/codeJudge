@@ -2,6 +2,7 @@ import axios from "axios";
 import apiClient from "@/lib/axios";
 import { isValidQuizCode } from "@/utils/quizCode";
 import { QuizLeaderboardSettings } from "@/types/quiz";
+import type { Envelope } from "@/lib/crypto";
 
 type Pagination = { page: number; limit: number; total: number; totalPages: number };
 
@@ -121,6 +122,8 @@ export interface QuizProblem {
   difficulty_name: string | null;
   marks?: number | null;
   negative_marks?: number | null;
+  payload_ct?: Envelope | null;
+  payload_aad_id?: string | null;
   created_at: string | null;
   updated_at: string | null;
   options: QuizProblemOption[];
@@ -247,6 +250,9 @@ export interface QuizBasic {
   status: string | null;
   /** True when the quiz was published on a fixed start/end schedule. */
   scheduled?: boolean;
+  /** 1 when question content is encrypted in the browser. */
+  crypto_version?: number | null;
+  wrapped_dek?: Envelope | null;
   created_at: string | null;
   updated_at: string | null;
   creator_name: string | null;
@@ -909,6 +915,8 @@ export interface QuestionReview {
   correct_answer: string | null;
   selected_option: unknown;
   answered_at: string | null;
+  payload_ct?: Envelope | null;
+  payload_aad_id?: string | null;
 }
 
 /**
@@ -1410,6 +1418,8 @@ export interface StudentResponseDetail {
     selected_statement: string | null;
     answered_at: string | null;
     status: "correct" | "wrong" | "unanswered";
+    payload_ct?: Envelope | null;
+    payload_aad_id?: string | null;
   }>;
   review_available?: boolean;
 }

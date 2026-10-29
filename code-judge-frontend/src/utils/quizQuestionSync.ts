@@ -32,6 +32,9 @@ const DIFFICULTY_TO_NUMBER: Record<CreatorQuestion["difficulty"], number> = {
   Expert: 4,
 };
 
+export const CREATOR_TYPE_TO_BACKEND = TYPE_TO_NUMBER;
+export const CREATOR_DIFFICULTY_TO_BACKEND = DIFFICULTY_TO_NUMBER;
+
 function isChoiceType(q: CreatorQuestion): boolean {
   return q.type === "single_choice" || q.type === "multiple_choice" || q.type === "true_false";
 }

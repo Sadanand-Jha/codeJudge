@@ -89,9 +89,9 @@ function buildPolygons(): Poly[] {
 const POLYGONS = buildPolygons();
 
 const LIGHT_PALETTE = ["#f6f3ff", "#f0ebff", "#e8e0ff", "#ddd2ff", "#d0c2ff"];
-const DARK_PALETTE = ["#150f33", "#1a1240", "#21175a", "#2a1e73", "#34268a"];
+const DARK_PALETTE = ["#281c58", "#33256e", "#3f3088", "#4b3792", "#5b47b8"];
 const LIGHT_ACCENT = "#ffe9a3";
-const DARK_ACCENT = "#4b2a7b";
+const DARK_ACCENT = "#4a3a5e";
 
 export default function QuizHubBackdrop() {
   const { theme } = useTheme();

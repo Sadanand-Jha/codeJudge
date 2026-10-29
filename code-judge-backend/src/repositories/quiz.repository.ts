@@ -235,6 +235,8 @@ export class QuizRepository {
         q.negative_marking,
         q.leaderboard,
         q.registration_fields,
+        q.crypto_version,
+        q.wrapped_dek,
         qs.name AS status,
         q.created_at,
         q.updated_at,
@@ -302,6 +304,8 @@ export class QuizRepository {
         q.negative_marking,
         q.leaderboard,
         q.registration_fields,
+        q.crypto_version,
+        q.wrapped_dek,
         qs.name AS status,
         q.created_at,
         q.updated_at,
@@ -339,6 +343,8 @@ export class QuizRepository {
         qp.difficulty,
         qp.reference_notes,
         qp.internal_comments,
+        qp.payload_ct,
+        qp.payload_aad_id,
         qd.heading AS difficulty_name,
         qp.created_at,
         qp.updated_at
@@ -370,6 +376,8 @@ export class QuizRepository {
         qp.difficulty,
         qp.reference_notes,
         qp.internal_comments,
+        qp.payload_ct,
+        qp.payload_aad_id,
         qd.heading AS difficulty_name,
         qp.created_at,
         qp.updated_at
@@ -404,6 +412,7 @@ export class QuizRepository {
         qpo.option_description,
         qpo.matching_target,
         qpo.iscorrect,
+        qpo.answer_hash,
         qpo.sort_order,
         qpo.created_at,
         qpo.updated_at
@@ -1667,6 +1676,14 @@ export class QuizRepository {
     return { allowed: true, attemptsMade, maxAttempts: MAX_QUIZ_ATTEMPTS };
   }
 
+  async hasCompletedAttempt(userId: number, quizId: number): Promise<boolean> {
+    const result = await pool.query(
+      "SELECT 1 FROM quiz_attempt WHERE user_id = $1 AND quiz_id = $2 AND status = 'completed' LIMIT 1",
+      [userId, quizId]
+    );
+    return result.rows.length > 0;
+  }
+
   async checkQuizAccessForRegistration(quizId: string, userId?: number): Promise<{ allowed: boolean; reason?: string }> {
     const quiz = await pool.query(
       `SELECT q.*, qs.name AS status FROM quiz q LEFT JOIN quiz_status qs ON qs.id = q.quiz_status WHERE q.id = $1 AND q.deleted_at IS NULL`,
@@ -2015,6 +2032,8 @@ export class QuizRepository {
         qp.problem_description,
         qp.explaination,
         qp.hint,
+        qp.payload_ct,
+        qp.payload_aad_id,
         qpt.name AS problem_type,
         qd.heading AS difficulty,
         COALESCE((
@@ -2565,6 +2584,8 @@ export class QuizRepository {
         qp.problem_statement,
         qp.problem_description,
         qp.explaination,
+        qp.payload_ct,
+        qp.payload_aad_id,
         qpt.name AS problem_type,
         correct.option_statement AS correct_answer,
         qsr.answer AS raw_answer,

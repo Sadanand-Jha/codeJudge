@@ -20,7 +20,18 @@ import {
 import { isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { consumeQuizBackNavigation } from "@/lib/quizBackNavigation";
+import { importDekB64Url } from "@/lib/crypto";
 import { unlockQuiz, type SecureQuizPayload, type UnlockedQuiz } from "@/lib/quizCrypto";
+import {
+  buildDecryptedIndexFromPayloads,
+  clearDekFragment,
+  decryptStudentProblems,
+  readDekFromLocationHash,
+  readStudentDek,
+  storeStudentDek,
+  type SecureQuestionPayload,
+} from "@/lib/quizCryptoV2";
+import { getStudentSecureContent } from "@/services/quizCrypto";
 import { getStudentSecureQuizPayload } from "@/services/secureQuiz";
 import QuizKeyGate from "@/components/quiz/QuizKeyGate";
 import {
@@ -130,7 +141,13 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       }
       try {
         const details = await getQuizByCode(code);
-        if (!cancelled) setQuiz(details);
+        if (!cancelled) {
+          setSecureChecked(false);
+          setSecurePayload(null);
+          setSecureError(null);
+          setDecryptedIndex(null);
+          setQuiz(details);
+        }
       } catch (err: unknown) {
         if (!cancelled) setError(getApiErrorMessage(err, "Quiz access could not be verified."));
       } finally {
@@ -141,31 +158,88 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     return () => { cancelled = true; };
   }, [code]);
 
-  // Encrypted quizzes return identifiers/order only. Fetch the ciphertext and
-  // keep it in memory; the teacher key is requested on every page load.
+  // Encrypted quizzes return identifiers/order only. The per-question DEK is
+  // taken from the share-link fragment, then removed from the URL. Reloads in
+  // the same tab reuse sessionStorage. Legacy snapshot payloads still use the
+  // teacher-key gate below.
   useEffect(() => {
     if (!quiz) return;
     let cancelled = false;
-    setSecureChecked(false);
-    setSecureError(null);
-    void getStudentSecureQuizPayload(String(quiz.id))
-      .then((payload) => {
-        if (!cancelled) setSecurePayload(payload);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        const status = (err as { response?: { status?: number } })?.response?.status;
-        if (status === 404) {
-          setSecurePayload(null);
+    void (async () => {
+      try {
+        if (Number(quiz.crypto_version) === 1) {
+          const fromHash = readDekFromLocationHash();
+          if (fromHash) {
+            storeStudentDek(quiz.id, fromHash);
+            clearDekFragment();
+          }
+          const dekValue = fromHash ?? readStudentDek(quiz.id);
+          if (!dekValue) {
+            setSecureError(
+              "This quiz is encrypted. Open the complete link your teacher shared — it contains the decryption key."
+            );
+            return;
+          }
+          const dek = await importDekB64Url(dekValue, ["decrypt"]);
+          const content = await getStudentSecureContent(quiz.id);
+          if (!content.configured) {
+            setSecurePayload(null);
+            return;
+          }
+          const decrypted = await decryptStudentProblems(
+            String(quiz.id),
+            dek,
+            content.problems
+          );
+          const problems: Array<{
+            id: number;
+            payload: SecureQuestionPayload;
+            options: Array<{ id: number }>;
+          }> = [];
+          for (const problem of content.problems) {
+            const payload = decrypted.get(problem.id);
+            if (payload) {
+              problems.push({
+                id: problem.id,
+                payload,
+                options: problem.options,
+              });
+            }
+          }
+          if (!cancelled) {
+            setDecryptedIndex(buildDecryptedIndexFromPayloads(problems));
+          }
           return;
         }
-        setSecureError(
-          getApiErrorMessage(err, "Could not load the encrypted quiz.")
-        );
-      })
-      .finally(() => {
+
+        void getStudentSecureQuizPayload(String(quiz.id))
+          .then((payload) => {
+            if (!cancelled) setSecurePayload(payload);
+          })
+          .catch((err: unknown) => {
+            if (cancelled) return;
+            const status = (err as { response?: { status?: number } })?.response?.status;
+            if (status === 404) {
+              setSecurePayload(null);
+              return;
+            }
+            setSecureError(
+              getApiErrorMessage(err, "Could not load the encrypted quiz.")
+            );
+          });
+      } catch (err: unknown) {
+        if (!cancelled) {
+          setSecureError(
+            getApiErrorMessage(
+              err,
+              "Could not decrypt this quiz. The link may be incomplete or the quiz was updated."
+            )
+          );
+        }
+      } finally {
         if (!cancelled) setSecureChecked(true);
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };

@@ -14,6 +14,9 @@ import { useSavedAvatar } from "@/store/avatarStore";
 import { toast } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { isSecureSaveCancelledError } from "@/lib/quizCrypto";
+import { requireKek } from "@/lib/quizKek";
+import { buildSecureShareLink, exportShareDek } from "@/lib/quizCryptoV2";
+import { getTeacherSecureContent } from "@/services/quizCrypto";
 import { StudioStepLayout } from "../primitives";
 import { formatDateTimeIST } from "../components/timing/helpers";
 import { cn } from "@/lib/helpers";
@@ -67,7 +70,7 @@ export function PublishStep({
       if (isSecureSaveCancelledError(err)) {
         toast.info({
           title: "Encrypted save cancelled",
-          description: "The key PDF was not confirmed, so the encrypted copy was not updated.",
+          description: "The encryption passphrase was not confirmed, so the encrypted copy was not updated.",
         });
         return;
       }
@@ -84,19 +87,33 @@ export function PublishStep({
     if (saving) return;
     setSaving(true);
     try {
-      const { code } = await saveToServer({ publish: true, secure: true });
-      const link = buildJoinLink(code);
+      const { quizId, code } = await saveToServer({ publish: true, secure: true });
+      let link = buildJoinLink(code);
+      let secureLink = false;
+      try {
+        const kek = await requireKek();
+        const content = await getTeacherSecureContent(quizId);
+        if (content.configured && content.wrappedDek) {
+          const dek = await exportShareDek(quizId, kek, content.wrappedDek);
+          link = buildSecureShareLink(code, dek);
+          secureLink = true;
+        }
+      } catch {
+        // Fall back to the ordinary join link if the link key is unavailable.
+      }
       await navigator.clipboard.writeText(link).catch(() => {});
       toast.success({
         title: state.info.title || "Quiz published",
-        description: "Quiz saved and join link copied to clipboard.",
+        description: secureLink
+          ? "Quiz saved and the secure student link was copied to the clipboard."
+          : "Quiz saved and join link copied to clipboard.",
       });
       onPublish();
     } catch (err) {
       if (isSecureSaveCancelledError(err)) {
         toast.info({
           title: "Encrypted publish cancelled",
-          description: "The key PDF was not confirmed, so the quiz was not published.",
+          description: "The encryption passphrase was not confirmed, so the quiz was not published.",
         });
         return;
       }
@@ -200,10 +217,10 @@ export function PublishStep({
                   End-to-end encrypted copy
                 </p>
                 <p className="mt-1 text-[11px] font-medium leading-relaxed text-[var(--qs-muted)]">
-                  Questions and HTML problem statements are encrypted in your
-                  browser. Saving downloads a key PDF first; the encrypted copy
-                  is uploaded only after you confirm. QuizSupport cannot read
-                  the encrypted copy.
+                  Questions and options are encrypted in your browser before
+                  upload. QuizSupport cannot read the encrypted copy. Create a
+                  secure student link from the encrypted copy page; the link
+                  carries the quiz decryption key in its fragment.
                 </p>
                 {state.serverQuizId ? (
                   <button
@@ -384,6 +401,9 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
     code: displayCode,
     questions: summary.questionCount,
     status: isScheduled ? "scheduled" : "live",
+    duration: state.info.duration,
+    startAt: state.info.startDate || null,
+    endAt: state.info.endDate || null,
   } as const;
   const [sharing, setSharing] = useState(false);
 

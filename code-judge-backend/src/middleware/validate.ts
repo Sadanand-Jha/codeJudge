@@ -583,3 +583,88 @@ export const secureQuizPayloadSchema = z
     createdAt: z.string().trim().max(64).optional(),
   })
   .strict();
+
+/**
+ * Browser-side encryption (KEK + DEK) envelopes. These are base64url and
+ * intentionally distinct from the legacy base64 secure-payload schema above.
+ */
+const base64UrlValue = (max: number, label: string) =>
+  z
+    .string()
+    .trim()
+    .min(1, `${label} is required`)
+    .max(max, `${label} is too large`)
+    .regex(/^[A-Za-z0-9_-]+$/, `${label} must be base64url`);
+
+const clientEnvelopeSchema = z
+  .object({
+    v: z.literal(1),
+    alg: z.literal("A256GCM"),
+    iv: base64UrlValue(64, "iv"),
+    ct: base64UrlValue(8_000_000, "ct"),
+  })
+  .strict();
+
+export const quizKekConfigSchema = z
+  .object({
+    salt: base64UrlValue(256, "salt"),
+    kdf: z
+      .object({
+        algorithm: z.literal("PBKDF2-HMAC-SHA-256"),
+        iterations: z
+          .number()
+          .int()
+          .min(600_000, "PBKDF2 iterations must be at least 600000")
+          .max(10_000_000, "PBKDF2 iterations are too high"),
+      })
+      .strict(),
+    check: clientEnvelopeSchema,
+  })
+  .strict();
+
+export const quizClientContentSchema = z
+  .object({
+    wrappedDek: clientEnvelopeSchema.optional(),
+    problems: z
+      .array(
+        z
+          .object({
+            problemId: z.number().int().positive().optional(),
+            payloadAadId: z
+              .string()
+              .trim()
+              .min(8, "payloadAadId is too short")
+              .max(128, "payloadAadId is too long")
+              .regex(
+                /^[A-Za-z0-9_-]+$/,
+                "payloadAadId contains invalid characters"
+              ),
+            payloadCt: clientEnvelopeSchema,
+            quizProblemType: z.number().int().min(1).max(20),
+            questionNumber: z.number().int().min(1).max(1000),
+            marks: z.number().min(0).max(100_000).optional(),
+            negativeMarks: z.number().min(0).max(100_000).optional(),
+            difficulty: z.number().int().min(0).max(100).optional(),
+            options: z
+              .array(
+                z
+                  .object({
+                    id: z.number().int().positive().optional(),
+                    isCorrect: z.boolean(),
+                    answerHash: z
+                      .string()
+                      .trim()
+                      .regex(/^[0-9a-f]{64}$/, "answerHash must be 64 hex characters")
+                      .nullable()
+                      .optional(),
+                  })
+                  .strict()
+              )
+              .max(50),
+          })
+          .strict()
+      )
+      .min(1, "At least one encrypted question is required")
+      .max(100, "Too many encrypted questions"),
+  })
+  .strict();

@@ -1,1 +1,1 @@
-export const WHOLE_QUIZ_AI_ENABLED = false;
+export const WHOLE_QUIZ_AI_ENABLED = true;

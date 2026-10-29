@@ -327,7 +327,8 @@ two-page PDF, PNG, DOCX, and rejection of content over the branding area.
 | `code-judge-backend/REGISTRATION_FLOW.md` | User registration flow |
 | `code-judge-backend/QUIZ_MODULE_BACKEND.md` | Quiz module backend docs |
 | `code-judge-backend/AI_FILE_GENERATION_FLOW.md` | AI file generation flow |
-| `code-judge-backend/ENCRYPTED_QUIZ_FLOW.md` | Encrypted quiz copy, key PDF, unlock flow, and stale-copy sync |
+| `code-judge-frontend/docs/encryption.md` | KEK + DEK quiz encryption, secure links, grading, and limitations |
+| `code-judge-backend/ENCRYPTED_QUIZ_FLOW.md` | Legacy encrypted quiz copy, key PDF, unlock flow, and stale-copy sync |
 
 ---
 
@@ -360,33 +361,57 @@ two-page PDF, PNG, DOCX, and rejection of content over the branding area.
 
 ## 🔐 Encrypted Quiz Copies
 
-Creators can save an encrypted copy of a quiz alongside the normal editable
-copy. Questions are encrypted in the browser with a browser-generated key; the
-server stores only the ciphertext. The creator downloads a two-page key PDF:
+Quiz question content is encrypted in the browser before it is saved. The
+server stores ciphertext plus the identifiers and correctness markers it needs
+to run and grade an attempt; it never receives question text, option text,
+hints, explanations, media references, or the answer key.
 
-- **Page 1** — quiz ID, join code, encryption key, QR code, and key fingerprint.
-- **Page 2** — short instructions for keeping and using the key. No server,
-  browser, or encryption internals are exposed.
+Each teacher account has a KEK derived from their passphrase in the browser
+(PBKDF2-HMAC-SHA-256, at least 600,000 iterations). The KEK never leaves the
+browser. Every encrypted quiz has a random DEK that is wrapped with the KEK and
+stored as `quiz.wrapped_dek`; question payloads use AES-256-GCM with
+quiz-and-question-bound AAD.
 
-The creator can reopen the encrypted copy at
-`/creator/quizzes/:id/secure`, paste the key or scan the QR code, and preview
-the decrypted quiz locally. Participants can fetch the opaque ciphertext
-through the participant endpoint, but it is unreadable without the creator's
-key.
+The server can see IDs, authored order, marks, `iscorrect` flags, ciphertext,
+and SHA-256 `answer_hash` values for text answers. Student endpoints strip
+correctness flags, answer hashes, and wrapped keys before responding. Text
+submissions are normalized and hashed server-side for grading, so results and
+marksheets can still be generated without plaintext.
 
-### Keeping the encrypted copy in sync
+### Secure student links
 
-Every question or option write (create, update, delete, reorder, bulk import,
-or direct API call) marks the stored encrypted copy as **stale** through
-database triggers. On the next creator save or publish, the studio detects the
-stale copy, re-encrypts the current questions with a new key, uploads a new
-ciphertext, and downloads a fresh key PDF. After its own plaintext sync it
-acknowledges the upload so normal edits do not keep showing the stale warning.
+Publishing an encrypted quiz produces a bearer link:
 
-Database migration `code-judge-backend/database/migrations/65_secure_quiz_payload_stale.sql`
-adds the stale columns and triggers. See
-[`code-judge-backend/ENCRYPTED_QUIZ_FLOW.md`](code-judge-backend/ENCRYPTED_QUIZ_FLOW.md)
-for the full flow, API endpoints, and testing steps.
+```
+/q/<quizCode>#<base64url-dek>
+```
+
+The browser reads the DEK fragment, stores it in `sessionStorage` for that tab,
+and removes it from the URL. The fragment is never sent in HTTP requests.
+Anyone with the complete link can decrypt the quiz, so share it only through
+trusted channels.
+
+### Key management
+
+There is no KEK rotation yet: `PUT /v1/user/quiz-crypto/kek` returns 409 once a
+KEK exists. Losing the passphrase means encrypted quizzes cannot be recovered;
+the server cannot reset or escrow the key.
+
+### Legacy encrypted copies
+
+Older quizzes may still use the legacy `/secure-payload` format (AES key in a
+downloaded PDF). The old `/creator/quizzes/:id/secure` unlock flow still works.
+Opening and re-saving such a quiz from Studio converts it to the KEK/DEK
+format; old snapshot rows are left in place and ignored once
+`crypto_version = 1`.
+
+Database migration
+`code-judge-backend/database/migrations/66_quiz_client_encryption.sql` adds the
+KEK and client-encryption columns. See
+[`code-judge-frontend/docs/encryption.md`](code-judge-frontend/docs/encryption.md)
+for the full architecture, API endpoints, grading caveats, and limitations.
+The legacy PDF flow is documented in
+[`code-judge-backend/ENCRYPTED_QUIZ_FLOW.md`](code-judge-backend/ENCRYPTED_QUIZ_FLOW.md).
 
 ---
 

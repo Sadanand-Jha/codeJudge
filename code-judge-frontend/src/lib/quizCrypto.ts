@@ -92,7 +92,9 @@ export function isSecureSaveCancelledError(
 ): error is SecureSaveCancelledError {
   return (
     error instanceof SecureSaveCancelledError ||
-    (error instanceof Error && error.name === "SecureSaveCancelledError")
+    (error instanceof Error &&
+      (error.name === "SecureSaveCancelledError" ||
+        error.name === "KekGateCancelledError"))
   );
 }
 

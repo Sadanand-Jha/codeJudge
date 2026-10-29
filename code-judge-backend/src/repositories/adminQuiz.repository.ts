@@ -25,6 +25,7 @@ export class AdminQuizRepository {
         q.subject_id, q.duration, q.total_marks, q.passing_marks, q.audience_mode,
         q.shuffle_questions, q.shuffle_options, q.show_results_immediately,
         q.negative_marking, q.leaderboard, q.registration_fields,
+        q.crypto_version, q.wrapped_dek,
         qs.name AS status, q.created_at,
         qd.heading AS difficulty_name
       FROM quiz q
@@ -43,6 +44,7 @@ export class AdminQuizRepository {
         q.subject_id, q.duration, q.total_marks, q.passing_marks, q.audience_mode,
         q.shuffle_questions, q.shuffle_options, q.show_results_immediately,
         q.negative_marking, q.leaderboard, q.registration_fields,
+        q.crypto_version, q.wrapped_dek,
         qs.name AS status, q.created_at,
         qd.heading AS difficulty_name
       FROM quiz q
@@ -327,7 +329,8 @@ export class AdminQuizRepository {
       SELECT qp.id, qp.quiz_id, qp.problem_statement, qp.problem_description,
         qp.quiz_problem_type, qpt.name AS problem_type_name, qp.question_number,
         qp.explaination, qp.hint, qp.difficulty, qd.heading AS difficulty_name,
-        qp.marks, qp.negative_marks, qp.created_at, qp.updated_at
+        qp.marks, qp.negative_marks, qp.payload_ct, qp.payload_aad_id,
+        qp.created_at, qp.updated_at
       FROM quiz_problems qp
       LEFT JOIN quiz_problem_type qpt ON qpt.id = qp.quiz_problem_type
       LEFT JOIN quiz_difficulty qd ON qd.id = qp.difficulty
@@ -343,7 +346,8 @@ export class AdminQuizRepository {
       SELECT qp.id, qp.quiz_id, qp.problem_statement, qp.problem_description,
         qp.quiz_problem_type, qpt.name AS problem_type_name, qp.question_number,
         qp.explaination, qp.hint, qp.difficulty, qd.heading AS difficulty_name,
-        qp.marks, qp.negative_marks, qp.created_at, qp.updated_at
+        qp.marks, qp.negative_marks, qp.payload_ct, qp.payload_aad_id,
+        qp.created_at, qp.updated_at
       FROM quiz_problems qp
       LEFT JOIN quiz_problem_type qpt ON qpt.id = qp.quiz_problem_type
       LEFT JOIN quiz_difficulty qd ON qd.id = qp.difficulty
@@ -363,7 +367,7 @@ export class AdminQuizRepository {
   async getQuizProblemOptions(problemId: string): Promise<any[]> {
     const query = `
       SELECT qpo.id, qpo.problem_id, qpo.option_statement, qpo.option_description,
-        qpo.matching_target, qpo.iscorrect, qpo.sort_order
+        qpo.matching_target, qpo.iscorrect, qpo.answer_hash, qpo.sort_order
       FROM quiz_problem_options qpo
       WHERE qpo.problem_id = $1
       ORDER BY qpo.sort_order ASC, qpo.id ASC

@@ -20,6 +20,7 @@
     "test:document-export": "tsx src/scripts/testDocumentExport.ts",
     "test:rooms": "tsx src/__tests__/roomAccess.test.ts",
     "test:decoy": "tsx src/__tests__/quizDecoy.test.ts",
+    "test:answer-hash": "tsx src/__tests__/answerHash.test.ts",
     "test:billing": "tsx src/__tests__/billing.test.ts",
     "test:ai-credits": "tsx src/__tests__/aiCredits.test.ts",
     "test:entitlements": "tsx src/services/entitlements/__tests__/resolver.test.ts",

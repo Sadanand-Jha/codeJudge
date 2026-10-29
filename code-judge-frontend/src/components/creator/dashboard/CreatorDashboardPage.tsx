@@ -11,10 +11,11 @@ import {
   Clock,
   Database,
   FileText,
+  Lock,
   Plus,
+  ShieldCheck,
   Sparkles,
   TriangleAlert,
-  WandSparkles,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
@@ -23,6 +24,9 @@ import { getUserTimeZone } from "@/lib/timezone";
 import { deriveQuizStatus, type EffectiveQuizStatus } from "@/lib/quizStatus";
 import { useData } from "@/lib/hooks/useData";
 import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
+import { KekGateHost } from "@/components/creator/quiz-crypto/KekGateHost";
+import { lockKek, requireKek } from "@/lib/quizKek";
+import { useKekStore } from "@/store/kekStore";
 import { TrialOfferBanner } from "@/components/marketing/TrialOfferBanner";
 import { TimingModal } from "@/components/creator/dashboard/TimingModal";
 import { ErrorState, Skeleton } from "@/components/creator/billing/ui";
@@ -36,7 +40,6 @@ import {
 } from "@/services/creatorProfile";
 import { getMyCreatedQuizzes, type Quiz } from "@/services/quiz";
 import { WHOLE_QUIZ_AI_ENABLED } from "@/config/creatorFeatures";
-import { toast } from "@/lib/toast";
 
 /* ============================================================
    Types & mapping
@@ -248,69 +251,182 @@ function StatTile({
 }
 
 /* ============================================================
-   Quick actions
+   Dashboard hero + action cards
    ============================================================ */
 
-const QUICK_ACTIONS: Array<{ title: string; sub: string; href: string; icon: LucideIcon; comingSoon?: boolean }> = [
-  { title: "New quiz", sub: "Build one by hand", href: "/creator/quizzes/create", icon: Plus },
-  {
-    title: "Generate with AI",
-    sub: WHOLE_QUIZ_AI_ENABLED ? "From files, topics or prompts" : "Coming soon",
-    href: "/creator/quizzes/ai-generate",
-    icon: WandSparkles,
-    comingSoon: !WHOLE_QUIZ_AI_ENABLED,
-  },
-  { title: "Paper builder", sub: "Print-ready papers", href: "/creator/tests/create", icon: FileText },
-  { title: "Question bank", sub: "Reuse your problems", href: "/creator/question-bank", icon: Database },
-];
-
-function QuickActions() {
+function DashboardHero({
+  greeting,
+  firstName,
+  vaultUnlocked,
+}: {
+  greeting: string;
+  firstName: string;
+  vaultUnlocked: boolean;
+}) {
   return (
-    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
-      {QUICK_ACTIONS.map((action, index) => {
-        const Icon = action.icon;
-        const className =
-          "flex h-full items-center gap-3.5 rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3.5 transition-colors hover:border-[var(--qs-brand)]";
-        const content = (
-          <>
-            <i className="grid h-11 w-11 shrink-0 place-items-center rounded-[13px] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
-              <Icon className="h-5 w-5" />
-            </i>
-            <span className="min-w-0">
-              <b className="block truncate text-[14px] font-bold text-[var(--qs-ink)]">{action.title}</b>
-              <small className="block truncate text-[12px] text-[var(--qs-muted)]">{action.sub}</small>
-            </span>
-          </>
-        );
-        return (
-          <motion.div
-            key={action.title}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.04 }}
+    <section className="relative -mx-3 -mt-4 overflow-hidden bg-[#281C58] px-6 pb-[130px] pt-11 sm:-mx-5 sm:-mt-5 lg:-mx-8 lg:-mt-6">
+      <div
+        aria-hidden="true"
+        className="absolute left-0 top-0 h-[360px] w-[520px] bg-[#4A3A5E]"
+        style={{ clipPath: "polygon(0 0, 100% 0, 0 100%)" }}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute right-0 top-0 h-[400px] w-[600px] bg-[#3F3088]"
+        style={{ clipPath: "polygon(30% 0, 100% 0, 100% 100%)" }}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute bottom-0 right-0 h-[260px] w-[420px] bg-[#5B47B8]"
+        style={{ clipPath: "polygon(100% 0, 100% 100%, 0 100%)" }}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute bottom-0 left-[240px] h-[220px] w-[360px] bg-[#33256E]"
+        style={{ clipPath: "polygon(0 100%, 55% 0, 100% 100%)" }}
+      />
+
+      <div className="relative mx-auto flex max-w-[1200px] flex-wrap items-end justify-between gap-6">
+        <div>
+          <span className="inline-block rounded-full border-2 border-[#1E1B3A] bg-[#FFD23F] px-3.5 py-[7px] text-[12px] font-extrabold uppercase tracking-[0.06em] text-[#1E1B3A]">
+            Teacher dashboard
+          </span>
+          <h1 className="mt-[18px] text-[clamp(36px,4.4vw,56px)] font-extrabold leading-[1.05] tracking-[-0.03em] text-[#ffffff]">
+            {greeting}, {firstName}
+          </h1>
+          <p className="mt-2.5 text-[17px] text-[#DDD5F7]">
+            Here&apos;s what&apos;s happening with your quizzes.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3.5">
+          <span className="inline-flex items-center gap-2 rounded-full border-2 border-[#ffffff] px-4 py-2.5 text-[13px] font-bold text-[#ffffff]">
+            <Lock className="h-4 w-4" />
+            {vaultUnlocked ? "Key unlocked · this session" : "Key locked · stays on this device"}
+          </span>
+          <Link
+            href="/creator/quizzes/create"
+            className="inline-flex h-[52px] items-center gap-2.5 rounded-[14px] border-2 border-[#1E1B3A] bg-[#FFD23F] px-6 text-[16px] font-extrabold text-[#1E1B3A] shadow-[0_4px_0_#1E1B3A] transition-transform hover:-translate-y-0.5"
           >
-            {action.comingSoon ? (
-              <button
-                type="button"
-                aria-disabled="true"
-                onClick={() =>
-                  toast.info({
-                    title: "Coming soon",
-                    description: "AI quiz generation is not available yet.",
-                  })
-                }
-                className={cn(className, "w-full cursor-not-allowed text-left opacity-60")}
-              >
-                {content}
-              </button>
-            ) : (
-              <Link href={action.href} className={className}>
-                {content}
-              </Link>
-            )}
-          </motion.div>
-        );
-      })}
+            <Plus className="h-[18px] w-[18px]" strokeWidth={2.8} />
+            Create quiz
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DashboardActionCard({
+  title,
+  description,
+  href,
+  cta,
+  icon: Icon,
+}: {
+  title: string;
+  description: string;
+  href: string;
+  cta: string;
+  icon: LucideIcon;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex min-h-[180px] flex-col rounded-[19px] border-2 border-[#1E1B3A] bg-[var(--qs-surface)] p-[18px] shadow-[5px_5px_0_#FFD23F] transition-transform hover:-translate-y-1"
+    >
+      <span className="grid h-[42px] w-[42px] place-items-center rounded-[11px] border-2 border-[#1E1B3A] bg-[var(--qs-brand)] text-[#ffffff]">
+        <Icon className="h-5 w-5" strokeWidth={2.4} />
+      </span>
+      <h2 className="mt-4 text-[16px] font-extrabold tracking-[-0.01em] text-[#1E1B3A]">{title}</h2>
+      <p className="mt-1.5 text-[10.5px] leading-[1.55] text-[#4A4670]">{description}</p>
+      <span className="mt-auto flex items-center gap-1.5 pt-3.5 text-[10px] font-extrabold text-[var(--qs-brand)]">
+        {cta} <span aria-hidden="true">→</span>
+      </span>
+    </Link>
+  );
+}
+
+function DashboardActions({
+  vaultUnlocked,
+  unlocking,
+  onUnlock,
+  onLock,
+}: {
+  vaultUnlocked: boolean;
+  unlocking: boolean;
+  onUnlock: () => void;
+  onLock: () => void;
+}) {
+  return (
+    <div className="relative mx-auto -mt-[84px] w-full max-w-[1200px] px-6 pb-6">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-6">
+        <DashboardActionCard
+          title="New quiz"
+          description="Build one by hand. Questions are encrypted in your browser as you save."
+          href="/creator/quizzes/create"
+          cta="Start building"
+          icon={Plus}
+        />
+
+        <div className="flex min-h-[180px] flex-col rounded-[19px] border-2 border-[#1E1B3A] bg-[#1E1B3A] p-[18px] text-[#ffffff] shadow-[5px_5px_0_#FFD23F]">
+          <div className="flex items-start justify-between gap-2">
+            <span className="grid h-[42px] w-[42px] place-items-center rounded-[11px] border-2 border-[#FFD23F] bg-[#FFD23F] text-[#1E1B3A]">
+              <Lock className="h-5 w-5" strokeWidth={2.4} />
+            </span>
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full border-2 px-2 py-[3px] text-[8px] font-extrabold uppercase tracking-[0.08em]",
+                vaultUnlocked
+                  ? "border-[#7EE2B8] text-[#7EE2B8]"
+                  : "border-[#FFD23F] text-[#FFD23F]"
+              )}
+            >
+              <span
+                className={cn(
+                  "h-[5px] w-[5px] rounded-full",
+                  vaultUnlocked ? "bg-[#7EE2B8]" : "bg-[#FFD23F]"
+                )}
+              />
+              {vaultUnlocked ? "Unlocked" : "Locked"}
+            </span>
+          </div>
+          <h2 className="mt-4 text-[16px] font-extrabold tracking-[-0.01em]">Encrypted vault</h2>
+          <p className="mt-1.5 text-[10.5px] leading-[1.55] text-[#DDD5F7]">
+            {vaultUnlocked
+              ? "Your key is unlocked for this session. Lock it again when you're done."
+              : "Your key never leaves this device. Unlock it to open quizzes and create secure links."}
+          </p>
+          <button
+            type="button"
+            onClick={vaultUnlocked ? onLock : onUnlock}
+            disabled={unlocking}
+            className="mt-auto inline-flex h-8 items-center justify-center self-start rounded-[9px] border-2 border-[#FFD23F] bg-[#FFD23F] px-3.5 text-[10px] font-extrabold text-[#1E1B3A] transition-colors hover:brightness-105 disabled:cursor-wait disabled:opacity-70"
+          >
+            {vaultUnlocked ? "Lock vault" : unlocking ? "Unlocking…" : "Unlock vault"}
+          </button>
+        </div>
+
+        <DashboardActionCard
+          title="Paper builder"
+          description="Print-ready papers, assembled from your own questions."
+          href="/creator/tests/create"
+          cta="Build a paper"
+          icon={FileText}
+        />
+        <DashboardActionCard
+          title="Question bank"
+          description="Reuse your problems. Stored encrypted, readable only with your key."
+          href="/creator/question-bank"
+          cta="Open bank"
+          icon={Database}
+        />
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-center text-[13px] text-[#4A4670]">
+        <ShieldCheck className="h-4 w-4 shrink-0 text-[#0B6B4A]" />
+        Questions are encrypted in your browser before they reach our servers.
+      </div>
     </div>
   );
 }
@@ -774,7 +890,11 @@ function RecentQuizzesPanel({ quizzes }: { quizzes: QuizRow[] }) {
       {rows.length === 0 ? (
         <EmptyHint
           text="No quizzes yet."
-          hint="Create one from scratch. AI quiz generation is coming soon."
+          hint={
+            WHOLE_QUIZ_AI_ENABLED
+              ? "Create one from scratch, or generate a complete quiz with AI."
+              : "Create one from scratch. AI quiz generation is coming soon."
+          }
           action={
             <Link href="/creator/quizzes/create" className={BTN_PRI}>
               <Plus className="h-4 w-4" />
@@ -1073,6 +1193,20 @@ export function CreatorDashboardPage() {
   const user = useAuthStore((s) => s.user);
   const greeting = greetingForNow();
   const [timingQuiz, setTimingQuiz] = useState<QuizRow | null>(null);
+  const vaultUnlocked = useKekStore((state) => state.kek !== null);
+  const [unlockingVault, setUnlockingVault] = useState(false);
+
+  const handleUnlockVault = async () => {
+    if (unlockingVault) return;
+    setUnlockingVault(true);
+    try {
+      await requireKek();
+    } catch {
+      // The gate dialog reports its own errors; a cancel is not an error.
+    } finally {
+      setUnlockingVault(false);
+    }
+  };
 
   const { status, data, error, retry } = useData<DashboardData>(async () => {
     const [overview, quizzes] = await Promise.all([
@@ -1132,85 +1266,76 @@ export function CreatorDashboardPage() {
   }, [overview]);
 
   return (
-    <div className="space-y-5 pb-2">
-      {/* Header */}
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div className="min-w-0">
-          <h1 className="qs-display text-[28px] font-extrabold leading-[1.08] tracking-[-0.025em] text-[var(--qs-ink)] sm:text-[34px] lg:text-[38px]">
-            {greeting}, {firstName}
-          </h1>
-          <p className="mt-1.5 text-[14px] text-[var(--qs-muted)] sm:text-[15px]">
-            Here&apos;s what&apos;s happening with your quizzes.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/creator/quizzes/create" className={BTN_PRI}>
-            <Plus className="h-4 w-4" />
-            Create quiz
-          </Link>
-        </div>
+    <div className="creator-dashboard-page pb-2">
+      <DashboardHero greeting={greeting} firstName={firstName} vaultUnlocked={vaultUnlocked} />
+
+      <DashboardActions
+        vaultUnlocked={vaultUnlocked}
+        unlocking={unlockingVault}
+        onUnlock={() => void handleUnlockVault()}
+        onLock={lockKek}
+      />
+
+      <div className="mt-2 space-y-5">
+        <TrialOfferBanner />
+
+        {status === "loading" && <DashboardSkeleton />}
+
+        {status === "error" && <ErrorState onRetry={retry} message={error?.message} />}
+
+        {status === "ready" && data && (
+          <>
+            {/* Live quiz + credits */}
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+              <div className="lg:col-span-2">
+                {liveQuiz ? (
+                  <LiveQuizCard quiz={liveQuiz} onChangeTiming={() => setTimingQuiz(liveQuiz)} />
+                ) : quizzes.length === 0 ? (
+                  <OnboardingCard />
+                ) : (
+                  <NoLiveCard draftCount={draftCount} />
+                )}
+              </div>
+              <CreditsCard />
+            </div>
+
+            {/* Stat tiles */}
+            <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+              {tiles.map((tile, index) => (
+                <StatTile
+                  key={tile.label}
+                  label={tile.label}
+                  value={tile.value}
+                  hint={tile.hint}
+                  color={tile.color}
+                  index={index}
+                />
+              ))}
+            </div>
+
+            {/* Attempts, status mix, attention */}
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
+              <AttemptsByQuizPanel quizzes={quizzes} />
+              <StatusMixPanel quizzes={quizzes} />
+              <NeedsAttentionPanel quizzes={quizzes} />
+            </div>
+
+            {/* Recent quizzes + activity */}
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+              <div className="min-w-0 xl:col-span-2">
+                <RecentQuizzesPanel quizzes={quizzes} />
+              </div>
+              <RecentActivityPanel attempts={recentAttempts} />
+            </div>
+
+            {/* Top students + scheduled */}
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+              <TopStudentsPanel attempts={recentAttempts} />
+              <ScheduledPanel quizzes={quizzes} onReschedule={setTimingQuiz} />
+            </div>
+          </>
+        )}
       </div>
-
-      <TrialOfferBanner />
-
-      <QuickActions />
-
-      {status === "loading" && <DashboardSkeleton />}
-
-      {status === "error" && <ErrorState onRetry={retry} message={error?.message} />}
-
-      {status === "ready" && data && (
-        <>
-          {/* Live quiz + credits */}
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              {liveQuiz ? (
-                <LiveQuizCard quiz={liveQuiz} onChangeTiming={() => setTimingQuiz(liveQuiz)} />
-              ) : quizzes.length === 0 ? (
-                <OnboardingCard />
-              ) : (
-                <NoLiveCard draftCount={draftCount} />
-              )}
-            </div>
-            <CreditsCard />
-          </div>
-
-          {/* Stat tiles */}
-          <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
-            {tiles.map((tile, index) => (
-              <StatTile
-                key={tile.label}
-                label={tile.label}
-                value={tile.value}
-                hint={tile.hint}
-                color={tile.color}
-                index={index}
-              />
-            ))}
-          </div>
-
-          {/* Attempts, status mix, attention */}
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
-            <AttemptsByQuizPanel quizzes={quizzes} />
-            <StatusMixPanel quizzes={quizzes} />
-            <NeedsAttentionPanel quizzes={quizzes} />
-          </div>
-
-          {/* Recent quizzes + activity */}
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-            <div className="min-w-0 xl:col-span-2">
-              <RecentQuizzesPanel quizzes={quizzes} />
-            </div>
-            <RecentActivityPanel attempts={recentAttempts} />
-          </div>
-
-          {/* Top students + scheduled */}
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-            <TopStudentsPanel attempts={recentAttempts} />
-            <ScheduledPanel quizzes={quizzes} onReschedule={setTimingQuiz} />
-          </div>
-        </>
-      )}
 
       {timingQuiz && (
         <TimingModal
@@ -1222,6 +1347,8 @@ export function CreatorDashboardPage() {
           }}
         />
       )}
+
+      <KekGateHost />
     </div>
   );
 }

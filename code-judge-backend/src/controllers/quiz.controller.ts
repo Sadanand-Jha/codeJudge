@@ -64,6 +64,23 @@ const resultGenerationService = new ResultGenerationService();
 const secureQuizService = new SecureQuizService();
 
 /**
+ * Refuse plaintext question writes for client-encrypted quizzes. Silently
+ * accepting them would put the authored text back on the server.
+ */
+function rejectEncryptedPlaintextWrite(quiz: any, res: Response): boolean {
+  if (Number(quiz?.crypto_version) === 1) {
+    res.status(409).json({
+      success: false,
+      code: "QUIZ_ENCRYPTED",
+      message:
+        "This quiz is end-to-end encrypted. Save its questions from Studio so they stay encrypted.",
+    });
+    return true;
+  }
+  return false;
+}
+
+/**
  * Student-safe quiz DTO. Creator identity is limited to public display fields
  * plus the numeric creator id (needed for the aggregate-only creator card);
  * never send email/contact data, internal timestamps, or private configuration.
@@ -98,6 +115,7 @@ const toStudentQuiz = (quiz: Record<string, any>) => {
   show_results_immediately: quiz.show_results_immediately === true,
   leaderboard: quiz.leaderboard === true,
   registration_fields: Array.isArray(quiz.registration_fields) ? quiz.registration_fields : null,
+  crypto_version: Number(quiz.crypto_version) === 1 ? 1 : 0,
   });
 };
 
@@ -270,8 +288,6 @@ export const getQuizByCode = async (req: Request, res: Response) => {
     }
 
     const quiz = await quizService.getQuizByCode(code);
-
-    console.log(quiz, "this is the reposne");
 
     const status = String(quiz?.status ?? "").toLowerCase();
     if (!quiz || !["scheduled", "live"].includes(status)) {
@@ -648,6 +664,15 @@ export const cloneQuiz = async (req: Request, res: Response) => {
       });
       return;
     }
+    if (Number(quiz.crypto_version) === 1) {
+      res.status(409).json({
+        success: false,
+        code: "QUIZ_ENCRYPTED",
+        message:
+          "End-to-end encrypted quizzes cannot be cloned because their ciphertext is bound to the original quiz id.",
+      });
+      return;
+    }
 
     const clonedQuiz = await quizService.cloneQuiz(Number(quizId), name, code, Number(userId));
 
@@ -813,6 +838,7 @@ export const addQuizProblem = async (req: Request, res: Response) => {
       });
       return;
     }
+    if (rejectEncryptedPlaintextWrite(quiz, res)) return;
 
     const MAX_PROBLEMS = 25;
     const problemCount = await quizService.getQuizProblemCount(String(quizId));
@@ -890,6 +916,7 @@ export const updateQuizProblem = async (req: Request, res: Response) => {
       });
       return;
     }
+    if (rejectEncryptedPlaintextWrite(quiz, res)) return;
 
     const updatedProblem = await quizService.updateQuizProblem(Number(problemId), body);
 
@@ -955,6 +982,7 @@ export const saveQuizProblemFull = async (req: Request, res: Response) => {
       });
       return;
     }
+    if (rejectEncryptedPlaintextWrite(quiz, res)) return;
 
     // Own-quiz constraint: a problemId may only be upserted when it already
     // belongs to this quiz, preventing cross-quiz overwrites.
@@ -1132,6 +1160,7 @@ export const duplicateQuizProblem = async (req: Request, res: Response) => {
       });
       return;
     }
+    if (rejectEncryptedPlaintextWrite(quiz, res)) return;
 
     const duplicatedProblem = await quizService.duplicateQuizProblem(Number(problemId));
 
@@ -1255,6 +1284,7 @@ export const addQuizProblemOption = async (req: Request, res: Response) => {
       });
       return;
     }
+    if (rejectEncryptedPlaintextWrite(quiz, res)) return;
 
     const option = await quizService.createQuizProblemOption({
       ...body,
@@ -1321,9 +1351,10 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
     // ordering only, and the browser decrypts the text with the teacher key.
     // Legacy (unencrypted) quizzes keep the old plaintext response until they
     // are saved again from Studio.
-    const hasSecurePayload = Boolean(
-      await secureQuizService.getMeta(Number(quizId))
-    );
+    const quiz = await quizService.getQuizById(quizId);
+    const hasSecurePayload =
+      Number(quiz?.crypto_version) === 1 ||
+      Boolean(await secureQuizService.getMeta(Number(quizId)));
     const problems = await attachQuizProblemOptions(quizId, false);
     // Record authored positions so the browser can map decrypted text even for
     // old payloads that predate server-side id linking (and while options are
@@ -1336,7 +1367,6 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
         authored_index: optionIndex,
       })),
     }));
-    const quiz = await quizService.getQuizById(quizId);
 
     const stableShuffle = <T>(items: T[], seed: number): T[] => {
       const output = [...items];
@@ -2301,6 +2331,8 @@ function sanitizeReviewForEncryptedQuiz(review: any[]): any[] {
     question_number: row.question_number,
     problem_type: row.problem_type,
     difficulty: row.difficulty,
+    payload_ct: row.payload_ct,
+    payload_aad_id: row.payload_aad_id,
     options: Array.isArray(row.options)
       ? row.options.map((option: any) => ({
           id: option.id,
@@ -2350,9 +2382,10 @@ export const getQuizReview = async (req: Request, res: Response) => {
     }
 
     const review = await quizService.getQuestionWiseReview(Number(attemptId), Number(userId));
-    const hasSecurePayload = Boolean(
-      await secureQuizService.getMeta(Number(result.quiz_id))
-    );
+    const reviewQuiz = await quizService.getQuizById(String(result.quiz_id));
+    const hasSecurePayload =
+      Number(reviewQuiz?.crypto_version) === 1 ||
+      Boolean(await secureQuizService.getMeta(Number(result.quiz_id)));
 
     res.status(200).json({
       success: true,
@@ -2702,9 +2735,9 @@ export const getQuizProblemsPublicController = async (req: Request, res: Respons
 
     const quiz = await quizService.getQuizById(quizId);
     const isOwner = Boolean(quiz) && Number(quiz.createdby) === Number(userId);
-    const hasSecurePayload = Boolean(
-      await secureQuizService.getMeta(Number(quizId))
-    );
+    const hasSecurePayload =
+      Number(quiz?.crypto_version) === 1 ||
+      Boolean(await secureQuizService.getMeta(Number(quizId)));
     const problemsWithOptions = await attachQuizProblemOptions(quizId, false);
     // Non-owners get identifiers/order only once an encrypted copy exists; the
     // browser restores the authored text from the teacher-key payload.
