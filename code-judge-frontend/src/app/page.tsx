@@ -352,7 +352,6 @@ export default async function HomePage() {
           <span className="lpx-hero-grain" />
         </div>
         <div className="lpx-wrap">
-          <span className="lpx-price-eye">Pricing</span>
           <h2 className="lpx-price-title">
             Simple pricing. <span>Serious quizzing.</span>
           </h2>
