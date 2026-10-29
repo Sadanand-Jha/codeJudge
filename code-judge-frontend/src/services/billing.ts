@@ -108,3 +108,56 @@ export async function getBillingTransactions(
   );
   return response.data;
 }
+
+export type TrialRequestStatus = "pending" | "approved" | "rejected" | "cancelled";
+
+export type TrialEligibilityReason =
+  | "eligible"
+  | "pending"
+  | "active_trial"
+  | "active_plan"
+  | "trial_used"
+  | "unavailable";
+
+export interface TrialRequestSummary {
+  id: number;
+  status: TrialRequestStatus;
+  requestNote: string | null;
+  reviewNote: string | null;
+  requestedAt: string;
+  reviewedAt: string | null;
+  trialStartedAt: string | null;
+  trialEndsAt: string | null;
+  creditsGranted: number;
+}
+
+export interface TrialPlanSummary {
+  id: number;
+  name: string;
+  slug: string;
+  trialDays: number;
+  credits: number;
+}
+
+export interface TrialStatus {
+  eligible: boolean;
+  reason: TrialEligibilityReason;
+  plan: TrialPlanSummary | null;
+  activeTrialEndsAt: string | null;
+  latestRequest: TrialRequestSummary | null;
+}
+
+/** GET /api/v1/billing/trial — current eligibility and request state. */
+export async function getTrialStatus(): Promise<TrialStatus> {
+  const response = await apiClient.get<TrialStatus>("/v1/billing/trial");
+  return response.data;
+}
+
+/** POST /api/v1/billing/trial/request — submit a Basic trial request. */
+export async function requestBasicTrial(note?: string): Promise<TrialRequestSummary> {
+  const response = await apiClient.post<{ request: TrialRequestSummary }>(
+    "/v1/billing/trial/request",
+    { note: note?.trim() || null }
+  );
+  return response.data.request;
+}

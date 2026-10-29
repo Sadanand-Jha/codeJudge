@@ -52,7 +52,7 @@ function buildFaqs(catalog: PricingCatalog) {
     {
       q: "Is there a free trial?",
       a: trialPlan
-        ? `Yes. ${trialPlan.name} includes a ${trialPlan.trialDays}-day quiz-only trial. AI credits are not included. No card required.`
+        ? `Yes. ${trialPlan.name} includes a ${trialPlan.trialDays}-day trial${trialPlan.credits > 0 ? ` with ${trialPlan.credits} AI credits` : ""}. Request it from billing; the owner approves each request. No card required.`
         : "Trial availability depends on the current plans shown above.",
     },
     {
@@ -89,8 +89,11 @@ export default async function PricingPage() {
               "Move up when your quiz load grows. Every plan includes the full quiz builder, access codes and instant results. Paid plans also include monthly AI credits."}
           </p>
           <div className="qp-actions">
-            <Link href="/register" className="btn pri">
-              {trialDays > 0 ? "Start quiz-only trial" : "Get started"} <ArrowRight size={16} />
+            <Link
+              href={trialDays > 0 ? "/login?next=/creator/billing/plans" : "/register"}
+              className="btn pri"
+            >
+              {trialDays > 0 ? "Request Basic trial" : "Get started"} <ArrowRight size={16} />
             </Link>
             <a href="#plans" className="btn">
               Compare plans
@@ -98,7 +101,8 @@ export default async function PricingPage() {
           </div>
           <div className="qp-meta" aria-label="Pricing highlights">
             <span>No card required</span>
-            {trialDays > 0 && <span>Quiz-only trial</span>}
+            {trialDays > 0 && <span>Basic trial · approval required</span>}
+            {trialDays > 0 && <span>AI credits included</span>}
             {offer && <span>{offer}</span>}
             <span>GST included</span>
           </div>
@@ -169,8 +173,11 @@ export default async function PricingPage() {
                       ))}
                     </ul>
 
-                    <Link href="/register" className="btn qp-plan-cta">
-                      {plan.cta}
+                    <Link
+                      href={plan.trialDays ? "/login?next=/creator/billing/plans" : "/register"}
+                      className="btn qp-plan-cta"
+                    >
+                      {plan.trialDays ? `Request ${plan.trialDays}-day trial` : plan.cta}
                     </Link>
                   </article>
                 );
@@ -233,7 +240,7 @@ export default async function PricingPage() {
             <div className="cta">
               <div>
                 <p className="eb">Start today</p>
-                <h2>{trialDays > 0 ? `Start your ${trialDays}-day quiz-only trial today.` : "Start creating quizzes today."}</h2>
+                <h2>{trialDays > 0 ? `Request your ${trialDays}-day Basic trial today.` : "Start creating quizzes today."}</h2>
               </div>
               <div className="qp-cta-actions">
                 <Link href="/register" className="btn">

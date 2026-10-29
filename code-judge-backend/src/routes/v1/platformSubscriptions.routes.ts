@@ -18,6 +18,7 @@ import {
   updateCreditPackBodySchema,
   updatePlanBodySchema,
 } from "../../middleware/subscription.validate.ts";
+import { reviewTrialRequestSchema } from "../../middleware/trialRequest.validate.ts";
 import {
   activatePlanHandler,
   archivePlanHandler,
@@ -64,10 +65,27 @@ import {
   publishPageContentHandler,
   savePageContentDraftHandler,
 } from "../../controllers/platformContent.controller.ts";
+import {
+  approveTrialRequestHandler,
+  listTrialRequestsHandler,
+  rejectTrialRequestHandler,
+} from "../../controllers/trialRequest.controller.ts";
 
 const router = Router();
 
 router.get("/registry", getEntitlementRegistryHandler);
+
+router.get("/trial-requests", listTrialRequestsHandler);
+router.post(
+  "/trial-requests/:requestId/approve",
+  validate(reviewTrialRequestSchema),
+  approveTrialRequestHandler
+);
+router.post(
+  "/trial-requests/:requestId/reject",
+  validate(reviewTrialRequestSchema),
+  rejectTrialRequestHandler
+);
 
 router.get("/plans", listPlansHandler);
 router.post("/plans", validate(createPlanBodySchema), createPlanHandler);

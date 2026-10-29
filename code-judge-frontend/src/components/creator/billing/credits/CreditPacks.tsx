@@ -213,7 +213,7 @@ export function CreditPacks({
     <div>
       <p className="mb-6 mt-2 text-[14px] text-[var(--qs-muted)]">
         {trialState === "active" ? (
-          `${trialLabel} · quizzes only · no AI credits${trialEndsOn ? ` · ends ${trialEndsOn}` : ""}.`
+          `${trialLabel} · ${trialPlan?.credits ?? 20} AI credits${trialEndsOn ? ` · ends ${trialEndsOn}` : ""}.`
         ) : trialState === "expired" ? (
           `${trialLabel} expired · no monthly AI credits. Add a one-time pack when you need credits.`
         ) : (

@@ -49,13 +49,13 @@ export default function LandingHeader({ trialDays = 0 }: { trialDays?: number })
                 New creator offer
               </span>
               <span>
-                <strong>{trialDays}-day free trial</strong> · Quiz-only studio access · No credit
-                card required.
+                <strong>{trialDays}-day Basic trial</strong> · AI credits included · Owner approval
+                required · No credit card required.
               </span>
             </div>
             <div className="promo-actions">
-              <Link href="/register" className="promo-cta">
-                Start quiz-only trial
+              <Link href="/start-free-trial" className="promo-cta">
+                Request Basic trial
                 <ArrowRight size={14} aria-hidden />
               </Link>
               <button
