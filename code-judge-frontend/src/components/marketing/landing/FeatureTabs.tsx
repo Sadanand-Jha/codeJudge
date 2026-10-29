@@ -79,7 +79,6 @@ const FEATURE_TABS: FeatureTab[] = [
         <h3 style={{ fontSize: 26, margin: "10px 0 8px" }}>
           Operating system Unit 1, 2 class quiz
         </h3>
-        <span className="code">VQBA-MIDJ-ETTW-EFRT</span>
         <div className="ms">
           <div>
             <small>Attempts</small>
