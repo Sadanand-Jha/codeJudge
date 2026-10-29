@@ -55,7 +55,7 @@ const ACCEPT = [
 ].join(",");
 
 const MAX_SIZE_MB = 20;
-const MAX_BANK_QUESTIONS = 25;
+const MAX_BANK_QUESTIONS = 40;
 const MAX_QUIZ_QUESTIONS = 40;
 const FILE_GENERATION_COUNT = 20;
 

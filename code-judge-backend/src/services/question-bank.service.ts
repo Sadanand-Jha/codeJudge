@@ -495,10 +495,10 @@ export const generateFromQuestionBank = async (
   request: QuestionBankSelectionRequest
 ): Promise<QuestionBankSelectionResult> => {
   const requestedQuestions = Number(request.numberOfQuestions) || 10;
-  if (requestedQuestions > 25) {
-    throw new Error("You can generate at most 25 questions at a time.");
+  if (requestedQuestions > 40) {
+    throw new Error("You can generate at most 40 questions at a time.");
   }
-  const numberOfQuestions = clamp(requestedQuestions, 1, 25);
+  const numberOfQuestions = clamp(requestedQuestions, 1, 40);
 
   let easy = request.easyCount;
   let medium = request.mediumCount;

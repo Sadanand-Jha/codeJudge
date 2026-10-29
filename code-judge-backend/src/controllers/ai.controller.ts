@@ -268,13 +268,13 @@ export const generateQuestionsFromUpload = async (req: Request, res: Response) =
     }
 
     const requestedQuestions = Number(req.body.numberOfQuestions) || 5;
-    if (requestedQuestions > 25) {
+    if (requestedQuestions > 40) {
       return res.status(400).json({
         success: false,
-        message: "You can generate at most 25 questions at a time.",
+        message: "You can generate at most 40 questions at a time.",
       });
     }
-    const numberOfQuestions = Math.min(25, Math.max(1, requestedQuestions));
+    const numberOfQuestions = Math.min(40, Math.max(1, requestedQuestions));
     const boolOf = (v: unknown) => v === "true" || v === true || v === "1";
     const optionalId = (value: unknown): number | null => {
       const parsed = Number(value);
@@ -438,13 +438,13 @@ export const generateFromQuestionBankHandler = async (req: Request, res: Respons
     const chargeRefId = randomUUID();
 
     const requestedQuestions = Number(req.body.numberOfQuestions) || 10;
-    if (requestedQuestions > 25) {
+    if (requestedQuestions > 40) {
       return res.status(400).json({
         success: false,
-        message: "You can generate at most 25 questions at a time.",
+        message: "You can generate at most 40 questions at a time.",
       });
     }
-    const numberOfQuestions = Math.min(25, Math.max(1, requestedQuestions));
+    const numberOfQuestions = Math.min(40, Math.max(1, requestedQuestions));
     const easyCount = req.body.easyCount != null ? Number(req.body.easyCount) : undefined;
     const mediumCount = req.body.mediumCount != null ? Number(req.body.mediumCount) : undefined;
     const hardCount = req.body.hardCount != null ? Number(req.body.hardCount) : undefined;

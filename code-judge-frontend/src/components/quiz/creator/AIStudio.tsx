@@ -636,10 +636,10 @@ export default function AIStudio({
                     <span className="text-lg font-bold text-accent">{bankNumber}</span>
                     <span className="text-[10px] text-text-muted ml-1">questions</span>
                   </div>
-                  <button onClick={() => { const v = Math.min(25, bankNumber + 1); setBankNumber(v); syncBankDistribution(v); }} className="flex h-8 w-8 items-center justify-center rounded-lg bg-card-hover border border-border"><Plus className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => { const v = Math.min(40, bankNumber + 1); setBankNumber(v); syncBankDistribution(v); }} className="flex h-8 w-8 items-center justify-center rounded-lg bg-card-hover border border-border"><Plus className="h-3.5 w-3.5" /></button>
                 </div>
-                <input type="range" min={5} max={25} value={bankNumber} onChange={(e) => { const v = parseInt(e.target.value); setBankNumber(v); syncBankDistribution(v); }} className="w-full h-2 bg-card-hover rounded-lg appearance-none cursor-pointer accent-accent" />
-                <p className="text-[10px] text-text-muted">A balanced quiz typically uses 10 questions. Range 5–25.</p>
+                <input type="range" min={5} max={40} value={bankNumber} onChange={(e) => { const v = parseInt(e.target.value); setBankNumber(v); syncBankDistribution(v); }} className="w-full h-2 bg-card-hover rounded-lg appearance-none cursor-pointer accent-accent" />
+                <p className="text-[10px] text-text-muted">A balanced quiz typically uses 10 questions. Range 5–40.</p>
               </div>
 
               <div className="rounded-xl border border-border bg-card p-3 space-y-3">
@@ -987,13 +987,13 @@ export default function AIStudio({
                   <input
                     type="range"
                     min="1"
-                    max="25"
+                    max="40"
                     value={options.numberOfQuestions}
                     onChange={(e) => setOptions((prev) => ({ ...prev, numberOfQuestions: parseInt(e.target.value) }))}
                     className="flex-1 h-2 bg-card-hover rounded-lg appearance-none cursor-pointer accent-accent"
                   />
                   <button
-                    onClick={() => setOptions((prev) => ({ ...prev, numberOfQuestions: Math.min(25, prev.numberOfQuestions + 1) }))}
+                    onClick={() => setOptions((prev) => ({ ...prev, numberOfQuestions: Math.min(40, prev.numberOfQuestions + 1) }))}
                     className="flex h-8 w-8 items-center justify-center rounded-lg bg-card-hover border border-border hover:border-accent/30 transition-colors"
                   >
                     <Plus className="h-3.5 w-3.5" />
