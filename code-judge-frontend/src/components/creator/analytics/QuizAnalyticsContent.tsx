@@ -5,9 +5,9 @@ import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
 import { getAdminQuizById, getQuizAnalytics } from "@/services/quiz";
 import { getTeacherSecureContent } from "@/services/quizCrypto";
-import { requireKek } from "@/lib/quizKek";
+import { requireQuizKey } from "@/lib/quizKey";
 import { decryptTeacherQuestions } from "@/lib/quizCryptoV2";
-import { KekGateHost } from "@/components/creator/quiz-crypto/KekGateHost";
+import { QuizKeyGateHost } from "@/components/creator/quiz-crypto/QuizKeyGateHost";
 import { AnalyticsTopBar } from "./quiz/AnalyticsTopBar";
 import { AnalyticsHero } from "./quiz/AnalyticsHero";
 import { OverviewTab } from "./quiz/OverviewTab";
@@ -48,14 +48,16 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
         if (disposed) return;
         let nextData = analyticsRes as unknown as AnalyticsData;
         if (Number(metaRes.crypto_version) === 1) {
-          const kek = await requireKek();
+          const keyEntry = await requireQuizKey(quizId, {
+            title: metaRes.name,
+          });
           const content = await getTeacherSecureContent(quizId);
           if (!content.wrappedDek) {
             throw new Error("Encrypted quiz is missing its wrapped data key.");
           }
           const decrypted = await decryptTeacherQuestions(
             quizId,
-            kek,
+            keyEntry.key,
             content.problems,
             content.wrappedDek
           );
@@ -132,7 +134,7 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
   if (loading && !data) {
     return (
       <>
-        <KekGateHost />
+        <QuizKeyGateHost />
         <div className="mx-auto max-w-[1240px] px-4 py-6 pb-24 sm:px-6">
           <div className="app-skeleton mb-6 h-12 w-72 rounded-[14px]" />
         <div className="app-skeleton mb-6 h-72 rounded-[26px]" />
@@ -174,7 +176,7 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
 
   return (
     <div className="mx-auto max-w-[1240px] px-4 py-6 pb-24 sm:px-6">
-      <KekGateHost />
+      <QuizKeyGateHost />
       <AnalyticsTopBar
         quizName={meta?.name ?? "Quiz analytics"}
         status={meta?.status ?? null}

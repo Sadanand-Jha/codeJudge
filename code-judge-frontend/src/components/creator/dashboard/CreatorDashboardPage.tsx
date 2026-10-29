@@ -27,9 +27,7 @@ import { getUserTimeZone } from "@/lib/timezone";
 import { deriveQuizStatus, type EffectiveQuizStatus } from "@/lib/quizStatus";
 import { useData } from "@/lib/hooks/useData";
 import { GenerateWithAiButton } from "@/components/creator/common/GenerateWithAiButton";
-import { KekGateHost } from "@/components/creator/quiz-crypto/KekGateHost";
-import { lockKek, requireKek } from "@/lib/quizKek";
-import { useKekStore } from "@/store/kekStore";
+import { useQuizKeyStore } from "@/store/quizKeyStore";
 import { TrialOfferBanner } from "@/components/marketing/TrialOfferBanner";
 import { TimingModal } from "@/components/creator/dashboard/TimingModal";
 import { ErrorState, Skeleton } from "@/components/creator/billing/ui";
@@ -309,7 +307,7 @@ function DashboardHero({
         <div className="flex flex-wrap items-center gap-3.5">
           <span className="inline-flex items-center gap-2 rounded-full border-2 border-[#ffffff] px-4 py-2.5 text-[13px] font-bold text-[#ffffff]">
             <Lock className="h-4 w-4" />
-            {vaultUnlocked ? "Key unlocked · this session" : "Key locked · stays on this device"}
+            {vaultUnlocked ? "Keys unlocked · this tab" : "Keys locked · enter per quiz"}
           </span>
           <Link
             href="/creator/quizzes/create"
@@ -355,16 +353,13 @@ function DashboardActionCard({
 }
 
 function DashboardActions({
-  vaultUnlocked,
-  unlocking,
-  onUnlock,
+  unlockedKeyCount,
   onLock,
 }: {
-  vaultUnlocked: boolean;
-  unlocking: boolean;
-  onUnlock: () => void;
+  unlockedKeyCount: number;
   onLock: () => void;
 }) {
+  const vaultUnlocked = unlockedKeyCount > 0;
   return (
     <div className="relative mx-auto -mt-[84px] w-full max-w-[1200px] px-6 pb-6">
       <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-6">
@@ -401,17 +396,24 @@ function DashboardActions({
           <h2 className="mt-4 text-[16px] font-extrabold tracking-[-0.01em]">Encrypted vault</h2>
           <p className="mt-1.5 text-[10.5px] leading-[1.55] text-[#DDD5F7]">
             {vaultUnlocked
-              ? "Your key is unlocked for this session. Lock it again when you're done."
-              : "Your key never leaves this device. Unlock it to open quizzes and create secure links."}
+              ? `${unlockedKeyCount} ${
+                  unlockedKeyCount === 1 ? "quiz key is" : "quiz keys are"
+                } unlocked in this tab. Lock them when you're done.`
+              : "Every quiz has its own key. Enter it when you open an encrypted quiz."}
           </p>
-          <button
-            type="button"
-            onClick={vaultUnlocked ? onLock : onUnlock}
-            disabled={unlocking}
-            className="mt-auto inline-flex h-8 items-center justify-center self-start rounded-[9px] border-2 border-[#FFD23F] bg-[#FFD23F] px-3.5 text-[10px] font-extrabold text-[#1E1B3A] transition-colors hover:brightness-105 disabled:cursor-wait disabled:opacity-70"
-          >
-            {vaultUnlocked ? "Lock vault" : unlocking ? "Unlocking…" : "Unlock vault"}
-          </button>
+          {vaultUnlocked ? (
+            <button
+              type="button"
+              onClick={onLock}
+              className="mt-auto inline-flex h-8 items-center justify-center self-start rounded-[9px] border-2 border-[#FFD23F] bg-[#FFD23F] px-3.5 text-[10px] font-extrabold text-[#1E1B3A] transition-colors hover:brightness-105"
+            >
+              Lock all keys
+            </button>
+          ) : (
+            <span className="mt-auto inline-flex items-center self-start text-[10px] font-bold text-[#DDD5F7]">
+              Keys are requested per quiz
+            </span>
+          )}
         </div>
 
         <DashboardActionCard
@@ -1399,20 +1401,11 @@ export function CreatorDashboardPage() {
   const user = useAuthStore((s) => s.user);
   const greeting = greetingForNow();
   const [timingQuiz, setTimingQuiz] = useState<QuizRow | null>(null);
-  const vaultUnlocked = useKekStore((state) => state.kek !== null);
-  const [unlockingVault, setUnlockingVault] = useState(false);
-
-  const handleUnlockVault = async () => {
-    if (unlockingVault) return;
-    setUnlockingVault(true);
-    try {
-      await requireKek();
-    } catch {
-      // The gate dialog reports its own errors; a cancel is not an error.
-    } finally {
-      setUnlockingVault(false);
-    }
-  };
+  const unlockedKeyCount = useQuizKeyStore(
+    (state) => Object.keys(state.keys).length
+  );
+  const clearQuizKeys = useQuizKeyStore((state) => state.clearAll);
+  const vaultUnlocked = unlockedKeyCount > 0;
 
   const { status, data, error, retry } = useData<DashboardData>(async () => {
     const [overview, quizzes] = await Promise.all([
@@ -1476,10 +1469,8 @@ export function CreatorDashboardPage() {
       <DashboardHero greeting={greeting} firstName={firstName} vaultUnlocked={vaultUnlocked} />
 
       <DashboardActions
-        vaultUnlocked={vaultUnlocked}
-        unlocking={unlockingVault}
-        onUnlock={() => void handleUnlockVault()}
-        onLock={lockKek}
+        unlockedKeyCount={unlockedKeyCount}
+        onLock={clearQuizKeys}
       />
 
       <div className="mt-2 space-y-5">
@@ -1558,7 +1549,6 @@ export function CreatorDashboardPage() {
         />
       )}
 
-      <KekGateHost />
     </div>
   );
 }

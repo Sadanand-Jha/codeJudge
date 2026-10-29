@@ -52,7 +52,7 @@ export function RegistrationStep({ embedded = false }: { embedded?: boolean } = 
       if (isSecureSaveCancelledError(err)) {
         toast.info({
           title: "Encrypted save cancelled",
-          description: "The encryption passphrase was not confirmed, so the encrypted copy was not updated.",
+          description: "Your teacher key was not confirmed, so the encrypted copy was not updated.",
         });
       } else if (!isQuestionValidationError(err)) {
         toast.error({ title: "Could not save", description: err instanceof Error ? err.message : "Something went wrong." });

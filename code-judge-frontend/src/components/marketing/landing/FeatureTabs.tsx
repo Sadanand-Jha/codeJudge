@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Heart } from "lucide-react";
+import { motion, useMotionValueEvent, useScroll, useTransform } from "framer-motion";
 
 function avatarStyle(name: string) {
   let hash = 0;
@@ -56,6 +57,7 @@ const SCORE_BARS = [
 ];
 
 interface FeatureTab {
+  id: string;
   tab: string;
   heading: string;
   body: string;
@@ -65,6 +67,7 @@ interface FeatureTab {
 
 const FEATURE_TABS: FeatureTab[] = [
   {
+    id: "live",
     tab: "Live quizzes",
     heading: "Share one access code. Go live.",
     body: "Publish in a click. Students join with a single code — no accounts, no app. Watch attempts land in real time.",
@@ -107,6 +110,7 @@ const FEATURE_TABS: FeatureTab[] = [
     ),
   },
   {
+    id: "responses",
     tab: "Responses & ranks",
     heading: "Every student, ranked live.",
     body: "Submitted, in progress or auto-submitted — with marks, time and rank. Search, filter, export or email the whole room.",
@@ -139,6 +143,7 @@ const FEATURE_TABS: FeatureTab[] = [
     ),
   },
   {
+    id: "analytics",
     tab: "Question analytics",
     heading: "Know which questions work.",
     body: "Score spread, completion rate, hardest and slowest questions — so you know exactly what to reteach.",
@@ -177,6 +182,7 @@ const FEATURE_TABS: FeatureTab[] = [
     ),
   },
   {
+    id: "game",
     tab: "Game mode",
     heading: "Turn revision into a game.",
     body: "Lives, lifelines and a timer included. Students play — you see which power-ups they reach for.",
@@ -218,40 +224,150 @@ const FEATURE_TABS: FeatureTab[] = [
 
 export default function FeatureTabs() {
   const [active, setActive] = useState(0);
-  const feature = FEATURE_TABS[active];
+  const [scrollDriven, setScrollDriven] = useState(false);
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const query = window.matchMedia(
+      "(min-width: 960px) and (prefers-reduced-motion: no-preference)"
+    );
+    const sync = () => setScrollDriven(query.matches);
+    sync();
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
+
+  const { scrollYProgress } = useScroll({
+    target: trackRef,
+    offset: ["start start", "end end"],
+  });
+  const { scrollYProgress: entryProgress } = useScroll({
+    target: trackRef,
+    offset: ["start end", "start start"],
+  });
+
+  const entryScale = useTransform(entryProgress, [0, 1], [0.92, 1]);
+  const entryY = useTransform(entryProgress, [0, 1], [90, 0]);
+  const entryOpacity = useTransform(entryProgress, [0, 0.7, 1], [0.2, 0.85, 1]);
+  const entryBlur = useTransform(entryProgress, [0, 1], ["blur(10px)", "blur(0px)"]);
+
+  useMotionValueEvent(scrollYProgress, "change", (value) => {
+    if (!scrollDriven) return;
+    const next = Math.min(
+      Math.floor(value * FEATURE_TABS.length),
+      FEATURE_TABS.length - 1
+    );
+    setActive((current) => (current === next ? current : next));
+  });
+
+  const selectTab = (index: number) => {
+    setActive(index);
+    if (!scrollDriven) return;
+    const track = trackRef.current;
+    if (!track) return;
+    const top = window.scrollY + track.getBoundingClientRect().top;
+    const distance = Math.max(track.offsetHeight - window.innerHeight, 0);
+    window.scrollTo({
+      top: top + ((index + 0.5) / FEATURE_TABS.length) * distance,
+      behavior: "smooth",
+    });
+  };
 
   return (
-    <>
-      <div className="tabs" role="tablist">
-        {FEATURE_TABS.map((item, index) => (
-          <button
-            key={item.tab}
-            type="button"
-            role="tab"
-            aria-selected={index === active}
-            onClick={() => setActive(index)}
-          >
-            {item.tab}
-          </button>
-        ))}
-      </div>
-      <div className="fx">
-        <div>
-          <h3>{feature.heading}</h3>
-          <p>{feature.body}</p>
-          <ul className="ck">
-            {feature.bullets.map((bullet) => (
-              <li key={bullet}>{bullet}</li>
+    <div ref={trackRef} className="ft-track">
+      <div className="ft-stage">
+        <motion.div
+          className="ft-stage-inner"
+          style={
+            scrollDriven
+              ? {
+                  scale: entryScale,
+                  y: entryY,
+                  opacity: entryOpacity,
+                  filter: entryBlur,
+                }
+              : undefined
+          }
+        >
+          <div className="ft-head">
+            <h2>The paper is only the beginning.</h2>
+          </div>
+
+          <div className="tabs ft-tabs" role="tablist" aria-label="Quiz features">
+            {FEATURE_TABS.map((item, index) => (
+              <button
+                key={item.id}
+                id={`ft-tab-${item.id}`}
+                type="button"
+                role="tab"
+                aria-selected={index === active}
+                aria-controls={`ft-panel-${item.id}`}
+                onClick={() => selectTab(index)}
+              >
+                {item.tab}
+              </button>
             ))}
-          </ul>
-          <Link className="btn pri" href="/creator/quizzes/create">
-            Try it free →
-          </Link>
-        </div>
-        <div className="outer">
-          <div className="card pv">{feature.preview}</div>
-        </div>
+          </div>
+
+          <div className="ft-rail" aria-hidden="true">
+            {FEATURE_TABS.map((item, index) => (
+              <span
+                key={item.id}
+                className={index === active ? "is-active" : index < active ? "is-done" : undefined}
+              >
+                <i />
+              </span>
+            ))}
+          </div>
+
+          <div className="ft-scenes">
+            {FEATURE_TABS.map((item, index) => (
+              <motion.div
+                key={item.id}
+                id={`ft-panel-${item.id}`}
+                role="tabpanel"
+                aria-labelledby={`ft-tab-${item.id}`}
+                aria-hidden={index !== active}
+                inert={index !== active}
+                className="ft-scene"
+                animate={{
+                  opacity: index === active ? 1 : 0,
+                  y: index === active ? 0 : index < active ? -28 : 28,
+                  scale: index === active ? 1 : 0.985,
+                  filter: index === active ? "blur(0px)" : "blur(10px)",
+                }}
+                transition={{
+                  duration: index === active ? 0.42 : 0.24,
+                  delay: index === active ? 0.12 : 0,
+                  ease: "easeOut",
+                }}
+                style={{ pointerEvents: index === active ? "auto" : "none" }}
+              >
+                <div className="ft-scene-copy">
+                  <span className="ft-scene-tag">
+                    <i aria-hidden />
+                    Now showing · {String(index + 1).padStart(2, "0")} /{" "}
+                    {String(FEATURE_TABS.length).padStart(2, "0")}
+                  </span>
+                  <h3>{item.heading}</h3>
+                  <p>{item.body}</p>
+                  <ul className="ck">
+                    {item.bullets.map((bullet) => (
+                      <li key={bullet}>{bullet}</li>
+                    ))}
+                  </ul>
+                  <Link className="btn pri" href="/creator/quizzes/create">
+                    Try it free →
+                  </Link>
+                </div>
+                <div className="outer">
+                  <div className="card pv">{item.preview}</div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
       </div>
-    </>
+    </div>
   );
 }

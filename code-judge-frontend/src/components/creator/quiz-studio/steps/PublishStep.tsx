@@ -14,7 +14,7 @@ import { useSavedAvatar } from "@/store/avatarStore";
 import { toast } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { isSecureSaveCancelledError } from "@/lib/quizCrypto";
-import { requireKek } from "@/lib/quizKek";
+import { requireQuizKey } from "@/lib/quizKey";
 import { buildSecureShareLink, exportShareDek } from "@/lib/quizCryptoV2";
 import { getTeacherSecureContent } from "@/services/quizCrypto";
 import { StudioStepLayout } from "../primitives";
@@ -70,7 +70,7 @@ export function PublishStep({
       if (isSecureSaveCancelledError(err)) {
         toast.info({
           title: "Encrypted save cancelled",
-          description: "The encryption passphrase was not confirmed, so the encrypted copy was not updated.",
+          description: "Your teacher key was not confirmed, so the encrypted copy was not updated.",
         });
         return;
       }
@@ -91,10 +91,16 @@ export function PublishStep({
       let link = buildJoinLink(code);
       let secureLink = false;
       try {
-        const kek = await requireKek();
         const content = await getTeacherSecureContent(quizId);
         if (content.configured && content.wrappedDek) {
-          const dek = await exportShareDek(quizId, kek, content.wrappedDek);
+          const keyEntry = await requireQuizKey(quizId, {
+            title: state.info.title,
+          });
+          const dek = await exportShareDek(
+            quizId,
+            keyEntry.key,
+            content.wrappedDek
+          );
           link = buildSecureShareLink(code, dek);
           secureLink = true;
         }
@@ -113,7 +119,7 @@ export function PublishStep({
       if (isSecureSaveCancelledError(err)) {
         toast.info({
           title: "Encrypted publish cancelled",
-          description: "The encryption passphrase was not confirmed, so the quiz was not published.",
+          description: "Your teacher key was not confirmed, so the quiz was not published.",
         });
         return;
       }

@@ -234,7 +234,6 @@ export default async function HomePage() {
 
       <section className="lpx-section" id="features" data-reveal>
         <div className="lpx-wrap">
-          <h2>The paper is only the beginning.</h2>
           <FeatureTabs />
           <div className="lpx-g8">
             {CAPABILITIES.map((item) => {

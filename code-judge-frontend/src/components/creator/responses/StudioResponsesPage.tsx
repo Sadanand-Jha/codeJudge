@@ -20,11 +20,11 @@ import {
   type QuizResponseStudent,
   type StudentResponseDetail,
 } from "@/services/quiz";
-import { KekGateHost } from "@/components/creator/quiz-crypto/KekGateHost";
-import { requireKek } from "@/lib/quizKek";
+import { QuizKeyGateHost } from "@/components/creator/quiz-crypto/QuizKeyGateHost";
+import { requireQuizKey } from "@/lib/quizKey";
 import { decryptTeacherQuestions } from "@/lib/quizCryptoV2";
 import { getTeacherSecureContent } from "@/services/quizCrypto";
-import { KekGateCancelledError } from "@/store/kekGateStore";
+import { QuizKeyGateCancelledError } from "@/store/quizKeyGateStore";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -407,14 +407,14 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
         const detail = await getStudentResponseDetail(numericId, detailPanel.userId, detailPanel.attemptId ?? undefined);
         let nextDetail = detail;
         if (detail.review.some((row) => row.payload_ct)) {
-          const kek = await requireKek();
+          const keyEntry = await requireQuizKey(numericId);
           const content = await getTeacherSecureContent(numericId);
           if (!content.wrappedDek) {
             throw new Error("Encrypted quiz is missing its wrapped data key.");
           }
           const decrypted = await decryptTeacherQuestions(
             numericId,
-            kek,
+            keyEntry.key,
             content.problems,
             content.wrappedDek
           );
@@ -463,7 +463,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
         }
         if (!cancelled) setDetailReview(nextDetail);
       } catch (err) {
-        if (!(err instanceof KekGateCancelledError) && !cancelled) {
+        if (!(err instanceof QuizKeyGateCancelledError) && !cancelled) {
           setDetailReview(null);
         }
       } finally {
@@ -659,7 +659,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
 
   return (
     <div className="min-h-full bg-[var(--qs-bg)]">
-      <KekGateHost />
+      <QuizKeyGateHost />
       <div className="mx-auto max-w-[1280px] px-4 py-6 pb-20 sm:px-6">
 
         {/* ── Top ───────────────────────────────────────────────────── */}

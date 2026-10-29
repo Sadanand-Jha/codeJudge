@@ -376,6 +376,8 @@ function SecureQuizUnlockV1({ quizId }: { quizId: string }) {
     try {
       await downloadKeyPdf(unlockedKey, payload.quizId, unlocked.title, {
         serverQuizId: quizId,
+        version: payload.version,
+        generatedAt: payload.createdAt,
       });
     } catch {
       setUnlockError("Could not generate the key PDF. Please try again.");

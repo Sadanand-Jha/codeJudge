@@ -30,8 +30,9 @@ import {
 } from "@/services/quiz";
 import { syncQuizQuestions, computeChangedQuestions, buildQuestionSnapshot } from "@/utils/quizQuestionSync";
 import { containsHtml, htmlToPlainText } from "@/utils/htmlText";
-import { KekGateHost } from "@/components/creator/quiz-crypto/KekGateHost";
-import { hasUnlockedKek, requireKek } from "@/lib/quizKek";
+import { QuizKeyDialogHost } from "@/components/creator/quiz-crypto/QuizKeyDialogHost";
+import { QuizKeyGateHost } from "@/components/creator/quiz-crypto/QuizKeyGateHost";
+import { hasQuizKey, requireQuizKey, showQuizKeyPdf } from "@/lib/quizKey";
 import {
   decryptTeacherQuestions,
   encryptQuizQuestions,
@@ -42,7 +43,7 @@ import {
   saveTeacherSecureContent,
 } from "@/services/quizCrypto";
 import type { Envelope } from "@/lib/crypto";
-import { KekGateCancelledError } from "@/store/kekGateStore";
+import { QuizKeyGateCancelledError } from "@/store/quizKeyGateStore";
 import { useRoomStore } from "@/store/roomStore";
 import {
   type StudioState,
@@ -768,14 +769,16 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
           const aadByProblemId = new Map<number, string>();
           if (Number(loadedQuiz?.crypto_version) === 1) {
             try {
-              const kek = await requireKek();
+              const keyEntry = await requireQuizKey(initialQuizId, {
+                title: loadedQuiz?.name,
+              });
               const content = await getTeacherSecureContent(initialQuizId);
               if (!content.wrappedDek) {
                 throw new Error("Encrypted quiz is missing its wrapped data key.");
               }
               const decrypted = await decryptTeacherQuestions(
                 initialQuizId,
-                kek,
+                keyEntry.key,
                 content.problems,
                 content.wrappedDek
               );
@@ -792,7 +795,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
             } catch (error) {
               if (cancelled) return;
               setLoadError(
-                "Unlock the quiz encryption passphrase to load its questions."
+                error instanceof QuizKeyGateCancelledError
+                  ? "Enter your teacher key to load this encrypted quiz."
+                  : "Could not unlock this quiz with the teacher key."
               );
               setQuestionsLoading(false);
               console.error(
@@ -945,16 +950,20 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     setSaveProgress({ saved: 0, total: questions.length });
     try {
       const quizId = state.serverQuizId;
-      const kek = await requireKek();
-      let existingWrappedDek: Envelope | null = null;
-      if (quizEncryptedRef.current) {
-        const current = await getTeacherSecureContent(quizId);
-        existingWrappedDek = current.wrappedDek;
+      const current = await getTeacherSecureContent(quizId);
+      const existingWrappedDek: Envelope | null = current.wrappedDek ?? null;
+      const hadKey = hasQuizKey(quizId);
+      const keyEntry = await requireQuizKey(quizId, {
+        title: state.info.title,
+        createIfMissing: !existingWrappedDek,
+      });
+      if (!existingWrappedDek && !hadKey) {
+        await showQuizKeyPdf(quizId, state.info.title, keyEntry);
       }
       const encrypted = await encryptQuizQuestions(
         quizId,
         updatedQuestions,
-        kek,
+        keyEntry.key,
         existingWrappedDek
       );
       const saved = await saveTeacherSecureContent(quizId, encrypted.input);
@@ -1445,19 +1454,24 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
             (quizEncryptedRef.current && secureDirty));
         let secureUploaded = false;
         if (needsSecureSave) {
-          if (!opts?.secure && !hasUnlockedKek()) {
-            throw new KekGateCancelledError();
+          if (!opts?.secure && !hasQuizKey(quizId)) {
+            throw new QuizKeyGateCancelledError();
           }
-          const kek = await requireKek();
-          let existingWrappedDek: Envelope | null = null;
-          if (quizEncryptedRef.current) {
-            const current = await getTeacherSecureContent(quizId);
-            existingWrappedDek = current.wrappedDek;
+          const current = await getTeacherSecureContent(quizId);
+          const existingWrappedDek: Envelope | null =
+            current.wrappedDek ?? null;
+          const hadKey = hasQuizKey(quizId);
+          const keyEntry = await requireQuizKey(quizId, {
+            title: state.info.title,
+            createIfMissing: !existingWrappedDek,
+          });
+          if (!existingWrappedDek && !hadKey) {
+            await showQuizKeyPdf(quizId, state.info.title, keyEntry);
           }
           const encrypted = await encryptQuizQuestions(
             quizId,
             state.questions,
-            kek,
+            keyEntry.key,
             existingWrappedDek
           );
           const saved = await saveTeacherSecureContent(quizId, encrypted.input);
@@ -1744,7 +1758,8 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
   return (
     <StudioContext.Provider value={value}>
       {children}
-      <KekGateHost />
+      <QuizKeyGateHost />
+      <QuizKeyDialogHost />
     </StudioContext.Provider>
   );
 }

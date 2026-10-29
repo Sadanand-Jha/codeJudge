@@ -13,11 +13,11 @@ import {
   ShieldCheck,
   Unlock,
 } from "lucide-react";
-import { KekGateHost } from "@/components/creator/quiz-crypto/KekGateHost";
+import { QuizKeyGateHost } from "@/components/creator/quiz-crypto/QuizKeyGateHost";
 import { getApiErrorMessage } from "@/lib/apiError";
-import { requireKek } from "@/lib/quizKek";
+import { requireQuizKey } from "@/lib/quizKey";
 import { buildSecureShareLink, exportShareDek } from "@/lib/quizCryptoV2";
-import { KekGateCancelledError } from "@/store/kekGateStore";
+import { QuizKeyGateCancelledError } from "@/store/quizKeyGateStore";
 import { getTeacherSecureContent } from "@/services/quizCrypto";
 import type { QuizBasic } from "@/services/quiz";
 import { toast } from "@/lib/toast";
@@ -32,7 +32,6 @@ export function ClientEncryptedQuizPanel({ quiz }: { quiz: QuizBasic }) {
     setUnlocking(true);
     setError(null);
     try {
-      const kek = await requireKek();
       const content = await getTeacherSecureContent(quiz.id);
       if (!content.configured || !content.wrappedDek) {
         setError(
@@ -40,10 +39,17 @@ export function ClientEncryptedQuizPanel({ quiz }: { quiz: QuizBasic }) {
         );
         return;
       }
-      const dek = await exportShareDek(String(quiz.id), kek, content.wrappedDek);
+      const keyEntry = await requireQuizKey(String(quiz.id), {
+        title: quiz.name,
+      });
+      const dek = await exportShareDek(
+        String(quiz.id),
+        keyEntry.key,
+        content.wrappedDek
+      );
       setLink(buildSecureShareLink(quiz.code, dek));
     } catch (err) {
-      if (err instanceof KekGateCancelledError) return;
+      if (err instanceof QuizKeyGateCancelledError) return;
       setError(
         getApiErrorMessage(err, "Could not create the secure link. Please try again.")
       );
@@ -70,7 +76,7 @@ export function ClientEncryptedQuizPanel({ quiz }: { quiz: QuizBasic }) {
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-4 py-3 sm:px-4 sm:py-6">
-      <KekGateHost />
+      <QuizKeyGateHost />
       <div className="flex flex-wrap items-center justify-between gap-3 px-1 sm:px-0">
         <div>
           <Link

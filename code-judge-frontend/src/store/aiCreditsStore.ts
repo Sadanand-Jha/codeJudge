@@ -136,6 +136,15 @@ export const CREDIT_CACHE_KEY = "quizsupport_credit_balance_cache_v1";
 export const CREDIT_SYNC_CHANNEL = "quizsupport-credit-balance";
 export const CREDIT_LAST_PACK_KEY = "quizsupport_last_credit_pack_credits";
 
+/**
+ * Fingerprint of the last snapshot written to the cross-tab cache. Two tabs
+ * listening for `storage` events would otherwise ping-pong forever: each
+ * refresh rewrote the cache (new `savedAt`), which fired the other tab's
+ * listener, which refreshed and rewrote the cache again.
+ */
+let lastWrittenCacheKey: string | null = null;
+let inFlightRefresh: Promise<boolean> | null = null;
+
 interface CachedCreditSnapshot extends NormalizedCreditSnapshot {
   savedAt: number;
 }
@@ -159,11 +168,14 @@ function readCachedSnapshot(): CachedCreditSnapshot | null {
 
 function writeCachedSnapshot(snapshot: NormalizedCreditSnapshot): void {
   if (typeof window === "undefined") return;
+  const key = JSON.stringify(snapshot);
+  if (key === lastWrittenCacheKey) return;
   try {
     window.localStorage.setItem(
       CREDIT_CACHE_KEY,
       JSON.stringify({ ...snapshot, savedAt: Date.now() })
     );
+    lastWrittenCacheKey = key;
   } catch {
     // Storage can be unavailable in private mode; the live fetch still works.
   }
@@ -437,60 +449,71 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
   },
 
   refresh: async (options) => {
+    // Coalesce concurrent callers (layout mount, focus/visibility listeners,
+    // credit hooks) into a single balance+usage round trip.
+    if (inFlightRefresh) return inFlightRefresh;
+    const pending = (async () => {
+      try {
+        const [rawSnapshot, usage] = await Promise.all([
+          getCreditBalance(),
+          getCreditUsage(getUserTimeZone()),
+        ]);
+        const snapshot = normalizeCreditSnapshot(rawSnapshot);
+        if (!snapshot) throw new Error("Invalid credit balance response");
+        const planTotal = snapshot.planCreditsTotal;
+        const purchasedTotal = snapshot.purchasedCreditsTotal;
+        const planRemaining = snapshot.planCredits;
+        const purchasedRemaining = snapshot.purchasedCredits;
+        const expiry = snapshot.nearestExpiry ? Date.parse(snapshot.nearestExpiry) : 0;
+
+        set((state) => ({
+          balance: {
+            ...state.balance,
+            monthlyCredits: planTotal,
+            monthlyAllowance: planTotal,
+            monthlyCreditsConsumed: Math.max(0, planTotal - planRemaining),
+            monthlyCreditsExpiry: Number.isFinite(expiry) ? expiry : 0,
+            purchasedCredits: purchasedTotal,
+            purchasedCreditsConsumed: Math.max(0, purchasedTotal - purchasedRemaining),
+            totalRemaining: snapshot.balance,
+            remaining: snapshot.balance,
+            hasActiveSubscription:
+              state.balance.hasActiveSubscription || planTotal > 0,
+          },
+          stats: {
+            ...state.stats,
+            remaining: snapshot.balance,
+            monthlyAllowance: planTotal,
+            consumedToday: usage.consumedToday,
+            consumedThisMonth: usage.consumedThisMonth,
+            averageDailyUsage: usage.averageDailyUsage,
+            estimatedDaysRemaining:
+              usage.averageDailyUsage > 0
+                ? Math.floor(snapshot.balance / usage.averageDailyUsage)
+                : 0,
+            monthlyGraph: usage.monthlyGraph,
+            recentRequests: usage.recentRequests.map(toUsageEntry),
+          },
+          status: "ready",
+          hasSnapshot: true,
+          expiresAt: Number.isFinite(expiry) && expiry > 0 ? expiry : null,
+          lastFetchedAt: Date.now(),
+        }));
+
+        writeCachedSnapshot(snapshot);
+        if (options?.broadcast !== false) publishCreditChange();
+        return true;
+      } catch {
+        // Keep the last known balance (and cached theme) when the API is unavailable.
+        set({ status: "error" });
+        return false;
+      }
+    })();
+    inFlightRefresh = pending;
     try {
-      const [rawSnapshot, usage] = await Promise.all([
-        getCreditBalance(),
-        getCreditUsage(getUserTimeZone()),
-      ]);
-      const snapshot = normalizeCreditSnapshot(rawSnapshot);
-      if (!snapshot) throw new Error("Invalid credit balance response");
-      const planTotal = snapshot.planCreditsTotal;
-      const purchasedTotal = snapshot.purchasedCreditsTotal;
-      const planRemaining = snapshot.planCredits;
-      const purchasedRemaining = snapshot.purchasedCredits;
-      const expiry = snapshot.nearestExpiry ? Date.parse(snapshot.nearestExpiry) : 0;
-
-      set((state) => ({
-        balance: {
-          ...state.balance,
-          monthlyCredits: planTotal,
-          monthlyAllowance: planTotal,
-          monthlyCreditsConsumed: Math.max(0, planTotal - planRemaining),
-          monthlyCreditsExpiry: Number.isFinite(expiry) ? expiry : 0,
-          purchasedCredits: purchasedTotal,
-          purchasedCreditsConsumed: Math.max(0, purchasedTotal - purchasedRemaining),
-          totalRemaining: snapshot.balance,
-          remaining: snapshot.balance,
-          hasActiveSubscription:
-            state.balance.hasActiveSubscription || planTotal > 0,
-        },
-        stats: {
-          ...state.stats,
-          remaining: snapshot.balance,
-          monthlyAllowance: planTotal,
-          consumedToday: usage.consumedToday,
-          consumedThisMonth: usage.consumedThisMonth,
-          averageDailyUsage: usage.averageDailyUsage,
-          estimatedDaysRemaining:
-            usage.averageDailyUsage > 0
-              ? Math.floor(snapshot.balance / usage.averageDailyUsage)
-              : 0,
-          monthlyGraph: usage.monthlyGraph,
-          recentRequests: usage.recentRequests.map(toUsageEntry),
-        },
-        status: "ready",
-        hasSnapshot: true,
-        expiresAt: Number.isFinite(expiry) && expiry > 0 ? expiry : null,
-        lastFetchedAt: Date.now(),
-      }));
-
-      writeCachedSnapshot(snapshot);
-      if (options?.broadcast !== false) publishCreditChange();
-      return true;
-    } catch {
-      // Keep the last known balance (and cached theme) when the API is unavailable.
-      set({ status: "error" });
-      return false;
+      return await pending;
+    } finally {
+      inFlightRefresh = null;
     }
   },
 }));
