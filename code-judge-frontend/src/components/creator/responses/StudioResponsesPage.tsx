@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ChevronLeft, ChevronRight, Mail, Square, Search, X, RefreshCw,
+  ArrowLeft, ChevronLeft, ChevronRight, Mail, Search, X, RefreshCw,
   MoreVertical, Pause, RotateCcw, Timer, TrendingUp, TrendingDown, Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
@@ -17,7 +17,6 @@ import {
   getQuizByCode,
   deleteQuizResponseAttempt,
   sendQuizResponsesEmail,
-  updateQuizStatus,
   type QuizResponseStudent,
   type StudentResponseDetail,
 } from "@/services/quiz";
@@ -52,9 +51,6 @@ interface Student {
   rank: number | null;
   questionsAnswered: number | null;
   totalQuestions: number | null;
-  decoyHits: number | null;
-  decoyQuestions: number | null;
-  decoyFlagged: boolean;
 }
 
 const STATUS_CONFIG: Record<StudentStatus, { label: string; text: string }> = {
@@ -211,9 +207,6 @@ function mapStudent(row: QuizResponseStudent): Student {
     rank: row.rank,
     questionsAnswered: hasAttempt ? (correct ?? 0) + wrong : status === "NOT_STARTED" ? 0 : null,
     totalQuestions: toNumber(row.total_questions),
-    decoyHits: hasAttempt ? toNumber(row.decoy_hits) ?? 0 : null,
-    decoyQuestions: hasAttempt ? toNumber(row.decoy_questions) ?? 0 : null,
-    decoyFlagged: hasAttempt && row.decoy_flagged === true,
   };
 }
 
@@ -284,13 +277,11 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
   const [detailLoading, setDetailLoading] = useState(false);
   const [pauseOpen, setPauseOpen] = useState(false);
   const [restartOpen, setRestartOpen] = useState(false);
-  const [endOpen, setEndOpen] = useState(false);
   const [liveMenuOpen, setLiveMenuOpen] = useState(false);
   const [actionMenu, setActionMenu] = useState<{ student: Student; top: number; right: number } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
-  const [endingQuiz, setEndingQuiz] = useState(false);
   const [presenceNow, setPresenceNow] = useState(() => Date.now());
   const firstResponsesLoadRef = useRef(true);
 
@@ -566,6 +557,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
   const paged = filtered.slice(pageStart, pageStart + PAGE_SIZE);
   const pageItems = pageNumbers(currentPage, totalPages);
 
+  const hasResponses = useMemo(() => students.some((student) => student.attemptId !== null), [students]);
   const liveStudents = useMemo(() => students.filter((student) => isLiveAttempt(student, presenceNow)), [students, presenceNow]);
   const inProgressCount = useMemo(() => summaryStudents.filter((s) => s.status === "IN_PROGRESS").length, [summaryStudents]);
   const timedOutCount = useMemo(() => summaryStudents.filter((s) => s.status === "TIMED_OUT").length, [summaryStudents]);
@@ -633,34 +625,8 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
     }
   }, [deleteTarget, deleting, resolvedQuizId, detailPanel, toast, load]);
 
-  const handleEndQuiz = useCallback(async () => {
-    if (endingQuiz) return;
-    setEndingQuiz(true);
-    try {
-      let numericId = resolvedQuizId;
-      if (!/^\d+$/.test(numericId)) {
-        numericId = String((await getQuizByCode(numericId)).id);
-      }
-      const result = await updateQuizStatus(numericId, "ended");
-      setQuizStatus(result.status ?? "ended");
-      setEndOpen(false);
-      toast.success({
-        title: "Quiz ended",
-        description: "New participants can no longer start this quiz.",
-      });
-      await load();
-    } catch (error) {
-      toast.error({
-        title: "Could not end quiz",
-        description: apiErrorMessage(error, "Please try again in a moment."),
-      });
-    } finally {
-      setEndingQuiz(false);
-    }
-  }, [endingQuiz, resolvedQuizId, toast, load]);
-
   const handleSendEmail = useCallback(async () => {
-    if (sendingEmail) return;
+    if (sendingEmail || !hasResponses) return;
     setSendingEmail(true);
     try {
       const result = await sendQuizResponsesEmail(resolvedQuizId);
@@ -676,7 +642,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
     } finally {
       setSendingEmail(false);
     }
-  }, [sendingEmail, resolvedQuizId, toast]);
+  }, [sendingEmail, hasResponses, resolvedQuizId, toast]);
 
   const kpis = [
     { label: "Total students", value: summary.total, sub: "registered", color: "var(--qs-brand)" },
@@ -727,22 +693,13 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
             <button
               type="button"
               onClick={() => void handleSendEmail()}
-              disabled={sendingEmail}
+              disabled={sendingEmail || !hasResponses}
+              title={hasResponses ? undefined : "Email is available once students respond to this quiz."}
               className={cn(topBtn, "disabled:cursor-not-allowed disabled:opacity-60")}
             >
               <Mail className={cn("h-4 w-4", sendingEmail && "animate-pulse")} />
               {sendingEmail ? "Sending…" : "Send on Email"}
             </button>
-            {!quizEnded && (
-              <button
-                type="button"
-                onClick={() => setEndOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-bad)] bg-[var(--qs-surface)] px-3.5 py-[9px] text-sm font-bold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-bad)] hover:text-white"
-              >
-                <Square className="h-4 w-4" />
-                End Quiz
-              </button>
-            )}
           </div>
         </div>
 
@@ -806,14 +763,6 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setEndOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-bad)] bg-[var(--qs-bad)] px-3.5 py-2 text-xs font-extrabold text-white transition-colors hover:brightness-110"
-                >
-                  <Square className="h-3.5 w-3.5" />
-                  End Quiz
-                </button>
                 <div className="relative">
                   <button
                     type="button"
@@ -1066,10 +1015,6 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                         <p className="mt-1.5 text-[11px] text-[var(--qs-muted)]">
                           {s.timeTaken ?? "—"} · {s.submittedAt ?? "—"}
                         </p>
-                        <p className={cn("mt-1 text-[11px] font-bold", s.decoyFlagged ? "text-[var(--qs-bad)]" : "text-[var(--qs-muted)]")}>
-                          Decoy hits: {s.decoyHits !== null ? `${s.decoyHits}/${s.decoyQuestions ?? 0}` : "—"}
-                          {s.decoyFlagged ? " · Flagged" : ""}
-                        </p>
                       </div>
                       <button
                         type="button"
@@ -1086,10 +1031,10 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
             </div>
 
             <div className="hidden overflow-x-auto border-t-2 border-[var(--qs-line)] md:block">
-              <table className="w-full min-w-[1000px] border-collapse text-left">
+              <table className="w-full min-w-[900px] border-collapse text-left">
                 <thead>
                   <tr>
-                    {["Rank", "Student", "Roll no.", "Status", "Correct", "%", "Decoy hits", "Time taken", "Submitted at", "Actions"].map((h) => (
+                    {["Rank", "Student", "Roll no.", "Status", "Correct", "%", "Time taken", "Submitted at", "Actions"].map((h) => (
                       <th key={h} className="whitespace-nowrap px-3 py-3.5 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">{h}</th>
                     ))}
                   </tr>
@@ -1098,14 +1043,14 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                   {loading ? (
                     Array.from({ length: 5 }).map((_, i) => (
                       <tr key={i}>
-                        <td colSpan={10} className="border-t-2 border-[var(--qs-line)]/60 px-3 py-3">
+                        <td colSpan={9} className="border-t-2 border-[var(--qs-line)]/60 px-3 py-3">
                           <div className="app-skeleton h-8 rounded" />
                         </td>
                       </tr>
                     ))
                   ) : filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="border-t-2 border-[var(--qs-line)]/60 px-4 py-10 text-center text-sm font-medium text-[var(--qs-muted)]">
+                      <td colSpan={9} className="border-t-2 border-[var(--qs-line)]/60 px-4 py-10 text-center text-sm font-medium text-[var(--qs-muted)]">
                         {students.length === 0 ? "No responses yet — students haven't been registered or attempted this quiz." : "No records match this filter."}
                       </td>
                     </tr>
@@ -1139,16 +1084,6 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                               />
                             </span>
                           </div>
-                        </td>
-                        <td className="px-3 py-3">
-                          <span className={cn("inline-flex items-center gap-1.5 font-bold", s.decoyFlagged ? "text-[var(--qs-bad)]" : "text-[var(--qs-ink)]")}>
-                            {s.decoyHits !== null ? `${s.decoyHits}/${s.decoyQuestions ?? 0}` : "—"}
-                            {s.decoyFlagged && (
-                              <span className="rounded-full border border-current px-1.5 py-px text-[9px] font-extrabold uppercase tracking-[0.05em]">
-                                Flag
-                              </span>
-                            )}
-                          </span>
                         </td>
                         <td className="px-3 py-3 text-[var(--qs-ink)]">{s.timeTaken ?? "—"}</td>
                         <td className="px-3 py-3 text-[var(--qs-muted)]">{s.submittedAt ?? "—"}</td>
@@ -1549,64 +1484,6 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
                     Restart Quiz
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* ── End Quiz Modal ────────────────────────────────────────────── */}
-      <AnimatePresence>
-        {endOpen && !quizEnded && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[60] bg-[#1A1240]/55 backdrop-blur-sm"
-              onClick={() => setEndOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.94, y: 16 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 10 }}
-              transition={{ type: "spring", stiffness: 380, damping: 28 }}
-              className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-            >
-              <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm overflow-hidden rounded-[24px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[6px_6px_0_var(--qs-sun)]">
-                <div className="px-6 pb-6 pt-7 text-center">
-                  <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-bad)] text-white">
-                    <Square className="h-7 w-7" />
-                  </div>
-                  <h3 className="text-lg font-extrabold text-[var(--qs-ink)]">End this quiz?</h3>
-                  <p className="mt-2 text-[13px] leading-relaxed text-[var(--qs-muted)]">
-                    New participants will no longer be able to start the quiz. Participants who are already taking the quiz will follow the configured end behavior.
-                  </p>
-                  <div className="mt-4 rounded-[12px] border-2 border-[var(--qs-bad)]/30 bg-[var(--qs-bad)]/[0.05] px-3 py-2">
-                    <p className="text-[11px] font-bold text-[var(--qs-bad)]">
-                      {liveStudents.length} student{liveStudents.length !== 1 ? "s" : ""} currently active
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-end gap-2.5 border-t-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-6 py-4">
-                  <button
-                    type="button"
-                    onClick={() => setEndOpen(false)}
-                    disabled={endingQuiz}
-                    className="h-10 rounded-[12px] border-2 border-[var(--qs-line)] px-4 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleEndQuiz()}
-                    disabled={endingQuiz}
-                    className="inline-flex h-10 items-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-bad)] px-5 text-xs font-extrabold text-white shadow-[3px_3px_0_var(--qs-sun)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <Square className="h-3.5 w-3.5" />
-                    {endingQuiz ? "Ending…" : "End Quiz"}
                   </button>
                 </div>
               </div>

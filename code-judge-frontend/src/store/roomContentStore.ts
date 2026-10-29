@@ -25,7 +25,7 @@ interface RoomContentState {
   announcements: RoomAnnouncement[];
   documents: RoomDocument[];
   seededRoomIds: string[];
-  seedRoom: (roomId: string, roomName?: string) => void;
+  seedRoom: (roomId: string) => void;
   addAnnouncement: (roomId: string, input: { title: string; body: string }) => void;
   updateAnnouncement: (id: string, input: { title: string; body: string }) => void;
   deleteAnnouncement: (id: string) => void;
@@ -36,57 +36,7 @@ interface RoomContentState {
 const uid = (prefix: string) =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
-function seedAnnouncements(roomId: string, roomName: string): RoomAnnouncement[] {
-  const now = Date.now();
-  return [
-    {
-      id: uid("ann"),
-      roomId,
-      title: `Welcome to ${roomName}`,
-      body: "I'll share class notes and important updates here. Please check this space before every class.",
-      createdAt: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: uid("ann"),
-      roomId,
-      title: "Chapter test on Friday",
-      body: "The revision notes are in the Documents section. Complete the practice sheet before the test.",
-      createdAt: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
-    },
-  ];
-}
 
-function seedDocuments(roomId: string): RoomDocument[] {
-  const now = Date.now();
-  return [
-    {
-      id: uid("doc"),
-      roomId,
-      name: "Chapter 3 — Class Notes.pdf",
-      type: "PDF",
-      size: "2.4 MB",
-      addedAt: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: uid("doc"),
-      roomId,
-      name: "Practice Sheet.docx",
-      type: "DOCX",
-      size: "860 KB",
-      addedAt: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: uid("doc"),
-      roomId,
-      name: "Class Timetable.pdf",
-      type: "PDF",
-      size: "1.1 MB",
-      addedAt: new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-  ];
-}
 
 export const useRoomContentStore = create<RoomContentState>()(
   persist(
@@ -95,16 +45,10 @@ export const useRoomContentStore = create<RoomContentState>()(
       documents: [],
       seededRoomIds: [],
 
-      seedRoom: (roomId, roomName) =>
+      seedRoom: (roomId) =>
         set((state) => {
           if (!roomId || state.seededRoomIds.includes(roomId)) return state;
-          const name = roomName?.trim() || "your room";
           return {
-            announcements: [...state.announcements, ...seedAnnouncements(roomId, name)],
-            documents: [
-              ...state.documents,
-              ...seedDocuments(roomId).map((doc) => ({ ...doc, roomId })),
-            ],
             seededRoomIds: [...state.seededRoomIds, roomId],
           };
         }),

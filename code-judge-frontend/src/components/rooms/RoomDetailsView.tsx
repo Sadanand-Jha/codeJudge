@@ -200,7 +200,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
 
   useEffect(() => {
     if (!room) return;
-    seedRoomContent(room.id, room.name);
+    seedRoomContent(room.id);
   }, [room, seedRoomContent]);
 
   const quizUsage = useMemo(() => (room ? countRoomQuizUsage(room.id) : 0), [room]);

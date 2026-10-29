@@ -357,7 +357,7 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
         aria-modal="true"
         aria-labelledby="share-quiz-title"
         onClick={(event) => event.stopPropagation()}
-        className="relative my-auto max-h-[calc(100dvh-2rem)] w-full max-w-[460px] overflow-y-auto rounded-[24px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[8px_8px_0_var(--qs-sun)]"
+        className="relative my-auto max-h-[calc(100dvh-2rem)] w-full max-w-[940px] overflow-y-auto rounded-[24px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[8px_8px_0_var(--qs-sun)]"
       >
         <div className="flex items-start justify-between gap-4 px-5 pb-1 pt-5">
           <div>
@@ -378,138 +378,144 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
           </button>
         </div>
 
-        <div className="px-5 pb-5 pt-3">
-          <div className="flex gap-2" role="tablist" aria-label="Message style">
-            {SHARE_STYLES.map((style) => {
-              const selected = style.id === styleId;
-              return (
-                <button
-                  key={style.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={selected}
-                  onClick={() => {
-                    setStyleId(style.id);
-                    setCustomMessage(null);
-                    setCopied(false);
-                  }}
-                  className={cn(
-                    "flex-1 rounded-[12px] border-2 px-2 py-2 text-[13px] font-bold transition-colors",
-                    selected
-                      ? "border-[var(--qs-brand)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
-                      : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
-                  )}
-                >
-                  {style.name}
-                </button>
-              );
-            })}
-          </div>
-          <p className="mt-2 min-h-[2.6em] text-[12px] leading-[1.4] text-[var(--qs-muted)]">
-            {activeStyle.description}
-          </p>
-
-          <div className="mt-1">
-            <div className="mb-1.5 flex items-center justify-between gap-2">
-              <label
-                htmlFor="share-quiz-message"
-                className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ink)]"
-              >
-                Your message
-              </label>
-              {customMessage !== null && (
-                <button
-                  type="button"
-                  onClick={() => setCustomMessage(null)}
-                  className="text-[11px] font-bold text-[var(--qs-brand)] underline underline-offset-2 hover:no-underline"
-                >
-                  Reset to template
-                </button>
-              )}
+        <div className="grid gap-5 px-5 pb-5 pt-3 md:grid-cols-2 md:gap-6 md:px-6 md:pb-6">
+          <div className="min-w-0 space-y-4">
+            <div>
+              <div className="mb-2 grid grid-cols-2 gap-2" role="tablist" aria-label="Message style">
+                {SHARE_STYLES.map((style) => {
+                  const selected = style.id === styleId;
+                  return (
+                    <button
+                      key={style.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={selected}
+                      onClick={() => {
+                        setStyleId(style.id);
+                        setCustomMessage(null);
+                        setCopied(false);
+                      }}
+                      className={cn(
+                        "rounded-[12px] border-2 px-2 py-2 text-[13px] font-bold transition-colors",
+                        selected
+                          ? "border-[var(--qs-brand)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
+                          : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
+                      )}
+                    >
+                      {style.name}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="min-h-[2.6em] text-[12px] leading-[1.4] text-[var(--qs-muted)]">
+                {activeStyle.description}
+              </p>
             </div>
-            <textarea
-              id="share-quiz-message"
-              value={message}
-              onChange={(event) => setCustomMessage(event.target.value)}
-              rows={5}
-              spellCheck={false}
-              className="w-full resize-y rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2 text-[12.5px] leading-[1.5] text-[var(--qs-ink)] outline-none transition-colors focus:border-[var(--qs-brand)]"
-            />
+
+            <div>
+              <div className="mb-1.5 flex items-center justify-between gap-2">
+                <label
+                  htmlFor="share-quiz-message"
+                  className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ink)]"
+                >
+                  Your message
+                </label>
+                {customMessage !== null && (
+                  <button
+                    type="button"
+                    onClick={() => setCustomMessage(null)}
+                    className="text-[11px] font-bold text-[var(--qs-brand)] underline underline-offset-2 hover:no-underline"
+                  >
+                    Reset to template
+                  </button>
+                )}
+              </div>
+              <textarea
+                id="share-quiz-message"
+                value={message}
+                onChange={(event) => setCustomMessage(event.target.value)}
+                rows={9}
+                spellCheck={false}
+                className="w-full resize-y rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2 text-[12.5px] leading-[1.5] text-[var(--qs-ink)] outline-none transition-colors focus:border-[var(--qs-brand)]"
+              />
+            </div>
+
+            <p className="text-[12px] leading-relaxed text-[var(--qs-muted)]">
+              WhatsApp supports <b>*bold*</b>, <em>_italic_</em>, <code>```mono```</code> and{" "}
+              <code>&gt; quote</code>. The card preview appears when the join link has Open Graph tags.
+            </p>
           </div>
 
-          <div className="mb-1.5 mt-4 flex items-center justify-between gap-2">
-            <span className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
-              Preview
-            </span>
-            <span className="text-[11px] text-[var(--qs-muted)]">Updates as you type</span>
-          </div>
+          <div className="min-w-0 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+                Preview
+              </span>
+              <span className="text-[11px] text-[var(--qs-muted)]">Updates as you type</span>
+            </div>
 
-          <div className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[#efeae2] p-4 dark:bg-[#0b141a]">
-            <div className="max-w-[95%] rounded-[10px] rounded-bl-[2px] bg-[#d9fdd3] p-1 text-[#111b21] shadow-[0_1px_1px_rgba(0,0,0,0.15)] dark:bg-[#005c4b] dark:text-[#e9edef]">
-              <div
-                className="overflow-hidden rounded-[7px] bg-[#f7f8f8] dark:bg-[#025144]"
-                aria-label="Link preview"
-              >
-                <div className="bg-[var(--qs-brand)] px-3 pb-3 pt-3.5 text-[var(--qs-on-brand)]">
-                  <small className="block text-[11px] font-bold opacity-85">
-                    {SITE_NAME} · {quiz.status === "live" ? "Live quiz" : "Quiz"}
-                  </small>
-                  <span className="mt-2 inline-block max-w-full truncate rounded-[10px] border-2 border-dashed border-[#1d1b3a] bg-[#ffc933] px-3 py-1 font-mono text-[18px] font-extrabold tracking-[0.12em] text-[#1d1b3a]">
-                    {code ? formatJoinCode(code) : "•••• ••••"}
-                  </span>
-                </div>
-                <div className="px-2.5 py-2 text-[#111b21] dark:text-[#e9edef]">
-                  <b className="block text-[13px] font-bold leading-snug">{quiz.title}</b>
-                  <span className="mt-0.5 block text-[12px] opacity-75">
-                    {quiz.questions} {quiz.questions === 1 ? "question" : "questions"}
-                    {durationLabel ? ` • ${durationLabel}` : ""}. Tap to join instantly.
-                  </span>
-                  {schedule ? (
+            <div className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[#efeae2] p-4 dark:bg-[#0b141a]">
+              <div className="max-w-[95%] rounded-[10px] rounded-bl-[2px] bg-[#d9fdd3] p-1 text-[#111b21] shadow-[0_1px_1px_rgba(0,0,0,0.15)] dark:bg-[#005c4b] dark:text-[#e9edef]">
+                <div
+                  className="overflow-hidden rounded-[7px] bg-[#f7f8f8] dark:bg-[#025144]"
+                  aria-label="Link preview"
+                >
+                  <div className="bg-[var(--qs-brand)] px-3 pb-3 pt-3.5 text-[var(--qs-on-brand)]">
+                    <small className="block text-[11px] font-bold opacity-85">
+                      {SITE_NAME} · {quiz.status === "live" ? "Live quiz" : "Quiz"}
+                    </small>
+                    <span className="mt-2 inline-block max-w-full truncate rounded-[10px] border-2 border-dashed border-[#1d1b3a] bg-[#ffc933] px-3 py-1 font-mono text-[18px] font-extrabold tracking-[0.12em] text-[#1d1b3a]">
+                      {code ? formatJoinCode(code) : "•••• ••••"}
+                    </span>
+                  </div>
+                  <div className="px-2.5 py-2 text-[#111b21] dark:text-[#e9edef]">
+                    <b className="block text-[13px] font-bold leading-snug">{quiz.title}</b>
+                    <span className="mt-0.5 block text-[12px] opacity-75">
+                      {quiz.questions} {quiz.questions === 1 ? "question" : "questions"}
+                      {durationLabel ? ` • ${durationLabel}` : ""}. Tap to join instantly.
+                    </span>
+                    {schedule ? (
                     <span className="mt-0.5 block text-[11px] opacity-70">🗓️ {schedule}</span>
                   ) : null}
                   <em className="mt-0.5 block text-[11px] not-italic opacity-60">
-                    {SITE_URL.replace(/^https?:\/\//, "")}
-                  </em>
+                      {SITE_URL.replace(/^https?:\/\//, "")}
+                    </em>
+                  </div>
                 </div>
-              </div>
 
-              <div className="whitespace-pre-wrap break-words px-1.5 pb-0.5 pt-1.5 text-[12.5px] leading-[1.45]">
-                <WhatsAppText text={message} />
+                <div className="whitespace-pre-wrap break-words px-1.5 pb-0.5 pt-1.5 text-[12.5px] leading-[1.45]">
+                  <WhatsAppText text={message} />
+                </div>
+                <div className="px-1.5 pb-0.5 text-right text-[10px] opacity-60">{sentAt} ✓✓</div>
               </div>
-              <div className="px-1.5 pb-0.5 text-right text-[10px] opacity-60">{sentAt} ✓✓</div>
+            </div>
+
+            <div className="flex gap-2.5">
+              <button
+                type="button"
+                onClick={handleCopy}
+                disabled={copying}
+                aria-live="polite"
+                className={cn(
+                  "flex-1 rounded-[12px] px-3 py-3 text-[13px] font-bold shadow-[0_4px_0_rgba(0,0,0,0.22)] transition-all active:translate-y-[3px] active:shadow-[0_1px_0_rgba(0,0,0,0.22)] disabled:cursor-wait disabled:opacity-70",
+                  copied
+                    ? "bg-[var(--qs-ok)] text-[var(--qs-on-brand)]"
+                    : "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
+                )}
+              >
+                {copying ? "Copying…" : copied ? "Copied ✓" : "Copy message"}
+              </button>
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-1 items-center justify-center gap-2 rounded-[12px] bg-[#25d366] px-3 py-3 text-[13px] font-bold text-[#06301a] shadow-[0_4px_0_rgba(0,0,0,0.2)] transition-all hover:brightness-105 active:translate-y-[3px] active:shadow-[0_1px_0_rgba(0,0,0,0.2)]"
+              >
+                <WhatsAppIcon className="h-4 w-4 text-white" />
+                Open WhatsApp
+              </a>
             </div>
           </div>
-
-          <div className="mt-4 flex gap-2.5">
-            <button
-              type="button"
-              onClick={handleCopy}
-              disabled={copying}
-              aria-live="polite"
-              className={cn(
-                "flex-1 rounded-[12px] px-3 py-3 text-[13px] font-bold shadow-[0_4px_0_rgba(0,0,0,0.22)] transition-all active:translate-y-[3px] active:shadow-[0_1px_0_rgba(0,0,0,0.22)] disabled:cursor-wait disabled:opacity-70",
-                copied
-                  ? "bg-[var(--qs-ok)] text-[var(--qs-on-brand)]"
-                  : "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
-              )}
-            >
-              {copying ? "Copying…" : copied ? "Copied ✓" : "Copy message"}
-            </button>
-            <a
-              href={whatsappHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex flex-1 items-center justify-center gap-2 rounded-[12px] bg-[#25d366] px-3 py-3 text-[13px] font-bold text-[#06301a] shadow-[0_4px_0_rgba(0,0,0,0.2)] transition-all hover:brightness-105 active:translate-y-[3px] active:shadow-[0_1px_0_rgba(0,0,0,0.2)]"
-            >
-              <WhatsAppIcon className="h-4 w-4 text-white" />
-              Open WhatsApp
-            </a>
-          </div>
-
-          <p className="mt-4 text-[12px] leading-relaxed text-[var(--qs-muted)]">
-            WhatsApp supports <b>*bold*</b>, <em>_italic_</em>, <code>```mono```</code> and{" "}
-            <code>&gt; quote</code>. The card preview appears when the join link has Open Graph tags.
-          </p>
         </div>
       </div>
     </div>

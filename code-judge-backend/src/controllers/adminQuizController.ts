@@ -924,7 +924,7 @@ export const saveQuizProblemFull = async (req: Request, res: Response) => {
       }
     }
 
-    const MAX_PROBLEMS = 25;
+    const MAX_PROBLEMS = 40;
     if (!body.problemId) {
       const problemCount = await quizService.getQuizProblemCount(String(quizId));
       if (problemCount >= MAX_PROBLEMS) {

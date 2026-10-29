@@ -1,7 +1,7 @@
 import { pool } from "../config/database.ts";
 import { enqueueResponsesReportEmail, isEmailQueueConfigured } from "../queues/email.queue.ts";
 import { sendResponsesReportEmail } from "./email.service.ts";
-import { generateResponsesReport } from "./responsesReport.service.ts";
+import { countQuizResponses, generateResponsesReport } from "./responsesReport.service.ts";
 import { schedulerLog } from "../utils/schedulerLog.ts";
 
 type QuizResponsesEmailRow = {
@@ -93,6 +93,13 @@ export async function maybeQueueQuizResponsesEmail(quizId: number): Promise<bool
     return false;
   }
 
+  const responseCount = await countQuizResponses(quizId);
+  schedulerLog("email", `quiz ${quizId}: ${responseCount} response(s) recorded`);
+  if (responseCount === 0) {
+    schedulerLog("email", `quiz ${quizId}: skipped because there are no responses to email`);
+    return false;
+  }
+
   if (!isEmailQueueConfigured()) {
     schedulerLog("email", `quiz ${quizId}: email queue not configured, processing report inline`);
     const result = await processQuizResponsesEmail(quizId, sessionToken(quiz.starttime));
@@ -135,6 +142,13 @@ export async function processQuizResponsesEmail(
   const pendingAttempts = await countPendingAttempts(quizId);
   schedulerLog("email-worker", `quiz ${quizId}: ${pendingAttempts} attempt(s) still in_progress`);
   if (pendingAttempts > 0) throw new Error("RESULTS_PENDING");
+
+  const responseCount = await countQuizResponses(quizId);
+  schedulerLog("email-worker", `quiz ${quizId}: ${responseCount} response(s) recorded`);
+  if (responseCount === 0) {
+    schedulerLog("email-worker", `quiz ${quizId}: skipped because there are no responses to email`);
+    return { sent: false, reason: "no_responses" };
+  }
 
   schedulerLog("email-worker", `quiz ${quizId}: generating responses report`);
   const { buffer, stats, registrationFields } = await generateResponsesReport(quizId);

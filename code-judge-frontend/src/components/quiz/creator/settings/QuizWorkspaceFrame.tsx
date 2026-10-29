@@ -155,7 +155,7 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
   const completedProblems = problems.filter((p) => getQuestionStatus(p) === "complete").length;
   const progress = problems.length > 0 ? Math.round((completedProblems / problems.length) * 100) : 0;
 
-  const MAX_PROBLEMS = 25;
+  const MAX_PROBLEMS = 40;
 
   const handleAddProblem = async () => {
     if (adding) return;

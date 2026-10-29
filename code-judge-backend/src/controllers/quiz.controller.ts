@@ -7,7 +7,7 @@ import { QuizService } from "../services/database/quiz.service.ts";
 import { ResultGenerationService } from "../services/resultGeneration.service.ts";
 import { sendCollaboratorInviteEmail } from "../services/email.ts";
 import { sendResponsesReportEmail } from "../services/email.service.ts";
-import { generateResponsesReport } from "../services/responsesReport.service.ts";
+import { countQuizResponses, generateResponsesReport } from "../services/responsesReport.service.ts";
 import { reserveResponseEmailQuota } from "../services/responseEmailRateLimit.ts";
 import { enqueueQuizResultCalculation, enqueueSubmittedQuizAttempt, finalizeExpiredQuizAttempts, processQuizSubmission, scheduleQuizRecalculation } from "../services/quizSubmission.service.ts";
 import { QuizCreationLimitError } from "../services/quizCreationLimits.ts";
@@ -840,7 +840,7 @@ export const addQuizProblem = async (req: Request, res: Response) => {
     }
     if (rejectEncryptedPlaintextWrite(quiz, res)) return;
 
-    const MAX_PROBLEMS = 25;
+    const MAX_PROBLEMS = 40;
     const problemCount = await quizService.getQuizProblemCount(String(quizId));
     if (problemCount >= MAX_PROBLEMS) {
       res.status(400).json({
@@ -1004,7 +1004,7 @@ export const saveQuizProblemFull = async (req: Request, res: Response) => {
       }
     }
 
-    const MAX_PROBLEMS = 25;
+    const MAX_PROBLEMS = 40;
     if (!body.problemId) {
       const problemCount = await quizService.getQuizProblemCount(String(quizId));
       if (problemCount >= MAX_PROBLEMS) {
@@ -3253,6 +3253,15 @@ export const sendQuizResponsesEmail = async (req: Request, res: Response) => {
         success: false,
         message: "Emailing response reports is available on paid plans. Upgrade your plan to use this feature.",
         data: { reason: "subscription_required", upgradeUrl: "/pricing" },
+      });
+      return;
+    }
+
+    const responseCount = await countQuizResponses(numericQuizId);
+    if (responseCount === 0) {
+      res.status(400).json({
+        success: false,
+        message: "No responses yet. The report can be emailed once at least one student attempts this quiz.",
       });
       return;
     }
