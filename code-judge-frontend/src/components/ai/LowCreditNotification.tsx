@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Sparkles, X } from "lucide-react";
 import { useAICreditsStore, checkLowCreditWarning } from "@/store/aiCreditsStore";
@@ -8,6 +9,8 @@ import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { formatPricingAmount } from "@/services/pricing";
 
 export default function LowCreditNotification() {
+  const pathname = usePathname();
+  const inCreatorStudio = pathname?.startsWith("/creator") ?? false;
   const { balance } = useAICreditsStore();
   const { catalog } = usePricingCatalog();
   const [dismissed, setDismissed] = useState(false);
@@ -22,7 +25,7 @@ export default function LowCreditNotification() {
         return usageRatio > 0.8 ? bRate - aRate : aRate - bRate;
       })[0]
     : null;
-  const visible = isLow && !dismissed && balance.monthlyAllowance > 0;
+  const visible = !inCreatorStudio && isLow && !dismissed && balance.monthlyAllowance > 0;
 
   const handleBuyCredits = (packId: string) => {
     setDismissed(true);

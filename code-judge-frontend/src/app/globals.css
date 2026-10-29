@@ -5045,6 +5045,46 @@ textarea {
   line-height: 1.55;
 }
 
+/* Low-fuel warning theme. data-credit-state lives on the Studio shell so the
+   header/sidebar can react, but the tinted tokens are only applied to the
+   dashboard page surface. Other Studio pages keep the normal light theme. */
+.qs-ui[data-credit-state="empty"] [data-credit-page="dashboard"] {
+  --qs-bg: var(--qs-credit-page);
+  --qs-surface: var(--qs-credit-surface);
+  --qs-line: var(--qs-credit-border);
+  --qs-muted: var(--qs-credit-muted);
+  --qs-warn: var(--qs-credit-strip-text);
+  --qs-warnbg: var(--qs-credit-strip-bg);
+}
+
+/* Five-segment fuel meter. Empty segments stay visible on the tinted card. */
+.qs-credit-fuel {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+.qs-credit-fuel > i {
+  height: 10px;
+  border: 2px solid var(--qs-credit-chip-border);
+  border-radius: 999px;
+  background: transparent;
+}
+.qs-credit-fuel > i[data-filled="true"] {
+  background: var(--qs-credit-accent);
+}
+.qs-credit-fuel > i:first-child {
+  border-radius: 999px 3px 3px 999px;
+}
+.qs-credit-fuel > i:last-child {
+  border-radius: 3px 999px 999px 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qs-credit-fuel > i {
+    transition: none;
+  }
+}
+
 [data-theme="dark"] .qs-ui {
   --qs-bg: #120d2b;
   --qs-surface: #1c1640;
@@ -8384,6 +8424,20 @@ textarea {
   --qs-bad: #c2303a;
   --qs-badbg: #fde4e6;
   --qs-on-bad: #ffffff;
+  /* Empty-tank ("low fuel") warning palette. Used only on the Studio
+     dashboard and its credit indicators, never on the global shell. */
+  --qs-credit-page: #fffbe8;
+  --qs-credit-surface: #fffef5;
+  --qs-credit-border: #f0de9a;
+  --qs-credit-muted: #6b5a2e;
+  --qs-credit-card: #fff1b0;
+  --qs-credit-chip-bg: #ffe9a6;
+  --qs-credit-chip-border: #d97706;
+  --qs-credit-chip-text: #7a4300;
+  --qs-credit-strip-bg: #fff1b8;
+  --qs-credit-strip-border: #e5b93c;
+  --qs-credit-strip-text: #5a3a00;
+  --qs-credit-accent: #ffd24d;
 }
 
 [data-theme="dark"] {

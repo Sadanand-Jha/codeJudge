@@ -6,7 +6,7 @@ import { Search, X, Plus, Copy, Trash2 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../../StudioProvider";
 import { getQuestionStatus } from "@/components/quiz/creator/types";
-import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
+import { GenerateWithAiButton } from "@/components/creator/common/GenerateWithAiButton";
 
 function decodeHtml(html: string): string {
   return html
@@ -90,7 +90,7 @@ export function MobileQuestionBankSheet({ open, onClose, onAiGenerate }: Props) 
                 >
                   <Plus className="h-4 w-4" /> Add
                 </button>
-                <AiGenerateButton
+                <GenerateWithAiButton
                   size="md"
                   label="AI Generate"
                   onClick={() => {

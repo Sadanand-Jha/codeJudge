@@ -34,7 +34,7 @@ import { cn } from "@/lib/helpers";
 import { MobileQuestionBankSheet } from "../components/mobile/MobileQuestionBankSheet";
 import { MobileQuestionSettingsSheet } from "../components/mobile/MobileQuestionSettingsSheet";
 import { AiStreamText } from "@/components/ui";
-import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
+import { GenerateWithAiButton } from "@/components/creator/common/GenerateWithAiButton";
 import { MobileQuestionEditor } from "../components/mobile/MobileQuestionEditor";
 
 export function QuestionsStep() {
@@ -142,7 +142,7 @@ export function QuestionsStep() {
             <span className="hidden sm:inline text-xs font-medium text-[var(--qs-muted)]">
               {completed} / {state.questions.length} complete
             </span>
-            <AiGenerateButton
+            <GenerateWithAiButton
               size="sm"
               label="AI"
               ariaLabel="AI Generate"
@@ -228,7 +228,7 @@ export function QuestionsStep() {
                 >
                   <Plus className="h-4 w-4" /> Create Question
                 </button>
-                <AiGenerateButton
+                <GenerateWithAiButton
                   size="md"
                   label="Generate with AI"
                   onClick={() => setAiOpen(true)}
@@ -245,7 +245,7 @@ export function QuestionsStep() {
         {/* Mobile bottom action bar — primary actions only */}
         {state.activeQuestionId && (
           <div className="mt-2 flex w-full max-w-full min-w-0 items-center gap-2 overflow-hidden rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2">
-            <AiGenerateButton
+            <GenerateWithAiButton
               size="md"
               label="AI"
               ariaLabel="AI Generate"
@@ -312,7 +312,7 @@ export function QuestionsStep() {
                   >
                     <Plus className="h-4 w-4" /> Create Question
                   </button>
-                  <AiGenerateButton
+                  <GenerateWithAiButton
                     size="md"
                     label="Generate with AI"
                     onClick={() => setAiOpen(true)}

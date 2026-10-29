@@ -2,12 +2,18 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { AlertCircle, BadgeCheck, Info, Loader2, Lock, ShieldCheck, X } from "lucide-react";
+import { AlertCircle, BadgeCheck, Clock3, Info, Loader2, Lock, ShieldCheck, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import type { PackOrderSummary } from "@/services/aiCredits";
 import { QS_DIALOG_PANEL, QS_ROW, QS_ROW_LABEL, QS_SQ_BTN } from "./styles";
 
-export type PurchasePhase = "summary" | "processing" | "success" | "failed" | "cancelled";
+export type PurchasePhase =
+  | "summary"
+  | "processing"
+  | "success"
+  | "delayed"
+  | "failed"
+  | "cancelled";
 
 export interface PurchaseReceipt {
   transactionId: string;
@@ -40,6 +46,7 @@ export function OrderSummaryDialog({
   onClose,
   onPay,
   onBack,
+  onCheckAgain,
 }: {
   summary: PackOrderSummary;
   balance: number;
@@ -50,6 +57,7 @@ export function OrderSummaryDialog({
   onClose: () => void;
   onPay: (method: string) => void;
   onBack: () => void;
+  onCheckAgain?: () => void;
 }) {
   const [method, setMethod] = useState<(typeof METHODS)[number]["id"]>("upi");
   const busy = phase === "processing";
@@ -76,7 +84,11 @@ export function OrderSummaryDialog({
       >
         <header className="mb-4 flex items-center justify-between gap-3">
           <h2 className="text-[26px] font-black tracking-tight">
-            {phase === "success" ? "Payment successful" : "Order summary"}
+            {phase === "success"
+              ? "Payment successful"
+              : phase === "delayed"
+                ? "Payment received"
+                : "Order summary"}
           </h2>
           <button
             type="button"
@@ -177,6 +189,36 @@ export function OrderSummaryDialog({
           </PhaseShell>
         )}
 
+        {phase === "delayed" && (
+          <PhaseShell>
+            <span className="grid h-12 w-12 place-items-center rounded-full bg-[var(--qs-credit-card)] text-[var(--qs-credit-chip-text)]">
+              <Clock3 className="h-6 w-6" />
+            </span>
+            <p className="mt-3 text-sm font-bold">Your credits are on the way</p>
+            <p className="mt-1 max-w-xs text-xs leading-5 text-[var(--qs-muted)]">
+              {phaseError ?? "Payment received. We are waiting for the credits to appear in your balance."}
+            </p>
+            <div className="mt-5 flex w-full gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-3 text-sm font-bold transition-colors hover:border-[var(--qs-brand)]"
+              >
+                Close
+              </button>
+              {onCheckAgain && (
+                <button
+                  type="button"
+                  onClick={onCheckAgain}
+                  className="flex-1 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] py-3 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
+                >
+                  Check again
+                </button>
+              )}
+            </div>
+          </PhaseShell>
+        )}
+
         {phase === "failed" && (
           <PhaseShell>
             <span className="grid h-12 w-12 place-items-center rounded-full bg-[var(--qs-badbg)] text-[var(--qs-bad)]">
@@ -231,7 +273,7 @@ export function OrderSummaryDialog({
           </PhaseShell>
         )}
 
-        {phase !== "processing" && phase !== "success" && (
+        {phase !== "processing" && phase !== "success" && phase !== "delayed" && (
           <p className="mt-4 flex items-center justify-center gap-1.5 border-t-2 border-[var(--qs-line)] pt-3 text-[11px] font-medium text-[var(--qs-muted)]">
             <ShieldCheck className="h-3.5 w-3.5" />
             Credits are added only after backend payment verification

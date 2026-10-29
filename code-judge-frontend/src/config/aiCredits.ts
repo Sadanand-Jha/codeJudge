@@ -138,9 +138,13 @@ export const RATE_LIMIT_CONFIG: RateLimitConfig = {
 };
 
 /* ============================================
-   Low-credit threshold
+   Low-credit thresholds
    ============================================ */
-export const LOW_CREDIT_THRESHOLD = 0.2; // 20% of monthly allowance
+/** Empty-tank threshold. At or below this effective balance the Studio enters
+ *  the "low fuel" warning theme. */
+export const LOW_CREDIT_THRESHOLD = 0;
+/** Legacy 20%-of-allowance ratio used by the softer "running low" nudge. */
+export const LOW_CREDIT_RATIO_THRESHOLD = 0.2;
 
 /* ============================================
    Generation plans (Plus / Pro / Max storefront)

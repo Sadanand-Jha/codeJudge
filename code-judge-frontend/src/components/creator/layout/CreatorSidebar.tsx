@@ -36,6 +36,7 @@ import { cn } from "@/lib/helpers";
 import { useAuthStore } from "@/store/authStore";
 import { FOCUS_MODE_ENABLED } from "@/config/focusMode";
 import { verificationLabel, verificationState } from "@/lib/verification";
+import { useCreditState } from "@/hooks/useCreditState";
 
 export interface CreatorNavItem {
   label: string;
@@ -184,10 +185,12 @@ function NavRow({
   item,
   pathname,
   onNavigate,
+  badge,
 }: {
   item: CreatorNavItem;
   pathname: string;
   onNavigate?: () => void;
+  badge?: string | null;
 }) {
   const isActive = item.match
     ? item.match(pathname)
@@ -200,6 +203,7 @@ function NavRow({
     <Link
       href={item.href}
       onClick={onNavigate}
+      aria-label={badge ? `${item.label} — ${badge}` : undefined}
       className={cn(
         "group flex w-full items-center gap-2.5 rounded-xl border-2 px-3 py-2 text-[13px] font-bold outline-none transition-all duration-150 focus-visible:ring-3 focus-visible:ring-[var(--qs-brand)]/40",
         isActive
@@ -215,9 +219,14 @@ function NavRow({
             : "text-[var(--qs-muted)] group-hover:text-[var(--qs-ink)]"
         )}
       />
-      <span className={cn("truncate", isActive && "font-extrabold text-[var(--qs-on-brand)]")}>
+      <span className={cn("min-w-0 truncate", isActive && "font-extrabold text-[var(--qs-on-brand)]")}>
         {item.label}
       </span>
+      {badge && (
+        <span className="ml-auto shrink-0 rounded-full border-2 border-[var(--qs-credit-chip-border)] bg-[var(--qs-credit-chip-bg)] px-1.5 py-0.5 text-[9px] font-black tracking-[0.08em] text-[var(--qs-credit-chip-text)]">
+          {badge}
+        </span>
+      )}
     </Link>
   );
 }
@@ -235,6 +244,7 @@ export function CreatorSidebar({
   const displayName = user?.displayName || user?.username || "Creator";
   const avatarInitial = displayName.charAt(0).toUpperCase();
   const verification = verificationState(user?.isVerified);
+  const { state: creditState } = useCreditState();
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -306,6 +316,11 @@ export function CreatorSidebar({
                   item={item}
                   pathname={pathname}
                   onNavigate={onNavigate}
+                  badge={
+                    creditState === "empty" && item.href === "/creator/billing/credits"
+                      ? "EMPTY"
+                      : null
+                  }
                 />
               ))}
             </div>

@@ -19,7 +19,7 @@ import {
   ShareQuizDialog,
   WhatsAppIcon,
 } from "@/components/creator/common/ShareQuizDialog";
-import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
+import { GenerateWithAiButton } from "@/components/creator/common/GenerateWithAiButton";
 import { useData } from "@/lib/hooks/useData";
 import { Skeleton } from "@/components/creator/billing/ui";
 import { cn } from "@/lib/helpers";
@@ -201,7 +201,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                 : "AI quiz generation from a problem list is coming soon."}
             </p>
           </div>
-          <AiGenerateButton
+          <GenerateWithAiButton
             href="/creator/quizzes/create"
             size="md"
             label="Generate with AI"
@@ -246,7 +246,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
               <Plus className="h-3.5 w-3.5" />
               New quiz
             </Link>
-            <AiGenerateButton
+            <GenerateWithAiButton
               href="/creator/quizzes/create"
               size="sm"
               label="Generate with AI"

@@ -9,7 +9,12 @@ import CreatorRoomsNavbar from "@/components/rooms/CreatorRoomsNavbar";
 import AppLayout from "@/components/layout/AppLayout";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { useAuthStore } from "@/store/authStore";
-import { useAICreditsStore } from "@/store/aiCreditsStore";
+import {
+  CREDIT_CACHE_KEY,
+  CREDIT_SYNC_CHANNEL,
+  useAICreditsStore,
+} from "@/store/aiCreditsStore";
+import { useCreditState } from "@/hooks/useCreditState";
 import { useTheme } from "@/context/ThemeContext";
 
 export default function CreatorStudioLayout({ children }: { children: React.ReactNode }) {
@@ -19,6 +24,8 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const refreshCredits = useAICreditsStore((s) => s.refresh);
+  const hydrateCache = useAICreditsStore((s) => s.hydrateCache);
+  const { state: creditState } = useCreditState();
   const { theme, setTheme } = useTheme();
 
   // Studio is light-theme only (no toggle in the Studio navbar). Dark-mode
@@ -33,12 +40,51 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
     }
   }, [hasHydrated, isAuthenticated, router]);
 
+  // Restore the last confirmed balance before the first network response so a
+  // returning creator never sees a warning flash while credits load.
+  useEffect(() => {
+    hydrateCache();
+  }, [hydrateCache]);
+
   // Load the credit balance as soon as the creator enters the Studio so the
   // navbar credit pill is accurate without visiting a billing page first.
   useEffect(() => {
     if (hasHydrated && isAuthenticated) {
       void refreshCredits();
     }
+  }, [hasHydrated, isAuthenticated, refreshCredits]);
+
+  // Keep the tank state fresh when a purchase finishes in another tab or the
+  // creator returns to this tab after paying.
+  useEffect(() => {
+    if (!hasHydrated || !isAuthenticated) return;
+
+    const refreshFromServer = () => {
+      void refreshCredits({ broadcast: false });
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") refreshFromServer();
+    };
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === CREDIT_CACHE_KEY) refreshFromServer();
+    };
+
+    let channel: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== "undefined") {
+      channel = new BroadcastChannel(CREDIT_SYNC_CHANNEL);
+      channel.onmessage = refreshFromServer;
+    }
+
+    window.addEventListener("focus", refreshFromServer);
+    window.addEventListener("storage", onStorage);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.removeEventListener("focus", refreshFromServer);
+      window.removeEventListener("storage", onStorage);
+      document.removeEventListener("visibilitychange", onVisibility);
+      channel?.close();
+    };
   }, [hasHydrated, isAuthenticated, refreshCredits]);
 
   if (!hasHydrated) {
@@ -83,7 +129,10 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
 
   return (
     <AppLayout header={<CreatorNavbar onMobileMenuToggle={() => setDrawerOpen(true)} />}>
-      <div className="qs-ui creator-mobile-calm flex min-h-0 flex-1 bg-[var(--qs-bg)]">
+      <div
+        className="qs-ui creator-mobile-calm flex min-h-0 flex-1 bg-[var(--qs-bg)]"
+        data-credit-state={creditState}
+      >
         {/* Mobile drawer overlay */}
         <AnimatePresence>
           {drawerOpen && (
@@ -124,10 +173,11 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
             </Suspense>
           ) : null}
           <main
+            data-credit-page={pathname === "/creator" ? "dashboard" : undefined}
             className={
               isFullBleedStudio
-                ? "flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
-                : "px-3 py-4 sm:px-5 sm:py-5 lg:px-8 lg:py-6 flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
+                ? "flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden bg-[var(--qs-bg)]"
+                : "px-3 py-4 sm:px-5 sm:py-5 lg:px-8 lg:py-6 flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden bg-[var(--qs-bg)]"
             }
           >
             {children}

@@ -9,7 +9,6 @@ import {
   Check,
   Plus,
   Save,
-  Sparkles,
   Layers,
   FileText,
   HelpCircle,
@@ -19,6 +18,7 @@ import {
   Clock3,
 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
+import { GenerateWithAiButton } from "@/components/creator/common/GenerateWithAiButton";
 import { cn } from "@/lib/helpers";
 import { SectionCard } from "./SectionCard";
 import { AIGenerateModal } from "./AIGenerateModal";
@@ -210,14 +210,12 @@ export function SectionsPage() {
             <Save className="h-3.5 w-3.5" />
             {saving ? "Saving…" : "Save draft"}
           </button>
-          <button
-            type="button"
+          <GenerateWithAiButton
+            size="sm"
+            label="Generate with AI"
             onClick={() => setAiModalOpen(true)}
-            className="col-span-2 inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] sm:col-span-1"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            Generate with AI
-          </button>
+            className="col-span-2 min-h-11 sm:col-span-1"
+          />
           <button
             type="button"
             onClick={handleContinue}

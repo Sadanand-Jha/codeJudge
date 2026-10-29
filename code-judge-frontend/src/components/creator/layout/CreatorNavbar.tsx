@@ -7,7 +7,7 @@ import { ChevronDown, Coins, Globe2, LogOut, Settings, UserRound } from "lucide-
 import { cn } from "@/lib/helpers";
 import { SecureLogo } from "@/components/common/SecureLogo";
 import WorkspaceSwitcher from "@/components/layout/WorkspaceSwitcher";
-import { useAICreditsStore } from "@/store/aiCreditsStore";
+import { useCreditState } from "@/hooks/useCreditState";
 import { useSavedAvatar } from "@/store/avatarStore";
 import { useAuthStore } from "@/store/authStore";
 import { useUIStore } from "@/store/uiStore";
@@ -112,7 +112,10 @@ function ProfileMenu() {
 }
 
 export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuToggle?: () => void }) {
-  const creditBalance = useAICreditsStore((s) => s.balance.totalRemaining);
+  const { state: creditState, balance: creditBalance } = useCreditState();
+  const empty = creditState === "empty";
+  const unknown = creditState === "unknown";
+
   return (
     <header className="creator-topbar qs-ui sticky top-0 z-40 flex h-[58px] min-w-0 w-full max-w-full items-center gap-2 border-b border-ai-border bg-ai-sidebar px-2.5 sm:border-b-2 sm:border-[var(--qs-line)] sm:bg-[var(--qs-surface)]/85 sm:px-3.5 sm:backdrop-blur-xl">
       <div className="flex min-w-0 flex-1 items-center gap-4 sm:flex-none sm:shrink-0 sm:gap-1">
@@ -140,12 +143,35 @@ export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuTogg
       <div className="flex min-w-0 shrink-0 items-center gap-1">
         <Link
           href="/creator/billing/credits"
-          title="Buy AI credits"
-          aria-label={`${creditBalance} AI credits left. Buy more.`}
-          className="mr-0.5 inline-flex shrink-0 items-center gap-1 rounded-full border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/25 px-2 py-1 text-[11px] font-bold tabular-nums text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-sun)]/45"
+          title={empty ? "Buy AI credits" : "Buy AI credits"}
+          aria-label={
+            empty
+              ? "0 AI credits left. Buy credits."
+              : unknown
+                ? "AI credit balance loading."
+                : `${creditBalance} AI credits left. Buy more.`
+          }
+          data-credit-chip={creditState}
+          className={cn(
+            "mr-0.5 inline-flex shrink-0 items-center gap-1 rounded-full border-2 px-2 py-1 text-[10px] font-bold tabular-nums transition-colors sm:text-[11px]",
+            empty
+              ? "border-[var(--qs-credit-chip-border)] bg-[var(--qs-credit-chip-bg)] text-[var(--qs-credit-chip-text)] hover:brightness-[0.98]"
+              : "border-[var(--qs-sun)] bg-[var(--qs-sun)]/25 text-[var(--qs-ink)] hover:bg-[var(--qs-sun)]/45"
+          )}
         >
-          <Coins className="h-3 w-3" />
-          {creditBalance}
+          <Coins className="h-3 w-3 shrink-0" />
+          {unknown ? (
+            <span className="whitespace-nowrap">— credits</span>
+          ) : empty ? (
+            <>
+              <span className="whitespace-nowrap">0 credits left</span>
+              <span className="whitespace-nowrap border-l border-current/30 pl-1.5 underline underline-offset-2">
+                Buy credits
+              </span>
+            </>
+          ) : (
+            <span>{creditBalance}</span>
+          )}
         </Link>
         <WorkspaceSwitcher />
         <ProfileMenu />

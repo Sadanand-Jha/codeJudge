@@ -26,6 +26,7 @@ import AIQuestionReviewOverlay, {
 } from "@/components/quiz/creator/AIQuestionReviewOverlay";
 import { QuizRichText } from "@/components/quiz/QuizRichText";
 import { QuestionBankFilters } from "@/components/creator/tests/sections/QuestionBankFilters";
+import { GenerateWithAiButton } from "@/components/creator/common/GenerateWithAiButton";
 
 /* ============================================
    Types
@@ -679,9 +680,14 @@ export default function AIStudio({
                 <p className="text-[10px] text-text-secondary leading-relaxed">AI curates <b>{bankNumber}</b> balanced questions for you — spread across chapters, difficulty ({bankEasy}·{bankMedium}·{bankHard}) and theory / numerical mix for a fair assessment.</p>
               </div>
 
-              <button onClick={handleGenerateFromBank} disabled={isGenerating || bankEasy + bankMedium + bankHard !== bankNumber || !bankSubjectId} className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-3 text-[12px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:cursor-not-allowed">
+              <GenerateWithAiButton
+                variant="plain"
+                onClick={handleGenerateFromBank}
+                disabled={isGenerating || bankEasy + bankMedium + bankHard !== bankNumber || !bankSubjectId}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-3 text-[12px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 {isGenerating ? <><SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> Generating... {Math.round(generationProgress)}%</> : <><Wand2 className="h-4 w-4" /> Generate {bankNumber} Questions</>}
-              </button>
+              </GenerateWithAiButton>
             </motion.div>
           )}
           {sourceMode === "own" && activeTab === "upload" && (
@@ -1086,7 +1092,8 @@ export default function AIStudio({
               </div>
 
               {/* Generate Button */}
-              <button
+              <GenerateWithAiButton
+                variant="plain"
                 onClick={handleGenerate}
                 disabled={isGenerating}
                 className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-3 text-[12px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-[0_6px_24px_rgba(236,72,153,0.5)] transition-shadow"
@@ -1102,7 +1109,7 @@ export default function AIStudio({
                     Generate Questions
                   </>
                 )}
-              </button>
+              </GenerateWithAiButton>
             </motion.div>
           )}
 
@@ -1201,14 +1208,15 @@ export default function AIStudio({
                           <Check className="h-3.5 w-3.5" />
                           Accept
                         </button>
-                        <button
+                        <GenerateWithAiButton
+                          variant="plain"
                           onClick={() => handleRegenerate(q.id)}
                           disabled={regeneratingId === q.id}
                           className="flex items-center justify-center gap-1.5 rounded-lg bg-accent/10 px-3 py-1.5 text-[10px] font-bold text-accent hover:bg-accent/20 transition-colors disabled:cursor-wait disabled:opacity-60"
                         >
                           <RotateCcw className={`h-3.5 w-3.5 ${regeneratingId === q.id ? "animate-spin" : ""}`} />
                           {regeneratingId === q.id ? "Regenerating…" : "Regenerate"}
-                        </button>
+                        </GenerateWithAiButton>
                         <button
                           onClick={() => handleDelete(q.id)}
                           className="flex items-center justify-center gap-1.5 rounded-lg bg-danger/10 px-3 py-1.5 text-[10px] font-bold text-danger hover:bg-danger/20 transition-colors"

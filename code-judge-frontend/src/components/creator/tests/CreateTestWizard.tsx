@@ -19,7 +19,6 @@ import {
   BookmarkPlus,
   FolderOpen,
   Save,
-  Sparkles,
   X,
 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
@@ -28,6 +27,7 @@ import { deleteSectionBlueprint, getQuestionGeneratorCatalog, getSectionBlueprin
 import type { SectionBlueprint } from "@/services/aiGenerate";
 import { EXAMS, LANGUAGES } from "@/components/tests/mockData";
 import { AiStreamText } from "@/components/ui";
+import { GenerateWithAiButton } from "@/components/creator/common/GenerateWithAiButton";
 import { SectionCard } from "./sections/SectionCard";
 import { AIGenerateModal } from "./sections/AIGenerateModal";
 import { QuestionsStep } from "./sections/QuestionsStep";
@@ -712,13 +712,12 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                   >
                     <BookmarkPlus className="h-3.5 w-3.5" /> Save for reuse
                   </button>
-                  <button
-                    type="button"
+                  <GenerateWithAiButton
+                    size="sm"
+                    label="Generate with AI"
                     onClick={() => setAiModalOpen(true)}
-                    className="b b-pri sm flex-1 shrink-0 gap-1.5 sm:flex-none"
-                  >
-                    <Sparkles className="h-3.5 w-3.5" /> Generate with AI
-                  </button>
+                    className="flex-1 shrink-0 sm:flex-none"
+                  />
                 </div>
               </div>
 

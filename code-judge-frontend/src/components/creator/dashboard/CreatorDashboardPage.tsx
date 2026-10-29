@@ -11,6 +11,7 @@ import {
   Clock,
   Database,
   FileText,
+  Fuel,
   Plus,
   Sparkles,
   TriangleAlert,
@@ -22,11 +23,13 @@ import { formatDate, formatDateTimeIST, timeAgo } from "@/lib/formatters";
 import { getUserTimeZone } from "@/lib/timezone";
 import { deriveQuizStatus, type EffectiveQuizStatus } from "@/lib/quizStatus";
 import { useData } from "@/lib/hooks/useData";
-import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
+import { GenerateWithAiButton } from "@/components/creator/common/GenerateWithAiButton";
 import { TrialOfferBanner } from "@/components/marketing/TrialOfferBanner";
 import { TimingModal } from "@/components/creator/dashboard/TimingModal";
 import { ErrorState, Skeleton } from "@/components/creator/billing/ui";
 import { checkLowCreditWarning, useAICreditsStore } from "@/store/aiCreditsStore";
+import { useCreditState } from "@/hooks/useCreditState";
+import { creditExpiryDays, fuelSegments } from "@/lib/creditState";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { useAuthStore } from "@/store/authStore";
 import {
@@ -71,6 +74,8 @@ interface AttentionItem {
   tone: AttentionTone;
   label: string;
   text: string;
+  href?: string;
+  cta?: string;
 }
 
 function num(value: unknown): number {
@@ -251,7 +256,7 @@ function StatTile({
    Quick actions
    ============================================================ */
 
-const QUICK_ACTIONS: Array<{ title: string; sub: string; href: string; icon: LucideIcon; comingSoon?: boolean }> = [
+const QUICK_ACTIONS: Array<{ title: string; sub: string; href: string; icon: LucideIcon; comingSoon?: boolean; ai?: boolean }> = [
   { title: "New quiz", sub: "Build one by hand", href: "/creator/quizzes/create", icon: Plus },
   {
     title: "Generate with AI",
@@ -259,6 +264,7 @@ const QUICK_ACTIONS: Array<{ title: string; sub: string; href: string; icon: Luc
     href: "/creator/quizzes/ai-generate",
     icon: WandSparkles,
     comingSoon: !WHOLE_QUIZ_AI_ENABLED,
+    ai: true,
   },
   { title: "Paper builder", sub: "Print-ready papers", href: "/creator/tests/create", icon: FileText },
   { title: "Question bank", sub: "Reuse your problems", href: "/creator/question-bank", icon: Database },
@@ -289,7 +295,17 @@ function QuickActions() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: index * 0.04 }}
           >
-            {action.comingSoon ? (
+            {action.ai ? (
+              <GenerateWithAiButton
+                href={action.href}
+                label={action.title}
+                comingSoon={action.comingSoon}
+                variant="plain"
+                className={cn(className, "w-full text-left")}
+              >
+                {content}
+              </GenerateWithAiButton>
+            ) : action.comingSoon ? (
               <button
                 type="button"
                 aria-disabled="true"
@@ -352,7 +368,7 @@ function OnboardingCard() {
           <Plus className="h-4 w-4" />
           Create quiz
         </Link>
-        <AiGenerateButton
+        <GenerateWithAiButton
           href={WHOLE_QUIZ_AI_ENABLED ? "/creator/quizzes/ai-generate" : undefined}
           comingSoon={!WHOLE_QUIZ_AI_ENABLED}
           size="md"
@@ -487,33 +503,132 @@ function LiveQuizCard({ quiz, onChangeTiming }: { quiz: QuizRow; onChangeTiming:
 }
 
 /* ============================================================
+   Low-fuel warning strip
+   ============================================================ */
+
+function LowFuelStrip() {
+  const { state } = useCreditState();
+  if (state !== "empty") return null;
+
+  return (
+    <section
+      role="status"
+      aria-live="polite"
+      data-credit-warning="empty"
+      className="flex flex-col gap-3 rounded-[18px] border-2 border-[var(--qs-credit-strip-border)] bg-[var(--qs-credit-strip-bg)] px-4 py-3 text-[var(--qs-credit-strip-text)] sm:flex-row sm:items-center"
+    >
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-[var(--qs-credit-chip-border)] bg-[var(--qs-credit-card)]">
+        <TriangleAlert className="h-4 w-4" strokeWidth={2.5} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-extrabold leading-5">Your tank is empty. Refuel your credits.</p>
+        <p className="text-[12px] font-medium leading-5">Credits stay valid for 6 months from purchase.</p>
+      </div>
+      <div className="flex flex-wrap gap-2 sm:shrink-0">
+        <Link
+          href="/creator/billing/credits"
+          className="inline-flex min-h-9 items-center justify-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3.5 py-1.5 text-[12px] font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-credit-accent)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
+        >
+          Buy credits
+        </Link>
+        <Link
+          href="/creator/billing/transactions"
+          className="inline-flex min-h-9 items-center justify-center rounded-[10px] border-2 border-[var(--qs-credit-strip-border)] bg-[var(--qs-credit-surface)] px-3.5 py-1.5 text-[12px] font-bold text-[var(--qs-credit-strip-text)] transition-colors hover:bg-[var(--qs-credit-card)]"
+        >
+          History
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+/* ============================================================
    Credits card
    ============================================================ */
 
 function CreditsCard() {
   const balance = useAICreditsStore((s) => s.balance);
+  const lastPackCredits = useAICreditsStore((s) => s.lastPackCredits);
+  const { state, expiresAt } = useCreditState();
   const remaining = balance.totalRemaining;
-  const low = checkLowCreditWarning(remaining, balance.monthlyAllowance || remaining || 1);
+  const empty = state === "empty";
+  const low =
+    !empty &&
+    checkLowCreditWarning(remaining, balance.monthlyAllowance || remaining || 1);
   const { catalog } = usePricingCatalog();
   const validityMonths =
     catalog.creditPacks.length > 0
       ? Math.max(...catalog.creditPacks.map((pack) => pack.validityMonths))
       : null;
+  const packCapacity = Math.max(
+    lastPackCredits,
+    ...catalog.creditPacks.map((pack) => pack.credits),
+    remaining,
+    1
+  );
+  const filledSegments = fuelSegments(remaining, packCapacity);
+  const expiryDays = creditExpiryDays(expiresAt);
+  const expiryHint =
+    expiryDays === null
+      ? null
+      : expiryDays <= 0
+        ? "Credits expire today."
+        : expiryDays <= 14
+          ? `Credits expire in ${expiryDays} day${expiryDays === 1 ? "" : "s"}.`
+          : null;
 
   return (
-    <article className="flex h-full flex-col rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-6">
-      <span className="grid h-12 w-12 place-items-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]">
-        <Sparkles className="h-5 w-5" strokeWidth={2.5} />
+    <article
+      data-credit-card={empty ? "empty" : "ok"}
+      className={cn(
+        "flex h-full flex-col rounded-[26px] border-2 p-5 sm:p-6",
+        empty
+          ? "border-[var(--qs-credit-chip-border)] bg-[var(--qs-credit-card)]"
+          : "border-[var(--qs-ink)] bg-[var(--qs-surface)]"
+      )}
+    >
+      <span
+        className={cn(
+          "grid h-12 w-12 place-items-center rounded-full border-2",
+          empty
+            ? "border-[var(--qs-credit-chip-border)] bg-[var(--qs-credit-card)] text-[var(--qs-credit-chip-text)]"
+            : "border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]"
+        )}
+      >
+        {empty ? <Fuel className="h-5 w-5" strokeWidth={2.5} /> : <Sparkles className="h-5 w-5" strokeWidth={2.5} />}
       </span>
       <p className="mt-3.5 leading-none">
         <span className="qs-display text-[44px] font-extrabold tracking-tight text-[var(--qs-ink)]">{remaining}</span>
         <span className="ml-2.5 align-middle text-[15px] font-bold text-[var(--qs-muted)]">credits left</span>
       </p>
       <p className="mt-1.5 text-[13px] text-[var(--qs-muted)]">
-        {validityMonths ? `Valid ${validityMonths} months from purchase.` : "One-time credits, valid from purchase."}
+        {empty
+          ? "Your tank is empty. Buy credits to keep generating with AI."
+          : validityMonths
+            ? `Valid ${validityMonths} months from purchase.`
+            : "Credits stay valid for 6 months from purchase."}
       </p>
 
-      {low && (
+      <div className="mt-4">
+        <div
+          className="qs-credit-fuel"
+          role="img"
+          aria-label={`${remaining} of ${packCapacity} credits remaining`}
+        >
+          {Array.from({ length: 5 }, (_, index) => (
+            <i key={index} data-filled={index < filledSegments ? "true" : "false"} />
+          ))}
+        </div>
+        <p className="mt-1.5 text-[11px] font-semibold text-[var(--qs-muted)]">
+          {filledSegments} of 5 fuel bars
+        </p>
+      </div>
+
+      {expiryHint && (
+        <p className="mt-2 text-[12px] font-semibold text-[var(--qs-credit-chip-text)]">{expiryHint}</p>
+      )}
+
+      {low && !expiryHint && (
         <div className="mt-3.5 flex items-start gap-2.5 rounded-2xl border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/20 p-3">
           <span className="mt-0.5 text-[var(--qs-ink)]">
             <TriangleAlert className="h-4 w-4" />
@@ -679,8 +794,19 @@ function AttemptsByQuizPanel({ quizzes }: { quizzes: QuizRow[] }) {
    ============================================================ */
 
 function NeedsAttentionPanel({ quizzes }: { quizzes: QuizRow[] }) {
+  const { state: creditState } = useCreditState();
   const items = useMemo<AttentionItem[]>(() => {
     const list: AttentionItem[] = [];
+
+    if (creditState === "empty") {
+      list.push({
+        tone: "warn",
+        label: "Credits",
+        text: "AI credits have run out. Buy a pack to keep generating with AI.",
+        href: "/creator/billing/credits",
+        cta: "Buy credits",
+      });
+    }
 
     quizzes
       .filter((quiz) => quiz.status === "draft")
@@ -717,7 +843,7 @@ function NeedsAttentionPanel({ quizzes }: { quizzes: QuizRow[] }) {
     }
 
     return list.slice(0, 4);
-  }, [quizzes]);
+  }, [creditState, quizzes]);
 
   return (
     <DashPanel title="Needs attention" subtitle="Things worth a look today">
@@ -738,7 +864,17 @@ function NeedsAttentionPanel({ quizzes }: { quizzes: QuizRow[] }) {
               >
                 {item.label}
               </span>
-              <p className="min-w-0 text-[12px] font-medium leading-5 text-[var(--qs-ink)]">{item.text}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-[12px] font-medium leading-5 text-[var(--qs-ink)]">{item.text}</p>
+                {item.href && item.cta && (
+                  <Link
+                    href={item.href}
+                    className="mt-1 inline-flex text-[12px] font-extrabold text-[var(--qs-credit-chip-text)] underline decoration-2 underline-offset-2"
+                  >
+                    {item.cta}
+                  </Link>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -1132,7 +1268,7 @@ export function CreatorDashboardPage() {
   }, [overview]);
 
   return (
-    <div className="space-y-5 pb-2">
+    <div className="space-y-5 pb-2" data-credit-page="dashboard">
       {/* Header */}
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
@@ -1152,6 +1288,8 @@ export function CreatorDashboardPage() {
       </div>
 
       <TrialOfferBanner />
+
+      <LowFuelStrip />
 
       <QuickActions />
 

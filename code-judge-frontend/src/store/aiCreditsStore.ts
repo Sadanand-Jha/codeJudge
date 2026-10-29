@@ -12,11 +12,16 @@ import {
   FAIR_USAGE_LIMITS,
   ABUSE_RULES,
   creditCostMap,
-  LOW_CREDIT_THRESHOLD,
+  LOW_CREDIT_RATIO_THRESHOLD,
   type AICreditFeatureId,
   type CreditPurchasePack,
 } from "@/config/aiCredits";
 import { getCreditBalance } from "@/services/aiCredits";
+import {
+  normalizeCreditSnapshot,
+  type CreditBalanceStatus,
+  type NormalizedCreditSnapshot,
+} from "@/lib/creditState";
 
 interface CreditMetadata {
   promptHash?: string;
@@ -89,6 +94,76 @@ interface RequestPattern {
 const requestHistory = new Map<string, RequestPattern[]>();
 
 /* ============================================
+   Cached balance + cross-tab sync
+   ============================================ */
+export const CREDIT_CACHE_KEY = "quizsupport_credit_balance_cache_v1";
+export const CREDIT_SYNC_CHANNEL = "quizsupport-credit-balance";
+export const CREDIT_LAST_PACK_KEY = "quizsupport_last_credit_pack_credits";
+
+interface CachedCreditSnapshot extends NormalizedCreditSnapshot {
+  savedAt: number;
+}
+
+function readCachedSnapshot(): CachedCreditSnapshot | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(CREDIT_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<CachedCreditSnapshot>;
+    const normalized = normalizeCreditSnapshot(parsed);
+    if (!normalized) return null;
+    return {
+      ...normalized,
+      savedAt: Number.isFinite(Number(parsed.savedAt)) ? Number(parsed.savedAt) : Date.now(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedSnapshot(snapshot: NormalizedCreditSnapshot): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      CREDIT_CACHE_KEY,
+      JSON.stringify({ ...snapshot, savedAt: Date.now() })
+    );
+  } catch {
+    // Storage can be unavailable in private mode; the live fetch still works.
+  }
+}
+
+function readLastPackCredits(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const parsed = Number(window.localStorage.getItem(CREDIT_LAST_PACK_KEY));
+    return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeLastPackCredits(credits: number): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(CREDIT_LAST_PACK_KEY, String(Math.max(0, Math.trunc(credits))));
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function publishCreditChange(): void {
+  if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") return;
+  try {
+    const channel = new BroadcastChannel(CREDIT_SYNC_CHANNEL);
+    channel.postMessage({ type: "credits-changed" });
+    channel.close();
+  } catch {
+    // Cross-tab sync is an enhancement; never block the purchase flow.
+  }
+}
+
+/* ============================================
    Store
    ============================================ */
 interface AICreditsState {
@@ -99,6 +174,11 @@ interface AICreditsState {
   fairUsage: FairUsageStatus;
   abuse: AbuseDetectionStatus;
   purchases: AICreditPurchase[];
+  status: CreditBalanceStatus;
+  hasSnapshot: boolean;
+  expiresAt: number | null;
+  lastFetchedAt: number | null;
+  lastPackCredits: number;
 
   /* actions */
   consumeCredits: (featureId: AICreditFeatureId, metadata?: CreditMetadata) => Promise<{ success: boolean; reason?: string; retryAfterMs?: number; message?: string }>;
@@ -106,6 +186,7 @@ interface AICreditsState {
   completeRequest: () => void;
   /** Apply a server-authoritative remaining balance after an AI charge. */
   syncServerBalance: (remaining: number) => void;
+  hydrateCache: () => void;
   purchasePack: (
     packId: string,
     meta?: {
@@ -115,9 +196,11 @@ interface AICreditsState {
       credits?: number;
       packName?: string;
       price?: number;
+      /** When false, only records the purchase; the server balance poll owns the new balance. */
+      applyToBalance?: boolean;
     }
   ) => Promise<void>;
-  refresh: () => Promise<void>;
+  refresh: (options?: { broadcast?: boolean }) => Promise<boolean>;
 }
 
 export const useAICreditsStore = create<AICreditsState>((set, get) => ({
@@ -141,6 +224,41 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
   fairUsage: EMPTY_FAIR_USAGE,
   abuse: EMPTY_ABUSE,
   purchases: [],
+  status: "idle",
+  hasSnapshot: false,
+  expiresAt: null,
+  lastFetchedAt: null,
+  lastPackCredits: 0,
+
+  hydrateCache: () => {
+    const cached = readCachedSnapshot();
+    const lastPackCredits = readLastPackCredits();
+    set((state) => {
+      const next: Partial<AICreditsState> = { lastPackCredits: lastPackCredits || state.lastPackCredits };
+      if (cached && !state.hasSnapshot) {
+        next.balance = {
+          ...state.balance,
+          monthlyCredits: cached.planCreditsTotal,
+          monthlyAllowance: cached.planCreditsTotal,
+          monthlyCreditsConsumed: Math.max(0, cached.planCreditsTotal - cached.planCredits),
+          monthlyCreditsExpiry: cached.nearestExpiry ? Date.parse(cached.nearestExpiry) : 0,
+          purchasedCredits: cached.purchasedCreditsTotal,
+          purchasedCreditsConsumed: Math.max(0, cached.purchasedCreditsTotal - cached.purchasedCredits),
+          totalRemaining: cached.balance,
+          remaining: cached.balance,
+        };
+        next.stats = {
+          ...state.stats,
+          remaining: cached.balance,
+          monthlyAllowance: cached.planCreditsTotal,
+        };
+        next.hasSnapshot = true;
+        next.expiresAt = cached.nearestExpiry ? Date.parse(cached.nearestExpiry) : null;
+        next.lastFetchedAt = cached.savedAt;
+      }
+      return next;
+    });
+  },
 
   consumeCredits: async (featureId, metadata?: CreditMetadata): Promise<{ success: boolean; reason?: string; retryAfterMs?: number; message?: string }> => {
     const cost = creditCostMap[featureId];
@@ -243,6 +361,8 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
         totalRemaining: next,
         remaining: next,
       },
+      status: "ready",
+      hasSnapshot: true,
     }));
   },
 
@@ -251,13 +371,17 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
     if (credits <= 0) return;
 
     const { balance, purchases } = get();
+    const applyToBalance = meta?.applyToBalance !== false;
+    writeLastPackCredits(credits);
     set({
-      balance: {
-        ...balance,
-        purchasedCredits: balance.purchasedCredits + credits,
-        totalRemaining: balance.totalRemaining + credits,
-        remaining: balance.totalRemaining + credits, // backward compat
-      },
+      balance: applyToBalance
+        ? {
+            ...balance,
+            purchasedCredits: balance.purchasedCredits + credits,
+            totalRemaining: balance.totalRemaining + credits,
+            remaining: balance.totalRemaining + credits, // backward compat
+          }
+        : balance,
       purchases: [
         ...purchases,
         {
@@ -271,19 +395,20 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
           status: meta?.status ?? "completed",
         },
       ],
+      lastPackCredits: credits,
     });
+    if (applyToBalance) publishCreditChange();
   },
 
-  refresh: async () => {
+  refresh: async (options) => {
     try {
-      const snapshot = await getCreditBalance();
-      const planTotal = Math.max(0, snapshot.planCreditsTotal);
-      const purchasedTotal = Math.max(0, snapshot.purchasedCreditsTotal);
-      const planRemaining = Math.max(0, snapshot.planCredits);
-      const purchasedRemaining = Math.max(0, snapshot.purchasedCredits);
-      const expiry = snapshot.nearestExpiry
-        ? Date.parse(snapshot.nearestExpiry)
-        : 0;
+      const snapshot = normalizeCreditSnapshot(await getCreditBalance());
+      if (!snapshot) throw new Error("Invalid credit balance response");
+      const planTotal = snapshot.planCreditsTotal;
+      const purchasedTotal = snapshot.purchasedCreditsTotal;
+      const planRemaining = snapshot.planCredits;
+      const purchasedRemaining = snapshot.purchasedCredits;
+      const expiry = snapshot.nearestExpiry ? Date.parse(snapshot.nearestExpiry) : 0;
 
       set((state) => ({
         balance: {
@@ -294,19 +419,29 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
           monthlyCreditsExpiry: Number.isFinite(expiry) ? expiry : 0,
           purchasedCredits: purchasedTotal,
           purchasedCreditsConsumed: Math.max(0, purchasedTotal - purchasedRemaining),
-          totalRemaining: Math.max(0, snapshot.balance),
-          remaining: Math.max(0, snapshot.balance),
+          totalRemaining: snapshot.balance,
+          remaining: snapshot.balance,
           hasActiveSubscription:
             state.balance.hasActiveSubscription || planTotal > 0,
         },
         stats: {
           ...state.stats,
-          remaining: Math.max(0, snapshot.balance),
+          remaining: snapshot.balance,
           monthlyAllowance: planTotal,
         },
+        status: "ready",
+        hasSnapshot: true,
+        expiresAt: Number.isFinite(expiry) && expiry > 0 ? expiry : null,
+        lastFetchedAt: Date.now(),
       }));
+
+      writeCachedSnapshot(snapshot);
+      if (options?.broadcast !== false) publishCreditChange();
+      return true;
     } catch {
-      // Keep the last known balance when the API is unavailable.
+      // Keep the last known balance (and cached theme) when the API is unavailable.
+      set({ status: "error" });
+      return false;
     }
   },
 }));
@@ -392,7 +527,7 @@ function detectAbuse(
 
 export function checkLowCreditWarning(remaining: number, monthlyAllowance: number): boolean {
   if (monthlyAllowance <= 0) return false;
-  return remaining / monthlyAllowance < LOW_CREDIT_THRESHOLD;
+  return remaining / monthlyAllowance < LOW_CREDIT_RATIO_THRESHOLD;
 }
 
 export function getRecommendedPack(

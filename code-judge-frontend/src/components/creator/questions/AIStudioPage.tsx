@@ -37,6 +37,7 @@ import {
 } from "@/components/creator/billing/ui";
 import { useToast } from "@/hooks/useToast";
 import { useFileUploadAccess } from "@/hooks/useFileUploadAccess";
+import { GenerateWithAiButton } from "@/components/creator/common/GenerateWithAiButton";
 
 type AiTab = "files" | "topic" | "chat";
 
@@ -339,9 +340,8 @@ export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
               </div>
 
               <div className="mt-5 flex flex-wrap items-center gap-3">
-                <BillButton
-                  icon={<Sparkles className="h-4 w-4" />}
-                  loading={generating}
+                <GenerateWithAiButton
+                  size="lg"
                   onClick={() => {
                     if (!canUploadFiles) {
                       if (!subscriptionLoading) {
@@ -352,9 +352,11 @@ export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
                     generate();
                   }}
                   disabled={generating || subscriptionLoading || !canUploadFiles}
+                  className="w-full sm:w-auto"
                 >
+                  <Sparkles className="h-4 w-4" />
                   {generating ? "Generating..." : "Generate Questions"}
-                </BillButton>
+                </GenerateWithAiButton>
                 <p className="text-[11px] text-text-muted">
                   Files are processed privately — your materials are never used for training.
                 </p>
@@ -418,14 +420,14 @@ export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <BillButton
-                    icon={<Sparkles className="h-4 w-4" />}
-                    loading={generating}
+                  <GenerateWithAiButton
+                    size="lg"
                     onClick={generate}
                     disabled={generating}
                   >
+                    <Sparkles className="h-4 w-4" />
                     {generating ? "Generating..." : "Generate"}
-                  </BillButton>
+                  </GenerateWithAiButton>
                   <p className="text-[11px] text-text-muted">
                     {count} questions · {subject} · {difficulty}
                   </p>

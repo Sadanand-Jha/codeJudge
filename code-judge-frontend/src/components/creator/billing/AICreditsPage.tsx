@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { CalendarClock, History } from "lucide-react";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
@@ -9,6 +9,11 @@ import { useToast } from "@/hooks/useToast";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { getApiErrorMessage } from "@/lib/apiError";
+import {
+  REFUEL_SUCCESS_TITLE,
+  REFUEL_TIMEOUT_MESSAGE,
+  waitForCreditRefuel,
+} from "@/lib/creditRefuel";
 import { PageHeader } from "./ui";
 import { CreditPacks } from "./credits/CreditPacks";
 import { HowCreditsWork } from "./credits/HowCreditsWork";
@@ -32,6 +37,11 @@ import type { AICreditPaymentMethod } from "@/types/aiCredits";
 
 function paymentMethod(method: string): AICreditPaymentMethod {
   return method === "card" || method === "netbanking" ? method : "upi";
+}
+
+interface PendingRefuel {
+  receipt: PurchaseReceipt;
+  targetBalance: number;
 }
 
 export function AICreditsPage({
@@ -73,6 +83,7 @@ export function AICreditsPage({
   const [phaseError, setPhaseError] = useState<string | null>(null);
   const [processingNote, setProcessingNote] = useState("Creating your order…");
   const [receipt, setReceipt] = useState<PurchaseReceipt | null>(null);
+  const pendingRefuel = useRef<PendingRefuel | null>(null);
 
   const selectedPackId =
     packId && packs.some((pack) => pack.id === packId)
@@ -85,6 +96,7 @@ export function AICreditsPage({
     : null;
 
   const openSummary = (pack: CreditPurchasePack) => {
+    pendingRefuel.current = null;
     setPackId(pack.id);
     setPhase("summary");
     setPhaseError(null);
@@ -95,6 +107,44 @@ export function AICreditsPage({
     if (phase === "processing") return;
     setPackId(null);
     setPhase("summary");
+  };
+
+  const settleRefuel = (pending: PendingRefuel, newBalance: number) => {
+    pendingRefuel.current = null;
+    setReceipt({ ...pending.receipt, newBalance });
+    setPhase("success");
+    toast.success({
+      title: `${REFUEL_SUCCESS_TITLE} You now have ${newBalance} credits.`,
+    });
+  };
+
+  const awaitRefuel = async (pending: PendingRefuel) => {
+    const result = await waitForCreditRefuel({
+      refresh: () => refreshCredits({ broadcast: false }),
+      readBalance: () => useAICreditsStore.getState().balance.totalRemaining,
+      targetBalance: pending.targetBalance,
+    });
+    if (result.status === "timeout") {
+      setPhaseError(REFUEL_TIMEOUT_MESSAGE);
+      setPhase("delayed");
+      return;
+    }
+    settleRefuel(pending, result.balance);
+  };
+
+  const checkRefuelAgain = async () => {
+    const pending = pendingRefuel.current;
+    if (!pending) return;
+    setPhase("processing");
+    setProcessingNote("Checking your balance…");
+    await refreshCredits({ broadcast: false });
+    const currentBalance = useAICreditsStore.getState().balance.totalRemaining;
+    if (currentBalance >= pending.targetBalance) {
+      settleRefuel(pending, currentBalance);
+      return;
+    }
+    setPhaseError(REFUEL_TIMEOUT_MESSAGE);
+    setPhase("delayed");
   };
 
   const runPurchase = async (args: { packId: string; method: string }) => {
@@ -123,28 +173,30 @@ export function AICreditsPage({
         return;
       }
       setProcessingNote("Verifying payment…");
+      const startingBalance = useAICreditsStore.getState().balance.totalRemaining;
       const verified = await verifyCreditPayment(order, payment);
+      const purchasedCredits = verified.credits || summary.pack.credits;
       await purchasePack(summary.pack.id, {
         transactionId: verified.transactionId,
         method: paymentMethod(args.method),
         status: "completed",
-        credits: verified.credits || summary.pack.credits,
+        credits: purchasedCredits,
         packName: summary.pack.name,
         price: summary.pack.price,
+        applyToBalance: false,
       });
-      await refreshCredits();
-      const newBalance = useAICreditsStore.getState().balance.totalRemaining;
-      setReceipt({
-        transactionId: verified.transactionId,
-        packName: summary.pack.name,
-        credits: verified.credits,
-        newBalance: newBalance || verified.newBalance,
-      });
-      setPhase("success");
-      toast.success({
-        title: "Credits added",
-        description: `${verified.credits} AI credits are now available.`,
-      });
+      const pending: PendingRefuel = {
+        receipt: {
+          transactionId: verified.transactionId,
+          packName: summary.pack.name,
+          credits: purchasedCredits,
+          newBalance: startingBalance,
+        },
+        targetBalance: startingBalance + purchasedCredits,
+      };
+      pendingRefuel.current = pending;
+      setProcessingNote("Refuelling your tank…");
+      await awaitRefuel(pending);
     } catch (err: unknown) {
       setPhaseError(getApiErrorMessage(err, "Payment could not be completed. No amount was charged."));
       setPhase("failed");
@@ -235,6 +287,9 @@ export function AICreditsPage({
             receipt={receipt}
             onClose={closeDialog}
             onPay={handlePay}
+            onCheckAgain={() => {
+              void checkRefuelAgain();
+            }}
             onBack={() => {
               setPhase("summary");
               setPhaseError(null);

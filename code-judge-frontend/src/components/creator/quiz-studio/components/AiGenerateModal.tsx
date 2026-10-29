@@ -39,7 +39,7 @@ import AIQuestionReviewOverlay, { type PreviewQuestion } from "@/components/quiz
 import MarkdownRenderer from "@/components/ai/MarkdownRenderer";
 import { AiStreamText } from "@/components/ui";
 import { QsSelect } from "@/components/creator/problems/QsSelect";
-import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
+import { GenerateWithAiButton } from "@/components/creator/common/GenerateWithAiButton";
 import { useFileUploadAccess } from "@/hooks/useFileUploadAccess";
 
 const ACCEPT = [
@@ -1516,7 +1516,7 @@ export function AiGenerateModal({
                   >
                     Cancel
                   </button>
-                  <AiGenerateButton
+                  <GenerateWithAiButton
                     size="md"
                     label={
                       generationFailed

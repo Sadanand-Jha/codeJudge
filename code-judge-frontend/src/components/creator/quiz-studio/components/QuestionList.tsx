@@ -5,7 +5,7 @@ import { ArrowDown, ArrowUp, Copy, Trash2, Search, GripVertical, X, Download, Pl
 import { cn } from "@/lib/helpers";
 import { getQuestionStatus } from "@/components/quiz/creator/types";
 import { useStudio } from "../StudioProvider";
-import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
+import { GenerateWithAiButton } from "@/components/creator/common/GenerateWithAiButton";
 
 /**
  * Strips HTML tags and decodes common HTML entities (&nbsp;, &amp;, etc.)
@@ -231,7 +231,7 @@ export function QuestionList({
 
       <div className="border-t-2 border-[var(--qs-line)] p-3 shrink-0">
         <div className="grid grid-cols-2 gap-2">
-          <AiGenerateButton
+          <GenerateWithAiButton
             size="sm"
             label="AI Generate"
             onClick={onAiGenerate}

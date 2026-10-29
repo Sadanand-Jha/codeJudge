@@ -46,6 +46,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
+import { GenerateWithAiButton } from "@/components/creator/common/GenerateWithAiButton";
 import { EditableContent } from "@/components/creator/quiz-studio/components/RichToolbar";
 import { useQuizProblemsStore } from "@/store/quizProblemsStore";
 import {
@@ -424,7 +425,11 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
               <button onClick={handleAdd} disabled={adding} className="h-9 px-5 rounded-xl bg-zinc-900 text-white text-sm font-medium inline-flex items-center gap-1.5">
                 {adding ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : <Plus className="w-4 h-4" />} Create Question
               </button>
-              <button onClick={handleAdd} className="h-9 px-5 rounded-xl border border-zinc-200 bg-white text-sm font-medium">Generate with AI</button>
+              <GenerateWithAiButton
+                label="Generate with AI"
+                onClick={handleAdd}
+                className="h-9 rounded-xl px-5 text-sm"
+              />
               <button onClick={() => setImportOpen(true)} className="h-9 px-5 rounded-xl border border-zinc-200 bg-white text-sm font-medium inline-flex items-center gap-1.5">
                 <Database className="w-4 h-4" /> Import from bank
               </button>
@@ -618,9 +623,14 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
             <button onClick={() => setImportOpen(true)} disabled={lockSync} className="w-full h-9 rounded-xl border border-zinc-200 bg-white text-xs font-medium text-zinc-700 hover:bg-zinc-50 flex items-center justify-center gap-1.5 disabled:opacity-50">
               <Database className="w-3.5 h-3.5 text-violet-600" /> Import from bank
             </button>
-            <button onClick={() => toast.success("AI Generate coming soon")} className="w-full h-9 rounded-xl border border-zinc-200 bg-white text-xs font-medium text-zinc-700 hover:bg-zinc-50 flex items-center justify-center gap-1.5">
+            <GenerateWithAiButton
+              variant="plain"
+              label="AI Generate"
+              onClick={() => toast.success("AI Generate coming soon")}
+              className="w-full h-9 rounded-xl border border-zinc-200 bg-white text-xs font-medium text-zinc-700 hover:bg-zinc-50 flex items-center justify-center gap-1.5"
+            >
               <Sparkles className="w-3.5 h-3.5 text-violet-600" /> AI Generate
-            </button>
+            </GenerateWithAiButton>
           </div>
         </aside>
 

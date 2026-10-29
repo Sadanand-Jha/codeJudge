@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { GenerateWithAiButton } from "@/components/creator/common/GenerateWithAiButton";
 
 /**
  * /creator/problems — landing for the Problems workspace.
@@ -150,22 +151,15 @@ export function ProblemsLanding() {
                       How do you want to build it?
                     </p>
                     <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                      {CREATE_OPTIONS.map((option, index) => (
-                        <motion.div
-                          key={option.label}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.22, delay: 0.06 * (index + 1) }}
-                        >
-                          <Link
-                            href={option.href}
-                            className={cn(
-                              "group relative flex h-full items-center gap-3.5 overflow-hidden rounded-[18px] border-2 px-4 py-3.5 text-left transition-all hover:-translate-y-0.5 hover:shadow-[4px_4px_0_var(--qs-sun)]",
-                              option.ai
-                                ? "border-[var(--qs-ink)] bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 text-white"
-                                : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-ink)]"
-                            )}
-                          >
+                      {CREATE_OPTIONS.map((option, index) => {
+                        const optionClasses = cn(
+                          "group relative flex h-full items-center gap-3.5 overflow-hidden rounded-[18px] border-2 px-4 py-3.5 text-left transition-all hover:-translate-y-0.5 hover:shadow-[4px_4px_0_var(--qs-sun)]",
+                          option.ai
+                            ? "border-[var(--qs-ink)] bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 text-white"
+                            : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-ink)]"
+                        );
+                        const optionContent = (
+                          <>
                             {option.ai && (
                               <span
                                 aria-hidden="true"
@@ -206,9 +200,32 @@ export function ProblemsLanding() {
                                 option.ai ? "text-white" : "text-[var(--qs-muted)] group-hover:text-[var(--qs-brand)]"
                               )}
                             />
-                          </Link>
-                        </motion.div>
-                      ))}
+                          </>
+                        );
+                        return (
+                          <motion.div
+                            key={option.label}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.22, delay: 0.06 * (index + 1) }}
+                          >
+                            {option.ai ? (
+                              <GenerateWithAiButton
+                                href={option.href}
+                                label={option.label}
+                                variant="plain"
+                                className={optionClasses}
+                              >
+                                {optionContent}
+                              </GenerateWithAiButton>
+                            ) : (
+                              <Link href={option.href} className={optionClasses}>
+                                {optionContent}
+                              </Link>
+                            )}
+                          </motion.div>
+                        );
+                      })}
                     </div>
                   </div>
                 </motion.div>

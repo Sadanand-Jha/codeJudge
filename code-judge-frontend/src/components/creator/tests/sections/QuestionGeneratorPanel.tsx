@@ -25,6 +25,7 @@ import { generateSubjectiveQuestions } from "@/services/aiGenerate";
 import type { SubjectiveQuestion } from "./paperTypes";
 import { QuestionBankFilters } from "./QuestionBankFilters";
 import { AiStreamText } from "@/components/ui";
+import { GenerateWithAiButton } from "@/components/creator/common/GenerateWithAiButton";
 
 type GeneratorStatus = "idle" | "generating" | "done" | "error";
 
@@ -485,15 +486,15 @@ export function QuestionGeneratorPanel() {
                 />
               </div>
               <div className="flex flex-col justify-end gap-1.5">
-                <button
-                  type="button"
+                <GenerateWithAiButton
+                  variant="plain"
                   onClick={handleGenerate}
                   disabled={status === "generating" || sumMismatch || categorySumMismatch || !subjectId}
                   className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-5 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all hover:shadow-[0_6px_20px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:shadow-none"
                 >
                   {status === "generating" ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <Sparkles className="h-3.5 w-3.5" />}
                   {status === "generating" ? "Generating questions…" : "Generate Questions"}
-                </button>
+                </GenerateWithAiButton>
                 {status === "generating" && (
                   <p className="flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
                     <AlertCircle className="h-3 w-3" /> Don&apos;t close this window · 30 sec–1 min
@@ -533,14 +534,14 @@ export function QuestionGeneratorPanel() {
               {questions.length} questions generated
             </p>
             <div className="flex items-center gap-2">
-              <button
-                type="button"
+              <GenerateWithAiButton
+                variant="plain"
                 onClick={handleGenerate}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-semibold text-text-primary transition-all hover:border-border-hover"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 Regenerate
-              </button>
+              </GenerateWithAiButton>
               <button
                 type="button"
                 onClick={handleCopyAll}

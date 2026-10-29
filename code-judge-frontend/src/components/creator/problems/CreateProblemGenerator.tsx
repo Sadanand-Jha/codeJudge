@@ -28,7 +28,7 @@ import type { SubjectiveQuestion } from "@/components/creator/tests/sections/pap
 import { QsSelect } from "@/components/creator/problems/QsSelect";
 import { QuestionHtml, htmlToEditableText } from "@/components/creator/questions/QuestionHtml";
 import { defaultPaperInstructionLines, downloadQuestionsPdf } from "@/utils/questionSetExport";
-import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
+import { GenerateWithAiButton } from "@/components/creator/common/GenerateWithAiButton";
 import { PaperExportDialog } from "@/components/creator/common/PaperExportDialog";
 import { DEFAULT_PAPER_HEADER, type PaperHeaderMeta } from "@/utils/paperHeader";
 
@@ -976,7 +976,7 @@ export function CreateProblemGenerator() {
                   className="w-full resize-y rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-3.5 py-3 text-sm text-[var(--qs-ink)] outline-none transition placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] disabled:opacity-60"
                 />
               </div>
-              <AiGenerateButton
+              <GenerateWithAiButton
                 size="lg"
                 label={status === "generating" ? "Generating…" : "Generate Questions"}
                 onClick={() => void handleGenerate()}
@@ -1232,7 +1232,7 @@ export function CreateProblemGenerator() {
                   <button type="button" onClick={selectAll} className="b sm">
                     Select all
                   </button>
-                  <AiGenerateButton
+                  <GenerateWithAiButton
                     size="sm"
                     label="Regenerate all"
                     onClick={() => void handleGenerate()}
