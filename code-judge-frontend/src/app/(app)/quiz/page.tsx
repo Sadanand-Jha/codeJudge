@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, Lock, ShieldCheck } from "lucide-react";
+import { BadgeCheck, ShieldCheck } from "lucide-react";
 import GuestGuard from "@/components/guards/GuestGuard";
 
 import YourActivitySection from "@/components/quiz/live/YourActivitySection";
@@ -11,17 +11,8 @@ import { useTheme } from "@/context/ThemeContext";
 
 function TrustStrip() {
   return (
-    <section className="grid gap-2.5 rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3.5 shadow-[4px_4px_0_var(--qs-sun)] sm:grid-cols-3 sm:gap-3 sm:px-5 sm:py-4">
+    <section className="grid gap-2.5 rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3.5 shadow-[4px_4px_0_var(--qs-sun)] sm:grid-cols-2 sm:gap-3 sm:px-5 sm:py-4">
       <span className="flex items-start gap-2.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 text-[13px] leading-snug text-[var(--qs-muted)] sm:border-0 sm:bg-transparent sm:p-0 sm:text-sm">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)]">
-          <Lock className="h-4 w-4 text-[#1a1240]" />
-        </span>
-        <span>
-          <strong className="font-extrabold text-[var(--qs-ink)]">Encrypted link — </strong>
-          Every quiz link is sealed and verified before class starts.
-        </span>
-      </span>
-      <span className="flex items-start gap-2.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 text-[13px] leading-snug text-[var(--qs-muted)] sm:rounded-none sm:border-0 sm:border-l-2 sm:bg-transparent sm:p-0 sm:pl-5 sm:text-sm">
         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-okbg)]">
           <BadgeCheck className="h-4 w-4 text-[var(--qs-ok)]" />
         </span>

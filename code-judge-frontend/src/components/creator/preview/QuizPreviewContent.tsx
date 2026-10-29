@@ -27,13 +27,6 @@ import { cn } from "@/lib/helpers";
 import { getAdminQuizById, getQuizProblemsPublic } from "@/services/quiz";
 import type { QuizBasic, PublicQuizProblem } from "@/services/quiz";
 import ExamModeShell from "@/components/quiz/exam/ExamModeShell";
-import { KekGateHost } from "@/components/creator/quiz-crypto/KekGateHost";
-import { requireKek } from "@/lib/quizKek";
-import {
-  decryptTeacherQuestions,
-  mergeSecureProblemRow,
-} from "@/lib/quizCryptoV2";
-import { getTeacherSecureContent } from "@/services/quizCrypto";
 
 /* ── Types ── */
 
@@ -127,33 +120,9 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
           getAdminQuizById(quizId),
           getQuizProblemsPublic(quizId),
         ]);
-        let visibleProblems = problemsData;
-        if (Number(quizData.crypto_version) === 1) {
-          const kek = await requireKek();
-          const content = await getTeacherSecureContent(quizId);
-          if (!content.wrappedDek) {
-            throw new Error("Encrypted quiz is missing its wrapped data key.");
-          }
-          const decrypted = await decryptTeacherQuestions(
-            quizId,
-            kek,
-            content.problems,
-            content.wrappedDek
-          );
-          const skeletons = new Map(
-            content.problems.map((problem) => [problem.problemId, problem])
-          );
-          visibleProblems = problemsData.map((problem) => {
-            const payload = decrypted.get(problem.id);
-            const skeleton = skeletons.get(problem.id);
-            return payload && skeleton
-              ? mergeSecureProblemRow(problem, payload, skeleton)
-              : problem;
-          });
-        }
         if (cancelled) return;
         setQuiz(quizData);
-        const mapped = visibleProblems.map((p, idx) => ({
+        const mapped = problemsData.map((p, idx) => ({
           id: p.id,
           q: p.problem_statement,
           type: TYPE_MAP[p.quiz_problem_type ?? 1] ?? "single_choice",
@@ -206,13 +175,10 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
 
   if (loading) {
     return (
-      <>
-        <KekGateHost />
-        <div className="flex h-[100dvh] w-full flex-col items-center justify-center bg-background">
-          <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
-          <p className="mt-3 text-sm text-text-muted">Loading quiz preview...</p>
-        </div>
-      </>
+      <div className="flex h-[100dvh] w-full flex-col items-center justify-center bg-background">
+        <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
+        <p className="mt-3 text-sm text-text-muted">Loading quiz preview...</p>
+      </div>
     );
   }
 
@@ -240,7 +206,6 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
       fullWidth
     >
       <div className="flex h-full w-full flex-col overflow-hidden bg-background text-text-primary">
-      <KekGateHost />
       {/* ── MAIN GRID ── */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[clamp(350px,27.5vw,450px)_minmax(0,1fr)_clamp(325px,27.5vw,425px)] gap-3 p-3 overflow-hidden">
         {/* LEFT */}

@@ -4,10 +4,6 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
 import { getAdminQuizById, getQuizAnalytics } from "@/services/quiz";
-import { getTeacherSecureContent } from "@/services/quizCrypto";
-import { requireKek } from "@/lib/quizKek";
-import { decryptTeacherQuestions } from "@/lib/quizCryptoV2";
-import { KekGateHost } from "@/components/creator/quiz-crypto/KekGateHost";
 import { AnalyticsTopBar } from "./quiz/AnalyticsTopBar";
 import { AnalyticsHero } from "./quiz/AnalyticsHero";
 import { OverviewTab } from "./quiz/OverviewTab";
@@ -44,35 +40,7 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
       setError(false);
     });
     Promise.all([getAdminQuizById(quizId), getQuizAnalytics(quizId)])
-      .then(async ([metaRes, analyticsRes]) => {
-        if (disposed) return;
-        let nextData = analyticsRes as unknown as AnalyticsData;
-        if (Number(metaRes.crypto_version) === 1) {
-          const kek = await requireKek();
-          const content = await getTeacherSecureContent(quizId);
-          if (!content.wrappedDek) {
-            throw new Error("Encrypted quiz is missing its wrapped data key.");
-          }
-          const decrypted = await decryptTeacherQuestions(
-            quizId,
-            kek,
-            content.problems,
-            content.wrappedDek
-          );
-          nextData = {
-            ...nextData,
-            question_stats: nextData.question_stats.map((question) => {
-              const payload = decrypted.get(question.id);
-              return payload
-                ? {
-                    ...question,
-                    problem_statement: payload.title,
-                    problem_type: payload.type,
-                  }
-                : question;
-            }),
-          };
-        }
+      .then(([metaRes, analyticsRes]) => {
         if (disposed) return;
         setMeta({
           id: metaRes.id,
@@ -82,7 +50,7 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
           difficulty_name: metaRes.difficulty_name ?? null,
           total_marks: metaRes.total_marks ?? null,
         });
-        setData(nextData);
+        setData(analyticsRes as unknown as AnalyticsData);
       })
       .catch(() => {
         if (!disposed) setError(true);
@@ -131,10 +99,8 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
 
   if (loading && !data) {
     return (
-      <>
-        <KekGateHost />
-        <div className="mx-auto max-w-[1240px] px-4 py-6 pb-24 sm:px-6">
-          <div className="app-skeleton mb-6 h-12 w-72 rounded-[14px]" />
+      <div className="mx-auto max-w-[1240px] px-4 py-6 pb-24 sm:px-6">
+        <div className="app-skeleton mb-6 h-12 w-72 rounded-[14px]" />
         <div className="app-skeleton mb-6 h-72 rounded-[26px]" />
         <div className="mb-4 flex gap-2">
           <div className="app-skeleton h-8 w-24 rounded-full" />
@@ -142,13 +108,12 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
           <div className="app-skeleton h-8 w-24 rounded-full" />
           <div className="app-skeleton h-8 w-24 rounded-full" />
         </div>
-          <div className="grid gap-[18px] lg:grid-cols-3">
-            <div className="app-skeleton h-64 rounded-[22px]" />
-            <div className="app-skeleton h-64 rounded-[22px]" />
-            <div className="app-skeleton h-64 rounded-[22px]" />
-          </div>
+        <div className="grid gap-[18px] lg:grid-cols-3">
+          <div className="app-skeleton h-64 rounded-[22px]" />
+          <div className="app-skeleton h-64 rounded-[22px]" />
+          <div className="app-skeleton h-64 rounded-[22px]" />
         </div>
-      </>
+      </div>
     );
   }
 
@@ -174,7 +139,6 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
 
   return (
     <div className="mx-auto max-w-[1240px] px-4 py-6 pb-24 sm:px-6">
-      <KekGateHost />
       <AnalyticsTopBar
         quizName={meta?.name ?? "Quiz analytics"}
         status={meta?.status ?? null}

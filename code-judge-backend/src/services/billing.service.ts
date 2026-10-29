@@ -1033,14 +1033,6 @@ export class BillingService {
   }
 
   /**
-   * Returns AI credit consumption grouped for the billing dashboard. The
-   * timezone is supplied by the browser so day boundaries match the viewer.
-   */
-  async getCreditUsage(userId: string, timeZone = "UTC") {
-    return billingRepository.getCreditUsageSummary(userId, timeZone);
-  }
-
-  /**
    * Returns a compact order history for the billing page. Timestamps are serialized as ISO strings and money remains in paise.
    */
   async listOrders(userId: string, limit = 50): Promise<

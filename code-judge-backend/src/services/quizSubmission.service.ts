@@ -18,7 +18,6 @@ import {
   type QuizRecalculationJobData,
 } from "../queues/quizRecalculation.queue.ts";
 import { getQuizAttemptDeadlineMs } from "../utils/quizAttemptTiming.ts";
-import { hashAnswerText, normalizeAnswerText } from "../utils/answerHash.ts";
 import { schedulerLog } from "../utils/schedulerLog.ts";
 
 const quizService = new QuizService();
@@ -160,16 +159,12 @@ export async function processQuizSubmission(data: QuizSubmissionJobData): Promis
       validResponses.push(response);
       const autoGradable = [5, 6, 8].includes(Number(problem.quiz_problem_type));
       if (autoGradable) {
-        const submitted = normalizeAnswerText(response.textAnswer);
-        const submittedHash = hashAnswerText(response.textAnswer);
+        const submitted = response.textAnswer.trim().toLowerCase();
         const accepted = problemOptions
           .flatMap((option) => [option.matching_target, option.option_statement])
           .filter(Boolean)
-          .map((value) => normalizeAnswerText(String(value)));
-        const acceptedHashes = problemOptions
-          .map((option) => option.answer_hash)
-          .filter((value): value is string => typeof value === "string" && value.length === 64);
-        if (accepted.includes(submitted) || acceptedHashes.includes(submittedHash)) {
+          .map((value) => String(value).trim().toLowerCase());
+        if (accepted.includes(submitted)) {
           correctAnswers++;
           score += 1;
           earnedMarks += Number(problem.marks) || defaultQuestionMarks;

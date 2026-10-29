@@ -67,8 +67,6 @@ export interface CreatorQuestion {
   createdAt: string;
   updatedAt: string;
   serverId?: number;
-  /** Stable ciphertext context id used by the browser-side quiz encryption. */
-  payloadAadId?: string;
   /** Source bank row when this problem was imported from the question bank. */
   bankQuestionId?: number | null;
   // ── Match the Following ──

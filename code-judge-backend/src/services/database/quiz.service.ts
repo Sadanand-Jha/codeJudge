@@ -243,10 +243,6 @@ export class QuizService {
     return this.repository.checkQuizAccess(userId, quizId);
   }
 
-  async hasCompletedAttempt(userId: number, quizId: number): Promise<boolean> {
-    return this.repository.hasCompletedAttempt(userId, quizId);
-  }
-
   async getQuizByIdForAttempt(quizId: number): Promise<any | null> {
     return this.repository.getQuizByIdForAttempt(quizId);
   }

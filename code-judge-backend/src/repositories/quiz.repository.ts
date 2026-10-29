@@ -7,14 +7,6 @@ import {
   syncQuizProblemOptions,
   type QuizProblemOptionSyncResult,
 } from "./quizProblemOptions.ts";
-import {
-  decryptOptionRow,
-  decryptOptionRows,
-  decryptProblemRow,
-  decryptProblemRows,
-  decryptText,
-  encryptText,
-} from "../services/quizContentCrypto.service.ts";
 
 /**
  * Maximum number of attempts a single user may start for the same quiz,
@@ -235,8 +227,6 @@ export class QuizRepository {
         q.negative_marking,
         q.leaderboard,
         q.registration_fields,
-        q.crypto_version,
-        q.wrapped_dek,
         qs.name AS status,
         q.created_at,
         q.updated_at,
@@ -304,8 +294,6 @@ export class QuizRepository {
         q.negative_marking,
         q.leaderboard,
         q.registration_fields,
-        q.crypto_version,
-        q.wrapped_dek,
         qs.name AS status,
         q.created_at,
         q.updated_at,
@@ -343,8 +331,6 @@ export class QuizRepository {
         qp.difficulty,
         qp.reference_notes,
         qp.internal_comments,
-        qp.payload_ct,
-        qp.payload_aad_id,
         qd.heading AS difficulty_name,
         qp.created_at,
         qp.updated_at
@@ -355,7 +341,7 @@ export class QuizRepository {
       ORDER BY qp.question_number ASC, qp.id ASC
     `;
     const result = await pool.query(query, [quizId]);
-    return decryptProblemRows(result.rows);
+    return result.rows;
   }
 
   /**
@@ -376,8 +362,6 @@ export class QuizRepository {
         qp.difficulty,
         qp.reference_notes,
         qp.internal_comments,
-        qp.payload_ct,
-        qp.payload_aad_id,
         qd.heading AS difficulty_name,
         qp.created_at,
         qp.updated_at
@@ -388,7 +372,7 @@ export class QuizRepository {
       LIMIT 1
     `;
     const result = await pool.query(query, [problemId]);
-    return result.rows.length ? decryptProblemRow(result.rows[0]) : null;
+    return result.rows.length ? result.rows[0] : null;
   }
 
   /**
@@ -412,7 +396,6 @@ export class QuizRepository {
         qpo.option_description,
         qpo.matching_target,
         qpo.iscorrect,
-        qpo.answer_hash,
         qpo.sort_order,
         qpo.created_at,
         qpo.updated_at
@@ -421,7 +404,7 @@ export class QuizRepository {
       ORDER BY qpo.sort_order ASC, qpo.id ASC
     `;
     const result = await pool.query(query, [problemId]);
-    return decryptOptionRows(result.rows);
+    return result.rows;
   }
 
   /**
@@ -612,11 +595,11 @@ export class QuizRepository {
           $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
         FROM quiz_problems WHERE quiz_id = $1
         RETURNING *
-      `, [data.quizId, encryptText(data.problemStatement), encryptText(data.problemDescription),
-        data.quizProblemType || null, encryptText(data.explanation), encryptText(data.hint),
-        data.difficulty || null, encryptText(data.referenceNotes), encryptText(data.internalComments)]);
+      `, [data.quizId, data.problemStatement, data.problemDescription || null,
+        data.quizProblemType || null, data.explanation || null, data.hint || null,
+        data.difficulty || null, data.referenceNotes || null, data.internalComments || null]);
       await client.query("COMMIT");
-      return decryptProblemRow(result.rows[0]);
+      return result.rows[0];
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -644,12 +627,12 @@ export class QuizRepository {
     `;
     const result = await pool.query(query, [
       data.problemId,
-      encryptText(data.optionStatement),
-      encryptText(data.optionDescription),
-      encryptText((data as any).matchingTarget ?? (data as any).matching_target ?? null),
+      data.optionStatement,
+      data.optionDescription || null,
+      (data as any).matchingTarget ?? (data as any).matching_target ?? null,
       data.isCorrect,
     ]);
-    return decryptOptionRow(result.rows[0]);
+    return result.rows[0];
   }
 
   // ==================== NEW METHODS FOR FULL QUIZ MODULE ====================
@@ -803,16 +786,11 @@ export class QuizRepository {
       "explaination", "hint", "difficulty", "reference_notes", "internal_comments"
     ];
 
-    const encryptedFields = new Set([
-      "problem_statement", "problem_description", "explaination", "hint",
-      "reference_notes", "internal_comments",
-    ]);
-
     for (const field of updateableFields) {
       if (data[field] !== undefined) {
         paramCount++;
         fields.push(`${field} = $${paramCount}`);
-        values.push(encryptedFields.has(field) ? encryptText(data[field]) : data[field]);
+        values.push(data[field]);
       }
     }
 
@@ -831,7 +809,7 @@ export class QuizRepository {
     `;
 
     const result = await pool.query(query, values);
-    return result.rows.length ? decryptProblemRow(result.rows[0]) : null;
+    return result.rows[0];
   }
 
   async deleteQuizProblem(problemId: number): Promise<boolean> {
@@ -875,7 +853,7 @@ export class QuizRepository {
       }
 
       await client.query("COMMIT");
-      return decryptProblemRow(newProblem.rows[0]);
+      return newProblem.rows[0];
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -932,15 +910,15 @@ export class QuizRepository {
         let paramCount = 0;
 
         const updateableFields: Record<string, any> = {
-          problem_statement: encryptText(data.problemStatement),
-          problem_description: encryptText(data.problemDescription),
+          problem_statement: data.problemStatement,
+          problem_description: data.problemDescription ?? null,
           quiz_problem_type: data.quizProblemType ?? null,
           question_number: data.questionNumber ?? null,
-          explaination: encryptText(data.explanation),
-          hint: encryptText(data.hint),
+          explaination: data.explanation ?? null,
+          hint: data.hint ?? null,
           difficulty: data.difficulty ?? null,
-          reference_notes: encryptText(data.referenceNotes),
-          internal_comments: encryptText(data.internalComments),
+          reference_notes: data.referenceNotes ?? null,
+          internal_comments: data.internalComments ?? null,
           marks: data.marks ?? null,
           negative_marks: data.negativeMarks ?? null,
         };
@@ -980,14 +958,14 @@ export class QuizRepository {
           RETURNING *`,
           [
             data.quizId,
-            encryptText(data.problemStatement),
-            encryptText(data.problemDescription),
+            data.problemStatement,
+            data.problemDescription || null,
             data.quizProblemType || null,
-            encryptText(data.explanation),
-            encryptText(data.hint),
+            data.explanation || null,
+            data.hint || null,
             data.difficulty || null,
-            encryptText(data.referenceNotes),
-            encryptText(data.internalComments),
+            data.referenceNotes || null,
+            data.internalComments || null,
             data.marks ?? null,
             data.negativeMarks ?? null,
           ]
@@ -1007,7 +985,7 @@ export class QuizRepository {
 
       await client.query("COMMIT");
       return {
-        ...decryptProblemRow(problem),
+        ...problem,
         options: optionSync?.options ?? [],
         gradingChanged: Boolean(optionSync?.gradingChanged) || gradingFieldsChanged,
       };
@@ -1329,7 +1307,7 @@ export class QuizRepository {
       ORDER BY qp.question_number ASC
     `;
     const result = await pool.query(query, [attemptId, userId]);
-    return decryptProblemRows(result.rows);
+    return result.rows;
   }
 
   async getQuizLeaderboard(quizId: number): Promise<any[]> {
@@ -1485,7 +1463,7 @@ export class QuizRepository {
         avg_time_ms: q.avg_time_ms ? parseInt(q.avg_time_ms) : null,
         median_time_ms: q.median_time_ms ? parseInt(q.median_time_ms) : null,
         max_time_ms: q.max_time_ms ? parseInt(q.max_time_ms) : null,
-        id: q.id, question_number: q.question_number, problem_statement: decryptText(q.problem_statement), problem_type: q.problem_type, difficulty: q.difficulty, difficulty_name: q.difficulty_name
+        id: q.id, question_number: q.question_number, problem_statement: q.problem_statement, problem_type: q.problem_type, difficulty: q.difficulty, difficulty_name: q.difficulty_name
       };
     });
 
@@ -1674,14 +1652,6 @@ export class QuizRepository {
     }
 
     return { allowed: true, attemptsMade, maxAttempts: MAX_QUIZ_ATTEMPTS };
-  }
-
-  async hasCompletedAttempt(userId: number, quizId: number): Promise<boolean> {
-    const result = await pool.query(
-      "SELECT 1 FROM quiz_attempt WHERE user_id = $1 AND quiz_id = $2 AND status = 'completed' LIMIT 1",
-      [userId, quizId]
-    );
-    return result.rows.length > 0;
   }
 
   async checkQuizAccessForRegistration(quizId: string, userId?: number): Promise<{ allowed: boolean; reason?: string }> {
@@ -2032,8 +2002,6 @@ export class QuizRepository {
         qp.problem_description,
         qp.explaination,
         qp.hint,
-        qp.payload_ct,
-        qp.payload_aad_id,
         qpt.name AS problem_type,
         qd.heading AS difficulty,
         COALESCE((
@@ -2061,12 +2029,7 @@ export class QuizRepository {
       ORDER BY qp.question_number ASC
     `;
     const result = await pool.query(query, [attemptId, userId]);
-    return result.rows.map((row: any) => {
-      const next = decryptProblemRow(row);
-      if (Array.isArray(next.options)) next.options = decryptOptionRows(next.options);
-      if ("correct_answer" in next) next.correct_answer = decryptText(next.correct_answer);
-      return next;
-    });
+    return result.rows;
   }
 
   async getAllSubjects(search?: string): Promise<any[]> {
@@ -2584,8 +2547,6 @@ export class QuizRepository {
         qp.problem_statement,
         qp.problem_description,
         qp.explaination,
-        qp.payload_ct,
-        qp.payload_aad_id,
         qpt.name AS problem_type,
         correct.option_statement AS correct_answer,
         qsr.answer AS raw_answer,
@@ -2609,12 +2570,7 @@ export class QuizRepository {
       ORDER BY qp.question_number ASC
     `;
     const result = await pool.query(query, [attemptId]);
-    return result.rows.map((row: any) => {
-      const next = decryptProblemRow(row);
-      if ("correct_answer" in next) next.correct_answer = decryptText(next.correct_answer);
-      if ("selected_statement" in next) next.selected_statement = decryptText(next.selected_statement);
-      return next;
-    });
+    return result.rows;
   }
 
   // ==================== QUIZ PARTICIPANTS (audience allow-list) ====================

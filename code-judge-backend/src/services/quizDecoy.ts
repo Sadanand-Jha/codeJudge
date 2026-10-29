@@ -164,45 +164,6 @@ export function sanitizeStudentProblem(problem: DecoyProblem): Record<string, un
   if (problem.question_number !== undefined) clean.question_number = problem.question_number;
   if (problem.difficulty !== undefined) clean.difficulty = problem.difficulty;
   if (problem.difficulty_name !== undefined) clean.difficulty_name = problem.difficulty_name;
-  if (problem.payload_ct !== undefined) clean.payload_ct = problem.payload_ct;
-  if (problem.payload_aad_id !== undefined) clean.payload_aad_id = problem.payload_aad_id;
-  return clean;
-}
-
-/**
- * Sanitize a student-facing attempt problem without leaking any authored
- * text. The browser decrypts the question/option text from the teacher-key
- * protected payload and merges it back by id; the server only needs to send
- * ordering and identifiers.
- */
-export function sanitizeAttemptProblem(problem: DecoyProblem): Record<string, unknown> {
-  const clean: Record<string, unknown> = {
-    id: problem.id,
-    options: (problem.options ?? []).map((option) => ({
-      id: option.id,
-      ...(option.problem_id !== undefined ? { problem_id: option.problem_id } : {}),
-      ...(option.authored_index !== undefined
-        ? { authored_index: option.authored_index }
-        : {}),
-    })),
-    trap: null,
-  };
-  const metaKeys = [
-    "quiz_id",
-    "quiz_problem_type",
-    "problem_type_name",
-    "question_number",
-    "difficulty",
-    "difficulty_name",
-    "marks",
-    "negative_marks",
-    "authored_index",
-    "payload_ct",
-    "payload_aad_id",
-  ] as const;
-  for (const key of metaKeys) {
-    if (problem[key] !== undefined) clean[key] = problem[key];
-  }
   return clean;
 }
 

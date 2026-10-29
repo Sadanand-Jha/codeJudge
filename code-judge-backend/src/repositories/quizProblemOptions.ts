@@ -1,8 +1,4 @@
 import type { PoolClient } from "pg";
-import {
-  decryptOptionRows,
-  encryptText,
-} from "../services/quizContentCrypto.service.ts";
 
 export interface QuizProblemOptionInput {
   id?: number;
@@ -61,7 +57,7 @@ export async function syncQuizProblemOptions(
      FOR UPDATE`,
     [problemId]
   );
-  const existing = decryptOptionRows(existingResult.rows);
+  const existing = existingResult.rows;
   const existingById = new Map(existing.map((option) => [Number(option.id), option]));
   const incomingIds = new Set<number>();
   let gradingChanged = false;
@@ -110,9 +106,9 @@ export async function syncQuizProblemOptions(
              updated_at = CURRENT_TIMESTAMP
          WHERE id = $6 AND problem_id = $7`,
         [
-          encryptText(option.optionStatement),
-          encryptText(optionDescription),
-          encryptText(matchingTarget),
+          option.optionStatement,
+          optionDescription,
+          matchingTarget,
           Boolean(option.isCorrect),
           index,
           optionId,
@@ -130,9 +126,9 @@ export async function syncQuizProblemOptions(
          RETURNING id`,
         [
           problemId,
-          encryptText(option.optionStatement),
-          encryptText(optionDescription),
-          encryptText(matchingTarget),
+          option.optionStatement,
+          optionDescription,
+          matchingTarget,
           Boolean(option.isCorrect),
           index,
         ]
@@ -160,5 +156,5 @@ export async function syncQuizProblemOptions(
     [problemId]
   );
 
-  return { options: decryptOptionRows(savedResult.rows), gradingChanged };
+  return { options: savedResult.rows, gradingChanged };
 }
