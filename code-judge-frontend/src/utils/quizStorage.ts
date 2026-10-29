@@ -2,7 +2,6 @@
 
 import { QuizDetails, CreatorQuestion, DEFAULT_QUIZ_DETAILS, QuizAudience, DEFAULT_QUIZ_AUDIENCE } from "@/components/quiz/creator/types";
 import { STORAGE_KEYS } from "@/utils/storageKeys";
-import { readLocalJson, writeLocalJson } from "@/lib/localContentCrypto";
 
 const STORAGE_KEY = STORAGE_KEYS.QUIZ_CREATION;
 
@@ -21,7 +20,7 @@ function isClient(): boolean {
 export function saveQuizState(state: QuizCreationState): void {
   if (!isClient()) return;
   try {
-    writeLocalJson(STORAGE_KEY, state);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (err) {
     console.error("Failed to save quiz state to localStorage:", err);
   }
@@ -30,8 +29,10 @@ export function saveQuizState(state: QuizCreationState): void {
 export function loadQuizState(): QuizCreationState | null {
   if (!isClient()) return null;
   try {
-    const parsed = readLocalJson<QuizCreationState>(STORAGE_KEY);
-    if (!parsed?.details || !Array.isArray(parsed.questions)) return null;
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as QuizCreationState;
+    if (!parsed.details || !Array.isArray(parsed.questions)) return null;
     return parsed;
   } catch (err) {
     console.error("Failed to load quiz state from localStorage:", err);

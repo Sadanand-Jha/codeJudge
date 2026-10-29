@@ -6,14 +6,6 @@ import {
   syncQuizProblemOptions,
   type QuizProblemOptionSyncResult,
 } from "./quizProblemOptions.ts";
-import {
-  decryptOptionRow,
-  decryptOptionRows,
-  decryptProblemRow,
-  decryptProblemRows,
-  decryptText,
-  encryptText,
-} from "../services/quizContentCrypto.service.ts";
 
 export class AdminQuizRepository {
   // ==================== SHARED LOOKUPS ====================
@@ -25,7 +17,6 @@ export class AdminQuizRepository {
         q.subject_id, q.duration, q.total_marks, q.passing_marks, q.audience_mode,
         q.shuffle_questions, q.shuffle_options, q.show_results_immediately,
         q.negative_marking, q.leaderboard, q.registration_fields,
-        q.crypto_version, q.wrapped_dek,
         qs.name AS status, q.created_at,
         qd.heading AS difficulty_name
       FROM quiz q
@@ -44,7 +35,6 @@ export class AdminQuizRepository {
         q.subject_id, q.duration, q.total_marks, q.passing_marks, q.audience_mode,
         q.shuffle_questions, q.shuffle_options, q.show_results_immediately,
         q.negative_marking, q.leaderboard, q.registration_fields,
-        q.crypto_version, q.wrapped_dek,
         qs.name AS status, q.created_at,
         qd.heading AS difficulty_name
       FROM quiz q
@@ -329,8 +319,7 @@ export class AdminQuizRepository {
       SELECT qp.id, qp.quiz_id, qp.problem_statement, qp.problem_description,
         qp.quiz_problem_type, qpt.name AS problem_type_name, qp.question_number,
         qp.explaination, qp.hint, qp.difficulty, qd.heading AS difficulty_name,
-        qp.marks, qp.negative_marks, qp.payload_ct, qp.payload_aad_id,
-        qp.created_at, qp.updated_at
+        qp.marks, qp.negative_marks, qp.created_at, qp.updated_at
       FROM quiz_problems qp
       LEFT JOIN quiz_problem_type qpt ON qpt.id = qp.quiz_problem_type
       LEFT JOIN quiz_difficulty qd ON qd.id = qp.difficulty
@@ -338,7 +327,7 @@ export class AdminQuizRepository {
       ORDER BY qp.question_number ASC, qp.id ASC
     `;
     const result = await pool.query(query, [quizId]);
-    return decryptProblemRows(result.rows);
+    return result.rows;
   }
 
   async getQuizProblemById(problemId: number | string): Promise<any | null> {
@@ -346,15 +335,14 @@ export class AdminQuizRepository {
       SELECT qp.id, qp.quiz_id, qp.problem_statement, qp.problem_description,
         qp.quiz_problem_type, qpt.name AS problem_type_name, qp.question_number,
         qp.explaination, qp.hint, qp.difficulty, qd.heading AS difficulty_name,
-        qp.marks, qp.negative_marks, qp.payload_ct, qp.payload_aad_id,
-        qp.created_at, qp.updated_at
+        qp.marks, qp.negative_marks, qp.created_at, qp.updated_at
       FROM quiz_problems qp
       LEFT JOIN quiz_problem_type qpt ON qpt.id = qp.quiz_problem_type
       LEFT JOIN quiz_difficulty qd ON qd.id = qp.difficulty
       WHERE qp.id = $1 AND qp.deleted_at IS NULL LIMIT 1
     `;
     const result = await pool.query(query, [problemId]);
-    return result.rows.length ? decryptProblemRow(result.rows[0]) : null;
+    return result.rows.length ? result.rows[0] : null;
   }
 
   async getQuizProblemCount(quizId: string): Promise<number> {
@@ -367,13 +355,13 @@ export class AdminQuizRepository {
   async getQuizProblemOptions(problemId: string): Promise<any[]> {
     const query = `
       SELECT qpo.id, qpo.problem_id, qpo.option_statement, qpo.option_description,
-        qpo.matching_target, qpo.iscorrect, qpo.answer_hash, qpo.sort_order
+        qpo.matching_target, qpo.iscorrect, qpo.sort_order
       FROM quiz_problem_options qpo
       WHERE qpo.problem_id = $1
       ORDER BY qpo.sort_order ASC, qpo.id ASC
     `;
     const result = await pool.query(query, [problemId]);
-    return decryptOptionRows(result.rows);
+    return result.rows;
   }
 
   async createQuizProblem(data: {
@@ -392,12 +380,12 @@ export class AdminQuizRepository {
         FROM quiz_problems WHERE quiz_id = $1 RETURNING *
       `;
       const result = await client.query(query, [
-        data.quizId, encryptText(data.problemStatement), encryptText(data.problemDescription),
-        data.quizProblemType || null, encryptText(data.explanation),
-        encryptText(data.hint), data.difficulty || null, encryptText(data.referenceNotes), encryptText(data.internalComments),
+        data.quizId, data.problemStatement, data.problemDescription || null,
+        data.quizProblemType || null, data.explanation || null,
+        data.hint || null, data.difficulty || null, data.referenceNotes || null, data.internalComments || null,
       ]);
       await client.query("COMMIT");
-      return decryptProblemRow(result.rows[0]);
+      return result.rows[0];
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -417,10 +405,10 @@ export class AdminQuizRepository {
         CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) RETURNING *
     `;
     const result = await pool.query(query, [
-      data.problemId, encryptText(data.optionStatement), encryptText(data.optionDescription),
-      encryptText((data as any).matchingTarget ?? (data as any).matching_target ?? null), data.isCorrect,
+      data.problemId, data.optionStatement, data.optionDescription || null,
+      (data as any).matchingTarget ?? (data as any).matching_target ?? null, data.isCorrect,
     ]);
-    return decryptOptionRow(result.rows[0]);
+    return result.rows[0];
   }
 
   async updateQuizProblem(problemId: number, data: any): Promise<any> {
@@ -431,15 +419,11 @@ export class AdminQuizRepository {
       "problem_statement", "problem_description", "quiz_problem_type", "question_number",
       "explaination", "hint", "difficulty", "reference_notes", "internal_comments",
     ];
-    const encryptedFields = new Set([
-      "problem_statement", "problem_description", "explaination", "hint",
-      "reference_notes", "internal_comments",
-    ]);
     for (const field of updateableFields) {
       if (data[field] !== undefined) {
         paramCount++;
         fields.push(`${field} = $${paramCount}`);
-        values.push(encryptedFields.has(field) ? encryptText(data[field]) : data[field]);
+        values.push(data[field]);
       }
     }
     if (fields.length === 0) return null;
@@ -449,7 +433,7 @@ export class AdminQuizRepository {
     const result = await pool.query(
       `UPDATE quiz_problems SET ${fields.join(", ")} WHERE id = $${paramCount} AND deleted_at IS NULL RETURNING *`, values
     );
-    return result.rows.length ? decryptProblemRow(result.rows[0]) : null;
+    return result.rows[0];
   }
 
   async deleteQuizProblem(problemId: number): Promise<boolean> {
@@ -488,7 +472,7 @@ export class AdminQuizRepository {
         );
       }
       await client.query("COMMIT");
-      return decryptProblemRow(newProblem.rows[0]);
+      return newProblem.rows[0];
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -531,15 +515,15 @@ export class AdminQuizRepository {
         const values: any[] = [];
         let pc = 0;
         const uf: Record<string, any> = {
-          problem_statement: encryptText(data.problemStatement),
-          problem_description: encryptText(data.problemDescription),
+          problem_statement: data.problemStatement,
+          problem_description: data.problemDescription ?? null,
           quiz_problem_type: data.quizProblemType ?? null,
           question_number: data.questionNumber ?? null,
-          explaination: encryptText(data.explanation),
-          hint: encryptText(data.hint),
+          explaination: data.explanation ?? null,
+          hint: data.hint ?? null,
           difficulty: data.difficulty ?? null,
-          reference_notes: encryptText(data.referenceNotes),
-          internal_comments: encryptText(data.internalComments),
+          reference_notes: data.referenceNotes ?? null,
+          internal_comments: data.internalComments ?? null,
           marks: data.marks ?? null,
           negative_marks: data.negativeMarks ?? null,
         };
@@ -564,9 +548,9 @@ export class AdminQuizRepository {
            marks, negative_marks, created_at, updated_at)
            SELECT $1,$2,$3,$4,COALESCE(MAX(question_number), 0) + 1,$5,$6,$7,$8,$9,$10,$11,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
            FROM quiz_problems WHERE quiz_id = $1 RETURNING *`,
-          [data.quizId, encryptText(data.problemStatement), encryptText(data.problemDescription), data.quizProblemType || null,
-           encryptText(data.explanation), encryptText(data.hint), data.difficulty || null,
-           encryptText(data.referenceNotes), encryptText(data.internalComments), data.marks ?? null, data.negativeMarks ?? null]
+          [data.quizId, data.problemStatement, data.problemDescription || null, data.quizProblemType || null,
+           data.explanation || null, data.hint || null, data.difficulty || null,
+           data.referenceNotes || null, data.internalComments || null, data.marks ?? null, data.negativeMarks ?? null]
         );
         problem = result.rows[0];
       }
@@ -583,7 +567,7 @@ export class AdminQuizRepository {
 
       await client.query("COMMIT");
       return {
-        ...decryptProblemRow(problem),
+        ...problem,
         options: optionSync?.options ?? [],
         gradingChanged: Boolean(optionSync?.gradingChanged) || gradingFieldsChanged,
       };
@@ -818,12 +802,7 @@ export class AdminQuizRepository {
        ORDER BY qp.question_number ASC`,
       [attemptId]
     );
-    return result.rows.map((row: any) => {
-      const next = decryptProblemRow(row);
-      if ("correct_answer" in next) next.correct_answer = decryptText(next.correct_answer);
-      if ("selected_statement" in next) next.selected_statement = decryptText(next.selected_statement);
-      return next;
-    });
+    return result.rows;
   }
 
   // ==================== PARTICIPANTS ====================
@@ -961,7 +940,7 @@ export class AdminQuizRepository {
       const skipped = Math.max(0, totalAttemptsNum - totalResp);
       const accuracy = totalResp > 0 ? (correct / totalResp * 100) : 0;
       return {
-        id: q.id, question_number: q.question_number, problem_statement: decryptText(q.problem_statement),
+        id: q.id, question_number: q.question_number, problem_statement: q.problem_statement,
         problem_type: q.problem_type, difficulty: q.difficulty, difficulty_name: q.difficulty_name,
         total_responses: totalResp,
         correct_responses: correct, incorrect_responses: incorrect, skipped_count: skipped,

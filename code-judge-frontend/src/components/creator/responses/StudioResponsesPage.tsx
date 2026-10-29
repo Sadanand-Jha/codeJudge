@@ -20,11 +20,6 @@ import {
   type QuizResponseStudent,
   type StudentResponseDetail,
 } from "@/services/quiz";
-import { KekGateHost } from "@/components/creator/quiz-crypto/KekGateHost";
-import { requireKek } from "@/lib/quizKek";
-import { decryptTeacherQuestions } from "@/lib/quizCryptoV2";
-import { getTeacherSecureContent } from "@/services/quizCrypto";
-import { KekGateCancelledError } from "@/store/kekGateStore";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -405,67 +400,9 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
       try {
         const numericId = /^\d+$/.test(quizId) ? quizId : String((await getQuizByCode(quizId)).id);
         const detail = await getStudentResponseDetail(numericId, detailPanel.userId, detailPanel.attemptId ?? undefined);
-        let nextDetail = detail;
-        if (detail.review.some((row) => row.payload_ct)) {
-          const kek = await requireKek();
-          const content = await getTeacherSecureContent(numericId);
-          if (!content.wrappedDek) {
-            throw new Error("Encrypted quiz is missing its wrapped data key.");
-          }
-          const decrypted = await decryptTeacherQuestions(
-            numericId,
-            kek,
-            content.problems,
-            content.wrappedDek
-          );
-          const skeletons = new Map(
-            content.problems.map((problem) => [problem.problemId, problem])
-          );
-          nextDetail = {
-            ...detail,
-            review: detail.review.map((row) => {
-              const payload = decrypted.get(row.problem_id);
-              const skeleton = skeletons.get(row.problem_id);
-              if (!payload || !skeleton) return row;
-              const optionText = (index: number) => {
-                const option = payload.options[index];
-                return (
-                  option?.contentHtml?.trim() ||
-                  option?.content ||
-                  option?.matchingTarget ||
-                  ""
-                );
-              };
-              const selectedIndex = skeleton.options.findIndex(
-                (option) => String(option.id) === row.selected_option
-              );
-              const correctIndex = skeleton.options.findIndex(
-                (option) => option.isCorrect
-              );
-              return {
-                ...row,
-                problem_statement: payload.title,
-                problem_description: payload.topic,
-                explaination: payload.explanation,
-                selected_statement:
-                  selectedIndex >= 0
-                    ? optionText(selectedIndex)
-                    : row.selected_statement,
-                correct_answer:
-                  correctIndex >= 0
-                    ? optionText(correctIndex)
-                    : typeof payload.correctAnswer === "string"
-                      ? payload.correctAnswer
-                      : row.correct_answer,
-              };
-            }),
-          };
-        }
-        if (!cancelled) setDetailReview(nextDetail);
-      } catch (err) {
-        if (!(err instanceof KekGateCancelledError) && !cancelled) {
-          setDetailReview(null);
-        }
+        if (!cancelled) setDetailReview(detail);
+      } catch {
+        if (!cancelled) setDetailReview(null);
       } finally {
         if (!cancelled) setDetailLoading(false);
       }
@@ -659,7 +596,6 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
 
   return (
     <div className="min-h-full bg-[var(--qs-bg)]">
-      <KekGateHost />
       <div className="mx-auto max-w-[1280px] px-4 py-6 pb-20 sm:px-6">
 
         {/* ── Top ───────────────────────────────────────────────────── */}

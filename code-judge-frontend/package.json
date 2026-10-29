@@ -7,16 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx src/lib/__acceptance__/structuralEdits.test.ts && tsx src/lib/__acceptance__/aiTrap.test.tsx && tsx src/lib/__acceptance__/seo.test.ts && tsx src/lib/__acceptance__/documentBranding.test.ts && tsx src/lib/__acceptance__/paperStudioDevice.test.ts && tsx src/lib/__acceptance__/paperQuestionRegeneration.test.ts && tsx src/lib/__acceptance__/roomsShare.test.ts && tsx src/lib/__acceptance__/roomOwnership.test.ts && tsx src/lib/__acceptance__/quizCrypto.test.ts && tsx src/lib/crypto/__tests__/crypto.test.ts && tsx src/lib/__tests__/quizCryptoV2.test.ts",
-    "test:ai-trap": "tsx src/lib/__acceptance__/aiTrap.test.tsx",
-    "test:crypto": "tsx src/lib/__acceptance__/quizCrypto.test.ts",
-    "test:crypto-v2": "tsx src/lib/crypto/__tests__/crypto.test.ts",
-    "test:quiz-crypto-v2": "tsx src/lib/__tests__/quizCryptoV2.test.ts"
+    "test": "tsx src/lib/__acceptance__/structuralEdits.test.ts && tsx src/lib/__acceptance__/aiTrap.test.tsx && tsx src/lib/__acceptance__/seo.test.ts && tsx src/lib/__acceptance__/documentBranding.test.ts && tsx src/lib/__acceptance__/paperStudioDevice.test.ts && tsx src/lib/__acceptance__/paperQuestionRegeneration.test.ts && tsx src/lib/__acceptance__/roomsShare.test.ts && tsx src/lib/__acceptance__/roomOwnership.test.ts",
+    "test:ai-trap": "tsx src/lib/__acceptance__/aiTrap.test.tsx"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
-    "@noble/ciphers": "^1.3.0",
-    "@noble/hashes": "^1.8.0",
     "axios": "^1.18.1",
     "clsx": "^2.1.1",
     "dompurify": "^3.2.7",

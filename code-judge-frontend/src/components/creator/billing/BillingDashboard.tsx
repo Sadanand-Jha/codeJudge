@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { getUserTimeZone } from "@/lib/timezone";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import {
   ArrowRight,
   CalendarClock,
@@ -99,21 +99,21 @@ function MetricTile({
   icon: ReactNode;
 }) {
   return (
-    <article className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5">
-      <div className="flex items-center justify-between gap-1.5">
-        <p className="flex min-w-0 items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.1em] text-[var(--qs-muted)]">
-          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />
+    <article className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3.5">
+      <div className="flex items-center justify-between gap-2">
+        <p className="flex min-w-0 items-center gap-2 text-[10px] font-black uppercase tracking-[0.11em] text-[var(--qs-muted)]">
+          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />
           <span className="truncate">{label}</span>
         </p>
-        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-[8px] border-2 border-[var(--qs-line)] text-[var(--qs-muted)]">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-line)] text-[var(--qs-muted)]">
           {icon}
         </span>
       </div>
-      <p className="qs-display mt-1.5 text-[22px] font-extrabold leading-none tracking-tight text-[var(--qs-ink)]">
+      <p className="qs-display mt-2 text-[30px] font-extrabold leading-none tracking-tight text-[var(--qs-ink)]">
         {value}
-        {unit && <span className="ml-1 text-[10.5px] font-semibold tracking-normal text-[var(--qs-muted)]">{unit}</span>}
+        {unit && <span className="ml-1.5 text-[13px] font-semibold tracking-normal text-[var(--qs-muted)]">{unit}</span>}
       </p>
-      <p className="mt-1 truncate text-[10.5px] text-[var(--qs-muted)]" title={hint}>
+      <p className="mt-1.5 truncate text-[12px] text-[var(--qs-muted)]" title={hint}>
         {hint}
       </p>
     </article>
@@ -545,8 +545,8 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
   const { state, data, retry } = useBillingData(
     () => {
       const store = useAICreditsStore.getState();
-      return Promise.all([store.refresh(), getBillingTransactions(20)])
-        .then(([, rows]) => {
+      return getBillingTransactions(20)
+        .then((rows) => {
           const current = useAICreditsStore.getState();
           return {
             balance: current.balance,
@@ -556,17 +556,15 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
               .map(toTopUp),
           };
         })
-        .catch(() => {
-          const current = useAICreditsStore.getState();
-          return {
-            balance: current.balance,
-            stats: current.stats,
-            purchases: current.purchases,
-          };
-        });
+        .catch(() => ({ balance: store.balance, stats: store.stats, purchases: store.purchases }));
     },
     { demoState }
   );
+  const refresh = useAICreditsStore((store) => store.refresh);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   const low = data ? checkLowCreditWarning(data.balance.totalRemaining, data.balance.monthlyAllowance || data.balance.monthlyCredits || 1) : false;
 
@@ -620,7 +618,7 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
               label="Used this month"
               value={data.stats.consumedThisMonth.toLocaleString("en-IN")}
               unit="credits"
-              hint="Plan + purchased credits"
+              hint={`of ${data.balance.monthlyCredits.toLocaleString("en-IN")} included`}
               color={METRIC_COLORS.warning}
               icon={<Flame className="h-4 w-4" />}
             />

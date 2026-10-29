@@ -30,19 +30,6 @@ import {
 } from "@/services/quiz";
 import { syncQuizQuestions, computeChangedQuestions, buildQuestionSnapshot } from "@/utils/quizQuestionSync";
 import { containsHtml, htmlToPlainText } from "@/utils/htmlText";
-import { KekGateHost } from "@/components/creator/quiz-crypto/KekGateHost";
-import { hasUnlockedKek, requireKek } from "@/lib/quizKek";
-import {
-  decryptTeacherQuestions,
-  encryptQuizQuestions,
-  mergeSecureProblemRow,
-} from "@/lib/quizCryptoV2";
-import {
-  getTeacherSecureContent,
-  saveTeacherSecureContent,
-} from "@/services/quizCrypto";
-import type { Envelope } from "@/lib/crypto";
-import { KekGateCancelledError } from "@/store/kekGateStore";
 import { useRoomStore } from "@/store/roomStore";
 import {
   type StudioState,
@@ -66,35 +53,7 @@ import { DEFAULT_GAME_MECHANICS, normalizeGameMechanics, zeroAllMechanics } from
 
 const STORAGE_KEY = "studio_quiz_draft";
 const GAME_MECHANICS_STORAGE_PREFIX = "studio_game_mechanics_";
-const SECURE_DIRTY_STORAGE_PREFIX = "studio_secure_dirty_";
 const PROBLEMS_RETRY_MAX_DELAY_MS = 8_000;
-
-function secureDirtyStorageKey(quizId: string): string {
-  return `${SECURE_DIRTY_STORAGE_PREFIX}${quizId}`;
-}
-
-function readSecureDirty(quizId?: string | null): boolean {
-  if (!quizId || typeof window === "undefined") return false;
-  try {
-    return window.localStorage.getItem(secureDirtyStorageKey(quizId)) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function writeSecureDirty(quizId: string | null | undefined, dirty: boolean): void {
-  if (!quizId || typeof window === "undefined") return;
-  try {
-    const key = secureDirtyStorageKey(quizId);
-    if (dirty) {
-      window.localStorage.setItem(key, "1");
-    } else {
-      window.localStorage.removeItem(key);
-    }
-  } catch {
-    return;
-  }
-}
 
 function getProblemsRetryDelay(attempt: number): number {
   return Math.min(1_000 * 2 ** Math.min(attempt - 1, 3), PROBLEMS_RETRY_MAX_DELAY_MS);
@@ -102,58 +61,6 @@ function getProblemsRetryDelay(attempt: number): number {
 
 function waitForProblemsRetry(delay: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, delay));
-}
-
-function isChoiceQuestion(question: CreatorQuestion): boolean {
-  return (
-    question.type === "single_choice" ||
-    question.type === "multiple_choice" ||
-    question.type === "true_false"
-  );
-}
-
-function applySecureSavedIds(
-  questions: CreatorQuestion[],
-  savedProblems: Array<{
-    problemId: number;
-    payloadAadId: string;
-    options: Array<{ id: number; sortOrder: number }>;
-  }>
-): void {
-  const byAad = new Map(
-    savedProblems.map((problem) => [problem.payloadAadId, problem])
-  );
-  for (const question of questions) {
-    if (!question.payloadAadId) continue;
-    const saved = byAad.get(question.payloadAadId);
-    if (!saved) continue;
-    question.serverId = saved.problemId;
-    if (!isChoiceQuestion(question)) continue;
-    const visible = question.options.filter(
-      (option) => option.content.trim().length > 0
-    );
-    const idMap = new Map<string, string>();
-    visible.forEach((option, index) => {
-      const savedOption = saved.options[index];
-      if (!savedOption) return;
-      const nextId = String(savedOption.id);
-      if (option.id !== nextId) idMap.set(option.id, nextId);
-      option.id = nextId;
-    });
-    if (idMap.size === 0) continue;
-    if (Array.isArray(question.correctAnswer)) {
-      question.correctAnswer = question.correctAnswer.map((value) =>
-        typeof value === "string" && idMap.has(value)
-          ? idMap.get(value)!
-          : value
-      ) as CreatorQuestion["correctAnswer"];
-    } else if (
-      typeof question.correctAnswer === "string" &&
-      idMap.has(question.correctAnswer)
-    ) {
-      question.correctAnswer = idMap.get(question.correctAnswer)!;
-    }
-  }
 }
 
 /** Sentinel error used when question validation blocks a save/navigation. */
@@ -436,14 +343,7 @@ interface StudioContextValue {
   nextMobileStep: () => void;
   prevMobileStep: () => void;
   publish: () => void;
-  saveToServer: (opts?: {
-    publish?: boolean;
-    setupOnly?: boolean;
-    skipParticipants?: boolean;
-    silentValidation?: boolean;
-    /** Encrypt in the browser and require the key PDF before uploading. */
-    secure?: boolean;
-  }) => Promise<{ quizId: string; code: string }>;
+  saveToServer: (opts?: { publish?: boolean }) => Promise<{ quizId: string; code: string }>;
   savingToServer: boolean;
   /** True when the Questions step differs from the last saved snapshot. */
   questionsDirty: boolean;
@@ -628,7 +528,6 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
    * content has actually changed (or are newly added) get sent to the backend.
    */
   const snapshotRef = useRef<Map<string, string>>(new Map());
-  const quizEncryptedRef = useRef(false);
   const quizSnapshotRef = useRef<string>("");
   const audienceSnapshotRef = useRef<string>("");
   const databaseAutosaveSnapshotRef = useRef<string | null>(null);
@@ -764,51 +663,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
           problemsAttempt += 1;
           const problems = await getQuizProblems(initialQuizId);
           if (cancelled) return;
-          let problemRows = problems as QuizProblemWithOptions[];
-          const aadByProblemId = new Map<number, string>();
-          if (Number(loadedQuiz?.crypto_version) === 1) {
-            try {
-              const kek = await requireKek();
-              const content = await getTeacherSecureContent(initialQuizId);
-              if (!content.wrappedDek) {
-                throw new Error("Encrypted quiz is missing its wrapped data key.");
-              }
-              const decrypted = await decryptTeacherQuestions(
-                initialQuizId,
-                kek,
-                content.problems,
-                content.wrappedDek
-              );
-              const skeletons = new Map(
-                content.problems.map((problem) => [problem.problemId, problem])
-              );
-              problemRows = problemRows.map((row) => {
-                const skeleton = skeletons.get(row.id);
-                const payload = decrypted.get(row.id);
-                if (!skeleton || !payload) return row;
-                aadByProblemId.set(row.id, skeleton.payloadAadId);
-                return mergeSecureProblemRow(row, payload, skeleton) as QuizProblemWithOptions;
-              });
-            } catch (error) {
-              if (cancelled) return;
-              setLoadError(
-                "Unlock the quiz encryption passphrase to load its questions."
-              );
-              setQuestionsLoading(false);
-              console.error(
-                "[StudioProvider] Could not decrypt quiz questions:",
-                error
-              );
-              return;
-            }
-          }
-          quizEncryptedRef.current = Number(loadedQuiz?.crypto_version) === 1;
-          const questions = problemRows.map((p, i) => {
-            const question = mapBackendProblem(p, i);
-            const aadId = aadByProblemId.get(Number(p.id));
-            if (aadId) question.payloadAadId = aadId;
-            return question;
-          });
+          const questions = (problems as QuizProblemWithOptions[]).map((p, i) => mapBackendProblem(p, i));
           snapshotRef.current = buildQuestionSnapshot(questions);
           // Re-baseline autosave so the successful server merge itself isn't
           // treated as a local edit.
@@ -940,30 +795,19 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
       question.title.trim() || question.options.some((option) => option.content.trim())
     );
     const updatedQuestions = [...existingQuestions, ...questions];
+    const generatedIds = new Set(questions.map((question) => question.id));
 
     setSavingToServer(true);
-    setSaveProgress({ saved: 0, total: questions.length });
+    setSaveProgress({ saved: 0, total: generatedIds.size });
     try {
-      const quizId = state.serverQuizId;
-      const kek = await requireKek();
-      let existingWrappedDek: Envelope | null = null;
-      if (quizEncryptedRef.current) {
-        const current = await getTeacherSecureContent(quizId);
-        existingWrappedDek = current.wrappedDek;
-      }
-      const encrypted = await encryptQuizQuestions(
-        quizId,
+      await syncQuizQuestions(
+        state.serverQuizId,
         updatedQuestions,
-        kek,
-        existingWrappedDek
+        generatedIds,
+        (saved, total) => setSaveProgress({ saved, total })
       );
-      const saved = await saveTeacherSecureContent(quizId, encrypted.input);
-      applySecureSavedIds(updatedQuestions, saved.problems);
-      quizEncryptedRef.current = true;
-      secureContentDirtyRef.current = false;
-      writeSecureDirty(quizId, false);
       snapshotRef.current = buildQuestionSnapshot(updatedQuestions);
-      setQuestionsDirty(true);
+      setQuestionsDirty(false);
       setState((current) => ({
         ...current,
         questions: updatedQuestions,
@@ -996,8 +840,6 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     // Drop its change-tracking entry so a later save doesn't try to upsert it.
     snapshotRef.current.delete(id);
 
-    secureContentDirtyRef.current = true;
-    writeSecureDirty(state.serverQuizId, true);
     // Never persisted to the backend — local-only removal, no API needed.
     if (!serverId) return;
 
@@ -1034,9 +876,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     setState((s) => ({ ...s, questions: [...s.questions, copy], activeQuestionId: copy.id }));
   };
 
-  const reorderQuestions = (ids: string[]) => {
-    secureContentDirtyRef.current = true;
-    writeSecureDirty(state.serverQuizId, true);
+  const reorderQuestions = (ids: string[]) =>
     setState((s) => ({
       ...s,
       questions: ids
@@ -1044,7 +884,6 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         .filter(Boolean)
         .map((q) => q as CreatorQuestion),
     }));
-  };
 
   const setActiveQuestion = (id: string | null) => {
     if (id !== state.activeQuestionId) {
@@ -1298,27 +1137,14 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
   const saveInFlightRef = useRef<Promise<{ quizId: string; code: string }> | null>(null);
   const [saveProgress, setSaveProgress] = useState<{ saved: number; total: number } | null>(null);
 
-  const secureContentDirtyRef = useRef(false);
-
   useEffect(() => {
     if (loading || questionsLoading) return;
     const questionsChanged = computeChangedQuestions(state.questions, snapshotRef.current).length > 0;
-    setQuestionsDirty(
-      questionsChanged ||
-        secureContentDirtyRef.current ||
-        readSecureDirty(state.serverQuizId) ||
-        buildQuizMetaSnapshot(state) !== quizSnapshotRef.current
-    );
+    setQuestionsDirty(questionsChanged || buildQuizMetaSnapshot(state) !== quizSnapshotRef.current);
   }, [state, loading, questionsLoading]);
 
   const saveToServer = async (
-    opts?: {
-      publish?: boolean;
-      setupOnly?: boolean;
-      skipParticipants?: boolean;
-      silentValidation?: boolean;
-      secure?: boolean;
-    }
+    opts?: { publish?: boolean; setupOnly?: boolean; skipParticipants?: boolean; silentValidation?: boolean }
   ): Promise<{ quizId: string; code: string }> => {
     while (saveInFlightRef.current) {
       if (!opts?.publish && !opts?.setupOnly) {
@@ -1432,44 +1258,8 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
           ? new Set(changed.map((q) => q.id))
           : null;
 
-        // Browser-side quiz encryption. Only quiz question content is
-        // encrypted; the server still keeps identifiers, order and the
-        // correctness markers it needs for grading.
-        const secureDirty =
-          secureContentDirtyRef.current ||
-          readSecureDirty(quizId) ||
-          (changedIds?.size ?? 0) > 0;
-        const needsSecureSave =
-          state.questions.length > 0 &&
-          ((opts?.secure && (!quizEncryptedRef.current || secureDirty)) ||
-            (quizEncryptedRef.current && secureDirty));
-        let secureUploaded = false;
-        if (needsSecureSave) {
-          if (!opts?.secure && !hasUnlockedKek()) {
-            throw new KekGateCancelledError();
-          }
-          const kek = await requireKek();
-          let existingWrappedDek: Envelope | null = null;
-          if (quizEncryptedRef.current) {
-            const current = await getTeacherSecureContent(quizId);
-            existingWrappedDek = current.wrappedDek;
-          }
-          const encrypted = await encryptQuizQuestions(
-            quizId,
-            state.questions,
-            kek,
-            existingWrappedDek
-          );
-          const saved = await saveTeacherSecureContent(quizId, encrypted.input);
-          applySecureSavedIds(state.questions, saved.problems);
-          quizEncryptedRef.current = true;
-          secureUploaded = true;
-          secureContentDirtyRef.current = false;
-          writeSecureDirty(quizId, false);
-        }
-
-        // Only call the plaintext endpoint when the quiz is not encrypted.
-        if (!secureUploaded && changedIds && changedIds.size > 0) {
+        // Only call backend if something actually changed
+        if (changedIds && changedIds.size > 0) {
           // Show progress: "Saving 3/10 problems..."
           setSaveProgress({ saved: 0, total: changedIds.size });
           // Pass full list (needed for delete sweep) but only upsert changed questions
@@ -1741,12 +1531,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     [state, stepIndex, mobileStepIndex, summary, questionsValid, savingToServer, questionsDirty, saveProgress, loading, loadError, questionsLoading, editMode, steps, mobileSteps, saveAudienceParticipants, audienceDirty, helpExtra]
   );
 
-  return (
-    <StudioContext.Provider value={value}>
-      {children}
-      <KekGateHost />
-    </StudioContext.Provider>
-  );
+  return <StudioContext.Provider value={value}>{children}</StudioContext.Provider>;
 }
 
 export function useStudio() {

@@ -14,7 +14,6 @@ import {
   createPlanOrderHandler,
   getBillingConfigHandler,
   getCreditBalanceHandler,
-  getCreditUsageHandler,
   getOrderHandler,
   listTransactionsHandler,
   razorpayWebhookHandler,
@@ -42,7 +41,6 @@ router.post(
   verifyCreditOrderHandler
 );
 router.get("/credits/balance", getCreditBalanceHandler);
-router.get("/credits/usage", getCreditUsageHandler);
 router.post(
   "/plans/orders",
   validate(createPlanOrderSchema),

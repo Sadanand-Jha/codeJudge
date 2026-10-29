@@ -25,31 +25,6 @@ export async function getCreditBalance(): Promise<CreditBalanceSnapshot> {
   return response.data;
 }
 
-/** Aggregated AI credit consumption returned by the billing dashboard API. */
-export interface CreditUsageSnapshot {
-  consumedToday: number;
-  consumedThisMonth: number;
-  averageDailyUsage: number;
-  monthlyGraph: Array<{ day: string; credits: number }>;
-  recentRequests: Array<{
-    id: string;
-    reason: string;
-    credits: number;
-    createdAt: string;
-  }>;
-}
-
-/** GET /api/v1/billing/credits/usage?timezone=Asia%2FKolkata */
-export async function getCreditUsage(
-  timeZone = "UTC"
-): Promise<CreditUsageSnapshot> {
-  const response = await apiClient.get<CreditUsageSnapshot>(
-    "/v1/billing/credits/usage",
-    { params: { timezone: timeZone } }
-  );
-  return response.data;
-}
-
 /* ------------------------------------------------------------------
    Read APIs — served from local billing configuration until the
    backend billing endpoints land. Components must use these getters

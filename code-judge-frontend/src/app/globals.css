@@ -133,10 +133,6 @@
   margin-top: 10px;
 }
 
-[data-studio="true"] main > .creator-dashboard-page:first-child {
-  margin-top: 0;
-}
-
 /* ============================================
    QuizSupport Theme Design System
    ============================================
@@ -5029,14 +5025,6 @@ textarea {
   --qs-warnbg: #3d2508;
   --qs-blue: #7aa7ff;
   --qs-field: #241c52;
-}
-
-.quiz-hero-accent {
-  color: var(--qs-brand);
-}
-
-[data-theme="dark"] .quiz-hero-accent {
-  color: var(--qs-sun);
 }
 
 /* The studio navbar keeps the same mobile chrome as the student topbar so
