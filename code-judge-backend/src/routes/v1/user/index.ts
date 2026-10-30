@@ -22,6 +22,8 @@ import followRoutes from "../follow.routes.ts";
 import { listRooms } from "../../../controllers/room.controller.ts";
 import { submitFeedback } from "../../../controllers/feedback.controller.ts";
 import { getMySubscription } from "../../../controllers/subscription.controller.ts";
+import letterheadRoutes from "../../letterhead.routes.ts";
+import uploadRoutes from "../../upload.routes.ts";
 
 
 const router = Router();
@@ -36,6 +38,8 @@ router.use("/document", documentRoutes);
 router.use("/ai", aiRoutes);
 router.use("/rooms", roomRoutes);
 router.use("/follow", followRoutes);
+router.use("/letterheads", letterheadRoutes);
+router.use("/uploads", uploadRoutes);
 
 
 

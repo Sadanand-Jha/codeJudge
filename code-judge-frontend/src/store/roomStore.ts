@@ -4,10 +4,6 @@ import { create } from "zustand";
 import { Room, RoomStudent } from "@/types/room";
 import { AudienceStudent } from "@/components/quiz/creator/types";
 import { MAX_STUDENTS_PER_ROOM } from "@/lib/constants";
-// Dummy rooms commented out — now using backend implementation for rooms (see src/services/rooms.ts)
-// import { MOCK_ROOMS } from "@/mocks/rooms";
-// Using empty initial state; rooms are fetched/created via backend (quiz_rooms / room_members)
-const MOCK_ROOMS: Room[] = [];
 
 interface CreateRoomInput {
   name: string;
@@ -68,7 +64,7 @@ function migrateStudentUsernames(rooms: Room[]): Room[] {
 
 export const useRoomStore = create<RoomStoreState>()(
   (set, get) => ({
-    rooms: MOCK_ROOMS,
+    rooms: [],
     hydrated: false,
     recentlyUsedIds: [],
     recentlyUsedStudentIds: [],

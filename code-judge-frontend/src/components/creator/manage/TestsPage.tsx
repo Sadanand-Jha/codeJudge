@@ -7,6 +7,7 @@ import { CalendarDays, ClipboardList, Download, FileText, Pencil, Plus, Trash2 }
 import { useToast } from "@/hooks/useToast";
 import { getSavedTest, getSavedTests, migrateLegacySavedTests, removeSavedTest, type SavedTestSummary } from "@/utils/savedTests";
 import { downloadPaperPdf } from "@/utils/questionSetExport";
+import { resolveDefaultHeaderPlacement } from "@/services/letterheadPdf";
 import { SavedTestEditDialog } from "./SavedTestEditDialog";
 
 const formatCreatedAt = (value: string) => {
@@ -86,9 +87,11 @@ export function TestsPage() {
           toast.error({ title: "Paper not available", description: "This saved record has no question paper." });
           return;
         }
+        const letterhead = await resolveDefaultHeaderPlacement();
         await downloadPaperPdf({
           paper: saved.paper,
           header: { ...saved.meta, heading: saved.meta.heading || saved.title },
+          letterhead,
         });
         toast.success({ title: "PDF downloaded", description: `"${saved.title}" saved as a print-ready paper.` });
       } catch (error) {

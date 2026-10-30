@@ -36,7 +36,24 @@ interface RoomContentState {
 const uid = (prefix: string) =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
+const LEGACY_SEEDED_ANNOUNCEMENT_BODIES = new Set([
+  "I'll share class notes and important updates here. Please check this space before every class.",
+  "The revision notes are in the Documents section. Complete the practice sheet before the test.",
+]);
 
+const LEGACY_SEEDED_DOCUMENT_NAMES = new Set([
+  "Chapter 3 — Class Notes.pdf",
+  "Practice Sheet.docx",
+  "Class Timetable.pdf",
+]);
+
+function isLegacySeededAnnouncement(announcement: RoomAnnouncement): boolean {
+  return LEGACY_SEEDED_ANNOUNCEMENT_BODIES.has(announcement.body);
+}
+
+function isLegacySeededDocument(document: RoomDocument): boolean {
+  return LEGACY_SEEDED_DOCUMENT_NAMES.has(document.name);
+}
 
 export const useRoomContentStore = create<RoomContentState>()(
   persist(
@@ -112,6 +129,20 @@ export const useRoomContentStore = create<RoomContentState>()(
     {
       name: "quizsupport_room_content",
       storage: createJSONStorage(() => localStorage),
+      version: 1,
+      migrate: (persistedState) => {
+        const state = (persistedState ?? {}) as Partial<RoomContentState>;
+        return {
+          ...state,
+          announcements: (state.announcements ?? []).filter(
+            (announcement) => !isLegacySeededAnnouncement(announcement)
+          ),
+          documents: (state.documents ?? []).filter(
+            (document) => !isLegacySeededDocument(document)
+          ),
+          seededRoomIds: [],
+        } as RoomContentState;
+      },
     }
   )
 );

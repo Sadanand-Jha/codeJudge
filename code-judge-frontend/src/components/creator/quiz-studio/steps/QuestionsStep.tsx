@@ -96,6 +96,7 @@ export function QuestionsStep() {
         options: config.options,
         mode: config.mode,
         students: config.students,
+        header: config.header,
       },
       kind
     )

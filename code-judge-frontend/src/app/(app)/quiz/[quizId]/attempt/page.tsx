@@ -3,7 +3,7 @@
 
 import { use, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Home, PartyPopper, Send, ShieldCheck, Target, Volume2, VolumeX } from "lucide-react";
+import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Home, PartyPopper, Send, ShieldCheck, Volume2, VolumeX } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import ExamModeShell, { type ViolationSummary } from "@/components/quiz/exam/ExamModeShell";
@@ -32,6 +32,15 @@ import QuizPageReady from "@/components/quiz/live/QuizPageReady";
 import { QuizRichText } from "@/components/quiz/QuizRichText";
 
 type AnswerValue = StoredAttemptAnswer;
+
+const ATTEMPT_BTN_SECONDARY =
+  "inline-flex h-12 items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-5 text-[15px] font-bold text-[var(--qs-ink)] shadow-[4px_4px_0_var(--qs-line)] transition-[transform,box-shadow,border-color,background-color,color] duration-150 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_var(--qs-line)] focus-visible:[outline:3px_solid_#2A4FD6] focus-visible:[outline-offset:3px] disabled:cursor-not-allowed disabled:opacity-40";
+const ATTEMPT_BTN_PRIMARY =
+  "inline-flex h-12 items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-5 text-[15px] font-bold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition-[transform,box-shadow] duration-150 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_var(--qs-sun)] focus-visible:[outline:3px_solid_#2A4FD6] focus-visible:[outline-offset:3px] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none";
+const ATTEMPT_BTN_SUBMIT =
+  "inline-flex h-12 items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-5 text-[15px] font-bold text-[var(--qs-ink)] shadow-[4px_4px_0_var(--qs-ink)] transition-[transform,box-shadow] duration-150 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_var(--qs-ink)] focus-visible:[outline:3px_solid_#2A4FD6] focus-visible:[outline-offset:3px] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none";
+const ATTEMPT_PALETTE_BTN =
+  "relative grid h-11 place-items-center rounded-[12px] border-2 text-[15px] font-bold transition-colors focus-visible:[outline:3px_solid_#2A4FD6] focus-visible:[outline-offset:3px]";
 
 function responsesToAnswers(responses: Array<{ problem_id: number; answer: unknown }>): Record<number, AnswerValue> {
   const restored: Record<number, AnswerValue> = {};
@@ -62,6 +71,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   const [questions, setQuestions] = useState<PublicQuizProblem[]>([]);
   const [answers, setAnswers] = useState<Record<number, AnswerValue>>({});
   const [index, setIndex] = useState(0);
+  const [markedForReview, setMarkedForReview] = useState<Set<number>>(() => new Set());
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -226,8 +236,28 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   }, [attemptId, submit, submitting, timeLeft]);
 
   const current = questions[index];
-  const answered = Object.keys(answers).length;
+  const answeredCount = Object.values(answers).filter((answer) =>
+    answer.option !== undefined || (answer.options?.length ?? 0) > 0 || Boolean(answer.textAnswer?.trim()),
+  ).length;
+  const remainingCount = Math.max(questions.length - answeredCount, 0);
+  const currentMarked = current ? markedForReview.has(current.id) : false;
   const progress = questions.length ? ((index + 1) / questions.length) * 100 : 0;
+
+  const goToQuestion = (nextIndex: number) => {
+    if (nextIndex === index) return;
+    playQuizSound("navigate");
+    setIndex(nextIndex);
+  };
+
+  const toggleMarkedForReview = (problemId: number) => {
+    playQuizSound("select");
+    setMarkedForReview((previous) => {
+      const next = new Set(previous);
+      if (next.has(problemId)) next.delete(problemId);
+      else next.add(problemId);
+      return next;
+    });
+  };
 
   // Starts the backend attempt when the student enters exam mode. The
   // registration values (when the quiz collects them) travel with the start
@@ -399,149 +429,239 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         </div>
       ) : (
       <div className="qs-ui relative h-full min-h-0 overflow-hidden bg-[var(--qs-bg)] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:py-6">
-      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute -right-16 -top-20 hidden h-64 w-64 rounded-full border-2 border-[var(--qs-line)] sm:block" />
-        <div className="absolute right-[6%] top-[10%] hidden h-10 w-10 rotate-12 rounded-xl border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/40 lg:block" />
-      </div>
-      <div className="relative mx-auto h-full min-h-0 max-w-4xl overflow-hidden">
-      <QuizPageReady className="h-full min-h-0 overflow-hidden" label="Loading question">
-      <main className="relative flex h-full min-h-0 flex-col gap-3 sm:gap-4">
-        <div className="shrink-0 overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
-          <div className="flex items-center justify-between gap-3 px-3.5 py-3.5 sm:px-4">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[var(--qs-okbg)] text-[var(--qs-ok)]">
-                <ShieldCheck className="h-4 w-4" />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-[9px] font-black uppercase tracking-[0.16em] text-[var(--qs-ok)]">Secure channel {autoSubmitted ? "· submitted" : "· connected"}</span>
-                <span className="mt-0.5 block truncate text-xs font-bold text-[var(--qs-ink)]">Question {index + 1} of {questions.length}</span>
-              </span>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <span className="hidden items-center gap-1.5 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-1.5 text-[10px] font-bold text-[var(--qs-brand)] min-[420px]:inline-flex"><Target className="h-3.5 w-3.5" /> {answered} answered</span>
-              <button type="button" onClick={toggleQuizSounds} className="grid h-9 w-9 place-items-center rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-brand)] transition hover:border-[var(--qs-brand)]" aria-label={soundEnabled ? "Mute quiz sounds" : "Enable quiz sounds"} title={soundEnabled ? "Quiz sounds on" : "Quiz sounds off"}>
-                {soundEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
-              </button>
-            </div>
-          </div>
-          <div className="h-1.5 overflow-hidden bg-[var(--qs-line)]">
-            <motion.div className="h-full rounded-r-full bg-[var(--qs-brand)]" animate={{ width: `${progress}%` }} transition={isMobile ? { duration: 0 } : { duration: 0.45, ease: "easeOut" }} />
-          </div>
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          <div className="absolute -right-16 -top-20 hidden h-64 w-64 rounded-full border-2 border-[var(--qs-line)] sm:block" />
+          <div className="absolute right-[6%] top-[10%] hidden h-10 w-10 rotate-12 rounded-xl border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/40 lg:block" />
+          <pre className="absolute bottom-6 right-6 hidden select-none text-right font-mono text-[13px] leading-[1.9] tracking-[0.06em] text-[var(--qs-brand)]/10 lg:block">3f9a·c21e·7b04·d8e1
+4be7·0a95·f3c2·61bd
+e90c·5d17·a2f6·83b0</pre>
         </div>
+        <div className="relative mx-auto h-full min-h-0 max-w-6xl overflow-hidden">
+          <QuizPageReady className="h-full min-h-0 overflow-hidden" label="Loading question">
+            <main className="relative h-full min-h-0">
+              <div className="quiz-question-scroll h-full min-h-0 overflow-y-auto overscroll-contain pr-0.5 [scrollbar-gutter:stable] sm:pr-1">
+                <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+                  <div className="min-w-0">
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.section
+                        key={current.id}
+                        initial={isMobile ? false : { opacity: 0, x: 18, scale: 1 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        exit={isMobile ? undefined : { opacity: 0, x: -14, scale: 1 }}
+                        transition={isMobile ? { duration: 0 } : { duration: 0.22, ease: "easeOut" }}
+                        className="relative overflow-hidden rounded-[24px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 shadow-[6px_6px_0_var(--qs-sun)] sm:p-8"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <span className="text-[12px] font-bold uppercase tracking-[0.08em] text-[#5B34D8]">
+                            Question {index + 1} of {questions.length}
+                          </span>
+                          <span className="rounded-full border-[1.5px] border-[var(--qs-line)] px-3 py-1.5 text-[12px] font-bold leading-none text-[var(--qs-muted)]">
+                            {current.quiz_problem_type === 2 ? "Select all that apply" : current.options.length ? "Choose one answer" : "Written response"}
+                          </span>
+                        </div>
+                        <div
+                          className="mt-3.5 h-2.5 overflow-hidden rounded-full bg-[#EDE8FF]"
+                          role="progressbar"
+                          aria-label="Question progress"
+                          aria-valuenow={Math.round(progress)}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                        >
+                          <motion.div
+                            className="h-full rounded-full bg-[var(--qs-brand)]"
+                            animate={{ width: `${progress}%` }}
+                            transition={isMobile ? { duration: 0 } : { duration: 0.45, ease: "easeOut" }}
+                          />
+                        </div>
+                        <QuizRichText
+                          html={current.problem_statement}
+                          className="qs-display relative mt-7 text-[22px] font-extrabold leading-[1.25] tracking-[-0.01em] text-[var(--qs-ink)] sm:text-[26px]"
+                        />
+                        {current.problem_description && (
+                          <QuizRichText
+                            html={current.problem_description}
+                            className="mt-2 text-sm leading-6 text-[var(--qs-muted)]"
+                          />
+                        )}
 
-        <div className="quiz-question-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5 [scrollbar-gutter:stable] sm:pr-1">
-        <AnimatePresence mode="wait" initial={false}>
-        <motion.section
-          key={current.id}
-          initial={isMobile ? false : { opacity: 0, x: 18, scale: 1 }}
-          animate={{ opacity: 1, x: 0, scale: 1 }}
-          exit={isMobile ? undefined : { opacity: 0, x: -14, scale: 1 }}
-          transition={isMobile ? { duration: 0 } : { duration: 0.22, ease: "easeOut" }}
-          className="relative overflow-hidden rounded-[24px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 sm:p-6"
-        >
-          <div className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-2xl border-2 border-[var(--qs-line)]" />
-          <div className="relative flex items-center justify-between gap-3">
-            <p className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--qs-brand)]">
-              <span className="grid h-6 w-6 place-items-center rounded-lg bg-[var(--qs-brand)]/10 text-[10px]">{index + 1}</span>
-              Question
-            </p>
-            <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-1 text-[9px] font-semibold text-[var(--qs-muted)]">
-              {current.quiz_problem_type === 2 ? "Select all that apply" : current.options.length ? "Choose one answer" : "Written response"}
-            </span>
-          </div>
-          <QuizRichText
-            html={current.problem_statement}
-            className="relative mt-4 text-base font-semibold leading-7 tracking-[-0.01em] text-[var(--qs-ink)] sm:text-lg"
-          />
-          {current.problem_description && (
-            <QuizRichText
-              html={current.problem_description}
-              className="mt-2 text-sm leading-6 text-[var(--qs-muted)]"
-            />
-          )}
+                        <div className="relative mt-6 flex flex-col gap-3" role="radiogroup" aria-label="Answer options">
+                          {current.options.map((option, optionIndex) => {
+                            const multiple = current.quiz_problem_type === 2;
+                            const optionId = String(option.id);
+                            const selected = multiple
+                              ? (answers[current.id]?.options ?? []).includes(optionId)
+                              : answers[current.id]?.option === optionId;
+                            const optionLabel = String.fromCharCode(65 + optionIndex);
+                            return (
+                              <button
+                                key={option.id}
+                                type="button"
+                                role={multiple ? "checkbox" : "radio"}
+                                aria-checked={selected}
+                                onClick={() => {
+                                  playQuizSound("select");
+                                  if (multiple) {
+                                    const currentOptions = answers[current.id]?.options ?? [];
+                                    persistAnswer(current.id, {
+                                      options: selected
+                                        ? currentOptions.filter((id) => id !== optionId)
+                                        : [...currentOptions, optionId],
+                                    });
+                                  } else {
+                                    persistAnswer(current.id, { option: optionId });
+                                  }
+                                }}
+                                className={`group relative flex w-full items-center gap-3.5 rounded-2xl border-2 px-[18px] py-4 text-left text-[15px] leading-[1.4] text-[var(--qs-ink)] transition-[border-color,background-color,box-shadow] duration-150 sm:text-base ${selected ? "border-[var(--qs-brand)] bg-[#F3EFFF] shadow-[4px_4px_0_var(--qs-brand)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-brand)]"}`}
+                              >
+                                <span className={`grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] text-sm font-bold transition-colors ${selected ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "bg-[#EDE8FF] text-[var(--qs-ink)]"}`}>
+                                  {optionLabel}
+                                </span>
+                                <QuizRichText
+                                  as="span"
+                                  html={option.option_statement}
+                                  className="flex-1"
+                                />
+                                <span className={`ml-auto grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${selected ? "border-[var(--qs-brand)]" : "border-[var(--qs-line)]"}`}>
+                                  {selected && <span className="h-2.5 w-2.5 rounded-full bg-[var(--qs-brand)]" />}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {current.options.length === 0 && (
+                          <textarea
+                            value={answers[current.id]?.textAnswer ?? ""}
+                            onChange={(event) => {
+                              const textAnswer = event.target.value;
+                              setAnswers((previous) => ({ ...previous, [current.id]: { textAnswer } }));
+                            }}
+                            onBlur={() => persistAnswer(current.id, { textAnswer: answers[current.id]?.textAnswer ?? "" })}
+                            rows={8}
+                            maxLength={20000}
+                            placeholder="Write your answer here…"
+                            className="mt-6 w-full resize-y rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 text-sm leading-6 text-[var(--qs-ink)] outline-none focus:border-[var(--qs-brand)]"
+                          />
+                        )}
 
-          <div className="relative mt-5 grid gap-3 sm:grid-cols-2">
-            {current.options.map((option, optionIndex) => {
-              const multiple = current.quiz_problem_type === 2;
-              const optionId = String(option.id);
-              const selected = multiple
-                ? (answers[current.id]?.options ?? []).includes(optionId)
-                : answers[current.id]?.option === optionId;
-              const optionLabel = String.fromCharCode(65 + optionIndex);
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => {
-                    playQuizSound("select");
-                    if (multiple) {
-                      const currentOptions = answers[current.id]?.options ?? [];
-                      persistAnswer(current.id, {
-                        options: selected
-                          ? currentOptions.filter((id) => id !== optionId)
-                          : [...currentOptions, optionId],
-                      });
-                    } else {
-                      persistAnswer(current.id, { option: optionId });
-                    }
-                  }}
-                  className={`group relative flex min-h-16 items-center gap-3 rounded-2xl border-2 p-3 text-left text-sm leading-5 transition-all duration-200 ${selected ? "border-[var(--qs-brand)] bg-[var(--qs-brand)]/10 text-[var(--qs-ink)]" : "border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)] hover:-translate-y-0.5 hover:border-[var(--qs-brand)]/50 hover:text-[var(--qs-ink)]"}`}
-                >
-                  <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl border-2 text-[11px] font-bold transition-colors ${selected ? "border-[var(--qs-brand)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] group-hover:border-[var(--qs-brand)]/50 group-hover:text-[var(--qs-brand)]"}`}>
-                    {optionLabel}
-                  </span>
-                  <QuizRichText
-                    as="span"
-                    html={option.option_statement}
-                    className="flex-1"
-                  />
-                  <CheckCircle2 className={`h-4 w-4 shrink-0 transition-opacity ${selected ? "text-[var(--qs-brand)] opacity-100" : "opacity-0"}`} />
-                </button>
-              );
-            })}
-          </div>
-          {current.options.length === 0 && (
-            <textarea
-              value={answers[current.id]?.textAnswer ?? ""}
-              onChange={(event) => {
-                const textAnswer = event.target.value;
-                setAnswers((previous) => ({ ...previous, [current.id]: { textAnswer } }));
-              }}
-              onBlur={() => persistAnswer(current.id, { textAnswer: answers[current.id]?.textAnswer ?? "" })}
-              rows={8}
-              maxLength={20000}
-              placeholder="Write your answer here…"
-              className="mt-5 w-full resize-y rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-4 text-sm leading-6 text-[var(--qs-ink)] outline-none focus:border-[var(--qs-brand)]"
-            />
-          )}
-        </motion.section>
-        </AnimatePresence>
+                        <div className="mt-8 flex flex-wrap items-center gap-3.5 border-t-2 border-[#EDE8FF] pt-6">
+                          <button
+                            type="button"
+                            onClick={() => goToQuestion(index - 1)}
+                            disabled={index === 0}
+                            className={ATTEMPT_BTN_SECONDARY}
+                          >
+                            <ChevronLeft className="h-4 w-4" /> Previous
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleMarkedForReview(current.id)}
+                            aria-pressed={currentMarked}
+                            className={`${ATTEMPT_BTN_SECONDARY} ${currentMarked ? "border-[var(--qs-brand)] bg-[#F3EFFF] text-[var(--qs-brand)]" : ""}`}
+                          >
+                            {currentMarked ? "Marked for review" : "Mark for review"}
+                          </button>
+                          {index < questions.length - 1 ? (
+                            <button
+                              type="button"
+                              onClick={() => goToQuestion(index + 1)}
+                              className={`${ATTEMPT_BTN_PRIMARY} ml-auto`}
+                            >
+                              Next question <ChevronRight className="h-4 w-4" />
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handleManualSubmit}
+                              disabled={submitting}
+                              className={`${ATTEMPT_BTN_SUBMIT} ml-auto`}
+                            >
+                              {submitting ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : <Send className="h-4 w-4" />} {submitting ? "Submitting…" : "Submit quiz"}
+                            </button>
+                          )}
+                        </div>
+                        <p className="mt-5 flex items-center gap-2 text-[13px] leading-5 text-[var(--qs-muted)]">
+                          <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--qs-ok)]" />
+                          Your answers are saved as you go. Stay in fullscreen until you submit.
+                        </p>
+                      </motion.section>
+                    </AnimatePresence>
 
-        {error && (
-          <div className="mt-3 flex items-start gap-2 rounded-xl border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] p-3 text-xs text-[var(--qs-bad)]">
-            <AlertCircle className="h-4 w-4 shrink-0" /> {error}
-          </div>
-        )}
-        <div className="h-1" aria-hidden="true" />
+                    {error && (
+                      <div className="mt-4 flex items-start gap-2 rounded-xl border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] p-3 text-xs text-[var(--qs-bad)]">
+                        <AlertCircle className="h-4 w-4 shrink-0" /> {error}
+                      </div>
+                    )}
+                    <div className="h-1" aria-hidden="true" />
+                  </div>
+
+                  <aside className="flex flex-col gap-6 self-start lg:sticky lg:top-0">
+                    <section className="rounded-[24px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-6">
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <h3 className="qs-display text-[20px] font-extrabold text-[var(--qs-ink)]">Questions</h3>
+                        <button
+                          type="button"
+                          onClick={toggleQuizSounds}
+                          className="grid h-9 w-9 place-items-center rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-brand)] transition hover:border-[var(--qs-brand)]"
+                          aria-label={soundEnabled ? "Mute quiz sounds" : "Enable quiz sounds"}
+                          title={soundEnabled ? "Quiz sounds on" : "Quiz sounds off"}
+                        >
+                          {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-5 gap-2">
+                        {questions.map((question, questionIndex) => {
+                          const answer = answers[question.id];
+                          const isAnswered =
+                            answer?.option !== undefined ||
+                            (answer?.options?.length ?? 0) > 0 ||
+                            Boolean(answer?.textAnswer?.trim());
+                          const isCurrent = questionIndex === index;
+                          const isMarked = markedForReview.has(question.id);
+                          return (
+                            <button
+                              key={question.id}
+                              type="button"
+                              onClick={() => goToQuestion(questionIndex)}
+                              aria-label={`Question ${questionIndex + 1}${isAnswered ? ", answered" : ""}${isCurrent ? ", current" : ""}${isMarked ? ", marked for review" : ""}`}
+                              aria-current={isCurrent ? "step" : undefined}
+                              className={`${ATTEMPT_PALETTE_BTN} ${isCurrent ? "border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[var(--qs-ink)] shadow-[3px_3px_0_var(--qs-ink)]" : isAnswered ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"}`}
+                            >
+                              {questionIndex + 1}
+                              {isMarked && (
+                                <span aria-hidden="true" className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-[var(--qs-sun)] ring-1 ring-[var(--qs-ink)]" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="mt-4 text-[13px] leading-5 text-[var(--qs-muted)]">
+                        {answeredCount} answered · 1 current · {remainingCount} to go
+                      </p>
+                    </section>
+
+                    <section className="relative overflow-hidden rounded-[24px] border-2 border-[var(--qs-ink)] bg-[#241F4A] p-6 text-white shadow-[6px_6px_0_var(--qs-sun)]">
+                      <pre aria-hidden="true" className="pointer-events-none absolute bottom-2 right-3 select-none text-right font-mono text-[11px] leading-[1.9] tracking-[0.06em] text-white/10">3f9a·c21e
+7b04·d8e1
+4be7·0a95</pre>
+                      <div className="relative flex items-center justify-between gap-3">
+                        <span className="grid h-10 w-10 place-items-center rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1C1840]">
+                          <ShieldCheck className="h-5 w-5" />
+                        </span>
+                        <span className="rounded-full border-2 border-[var(--qs-sun)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.06em] leading-none text-[var(--qs-sun)]">
+                          {autoSubmitted ? "Submitted" : "Protected"}
+                        </span>
+                      </div>
+                      <h3 className="qs-display relative mt-4 text-[20px] font-extrabold">Secure session</h3>
+                      <p className="mt-1.5 text-sm leading-6 text-[#DCD6F7]">
+                        This attempt is monitored in fullscreen. Your responses are saved as you go.
+                      </p>
+                    </section>
+                  </aside>
+                </div>
+              </div>
+            </main>
+          </QuizPageReady>
         </div>
-
-        <footer className="relative grid shrink-0 grid-cols-2 gap-2 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 sm:grid-cols-[auto_1fr_auto] sm:gap-3">
-          <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.max(0, value - 1)); }} disabled={index === 0} className="b b-ghost min-h-12 gap-1 px-3 disabled:cursor-not-allowed disabled:opacity-40 sm:px-4">
-            <ChevronLeft className="h-4 w-4" /> Previous
-          </button>
-          {index < questions.length - 1 ? (
-            <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.min(questions.length - 1, value + 1)); }} className="b b-pri col-start-2 min-h-12 gap-1 px-3 sm:col-start-3 sm:px-5">
-              Next <ChevronRight className="h-4 w-4" />
-            </button>
-          ) : (
-            <button type="button" onClick={handleManualSubmit} disabled={submitting} className="b b-pri col-start-2 min-h-12 gap-2 px-3 disabled:cursor-not-allowed disabled:opacity-50 sm:col-start-3 sm:px-4" style={{ background: "var(--qs-ok)", borderColor: "var(--qs-ok)" }}>
-              {submitting ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : <Send className="h-4 w-4" />} {submitting ? "Submitting…" : "Submit"}
-            </button>
-          )}
-        </footer>
-      </main>
-      </QuizPageReady>
-      </div>
       </div>
       )}
     </ExamModeShell>

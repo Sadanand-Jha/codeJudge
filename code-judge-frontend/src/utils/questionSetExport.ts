@@ -7,6 +7,7 @@ import {
   withPaperHeaderDefaults,
   type PaperHeaderMeta,
 } from "@/utils/paperHeader";
+import type { HeaderPlacement } from "@/types/letterhead";
 
 export interface ExportableQuestion {
   question: string;
@@ -51,6 +52,7 @@ interface PdfState {
   y: number;
   header: PaperHeaderMeta;
   logo: string | null;
+  letterhead?: HeaderPlacement | null;
 }
 
 interface PdfSectionGroup {
@@ -377,11 +379,23 @@ const wrapRuns = (doc: jsPDF, runs: Run[], maxWidth: number, size: number): Wrap
   return lines;
 };
 
+const drawLetterhead = (state: PdfState) => {
+  if (!state.letterhead) return;
+  const { rect, dataUrl } = state.letterhead;
+  state.doc.addImage(dataUrl, "PNG", rect.x, rect.y, rect.w, rect.h, "letterhead", "FAST");
+};
+
 const ensureSpace = (state: PdfState, needed: number) => {
   if (state.y + needed <= CONTENT_BOTTOM) return;
   state.doc.addPage();
   state.y = 24;
   const { doc } = state;
+  if (state.letterhead?.repeatOnAllPages) {
+    drawLetterhead(state);
+    state.y = Math.max(24, state.letterhead.rect.bottom + (state.letterhead.gapMm ?? 8));
+    setFont(doc, FONT, "normal", 12, INK);
+    return;
+  }
   setFont(doc, FONT, "italic", 8, MUTED);
   const pageTitle = fitText(doc, resolvedHeading(state.header), CONTENT_WIDTH, 8, "italic");
   doc.text(pageTitle, MARGIN, 12);
@@ -914,6 +928,7 @@ async function renderPaperPdf({
   attemptQuestions,
   hasChoice,
   customInstructions,
+  letterhead,
 }: {
   header: PaperHeaderMeta;
   sections: PdfSectionInput[];
@@ -921,6 +936,7 @@ async function renderPaperPdf({
   attemptQuestions: number;
   hasChoice: boolean;
   customInstructions?: string;
+  letterhead?: HeaderPlacement | null;
 }): Promise<void> {
   const [logo, fontFiles] = await Promise.all([loadBrandLogo(), loadPdfFontFiles()]);
   const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -933,8 +949,12 @@ async function renderPaperPdf({
     creator: "QuizSupport",
   });
 
-  const state: PdfState = { doc, y: MARGIN, header, logo };
+  const state: PdfState = { doc, y: MARGIN, header, logo, letterhead };
 
+  if (letterhead) {
+    drawLetterhead(state);
+    state.y = Math.max(MARGIN, letterhead.rect.bottom + (letterhead.gapMm ?? 8));
+  }
   drawHeader(state, maxMarks);
   drawInstructions(state, totalQuestions, attemptQuestions, hasChoice, customInstructions);
 
@@ -978,11 +998,13 @@ export async function downloadQuestionsPdf({
   title,
   subject,
   header,
+  letterhead,
 }: {
   questions: ExportableQuestion[];
   title: string;
   subject?: string | null;
   header?: Partial<PaperHeaderMeta>;
+  letterhead?: HeaderPlacement | null;
 }): Promise<void> {
   if (questions.length === 0) return;
 
@@ -1015,15 +1037,18 @@ export async function downloadQuestionsPdf({
     attemptQuestions: questions.length,
     hasChoice: false,
     customInstructions: resolved.instructions,
+    letterhead,
   });
 }
 
 export async function downloadPaperPdf({
   paper,
   header,
+  letterhead,
 }: {
   paper: QuestionPaper;
   header?: Partial<PaperHeaderMeta>;
+  letterhead?: HeaderPlacement | null;
 }): Promise<void> {
   if (!paper.sections.length) return;
 
@@ -1093,6 +1118,7 @@ export async function downloadPaperPdf({
     attemptQuestions,
     hasChoice: sections.some((section) => section.groups.some((group) => Boolean(group.attempt))),
     customInstructions: resolved.instructions.trim() || paper.instructions,
+    letterhead,
   });
 }
 

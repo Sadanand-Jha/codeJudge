@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx src/lib/__acceptance__/structuralEdits.test.ts && tsx src/lib/__acceptance__/aiTrap.test.tsx && tsx src/lib/__acceptance__/seo.test.ts && tsx src/lib/__acceptance__/documentBranding.test.ts && tsx src/lib/__acceptance__/paperStudioDevice.test.ts && tsx src/lib/__acceptance__/paperQuestionRegeneration.test.ts && tsx src/lib/__acceptance__/roomsShare.test.ts && tsx src/lib/__acceptance__/roomOwnership.test.ts",
+    "test": "tsx src/lib/__acceptance__/structuralEdits.test.ts && tsx src/lib/__acceptance__/aiTrap.test.tsx && tsx src/lib/__acceptance__/seo.test.ts && tsx src/lib/__acceptance__/documentBranding.test.ts && tsx src/lib/__acceptance__/paperStudioDevice.test.ts && tsx src/lib/__acceptance__/paperQuestionRegeneration.test.ts && tsx src/lib/__acceptance__/roomsShare.test.ts && tsx src/lib/__acceptance__/roomOwnership.test.ts && tsx src/lib/__acceptance__/letterheadLayout.test.ts",
     "test:ai-trap": "tsx src/lib/__acceptance__/aiTrap.test.tsx"
   },
   "dependencies": {

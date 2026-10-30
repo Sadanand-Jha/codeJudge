@@ -281,6 +281,7 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
         options: config.options,
         mode: config.mode,
         students: config.students,
+        header: config.header,
       },
       kind
     )

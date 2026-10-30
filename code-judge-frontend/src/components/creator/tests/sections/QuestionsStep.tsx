@@ -30,6 +30,7 @@ import { QuestionHtml } from "@/components/creator/questions/QuestionHtml";
 import { AiStreamText } from "@/components/ui";
 import { PaperHeaderFields } from "@/components/creator/common/PaperHeaderFields";
 import { defaultPaperInstructionLines, downloadPaperPdf } from "@/utils/questionSetExport";
+import { resolveDefaultHeaderPlacement } from "@/services/letterheadPdf";
 import type { PaperHeaderMeta } from "@/utils/paperHeader";
 
 interface QuestionsStepProps {
@@ -245,9 +246,11 @@ export function QuestionsStep({
     setDownloading(true);
     setError(null);
     try {
+      const letterhead = await resolveDefaultHeaderPlacement();
       await downloadPaperPdf({
         paper,
         header: { ...paperHeader, heading: paperHeading, subject: paperHeader.subject.trim() },
+        letterhead,
       });
       toast.success({
         title: "PDF downloaded",

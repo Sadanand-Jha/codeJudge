@@ -26,6 +26,8 @@ import {
   Sparkles,
   MessageSquare,
   MailPlus,
+  FileImage,
+  Lock,
   Megaphone,
   Plus,
   X,
@@ -35,6 +37,8 @@ import { cn } from "@/lib/helpers";
 import { useAuthStore } from "@/store/authStore";
 import { FOCUS_MODE_ENABLED } from "@/config/focusMode";
 import { verificationLabel, verificationState } from "@/lib/verification";
+import { useMySubscription } from "@/hooks/useMySubscription";
+import { canUseCustomHeader } from "@/lib/planAccess";
 
 export interface CreatorNavItem {
   label: string;
@@ -43,6 +47,7 @@ export interface CreatorNavItem {
   exact?: boolean;
   match?: (pathname: string) => boolean;
   color?: "pink" | "purple";
+  premium?: boolean;
 }
 
 const _FULL_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
@@ -57,6 +62,7 @@ const _FULL_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
     items: [
       { label: "All Quizzes", href: "/creator/quizzes", icon: ListChecks, match: (p) => p === "/creator/quizzes" || p.startsWith("/creator/quizzes/") },
       { label: "Tests", href: "/creator/tests", icon: ClipboardList, match: (p) => p === "/creator/tests" || (p.startsWith("/creator/tests/") && !p.startsWith("/creator/tests/create")), color: "purple" },
+      { label: "My Headers", href: "/creator/headers", icon: FileImage, premium: true },
       { label: "Create Test", href: "/creator/tests/create", icon: NotebookPen, match: (p) => p === "/creator/tests/create", color: "purple" },
     ],
   },
@@ -134,6 +140,7 @@ const FOCUS_CREATOR_ALLOWED = new Set([
   "/creator/quizzes/ai-generate",
   "/creator/tests",
   "/creator/tests/create",
+  "/creator/headers",
   // Problems & question bank
   "/creator/question-bank",
   "/creator/questions",
@@ -182,10 +189,12 @@ function NavRow({
   item,
   pathname,
   onNavigate,
+  premiumLocked = false,
 }: {
   item: CreatorNavItem;
   pathname: string;
   onNavigate?: () => void;
+  premiumLocked?: boolean;
 }) {
   const isActive = item.match
     ? item.match(pathname)
@@ -213,9 +222,18 @@ function NavRow({
             : "text-[var(--qs-muted)] group-hover:text-[var(--qs-ink)]"
         )}
       />
-      <span className={cn("truncate", isActive && "font-extrabold text-[var(--qs-on-brand)]")}>
+      <span className={cn("min-w-0 flex-1 truncate", isActive && "font-extrabold text-[var(--qs-on-brand)]")}>
         {item.label}
       </span>
+      {item.premium && (
+        premiumLocked ? (
+          <Lock className="h-3 w-3 shrink-0 text-[var(--qs-muted)]" aria-label="Pro plan required" />
+        ) : (
+          <span className="shrink-0 rounded-full border border-current px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-[0.08em] opacity-75">
+            Pro
+          </span>
+        )
+      )}
     </Link>
   );
 }
@@ -230,6 +248,8 @@ export function CreatorSidebar({
   onNavigate?: () => void;
 }) {
   const user = useAuthStore((s) => s.user);
+  const { subscription } = useMySubscription();
+  const premiumLocked = !canUseCustomHeader(subscription);
   const displayName = user?.displayName || user?.username || "Creator";
   const avatarInitial = displayName.charAt(0).toUpperCase();
   const verification = verificationState(user?.isVerified);
@@ -304,6 +324,7 @@ export function CreatorSidebar({
                   item={item}
                   pathname={pathname}
                   onNavigate={onNavigate}
+                  premiumLocked={premiumLocked}
                 />
               ))}
             </div>

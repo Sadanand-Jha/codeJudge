@@ -1,4 +1,5 @@
 import { getUserTimeZone } from "@/lib/timezone";
+import type { HeaderPlacement } from "@/types/letterhead";
 
 // Print-ready question-paper HTML builder shared by the live preview and the
 // server-side PDF renderer. Everything here is pure string generation so the
@@ -71,6 +72,8 @@ export interface PaperBuildInput {
   options?: PaperOptions;
   /** Multiple students repeat the paper with filled details blocks (combined mode). */
   students?: PaperStudent[] | null;
+  /** Optional custom letterhead placement for page 1 (and repeated pages). */
+  header?: HeaderPlacement | null;
 }
 
 const CHOICE_TYPES = new Set(["single_choice", "multiple_choice", "true_false"]);
@@ -521,13 +524,38 @@ function sectionTitle(questions: PaperQuestion[]): string {
   return "Questions";
 }
 
-function renderPaperSection(meta: PaperMeta, questions: PaperQuestion[], options: PaperOptions, student: PaperStudent | null): string {
+function renderHeaderImage(header: HeaderPlacement, mode: "print" | "preview"): string {
+  const gap = header.gapMm ?? 8;
+  const isRepeatedPrint = mode === "print" && header.repeatOnAllPages;
+  const x = isRepeatedPrint ? header.rect.x : mode === "print" ? header.rect.x - 15 : header.rect.x;
+  const y = isRepeatedPrint ? header.rect.y : mode === "print" ? header.rect.y - 15 : header.rect.y;
+  const style = [
+    `left:${x}mm`,
+    `top:${y}mm`,
+    `width:${header.rect.w}mm`,
+    `height:${header.rect.h}mm`,
+    isRepeatedPrint ? "position:fixed" : "position:absolute",
+  ].join(";");
+  return `<img class="lh ${isRepeatedPrint ? "lh-repeat" : "lh-first"}" src="${esc(header.dataUrl)}" alt="" style="${style}">`;
+}
+
+function headerSpacer(header: HeaderPlacement, mode: "print" | "preview"): number {
+  const gap = header.gapMm ?? 8;
+  if (mode === "print" && header.repeatOnAllPages) return 0;
+  const target = header.rect.bottom + gap;
+  return mode === "print" ? Math.max(0, target - 15) : target;
+}
+
+function renderPaperSection(meta: PaperMeta, questions: PaperQuestion[], options: PaperOptions, student: PaperStudent | null, header: HeaderPlacement | null, isFirst: boolean, mode: "print" | "preview"): string {
   const twoColumns = options.layout === "two-column";
+  const activeHeader = isFirst ? header : null;
+  const spacer = activeHeader ? headerSpacer(activeHeader, mode) : 0;
+  const headerImage = activeHeader ? renderHeaderImage(activeHeader, mode) : "";
   const sectionMarks = questions.reduce(
     (sum, question) => sum + (typeof question.marks === "number" && question.marks > 0 ? question.marks : 0),
     0
   );
-  const header = `<header class="phead">
+  const paperHead = `<header class="phead">
   ${meta.creatorName?.trim() ? `<div class="creator">${esc(meta.creatorName.trim())}</div>` : ""}
   <h1 class="ptitle">${esc(meta.title || "Question Paper")}</h1>
   ${meta.course?.trim() ? `<p class="psubtitle">${esc(meta.course.trim())}</p>` : ""}
@@ -543,15 +571,15 @@ ${renderInstructions(meta, questions)}
   const body = questions
     .map((question, index) => renderQuestion(question, index, options, twoColumns))
     .join("");
-  return `<section class="paper">${header}<main class="qs${twoColumns ? " two" : ""}">${body}</main><div class="end">End of question paper</div></section>`;
+  return `<section class="paper${activeHeader ? " has-lh" : ""}">${headerImage}${activeHeader ? `<div class="lh-space" style="height:${spacer}mm"></div>` : ""}${paperHead}<main class="qs${twoColumns ? " two" : ""}">${body}</main><div class="end">End of question paper</div></section>`;
 }
 
-export function buildPaperBody(input: PaperBuildInput): string {
-  const { meta, questions, options = {}, students } = input;
+export function buildPaperBody(input: PaperBuildInput, mode: "print" | "preview" = "print"): string {
+  const { meta, questions, options = {}, students, header } = input;
   const list: Array<PaperStudent | null> = students && students.length ? students : [null];
   const sections = list
     .map((student, index) => {
-      const section = renderPaperSection(meta, questions, options, student);
+      const section = renderPaperSection(meta, questions, options, student, header ?? null, index === 0, mode);
       return index === 0 ? section : `<div class="pgbreak"></div>${section}`;
     })
     .join("");
@@ -579,6 +607,10 @@ body {
   hyphens: manual;
 }
 p { margin: 0; }
+.paper { position: relative; }
+.paper.has-lh { padding-top: 0; }
+.lh { display: block; object-fit: fill; z-index: 1; }
+.lh-space { width: 100%; }
 .creator { margin: 0 0 1.5mm; font-size: 10pt; font-weight: 700; text-align: center; text-transform: uppercase; }
 .ptitle { margin: 0 0 1mm; font-size: 15pt; line-height: 1.15; font-weight: 700; text-align: center; }
 .psubtitle { margin: 0 0 2.5mm; font-size: 10pt; line-height: 1.2; text-align: center; }
@@ -643,7 +675,10 @@ table.key .num { width: 16mm; }
 
 const PREVIEW_CSS = `
 body { background: #fff; }
-.paper { width: 210mm; margin: 0 auto; padding: 15mm 15mm 18mm; background: #fff; }
+.paper { width: 210mm; margin: 0 auto; padding: 15mm 15mm 18mm; background: #fff; position: relative; }
+.paper.has-lh { padding-top: 0; }
+.lh { display: block; object-fit: fill; z-index: 1; }
+.lh-space { width: 100%; }
 .pgbreak, .keypage { break-before: auto; }
 .pgbreak { height: 8mm; }
 .pgbreak + .paper { border-top: 0.5pt dashed #999; padding-top: 16mm; }
@@ -651,7 +686,11 @@ body { background: #fff; }
 `;
 
 export function buildPaperDocument(input: PaperBuildInput, fontCss: string): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(input.meta.title || "Question Paper")}</title><meta name="author" content="QuizSupport"><style>${fontCss}${PAPER_CSS}</style></head><body>${buildPaperBody(input)}</body></html>`;
+  const header = input.header ?? null;
+  const pageCss = header?.repeatOnAllPages
+    ? `@page { margin-top: ${Math.max(15, header.rect.bottom + (header.gapMm ?? 8))}mm; }`
+    : "";
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(input.meta.title || "Question Paper")}</title><meta name="author" content="QuizSupport"><style>${fontCss}${PAPER_CSS}${pageCss}</style></head><body>${buildPaperBody(input, "print")}</body></html>`;
 }
 
 export function buildAnswerKeyDocument(input: { meta: PaperMeta; questions: PaperQuestion[] }, fontCss: string): string {
@@ -666,7 +705,7 @@ export function buildPaperPreviewDocument(
   const body =
     mode === "key"
       ? buildAnswerKeyBody(input as { meta: PaperMeta; questions: PaperQuestion[] })
-      : buildPaperBody(input as PaperBuildInput);
+      : buildPaperBody(input as PaperBuildInput, "preview");
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><style>${fontCss}${PAPER_CSS}${PREVIEW_CSS}</style></head><body>${body}</body></html>`;
 }
 

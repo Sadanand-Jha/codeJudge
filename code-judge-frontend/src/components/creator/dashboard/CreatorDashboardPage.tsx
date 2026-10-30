@@ -131,8 +131,6 @@ function nameHue(name: string): number {
    Shared styles
    ============================================================ */
 
-const BTN =
-  "inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]";
 const BTN_PRI =
   "inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:brightness-110 active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_var(--qs-sun)]";
 const BTN_SM =
@@ -365,24 +363,44 @@ function OnboardingCard() {
 
 function NoLiveCard({ draftCount }: { draftCount: number }) {
   return (
-    <article className="relative flex h-full flex-col rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-6">
-      <span className={cn(PILL, "text-[#2457d6]")}>Quiet</span>
-      <h2 className="qs-display mt-3 text-[24px] font-extrabold text-[var(--qs-ink)] sm:text-[28px]">
-        Nothing is live right now
-      </h2>
-      <p className="mt-1.5 text-[13px] leading-6 text-[var(--qs-muted)]">
-        {draftCount > 0
-          ? `You have ${draftCount} ${draftCount === 1 ? "draft" : "drafts"} waiting. Publish one to start collecting responses, or build something new.`
-          : "Publish a quiz to start collecting responses — live attempts, scores and progress will show up right here."}
-      </p>
-      <div className="mt-auto flex flex-wrap gap-2 pt-5">
-        <Link href="/creator/quizzes/create" className={BTN_PRI}>
-          <Plus className="h-4 w-4" />
-          Create quiz
-        </Link>
-        <Link href="/creator/quizzes" className={BTN}>
-          View quizzes
-        </Link>
+    <article className="relative flex h-full flex-col items-start justify-between gap-8 rounded-[24px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-8 lg:flex-row lg:items-center lg:p-10">
+      <div className="min-w-0 flex-1">
+        <span className="inline-flex items-center gap-2 rounded-full border-[1.5px] border-[#2A4FD6] px-3 py-1.5 text-[12px] font-bold uppercase leading-none tracking-[0.08em] text-[#2A4FD6]">
+          <span aria-hidden="true" className="h-2 w-2 rounded-full border-2 border-[#2A4FD6]" />
+          Quiet
+        </span>
+        <h2 className="qs-display mt-4 text-[32px] font-extrabold leading-[1.1] tracking-[-0.01em] text-[var(--qs-ink)] sm:text-[40px]">
+          Nothing is live right now
+        </h2>
+        <p className="mt-2 max-w-[520px] text-[15px] leading-6 text-[var(--qs-muted)] sm:text-base">
+          {draftCount > 0
+            ? `You have ${draftCount} ${draftCount === 1 ? "draft" : "drafts"} waiting. Publish one to start collecting responses, or build something new.`
+            : "Publish a quiz to start collecting responses — live attempts, scores and progress will show up right here."}
+        </p>
+        <div className="mt-7 flex flex-wrap gap-3.5">
+          <Link
+            href="/creator/quizzes/create"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-5 text-[15px] font-bold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition-[transform,box-shadow] duration-150 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_var(--qs-sun)] focus-visible:[outline:3px_solid_#2A4FD6] focus-visible:[outline-offset:3px]"
+          >
+            <Plus className="h-[18px] w-[18px]" strokeWidth={2.5} />
+            Create quiz
+          </Link>
+          <Link
+            href="/creator/quizzes"
+            className="inline-flex h-12 items-center justify-center rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-5 text-[15px] font-bold text-[var(--qs-ink)] shadow-[4px_4px_0_var(--qs-line)] transition-[transform,box-shadow] duration-150 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_var(--qs-line)] focus-visible:[outline:3px_solid_#2A4FD6] focus-visible:[outline-offset:3px]"
+          >
+            View quizzes
+          </Link>
+        </div>
+      </div>
+      <div
+        aria-hidden="true"
+        className="hidden h-40 w-40 shrink-0 items-center justify-center rounded-[24px] border-2 border-[#1C1840] bg-[#EDE8FF] lg:flex"
+      >
+        <svg width="112" height="112" viewBox="0 0 112 112" fill="none">
+          <path d="M8 60h22l12-30 20 52 14-34 8 12h20" stroke="#1C1840" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx="92" cy="60" r="9" fill="#FFC93C" stroke="#1C1840" strokeWidth="4" />
+        </svg>
       </div>
     </article>
   );
@@ -501,15 +519,15 @@ function CreditsCard() {
       : null;
 
   return (
-    <article className="flex h-full flex-col rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-6">
-      <span className="grid h-12 w-12 place-items-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]">
-        <Sparkles className="h-5 w-5" strokeWidth={2.5} />
+    <article className="flex h-full flex-col rounded-[24px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-6 sm:p-8">
+      <span className="grid h-14 w-14 place-items-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]">
+        <Sparkles className="h-7 w-7" strokeWidth={2} />
       </span>
-      <p className="mt-3.5 leading-none">
-        <span className="qs-display text-[44px] font-extrabold tracking-tight text-[var(--qs-ink)]">{remaining}</span>
-        <span className="ml-2.5 align-middle text-[15px] font-bold text-[var(--qs-muted)]">credits left</span>
+      <p className="mt-5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1 leading-none">
+        <span className="qs-display text-[56px] font-extrabold leading-none tracking-[-0.02em] text-[var(--qs-ink)]">{remaining}</span>
+        <span className="text-[18px] font-bold leading-tight text-[var(--qs-muted)]">credits left</span>
       </p>
-      <p className="mt-1.5 text-[13px] text-[var(--qs-muted)]">
+      <p className="mt-2.5 text-[15px] leading-6 text-[var(--qs-muted)]">
         {validityMonths ? `Valid ${validityMonths} months from purchase.` : "One-time credits, valid from purchase."}
       </p>
 
@@ -524,11 +542,17 @@ function CreditsCard() {
         </div>
       )}
 
-      <div className="mt-auto flex flex-wrap gap-2 pt-5">
-        <Link href="/creator/billing/credits" className={BTN_PRI}>
+      <div className="mt-auto flex flex-wrap gap-3.5 pt-7">
+        <Link
+          href="/creator/billing/credits"
+          className="inline-flex h-12 items-center justify-center rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-5 text-[15px] font-bold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition-[transform,box-shadow] duration-150 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_var(--qs-sun)] focus-visible:[outline:3px_solid_#2A4FD6] focus-visible:[outline-offset:3px]"
+        >
           Buy credits
         </Link>
-        <Link href="/creator/billing/transactions" className={BTN}>
+        <Link
+          href="/creator/billing/transactions"
+          className="inline-flex h-12 items-center justify-center rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-5 text-[15px] font-bold text-[var(--qs-ink)] shadow-[4px_4px_0_var(--qs-line)] transition-[transform,box-shadow] duration-150 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_var(--qs-line)] focus-visible:[outline:3px_solid_#2A4FD6] focus-visible:[outline-offset:3px]"
+        >
           History
         </Link>
       </div>

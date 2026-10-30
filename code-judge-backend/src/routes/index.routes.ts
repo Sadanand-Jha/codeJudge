@@ -30,6 +30,8 @@ import { authenticate } from "../middleware/auth.ts";
 import { validate, quizGameConfigSchema } from "../middleware/validate.ts";
 import { getQuizGameConfig, upsertQuizGameConfig } from "../controllers/quiz.controller.ts";
 import { getBrandLogo, getLandingImage } from "../controllers/secureMedia.controller.ts";
+import letterheadRoutes from "./letterhead.routes.ts";
+import uploadRoutes from "./upload.routes.ts";
 
 const router = Router();
 
@@ -45,6 +47,11 @@ router.get("/v1/brand/logo", getBrandLogo);
 router.get("/v1/landing/image/:imageName", getLandingImage);
 
 router.use("/v1", v1Routes);
+
+// Spec-compatible aliases for the custom letterhead API. Both routers apply
+// their own authentication so these paths cannot become public.
+router.use("/letterheads", letterheadRoutes);
+router.use("/uploads", uploadRoutes);
 
 // Join-by-code classrooms. Kept at /api/rooms (outside /v1) because these
 // paths are shared directly with students in WhatsApp messages.
