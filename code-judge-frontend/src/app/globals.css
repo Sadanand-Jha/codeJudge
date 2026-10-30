@@ -4995,12 +4995,66 @@ textarea {
   --qs-poly-3: #ddd2ff;
   --qs-poly-4: #d0c2ff;
   --qs-poly-5: #ffe9a3;
+  /* Empty-tank ("low fuel") warning palette. Used only on the Studio
+     dashboard and its credit indicators, never on the global shell. */
+  --qs-credit-page: #fffbe8;
+  --qs-credit-surface: #fffef5;
+  --qs-credit-border: #f0de9a;
+  --qs-credit-muted: #6b5a2e;
+  --qs-credit-card: #fff1b0;
+  --qs-credit-chip-bg: #ffe9a6;
+  --qs-credit-chip-border: #d97706;
+  --qs-credit-chip-text: #7a4300;
+  --qs-credit-strip-bg: #fff1b8;
+  --qs-credit-strip-border: #e5b93c;
+  --qs-credit-strip-text: #5a3a00;
+  --qs-credit-accent: #ffd24d;
 
   background: var(--qs-bg);
   color: var(--qs-ink);
   font-family: var(--font-inter), "Inter", system-ui, sans-serif;
   font-size: 17px;
   line-height: 1.55;
+}
+
+/* Low-fuel warning theme. data-credit-state lives on the Studio shell so the
+   header/sidebar can react, but the tinted tokens are only applied to the
+   dashboard page surface. Other Studio pages keep the normal light theme. */
+.qs-ui[data-credit-state="empty"] [data-credit-page="dashboard"] {
+  --qs-bg: var(--qs-credit-page);
+  --qs-surface: var(--qs-credit-surface);
+  --qs-line: var(--qs-credit-border);
+  --qs-muted: var(--qs-credit-muted);
+  --qs-warn: var(--qs-credit-strip-text);
+  --qs-warnbg: var(--qs-credit-strip-bg);
+}
+
+/* Five-segment fuel meter. Empty segments stay visible on the tinted card. */
+.qs-credit-fuel {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+.qs-credit-fuel > i {
+  height: 10px;
+  border: 2px solid var(--qs-credit-chip-border);
+  border-radius: 999px;
+  background: transparent;
+}
+.qs-credit-fuel > i[data-filled="true"] {
+  background: var(--qs-credit-accent);
+}
+.qs-credit-fuel > i:first-child {
+  border-radius: 999px 3px 3px 999px;
+}
+.qs-credit-fuel > i:last-child {
+  border-radius: 3px 999px 999px 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qs-credit-fuel > i {
+    transition: none;
+  }
 }
 
 [data-theme="dark"] .qs-ui {
@@ -5025,6 +5079,18 @@ textarea {
   --qs-warnbg: #3d2508;
   --qs-blue: #7aa7ff;
   --qs-field: #241c52;
+  --qs-credit-page: #241c0a;
+  --qs-credit-surface: #2d2410;
+  --qs-credit-border: #5a481c;
+  --qs-credit-muted: #d8c58f;
+  --qs-credit-card: #3a2d0f;
+  --qs-credit-chip-bg: #4a3a12;
+  --qs-credit-chip-border: #f0b429;
+  --qs-credit-chip-text: #ffdf8a;
+  --qs-credit-strip-bg: #3d2f0c;
+  --qs-credit-strip-border: #c99a1f;
+  --qs-credit-strip-text: #ffe6a3;
+  --qs-credit-accent: #ffd24d;
 }
 
 /* The studio navbar keeps the same mobile chrome as the student topbar so

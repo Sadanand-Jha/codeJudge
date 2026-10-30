@@ -11,6 +11,7 @@ import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { useAuthStore } from "@/store/authStore";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { useMySubscription } from "@/hooks/useMySubscription";
+import { useCreditState } from "@/hooks/useCreditState";
 import { showUpgradeModal } from "@/lib/upgradePrompt";
 import { useTheme } from "@/context/ThemeContext";
 
@@ -21,6 +22,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const refreshCredits = useAICreditsStore((s) => s.refresh);
+  const { state: creditState } = useCreditState();
   const { subscription, isLoading: subscriptionLoading } = useMySubscription();
   const { theme, setTheme } = useTheme();
   const needsMonthlyPlan =
@@ -139,6 +141,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
     <AppLayout header={<CreatorNavbar onMobileMenuToggle={() => setDrawerOpen(true)} />}>
       <div
         className="qs-ui creator-mobile-calm flex min-h-0 flex-1 bg-[var(--qs-bg)]"
+        data-credit-state={creditState}
         onClickCapture={guardQuizCreation}
       >
         {/* Mobile drawer overlay */}
