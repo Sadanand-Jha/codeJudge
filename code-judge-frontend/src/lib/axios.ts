@@ -1,5 +1,6 @@
 import axios from "axios";
 import { showUpgradeModalForError } from "@/lib/upgradePrompt";
+import { showCustomHeaderUpgrade } from "@/lib/customHeaderUpgrade";
 
 const rawBase =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
@@ -58,7 +59,12 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     if (error?.response?.status === 403) {
-      showUpgradeModalForError(error.response.data);
+      const payload = error.response.data as { code?: string; data?: { code?: string } } | undefined;
+      if (payload?.code === "PLAN_UPGRADE_REQUIRED" || payload?.data?.code === "PLAN_UPGRADE_REQUIRED") {
+        showCustomHeaderUpgrade();
+      } else {
+        showUpgradeModalForError(error.response.data);
+      }
     }
     return Promise.reject(error);
   }

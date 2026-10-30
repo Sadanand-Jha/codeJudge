@@ -1,8 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, FileText, Download, X, KeyRound, Shuffle } from "lucide-react";
+import {
+  ChevronDown,
+  Download,
+  FileImage,
+  FileText,
+  KeyRound,
+  Loader2,
+  Lock,
+  Shuffle,
+  SlidersHorizontal,
+  Crown,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { type PdfStudent, type PdfGenerationMode } from "@/utils/pdfConfig";
 import { getQuizResponses, type QuizResponseStudent } from "@/services/quiz";
@@ -17,6 +29,19 @@ import {
 } from "@/utils/paperHtml";
 import { type PaperDownloadKind, type PaperDownloadMode } from "@/utils/paperPdf";
 import { toast } from "@/lib/toast";
+import { useMySubscription } from "@/hooks/useMySubscription";
+import { canUseCustomHeader } from "@/lib/planAccess";
+import { showCustomHeaderUpgrade } from "@/lib/customHeaderUpgrade";
+import { getMySubscription } from "@/services/user";
+import {
+  LETTERHEADS_CHANGED_EVENT,
+  listLetterheads,
+  updateLetterhead,
+} from "@/services/letterheads";
+import { useHeaderPlacement } from "@/hooks/useHeaderPlacement";
+import { useLetterheadChoice } from "@/hooks/useLetterheadChoice";
+import { HeaderAdjustControls } from "@/components/letterheads/HeaderAdjustControls";
+import type { HeaderConfig, HeaderPlacement, Letterhead } from "@/types/letterhead";
 
 const A4_WIDTH_PX = 794;
 
@@ -136,6 +161,7 @@ export interface PaperDownloadConfig {
   mode: PaperDownloadMode;
   students: PdfStudent[];
   instructions: string;
+  header?: HeaderPlacement | null;
 }
 
 export default function PdfConfigModal({
@@ -177,19 +203,39 @@ export default function PdfConfigModal({
     generation: false,
   });
 
+  const { subscription, isLoading: planLoading } = useMySubscription();
+  const isPro = canUseCustomHeader(subscription);
+  const [letterheads, setLetterheads] = useState<Letterhead[]>([]);
+  const [headersLoading, setHeadersLoading] = useState(false);
+  const [headersError, setHeadersError] = useState<string | null>(null);
+  const [selectedHeaderId, setSelectedHeaderId] = useState<number | null>(null);
+  const [headerConfig, setHeaderConfig] = useState<HeaderConfig | null>(null);
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  const [savingPlacement, setSavingPlacement] = useState(false);
+  const headerInitializedRef = useRef(false);
+  const headerErrorShownRef = useRef(false);
+
   const [fontCss, setFontCss] = useState("");
   const [previewHtml, setPreviewHtml] = useState("");
   const [scale, setScale] = useState(0.6);
   const previewWrapRef = useRef<HTMLDivElement | null>(null);
 
+  const handleClose = useCallback(() => {
+    setSelectedHeaderId(null);
+    setHeaderConfig(null);
+    setAdjustOpen(false);
+    headerInitializedRef.current = false;
+    onClose();
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") handleClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, handleClose]);
 
   const defaultInstructions = useMemo(
     () =>
@@ -243,6 +289,81 @@ export default function PdfConfigModal({
 
   const previewMeta = useMemo(() => ({ ...meta, instructions }), [meta, instructions]);
 
+  const selectedHeader = useMemo(
+    () => letterheads.find((header) => header.id === selectedHeaderId) ?? null,
+    [letterheads, selectedHeaderId]
+  );
+
+  const {
+    placement: headerPlacement,
+    loading: headerLoading,
+    error: headerError,
+    retry: retryHeader,
+  } = useHeaderPlacement(
+    selectedHeader?.cloudinary,
+    headerConfig,
+    open && Boolean(isPro && selectedHeader)
+  );
+
+  const { chooseHeader: chooseDownloadHeader, dialog: headerChoiceDialog } = useLetterheadChoice();
+
+  useEffect(() => {
+    if (!headerError) {
+      headerErrorShownRef.current = false;
+      return;
+    }
+    if (headerErrorShownRef.current) return;
+    headerErrorShownRef.current = true;
+    toast.error({
+      title: "Header preview failed",
+      description: `${headerError} The standard paper will be used.`,
+    });
+  }, [headerError]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    let cancelled = false;
+    const loadHeaders = async (showSpinner: boolean) => {
+      if (showSpinner) setHeadersLoading(true);
+      setHeadersError(null);
+      try {
+        const result = await listLetterheads();
+        if (cancelled) return;
+        setLetterheads(result.letterheads);
+        if (!isPro) {
+          headerInitializedRef.current = false;
+          setSelectedHeaderId(null);
+          setHeaderConfig(null);
+          setAdjustOpen(false);
+          return;
+        }
+        if (!headerInitializedRef.current) {
+          headerInitializedRef.current = true;
+          const preferred =
+            result.letterheads.find((header) => header.isDefault) ??
+            result.letterheads[0] ??
+            null;
+          if (preferred) {
+            setSelectedHeaderId(preferred.id);
+            setHeaderConfig(preferred.headerConfig);
+          }
+        }
+      } catch {
+        if (!cancelled) setHeadersError("Could not load your saved headers.");
+      } finally {
+        if (!cancelled && showSpinner) setHeadersLoading(false);
+      }
+    };
+    void loadHeaders(true);
+    const onChanged = () => void loadHeaders(false);
+    window.addEventListener(LETTERHEADS_CHANGED_EVENT, onChanged);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(LETTERHEADS_CHANGED_EVENT, onChanged);
+    };
+  }, [open, isPro]);
+
   useEffect(() => {
     if (!open || !fontCss) return;
     const timer = setTimeout(() => {
@@ -253,6 +374,7 @@ export default function PdfConfigModal({
             questions: prepared,
             options,
             students: previewStudent ? [previewStudent] : null,
+            header: headerPlacement,
           },
           fontCss,
           "paper"
@@ -260,7 +382,7 @@ export default function PdfConfigModal({
       );
     }, 200);
     return () => clearTimeout(timer);
-  }, [open, fontCss, previewMeta, prepared, options, previewStudent]);
+  }, [open, fontCss, previewMeta, prepared, options, previewStudent, headerPlacement]);
 
   useEffect(() => {
     if (!open) return;
@@ -275,7 +397,7 @@ export default function PdfConfigModal({
     return () => observer.disconnect();
   }, [open]);
 
-  const handleDownload = (kind: PaperDownloadKind) => {
+  const runDownload = (kind: PaperDownloadKind, header: HeaderPlacement | null) => {
     const students = mode === "single" ? [] : takingStudents;
     if (mode !== "single" && students.length === 0) {
       toast.error({
@@ -285,7 +407,110 @@ export default function PdfConfigModal({
       });
       return;
     }
-    onDownload(kind, { options, mode, students, instructions });
+    onDownload(kind, { options, mode, students, instructions, header });
+  };
+
+  const chooseHeader = (value: string) => {
+    if (value === "standard") {
+      setSelectedHeaderId(null);
+      setHeaderConfig(null);
+      setAdjustOpen(false);
+      headerInitializedRef.current = true;
+      return;
+    }
+    if (value === "add") {
+      if (!isPro) {
+        showCustomHeaderUpgrade();
+        return;
+      }
+      window.open("/creator/headers", "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (!isPro) {
+      showCustomHeaderUpgrade({
+        onContinueStandard: () => {
+          setSelectedHeaderId(null);
+          setHeaderConfig(null);
+        },
+      });
+      return;
+    }
+    const next = letterheads.find((header) => String(header.id) === value);
+    if (!next) return;
+    setSelectedHeaderId(next.id);
+    setHeaderConfig(next.headerConfig);
+    headerInitializedRef.current = true;
+  };
+
+  const saveHeaderPlacement = async () => {
+    if (!selectedHeader || !headerConfig || savingPlacement) return;
+    setSavingPlacement(true);
+    try {
+      const updated = await updateLetterhead(selectedHeader.id, {
+        headerConfig,
+      });
+      setLetterheads((current) =>
+        current.map((header) => (header.id === updated.id ? updated : header))
+      );
+      setHeaderConfig(updated.headerConfig);
+      setAdjustOpen(false);
+      toast.success("Header placement saved.");
+    } catch {
+      toast.error({
+        title: "Could not save placement",
+        description: "Your PDF can still use this placement. Please try again to save it.",
+      });
+    } finally {
+      setSavingPlacement(false);
+    }
+  };
+
+  const handleDownload = async (kind: PaperDownloadKind) => {
+    if (kind === "key") {
+      runDownload(kind, null);
+      return;
+    }
+
+    if (isPro && letterheads.length > 1) {
+      const choice = await chooseDownloadHeader(letterheads);
+      if (choice.status === "cancelled") return;
+      runDownload(kind, choice.placement);
+      return;
+    }
+
+    if (!selectedHeader || !isPro) {
+      runDownload(kind, null);
+      return;
+    }
+
+    try {
+      const fresh = await getMySubscription();
+      if (!canUseCustomHeader(fresh)) {
+        showCustomHeaderUpgrade({
+          onContinueStandard: () => runDownload(kind, null),
+        });
+        return;
+      }
+    } catch {
+      // Keep the current session value when the plan check cannot be reached.
+    }
+
+    if (headerLoading) {
+      toast.info({
+        title: "Preparing your header",
+        description: "The placement preview is still updating. Try again in a moment.",
+      });
+      return;
+    }
+    if (headerError || !headerPlacement) {
+      toast.error({
+        title: "Header could not be used",
+        description: "Downloading the standard paper instead.",
+      });
+      runDownload(kind, null);
+      return;
+    }
+    runDownload(kind, headerPlacement);
   };
 
   const summary = [
@@ -299,7 +524,8 @@ export default function PdfConfigModal({
     .join(" • ");
 
   return (
-    <AnimatePresence>
+    <>
+      <AnimatePresence>
       {open && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -307,7 +533,7 @@ export default function PdfConfigModal({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
           className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4 backdrop-blur-[2px]"
-          onClick={onClose}
+          onClick={handleClose}
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.98, y: 8 }}
@@ -333,7 +559,7 @@ export default function PdfConfigModal({
                 </div>
               </div>
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="flex h-8 w-8 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary"
                 aria-label="Close"
               >
@@ -507,6 +733,128 @@ export default function PdfConfigModal({
               </div>
 
               <div className="flex flex-col gap-2 bg-card-hover/30 p-5">
+                <div className="rounded-xl border border-border bg-card p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-text-secondary">
+                      <FileImage className="h-3.5 w-3.5 text-accent" />
+                      Letterhead
+                    </span>
+                    {isPro ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.06em] text-accent">
+                        <Crown className="h-3 w-3" />
+                        Pro
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => showCustomHeaderUpgrade()}
+                        className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.06em] text-text-muted hover:border-accent/50 hover:text-accent"
+                      >
+                        <Lock className="h-3 w-3" />
+                        Pro feature
+                      </button>
+                    )}
+                  </div>
+
+                  <select
+                    value={selectedHeader ? String(selectedHeader.id) : "standard"}
+                    onChange={(event) => chooseHeader(event.target.value)}
+                    disabled={planLoading || headersLoading}
+                    className="mt-2 h-9 w-full rounded-lg border border-border bg-card px-2.5 text-xs font-semibold text-text-primary outline-none transition focus:border-accent/60 disabled:opacity-60"
+                    aria-label="Choose a letterhead"
+                  >
+                    <option value="standard">Standard — no custom header</option>
+                    {letterheads.map((header) => (
+                      <option key={header.id} value={String(header.id)}>
+                        {header.name}
+                        {header.isDefault ? " (default)" : ""}
+                        {!isPro ? " — Pro required" : ""}
+                      </option>
+                    ))}
+                    <option value="add">{isPro ? "+ Add new header" : "+ Add new header (Pro)"}</option>
+                  </select>
+
+                  {isPro && letterheads.length > 1 && (
+                    <p className="mt-1 text-[10px] font-medium text-text-muted">
+                      Preview any header here. You&apos;ll choose which one to use each time you download.
+                    </p>
+                  )}
+
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAdjustOpen((value) => !value)}
+                      disabled={!selectedHeader || !isPro || headerLoading}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-[11px] font-semibold text-text-primary transition hover:bg-card-hover disabled:opacity-40"
+                    >
+                      <SlidersHorizontal className="h-3.5 w-3.5" />
+                      Adjust
+                    </button>
+                    {selectedHeader && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-text-muted">
+                        {headerLoading ? (
+                          <>
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Preparing…
+                          </>
+                        ) : headerError ? (
+                          <button type="button" onClick={retryHeader} className="font-semibold text-red-500 hover:underline">
+                            Retry header
+                          </button>
+                        ) : (
+                          <>
+                            <FileImage className="h-3 w-3" />
+                            {headerConfig?.repeatOnAllPages ? "Every page" : "First page"}
+                          </>
+                        )}
+                      </span>
+                    )}
+                    {headersError && (
+                      <span className="text-[10px] font-medium text-text-muted">{headersError}</span>
+                    )}
+                  </div>
+
+                  {!isPro && !planLoading && (
+                    <p className="mt-2 text-[10px] font-medium leading-relaxed text-text-muted">
+                      Standard papers still download normally. Upgrade to place your own
+                      letterhead.
+                    </p>
+                  )}
+
+                  {adjustOpen && selectedHeader && headerConfig && isPro && (
+                    <div className="mt-3 border-t border-border pt-3">
+                      <HeaderAdjustControls
+                        config={headerConfig}
+                        onChange={setHeaderConfig}
+                        disabled={savingPlacement}
+                        compact
+                      />
+                      <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHeaderConfig(selectedHeader.headerConfig);
+                            setAdjustOpen(false);
+                          }}
+                          disabled={savingPlacement}
+                          className="inline-flex h-8 items-center rounded-lg border border-border bg-card px-2.5 text-[11px] font-semibold text-text-primary hover:bg-card-hover disabled:opacity-40"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void saveHeaderPlacement()}
+                          disabled={savingPlacement}
+                          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3 text-[11px] font-bold text-white hover:bg-accent/90 disabled:opacity-40"
+                        >
+                          {savingPlacement && <Loader2 className="h-3 w-3 animate-spin" />}
+                          Save to this header
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div
                   ref={previewWrapRef}
                   className="relative w-full overflow-hidden rounded-xl border border-border bg-[#E6E6E6]"
@@ -539,7 +887,7 @@ export default function PdfConfigModal({
               <p className="text-[11px] text-text-muted">{summary}</p>
               <div className="flex items-center justify-end gap-2">
                 <button
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="inline-flex h-10 items-center rounded-lg border border-border bg-card px-5 text-xs font-semibold text-text-primary transition-colors hover:bg-card-hover"
                 >
                   Cancel
@@ -566,5 +914,7 @@ export default function PdfConfigModal({
         </motion.div>
       )}
     </AnimatePresence>
+      {headerChoiceDialog}
+    </>
   );
 }

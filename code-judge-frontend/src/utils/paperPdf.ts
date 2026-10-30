@@ -12,6 +12,7 @@ import {
   type PaperQuestion,
   type PaperStudent,
 } from "@/utils/paperHtml";
+import type { HeaderPlacement } from "@/types/letterhead";
 
 export type PaperDownloadMode = "single" | "individual" | "combined";
 export type PaperDownloadKind = "paper" | "key";
@@ -22,6 +23,8 @@ export interface DownloadPaperInput {
   options: PaperOptions;
   mode: PaperDownloadMode;
   students?: PaperStudent[];
+  /** Optional custom letterhead placement shared with the live preview. */
+  header?: HeaderPlacement | null;
 }
 
 const slug = (value: string): string =>
@@ -92,7 +95,7 @@ export async function downloadQuizPaperPdf(input: DownloadPaperInput, kind: Pape
     let count = 0;
     for (const student of input.students) {
       const html = buildPaperDocument(
-        { meta: input.meta, questions, options: input.options, students: [student] },
+        { meta: input.meta, questions, options: input.options, students: [student], header: input.header },
         fontCss
       );
       const suffix = slug(student.name || student.username || student.rollNo || String(student.id ?? count + 1));
@@ -104,7 +107,7 @@ export async function downloadQuizPaperPdf(input: DownloadPaperInput, kind: Pape
 
   const students = input.mode === "combined" && input.students?.length ? input.students : null;
   const filename = `${base}${input.mode === "combined" ? "-combined" : "-question-paper"}.pdf`;
-  const html = buildPaperDocument({ meta: input.meta, questions, options: input.options, students }, fontCss);
+  const html = buildPaperDocument({ meta: input.meta, questions, options: input.options, students, header: input.header }, fontCss);
   saveBlob(await requestPdf(html, { left: footerLeft, right: footerRight }, filename.replace(/\.pdf$/, ""), fontCss), filename);
   return 1;
 }

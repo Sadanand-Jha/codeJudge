@@ -204,10 +204,11 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
       onExitPreview={onExitPreview}
       autoEnter
       fullWidth
+      overlapHeader
     >
-      <div className="flex h-full w-full flex-col overflow-hidden bg-background text-text-primary">
+      <div className="flex h-full w-full flex-col overflow-hidden bg-transparent text-text-primary">
       {/* ── MAIN GRID ── */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[clamp(350px,27.5vw,450px)_minmax(0,1fr)_clamp(325px,27.5vw,425px)] gap-3 p-3 overflow-hidden">
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[clamp(350px,27.5vw,450px)_minmax(0,1fr)_clamp(325px,27.5vw,425px)] gap-3 p-3 overflow-hidden sm:pt-6">
         {/* LEFT */}
         <aside className="hidden lg:flex flex-col gap-3 min-h-0 overflow-hidden order-1">
           <div className="bg-card border border-border rounded-xl shadow-sm p-5 flex flex-col flex-1 min-h-0">

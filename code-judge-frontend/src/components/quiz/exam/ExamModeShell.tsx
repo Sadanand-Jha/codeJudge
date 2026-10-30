@@ -52,6 +52,7 @@ interface ExamModeShellProps {
   onTerminate?: (summary: ViolationSummary) => void;
   autoEnter?: boolean;
   fullWidth?: boolean;
+  overlapHeader?: boolean;
   /** Creator-defined field names. When non-empty, a registration form is
    * shown after "Enter Exam Mode" and the attempt starts only on submit. */
   registrationFields?: string[];
@@ -74,6 +75,7 @@ export default function ExamModeShell({
   onTerminate,
   autoEnter = false,
   fullWidth = false,
+  overlapHeader = false,
   registrationFields = [],
   children,
 }: ExamModeShellProps) {
@@ -103,7 +105,7 @@ export default function ExamModeShell({
   const acquireThemeLock = useCallback(() => {
     if (themeLockRef.current) return;
     themeLockRef.current = true;
-    lockTheme("dark");
+    lockTheme("light");
   }, [lockTheme]);
 
   const releaseThemeLock = useCallback(() => {
@@ -527,7 +529,7 @@ export default function ExamModeShell({
                 <li className="hidden gap-2 sm:flex"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)]" /> Your progress will be preserved during temporary warnings.</li>
                 <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> After {maxViolations} violations {isLive ? "your attempt will be submitted automatically and flagged for review" : "the session will be terminated"}.</li>
               </ul>
-              <p className="hidden pt-2 text-[11px] text-[var(--qs-muted)] sm:block">A real exam cannot fully block OS shortcuts like Ctrl+T / Alt+Tab. We detect and record their effects instead.</p>
+              {/* <p className="hidden pt-2 text-[11px] text-[var(--qs-muted)] sm:block">A real exam cannot fully block OS shortcuts like Ctrl+T / Alt+Tab. We detect and record their effects instead.</p> */}
             </div>
 
             <div className="mt-4 flex flex-col gap-2 sm:mt-6 sm:flex-row sm:justify-center">
@@ -569,27 +571,42 @@ export default function ExamModeShell({
       className="qs-ui student-quiz-theme fixed inset-0 z-[100] flex flex-col overflow-hidden bg-[var(--qs-bg)] text-[var(--qs-ink)]"
     >
       {/* Exam command bar */}
-      <header className="exam-command-bar relative flex h-16 shrink-0 items-center justify-between gap-2 overflow-hidden border-b-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 sm:h-[4.5rem] sm:px-5">
+      <header className="exam-command-bar relative flex h-40 shrink-0 items-center justify-between gap-2 overflow-hidden border-b-2 border-[var(--qs-ink)] bg-[#241F4A] px-3 text-white sm:h-[11.25rem] sm:px-5">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-0 bg-[#2A2358]" />
+          <div className="absolute left-0 top-0 h-full w-[38%] bg-[#4A3F5E]" style={{ clipPath: "polygon(0 0, 100% 0, 0 100%)" }} />
+          <div className="absolute left-[14%] top-[18%] h-full w-[34%] bg-[#342C78]" style={{ clipPath: "polygon(50% 0, 100% 100%, 0 100%)" }} />
+          <div className="absolute right-0 top-0 h-full w-[42%] bg-[#3B2F8F]" style={{ clipPath: "polygon(100% 0, 100% 100%, 20% 100%, 55% 0)" }} />
+          <div className="absolute right-0 top-0 h-[70%] w-[20%] bg-[#5B49C4]" style={{ clipPath: "polygon(100% 0, 100% 100%, 0 0)" }} />
+          <pre className="absolute left-[46%] top-2 hidden font-mono text-[11px] leading-[1.9] tracking-[0.06em] text-white/10 lg:block">9f3a·c21e·7b04·d8e1·55ac
+4be7·0a95·f3c2·61bd·e07f
+a1d3·8c40·2fe9·b76a·19d5</pre>
+        </div>
         <div className="relative flex min-w-0 items-center gap-2 sm:gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"><Rocket className="h-4 w-4" /></span>
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1C1840]"><ShieldCheck className="h-4 w-4" /></span>
           <span className="min-w-0">
-            <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.17em] text-[var(--qs-brand)]"><Radio className="h-3 w-3" /> Live mission</span>
-            <span className="mt-0.5 block truncate text-xs font-bold text-[var(--qs-ink)] sm:text-sm">Question navigator</span>
+            <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.17em] text-[var(--qs-sun)]"><Radio className="h-3 w-3" /> {isLive ? "Secure attempt" : "Preview mode"}</span>
+            <span className="mt-0.5 block truncate text-xs font-bold text-white sm:text-sm">{quizName}</span>
+            {overlapHeader && (
+              <span className="mt-1 flex items-center gap-1 text-[9px] font-semibold text-white/60">
+                <ShieldCheck className="h-3 w-3 shrink-0" /> Tab switching &amp; window changes are monitored
+              </span>
+            )}
           </span>
-          <span className="ml-1 inline-flex shrink-0 items-center rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2 py-1 text-[10px] font-bold text-[var(--qs-brand)] sm:px-2.5 sm:text-xs">{progressLabel}</span>
+          <span className="ml-1 inline-flex shrink-0 items-center rounded-full border-2 border-white/40 bg-white/10 px-2 py-1 text-[10px] font-bold text-white sm:px-2.5 sm:text-xs">{progressLabel}</span>
         </div>
 
         <div className="relative flex shrink-0 items-center gap-1.5 sm:gap-3">
-          <span className={cn("inline-flex h-11 items-center gap-2 rounded-2xl border-2 px-2.5 sm:px-3", timeCritical ? "border-[var(--qs-bad)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]" : "border-[var(--qs-sun)] bg-[var(--qs-sun)]/20 text-[var(--qs-ink)]")}>
-            <span className={cn("grid h-7 w-7 place-items-center rounded-xl", timeCritical ? "bg-[var(--qs-bad)] text-[var(--qs-on-brand)]" : "bg-[var(--qs-sun)] text-[var(--qs-ink)]")}><Clock className="h-3.5 w-3.5" /></span>
+          <span className={cn("inline-flex h-11 items-center gap-2 rounded-full border-2 px-2.5 sm:px-3", timeCritical ? "border-[var(--qs-bad)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]" : "border-white/60 bg-transparent text-white")}>
+            <span className={cn("grid h-7 w-7 place-items-center rounded-xl", timeCritical ? "bg-[var(--qs-bad)] text-[var(--qs-on-brand)]" : "bg-[var(--qs-sun)] text-[#1C1840]")}><Clock className="h-3.5 w-3.5" /></span>
             <span className="text-left"><span className="hidden text-[8px] font-bold uppercase tracking-[0.13em] opacity-65 sm:block">Time remaining</span><span className="block font-mono text-sm font-black leading-none tabular-nums sm:text-base">{formatTime(timeLeft)}</span></span>
           </span>
-          <span className="hidden items-center gap-2 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2 text-[10px] font-semibold text-[var(--qs-muted)] md:inline-flex">
+          <span className="hidden items-center gap-2 rounded-full border-2 border-white/20 bg-white/5 px-3 py-2 text-[10px] font-semibold text-white/70 md:inline-flex">
             <ShieldAlert className="h-3.5 w-3.5 text-[var(--qs-bad)]" />
             <span>Warnings</span>
-            <span className="font-black text-[var(--qs-ink)]">{violations}/{maxViolations}</span>
+            <span className="font-black text-white">{violations}/{maxViolations}</span>
           </span>
-          <button onClick={handleCrossPress} className="grid h-10 w-10 place-items-center rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] transition hover:border-[var(--qs-bad)] hover:bg-[var(--qs-badbg)] hover:text-[var(--qs-bad)]" aria-label="Quit quiz" title="Quit quiz">
+          <button onClick={handleCrossPress} className="grid h-10 w-10 place-items-center rounded-xl border-2 border-white/25 bg-white/5 text-white/70 transition hover:border-[var(--qs-bad)] hover:bg-[var(--qs-badbg)] hover:text-[var(--qs-bad)]" aria-label="Quit quiz" title="Quit quiz">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -603,7 +620,7 @@ export default function ExamModeShell({
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="shrink-0 overflow-hidden"
+            className="relative z-20 shrink-0 overflow-hidden"
           >
             <div className="flex items-center justify-center gap-1.5 bg-[var(--qs-badbg)] px-3 py-1.5 text-[11px] font-semibold text-[var(--qs-bad)]">
               <AlertTriangle className="h-3 w-3 shrink-0" />
@@ -615,12 +632,14 @@ export default function ExamModeShell({
       </AnimatePresence>
 
       {/* Always-on monitoring notice. */}
-      <div className="flex shrink-0 items-center justify-center gap-1 border-b-2 border-[var(--qs-line)] bg-[var(--qs-sun)]/25 px-2 py-1 text-[9px] font-bold text-[var(--qs-ink)]">
-        <ShieldCheck className="h-3 w-3" /> Tab switching &amp; window changes are monitored
-      </div>
+      {!overlapHeader && (
+        <div className="flex shrink-0 items-center justify-center gap-1 border-b-2 border-[var(--qs-line)] bg-[var(--qs-sun)]/25 px-2 py-1 text-[9px] font-bold text-[var(--qs-ink)]">
+          <ShieldCheck className="h-3 w-3" /> Tab switching &amp; window changes are monitored
+        </div>
+      )}
 
       {/* Content - viewport-based on mobile, scrollable on desktop */}
-      <div className={cn("flex-1 min-h-0 flex flex-col overflow-hidden bg-[var(--qs-bg)] p-0 sm:block sm:overflow-y-auto sm:overflow-x-hidden sm:p-0", activeViolation && "blur-[6px] pointer-events-none select-none")}>
+      <div className={cn("flex-1 min-h-0 flex flex-col overflow-hidden p-0 sm:block sm:overflow-y-auto sm:overflow-x-hidden sm:p-0", overlapHeader ? "relative z-10 -mt-11 bg-transparent sm:-mt-[3.75rem]" : "bg-[var(--qs-bg)]", activeViolation && "blur-[6px] pointer-events-none select-none")}>
         <div className={cn("mx-auto h-full min-h-0 w-full sm:h-full sm:block", fullWidth ? "" : "max-w-[1600px]")}>{children}</div>
       </div>
 

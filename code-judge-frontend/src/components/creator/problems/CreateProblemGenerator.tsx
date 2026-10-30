@@ -21,6 +21,7 @@ import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
 import { useFileUploadAccess } from "@/hooks/useFileUploadAccess";
 import { useQuestionApproval } from "@/hooks/useQuestionApproval";
+import { useLetterheadChoice } from "@/hooks/useLetterheadChoice";
 import {
   generateSubjectiveQuestions,
   getQuestionGeneratorCatalog,
@@ -232,6 +233,7 @@ export function CreateProblemGenerator() {
   const [downloading, setDownloading] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [paperHeader, setPaperHeader] = useState<PaperHeaderMeta>({ ...DEFAULT_PAPER_HEADER });
+  const { chooseHeader, dialog: headerChoiceDialog } = useLetterheadChoice();
 
   useEffect(() => {
     let active = true;
@@ -627,6 +629,8 @@ export function CreateProblemGenerator() {
     if (selected.length === 0 || downloading) return;
     setDownloading(true);
     try {
+      const choice = await chooseHeader();
+      if (choice.status === "cancelled") return;
       const exportPayload = {
         questions: selected.map((item) => ({
           question: item.question,
@@ -638,6 +642,7 @@ export function CreateProblemGenerator() {
         title: paperHeader.heading.trim() || "Question Paper",
         subject: paperHeader.subject.trim() || subjectName,
         header: paperHeader,
+        letterhead: choice.placement,
       };
       await downloadQuestionsPdf(exportPayload);
       setExportOpen(false);
@@ -653,7 +658,7 @@ export function CreateProblemGenerator() {
     } finally {
       setDownloading(false);
     }
-  }, [items, downloading, subjectName, paperHeader, toast]);
+  }, [items, downloading, subjectName, paperHeader, toast, chooseHeader]);
 
   return (
     <div className="w-full">
@@ -1274,6 +1279,8 @@ export function CreateProblemGenerator() {
         downloading={downloading}
         questionCount={selectedCount}
       />
+
+      {headerChoiceDialog}
     </div>
   );
 }

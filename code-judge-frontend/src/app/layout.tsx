@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import AuthHydrator from "@/components/providers/AuthHydrator";
 import ModalScrollLock from "@/components/providers/ModalScrollLock";
 import { UpgradeModalHost } from "@/components/upgrade/UpgradeModal";
+import { CustomHeaderUpgradeHost } from "@/components/letterheads/CustomHeaderUpgradeModal";
 import { STORAGE_KEYS, LEGACY_STORAGE_KEYS } from "@/utils/storageKeys";
 import {
   SITE_URL,
@@ -191,6 +192,7 @@ export default function RootLayout({
           {children}
         </ThemeProvider>
         <UpgradeModalHost />
+        <CustomHeaderUpgradeHost />
         <Toaster />
       </body>
     </html>
