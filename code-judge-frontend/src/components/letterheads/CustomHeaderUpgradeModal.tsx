@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Crown, FileImage, Sparkles, X } from "lucide-react";
+import { LETTERHEAD_MAX_PER_USER } from "@/config/letterheads";
 import {
   CUSTOM_HEADER_UPGRADE_EVENT,
   type CustomHeaderUpgradeDetail,
@@ -66,7 +67,7 @@ function UpgradeDialog({
           </p>
           <ul className="space-y-2 text-sm font-semibold text-[var(--qs-ink)]">
             {[
-              "Save up to 10 letterheads",
+              `Save up to ${LETTERHEAD_MAX_PER_USER} letterheads`,
               "Place and size them on an A4 preview",
               "Repeat the header on every page",
             ].map((item) => (

@@ -7,7 +7,7 @@ import { CalendarDays, ClipboardList, Download, FileText, Pencil, Plus, Trash2 }
 import { useToast } from "@/hooks/useToast";
 import { getSavedTest, getSavedTests, migrateLegacySavedTests, removeSavedTest, type SavedTestSummary } from "@/utils/savedTests";
 import { downloadPaperPdf } from "@/utils/questionSetExport";
-import { resolveDefaultHeaderPlacement } from "@/services/letterheadPdf";
+import { useLetterheadChoice } from "@/hooks/useLetterheadChoice";
 import { SavedTestEditDialog } from "./SavedTestEditDialog";
 
 const formatCreatedAt = (value: string) => {
@@ -24,6 +24,7 @@ export function TestsPage() {
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [editingTest, setEditingTest] = useState<SavedTestSummary | null>(null);
+  const { chooseHeader, dialog: headerChoiceDialog } = useLetterheadChoice();
 
   const loadTests = useCallback(async () => {
     setLoading(true);
@@ -87,11 +88,12 @@ export function TestsPage() {
           toast.error({ title: "Paper not available", description: "This saved record has no question paper." });
           return;
         }
-        const letterhead = await resolveDefaultHeaderPlacement();
+        const choice = await chooseHeader();
+        if (choice.status === "cancelled") return;
         await downloadPaperPdf({
           paper: saved.paper,
           header: { ...saved.meta, heading: saved.meta.heading || saved.title },
-          letterhead,
+          letterhead: choice.placement,
         });
         toast.success({ title: "PDF downloaded", description: `"${saved.title}" saved as a print-ready paper.` });
       } catch (error) {
@@ -103,7 +105,7 @@ export function TestsPage() {
         setDownloadingId(null);
       }
     },
-    [toast]
+    [toast, chooseHeader]
   );
 
   return (
@@ -237,6 +239,8 @@ export function TestsPage() {
           onSaved={handleSaved}
         />
       )}
+
+      {headerChoiceDialog}
     </div>
   );
 }

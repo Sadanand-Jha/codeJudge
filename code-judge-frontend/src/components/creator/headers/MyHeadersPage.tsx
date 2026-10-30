@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { useMySubscription } from "@/hooks/useMySubscription";
+import { LETTERHEAD_MAX_PER_USER } from "@/config/letterheads";
 import { canUseCustomHeader } from "@/lib/planAccess";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { toast } from "@/lib/toast";
@@ -48,11 +49,11 @@ export function MyHeadersPage() {
   const [deleting, setDeleting] = useState<Letterhead | null>(null);
   const [deletingBusy, setDeletingBusy] = useState(false);
 
-  const load = useCallback(async (showSpinner = true) => {
-    if (showSpinner) setLoading(true);
-    setError(null);
+  const refresh = useCallback(async () => {
     try {
-      setData(await listLetterheads());
+      const result = await listLetterheads();
+      setData(result);
+      setError(null);
     } catch (reason) {
       setError(getApiErrorMessage(reason, "Could not load your headers."));
     } finally {
@@ -60,12 +61,37 @@ export function MyHeadersPage() {
     }
   }, []);
 
+  const load = useCallback(
+    async (showSpinner = false) => {
+      if (showSpinner) setLoading(true);
+      await refresh();
+    },
+    [refresh]
+  );
+
   useEffect(() => {
-    void load();
-    const onChanged = () => void load(false);
+    let cancelled = false;
+    listLetterheads()
+      .then((result) => {
+        if (cancelled) return;
+        setData(result);
+        setError(null);
+      })
+      .catch((reason) => {
+        if (!cancelled) {
+          setError(getApiErrorMessage(reason, "Could not load your headers."));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    const onChanged = () => void refresh();
     window.addEventListener(LETTERHEADS_CHANGED_EVENT, onChanged);
-    return () => window.removeEventListener(LETTERHEADS_CHANGED_EVENT, onChanged);
-  }, [load]);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(LETTERHEADS_CHANGED_EVENT, onChanged);
+    };
+  }, [refresh]);
 
   const letterheads = data?.letterheads ?? [];
   const usage = data?.usage;
@@ -79,7 +105,7 @@ export function MyHeadersPage() {
     if (atLimit) {
       toast.info({
         title: "Header limit reached",
-        description: `You can save up to ${usage?.max ?? 10} headers. Delete one first.`,
+        description: `You can save up to ${usage?.max ?? LETTERHEAD_MAX_PER_USER} headers. Delete one first.`,
       });
       return;
     }
@@ -199,7 +225,7 @@ export function MyHeadersPage() {
       setDeleting(null);
       notifyLetterheadsChanged();
       toast.success(`"${deleting.name}" was deleted.`);
-      await load(false);
+      await refresh();
     } catch (reason) {
       toast.error({
         title: "Could not delete header",
@@ -283,7 +309,7 @@ export function MyHeadersPage() {
         <div className="rounded-[22px] border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-surface)] px-6 py-12 text-center">
           <h2 className="text-lg font-extrabold text-[var(--qs-ink)]">Could not load your headers</h2>
           <p className="mx-auto mt-1 max-w-md text-sm text-[var(--qs-muted)]">{error}</p>
-          <button type="button" onClick={() => void load()} className="b b-pri mx-auto mt-5 gap-1.5">
+          <button type="button" onClick={() => void load(true)} className="b b-pri mx-auto mt-5 gap-1.5">
             <RefreshCw className="h-4 w-4" />
             Try again
           </button>
@@ -338,7 +364,7 @@ export function MyHeadersPage() {
           onSaved={() => {
             setUploadOpen(false);
             notifyLetterheadsChanged();
-            void load(false);
+            void refresh();
           }}
         />
       )}

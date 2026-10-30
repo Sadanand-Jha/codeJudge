@@ -148,6 +148,28 @@ code-judge-backend/
   - Accepts custom backend images: `/images/*`, `/uploads/*`
   - Custom avatars are automatically inserted into the avatar table
 
+### Letterheads (Pro)
+- `GET /api/v1/user/letterheads` - List the signed-in user's headers and usage (protected)
+  - Basic users receive their saved headers with `locked: true`.
+- `POST /api/v1/user/letterheads` - Save verified Cloudinary upload metadata (protected)
+  - Body: `{ "name": "...", "publicId": "...", "version": 123, "signature": "...", "headerConfig": { ... } }`
+- `PATCH /api/v1/user/letterheads/:id` - Rename, adjust placement, or set default (protected)
+- `DELETE /api/v1/user/letterheads/:id` - Delete the Cloudinary asset and saved record (protected)
+- `POST /api/v1/user/uploads/cloudinary/signature` - Get short-lived direct-upload parameters (protected)
+
+The browser uploads directly to Cloudinary with the signed parameters, then sends
+the returned `publicId`, `version`, and response `signature` to the create
+endpoint. The server verifies ownership, format, size, and the Cloudinary
+response signature before saving. API aliases are available at
+`/api/letterheads` and `/api/uploads/cloudinary/signature`.
+
+- Maximum file size: 10 MB (`pdf`, `png`, `jpg`, `jpeg`).
+- Maximum saved headers: 4 per user by default; override with
+  `LETTERHEAD_MAX_PER_USER`.
+- Enable **Allow delivery of PDF and ZIP files** in the Cloudinary security
+  settings when PDF letterheads must be accepted.
+- Apply the schema with `npm run migrate -- --only=66_letterheads.sql`.
+
 ### Paper Studio
 - `POST /api/v1/user/document/export` - Export an editor document (protected)
   - Body: `{ "document": { "pages": [...] }, "format": "pdf|docx|html|png", "pageIndex": 0, "filename": "paper" }`
@@ -180,6 +202,15 @@ This acceptance test builds a two-page paper and checks HTML, PDF pagination,
 PNG output, DOCX footer branding, and rejection of floating content inside the
 protected branding safe zone.
 
+## Letterhead Tests
+
+```bash
+npm run test:letterheads
+```
+
+This covers upload signature parameters, ownership and plan gating, header
+configuration normalization, and PDF header placement math.
+
 ## Environment Variables
 
 | Variable | Description |
@@ -198,6 +229,10 @@ protected branding safe zone.
 | `PLATFORM_OWNER_EMAILS` | Optional comma-separated owner email allowlist |
 | `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` | Nodemailer SMTP delivery configuration |
 | `AI_API_KEY` | AI service API key |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name for direct letterhead uploads |
+| `CLOUDINARY_API_KEY` | Cloudinary API key used to sign browser uploads |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret; server-only, never sent to the browser |
+| `LETTERHEAD_MAX_PER_USER` | Optional saved-header limit per user (defaults to `4`) |
 
 ### VPS Redis
 

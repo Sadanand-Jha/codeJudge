@@ -15,7 +15,7 @@ export type LetterheadFormat = "pdf" | "png" | "jpg" | "jpeg";
 
 export const CUSTOM_HEADER_PLAN_SLUGS = new Set(["pro", "institute"]);
 export const LETTERHEAD_MAX_BYTES = 10 * 1024 * 1024;
-const DEFAULT_MAX_LETTERHEADS = 10;
+const DEFAULT_MAX_LETTERHEADS = 4;
 const ALLOWED_FORMATS: LetterheadFormat[] = ["pdf", "png", "jpg", "jpeg"];
 const ALLOWED_FORMAT_STRING = ALLOWED_FORMATS.join(",");
 

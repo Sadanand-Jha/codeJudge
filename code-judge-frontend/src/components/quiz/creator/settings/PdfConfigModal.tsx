@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
@@ -39,6 +39,7 @@ import {
   updateLetterhead,
 } from "@/services/letterheads";
 import { useHeaderPlacement } from "@/hooks/useHeaderPlacement";
+import { useLetterheadChoice } from "@/hooks/useLetterheadChoice";
 import { HeaderAdjustControls } from "@/components/letterheads/HeaderAdjustControls";
 import type { HeaderConfig, HeaderPlacement, Letterhead } from "@/types/letterhead";
 
@@ -219,14 +220,22 @@ export default function PdfConfigModal({
   const [scale, setScale] = useState(0.6);
   const previewWrapRef = useRef<HTMLDivElement | null>(null);
 
+  const handleClose = useCallback(() => {
+    setSelectedHeaderId(null);
+    setHeaderConfig(null);
+    setAdjustOpen(false);
+    headerInitializedRef.current = false;
+    onClose();
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") handleClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, handleClose]);
 
   const defaultInstructions = useMemo(
     () =>
@@ -296,6 +305,8 @@ export default function PdfConfigModal({
     open && Boolean(isPro && selectedHeader)
   );
 
+  const { chooseHeader: chooseDownloadHeader, dialog: headerChoiceDialog } = useLetterheadChoice();
+
   useEffect(() => {
     if (!headerError) {
       headerErrorShownRef.current = false;
@@ -310,13 +321,7 @@ export default function PdfConfigModal({
   }, [headerError]);
 
   useEffect(() => {
-    if (!open) {
-      setSelectedHeaderId(null);
-      setHeaderConfig(null);
-      setAdjustOpen(false);
-      headerInitializedRef.current = false;
-      return;
-    }
+    if (!open) return;
 
     let cancelled = false;
     const loadHeaders = async (showSpinner: boolean) => {
@@ -324,7 +329,26 @@ export default function PdfConfigModal({
       setHeadersError(null);
       try {
         const result = await listLetterheads();
-        if (!cancelled) setLetterheads(result.letterheads);
+        if (cancelled) return;
+        setLetterheads(result.letterheads);
+        if (!isPro) {
+          headerInitializedRef.current = false;
+          setSelectedHeaderId(null);
+          setHeaderConfig(null);
+          setAdjustOpen(false);
+          return;
+        }
+        if (!headerInitializedRef.current) {
+          headerInitializedRef.current = true;
+          const preferred =
+            result.letterheads.find((header) => header.isDefault) ??
+            result.letterheads[0] ??
+            null;
+          if (preferred) {
+            setSelectedHeaderId(preferred.id);
+            setHeaderConfig(preferred.headerConfig);
+          }
+        }
       } catch {
         if (!cancelled) setHeadersError("Could not load your saved headers.");
       } finally {
@@ -338,33 +362,7 @@ export default function PdfConfigModal({
       cancelled = true;
       window.removeEventListener(LETTERHEADS_CHANGED_EVENT, onChanged);
     };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    if (!isPro) {
-      if (selectedHeaderId !== null) {
-        setSelectedHeaderId(null);
-        setHeaderConfig(null);
-      }
-      setAdjustOpen(false);
-      return;
-    }
-    if (selectedHeaderId !== null && !letterheads.some((header) => header.id === selectedHeaderId)) {
-      setSelectedHeaderId(null);
-      setHeaderConfig(null);
-      headerInitializedRef.current = false;
-    }
-    if (!headerInitializedRef.current && letterheads.length > 0) {
-      headerInitializedRef.current = true;
-      const preferred =
-        letterheads.find((header) => header.isDefault) ?? letterheads[0] ?? null;
-      if (preferred) {
-        setSelectedHeaderId(preferred.id);
-        setHeaderConfig(preferred.headerConfig);
-      }
-    }
-  }, [open, isPro, letterheads, selectedHeaderId]);
+  }, [open, isPro]);
 
   useEffect(() => {
     if (!open || !fontCss) return;
@@ -468,7 +466,19 @@ export default function PdfConfigModal({
   };
 
   const handleDownload = async (kind: PaperDownloadKind) => {
-    if (kind === "key" || !selectedHeader || !isPro) {
+    if (kind === "key") {
+      runDownload(kind, null);
+      return;
+    }
+
+    if (isPro && letterheads.length > 1) {
+      const choice = await chooseDownloadHeader(letterheads);
+      if (choice.status === "cancelled") return;
+      runDownload(kind, choice.placement);
+      return;
+    }
+
+    if (!selectedHeader || !isPro) {
       runDownload(kind, null);
       return;
     }
@@ -514,7 +524,8 @@ export default function PdfConfigModal({
     .join(" • ");
 
   return (
-    <AnimatePresence>
+    <>
+      <AnimatePresence>
       {open && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -522,7 +533,7 @@ export default function PdfConfigModal({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
           className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4 backdrop-blur-[2px]"
-          onClick={onClose}
+          onClick={handleClose}
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.98, y: 8 }}
@@ -548,7 +559,7 @@ export default function PdfConfigModal({
                 </div>
               </div>
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="flex h-8 w-8 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary"
                 aria-label="Close"
               >
@@ -746,7 +757,7 @@ export default function PdfConfigModal({
                   </div>
 
                   <select
-                    value={selectedHeaderId === null ? "standard" : String(selectedHeaderId)}
+                    value={selectedHeader ? String(selectedHeader.id) : "standard"}
                     onChange={(event) => chooseHeader(event.target.value)}
                     disabled={planLoading || headersLoading}
                     className="mt-2 h-9 w-full rounded-lg border border-border bg-card px-2.5 text-xs font-semibold text-text-primary outline-none transition focus:border-accent/60 disabled:opacity-60"
@@ -762,6 +773,12 @@ export default function PdfConfigModal({
                     ))}
                     <option value="add">{isPro ? "+ Add new header" : "+ Add new header (Pro)"}</option>
                   </select>
+
+                  {isPro && letterheads.length > 1 && (
+                    <p className="mt-1 text-[10px] font-medium text-text-muted">
+                      Preview any header here. You&apos;ll choose which one to use each time you download.
+                    </p>
+                  )}
 
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <button
@@ -870,7 +887,7 @@ export default function PdfConfigModal({
               <p className="text-[11px] text-text-muted">{summary}</p>
               <div className="flex items-center justify-end gap-2">
                 <button
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="inline-flex h-10 items-center rounded-lg border border-border bg-card px-5 text-xs font-semibold text-text-primary transition-colors hover:bg-card-hover"
                 >
                   Cancel
@@ -897,5 +914,7 @@ export default function PdfConfigModal({
         </motion.div>
       )}
     </AnimatePresence>
+      {headerChoiceDialog}
+    </>
   );
 }

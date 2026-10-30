@@ -226,8 +226,3 @@ export async function deleteLetterhead(
   );
   return response.data;
 }
-
-export async function getDefaultLetterhead(): Promise<Letterhead | null> {
-  const { letterheads } = await listLetterheads();
-  return letterheads.find((letterhead) => letterhead.isDefault) ?? null;
-}

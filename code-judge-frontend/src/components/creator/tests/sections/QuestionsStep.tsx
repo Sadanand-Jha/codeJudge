@@ -30,7 +30,7 @@ import { QuestionHtml } from "@/components/creator/questions/QuestionHtml";
 import { AiStreamText } from "@/components/ui";
 import { PaperHeaderFields } from "@/components/creator/common/PaperHeaderFields";
 import { defaultPaperInstructionLines, downloadPaperPdf } from "@/utils/questionSetExport";
-import { resolveDefaultHeaderPlacement } from "@/services/letterheadPdf";
+import { useLetterheadChoice } from "@/hooks/useLetterheadChoice";
 import type { PaperHeaderMeta } from "@/utils/paperHeader";
 
 interface QuestionsStepProps {
@@ -143,6 +143,7 @@ export function QuestionsStep({
   const [regeneratePromptKey, setRegeneratePromptKey] = useState<string | null>(null);
   const [regenerateInstruction, setRegenerateInstruction] = useState("");
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
+  const { chooseHeader, dialog: headerChoiceDialog } = useLetterheadChoice();
 
   useEffect(() => {
     if (status !== "generating") return;
@@ -246,11 +247,12 @@ export function QuestionsStep({
     setDownloading(true);
     setError(null);
     try {
-      const letterhead = await resolveDefaultHeaderPlacement();
+      const choice = await chooseHeader();
+      if (choice.status === "cancelled") return;
       await downloadPaperPdf({
         paper,
         header: { ...paperHeader, heading: paperHeading, subject: paperHeader.subject.trim() },
-        letterhead,
+        letterhead: choice.placement,
       });
       toast.success({
         title: "PDF downloaded",
@@ -261,7 +263,7 @@ export function QuestionsStep({
     } finally {
       setDownloading(false);
     }
-  }, [paper, paperHeader, paperHeading, toast]);
+  }, [paper, paperHeader, paperHeading, toast, chooseHeader]);
 
   const handleRegenerate = useCallback(() => {
     setPaper(null);
@@ -846,6 +848,8 @@ export function QuestionsStep({
           </p>
         </div>
       )}
+
+      {headerChoiceDialog}
     </div>
   );
 }

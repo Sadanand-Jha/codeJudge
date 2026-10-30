@@ -24,11 +24,23 @@ export function useHeaderPlacement(
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const configRef = useRef(config);
-  configRef.current = config;
   const configKey = config ? JSON.stringify(config) : "";
+  const pngUrl = asset?.pngUrl;
+  const assetWidth = asset?.width;
+  const assetHeight = asset?.height;
 
   useEffect(() => {
-    if (!enabled || !asset?.pngUrl || !configRef.current) {
+    configRef.current = config;
+  }, [config]);
+
+  useEffect(() => {
+    if (
+      !enabled ||
+      !pngUrl ||
+      assetWidth === undefined ||
+      assetHeight === undefined ||
+      !configRef.current
+    ) {
       setPlacement(null);
       setLoading(false);
       setError(null);
@@ -39,7 +51,10 @@ export function useHeaderPlacement(
     setLoading(true);
     setError(null);
     const timer = window.setTimeout(() => {
-      prepareHeaderPlacement(asset, configRef.current as HeaderConfig)
+      prepareHeaderPlacement(
+        { pngUrl, width: assetWidth, height: assetHeight },
+        configRef.current as HeaderConfig
+      )
         .then((next) => {
           if (!cancelled) setPlacement(next);
         })
@@ -61,7 +76,7 @@ export function useHeaderPlacement(
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [asset?.pngUrl, asset?.width, asset?.height, configKey, enabled, retryKey]);
+  }, [pngUrl, assetWidth, assetHeight, configKey, enabled, retryKey]);
 
   return {
     placement,

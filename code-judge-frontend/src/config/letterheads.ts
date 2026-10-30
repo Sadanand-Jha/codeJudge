@@ -1,6 +1,6 @@
 import type { HeaderConfig } from "@/types/letterhead";
 
-export const LETTERHEAD_MAX_PER_USER = 10;
+export const LETTERHEAD_MAX_PER_USER = 4;
 export const LETTERHEAD_MAX_BYTES = 10 * 1024 * 1024;
 export const LETTERHEAD_MIN_RECOMMENDED_WIDTH = 1200;
 

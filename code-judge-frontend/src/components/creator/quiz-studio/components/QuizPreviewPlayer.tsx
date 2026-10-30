@@ -71,7 +71,7 @@ export function QuizPreviewPlayer({ open, onClose, questions, quizTitle }: QuizP
 
   return (
     <div className="qs-ui student-quiz-theme fixed inset-0 z-[120] flex flex-col overflow-hidden bg-[var(--qs-bg)] text-[var(--qs-ink)]">
-      <header className="relative flex h-16 shrink-0 items-center justify-between gap-2 overflow-hidden border-b-2 border-[var(--qs-ink)] bg-[#241F4A] px-3 text-white sm:h-[4.5rem] sm:px-5">
+      <header className="relative flex h-40 shrink-0 items-center justify-between gap-2 overflow-hidden border-b-2 border-[var(--qs-ink)] bg-[#241F4A] px-3 text-white sm:h-[11.25rem] sm:px-5">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
           <div className="absolute inset-0 bg-[#2A2358]" />
           <div className="absolute left-0 top-0 h-full w-[38%] bg-[#4A3F5E]" style={{ clipPath: "polygon(0 0, 100% 0, 0 100%)" }} />
@@ -110,7 +110,7 @@ a1d3·8c40·2fe9·b76a·19d5</pre>
         </div>
       </header>
 
-      <div className="relative min-h-0 flex-1 overflow-hidden bg-[var(--qs-bg)] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:py-6">
+      <div className="relative z-10 -mt-11 min-h-0 flex-1 overflow-hidden bg-transparent px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:-mt-[3.75rem] sm:px-6 sm:py-6">
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
           <div className="absolute -right-16 -top-20 hidden h-64 w-64 rounded-full border-2 border-[var(--qs-line)] sm:block" />
           <div className="absolute right-[6%] top-[10%] hidden h-10 w-10 rotate-12 rounded-xl border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/40 lg:block" />

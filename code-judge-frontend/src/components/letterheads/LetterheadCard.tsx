@@ -72,11 +72,11 @@ export function LetterheadCard({
 
   return (
     <article
-      className={`relative flex min-w-0 flex-col overflow-hidden rounded-[20px] border-2 bg-[var(--qs-surface)] shadow-[4px_4px_0_var(--qs-sun)] ${
+      className={`relative flex min-w-0 flex-col rounded-[20px] border-2 bg-[var(--qs-surface)] shadow-[4px_4px_0_var(--qs-sun)] ${
         locked ? "border-[var(--qs-line)]" : "border-[var(--qs-ink)]"
       } ${busy ? "opacity-70" : ""}`}
     >
-      <div className="relative h-32 overflow-hidden border-b-2 border-[var(--qs-line)] bg-white">
+      <div className="relative h-32 overflow-hidden rounded-t-[18px] border-b-2 border-[var(--qs-line)] bg-white">
         <img
           src={letterhead.cloudinary.pngUrl}
           alt={`${letterhead.name} preview`}

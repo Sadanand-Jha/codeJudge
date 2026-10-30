@@ -417,6 +417,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       entryError={error}
       onTerminate={handleTerminate}
       registrationFields={skipRegistration ? [] : quiz.registration_fields ?? []}
+      overlapHeader
     >
       {submitting && <SubmissionProgressOverlay complete={submissionComplete} soundEnabled={soundEnabled} onSound={playQuizSound} onHome={handleGoHome} />}
       {starting || (!attemptId && !error) ? (
@@ -428,7 +429,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
           <StatusScreen text={error || "This quiz has no available questions."} />
         </div>
       ) : (
-      <div className="qs-ui relative h-full min-h-0 overflow-hidden bg-[var(--qs-bg)] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:py-6">
+      <div className="qs-ui relative h-full min-h-0 overflow-hidden bg-transparent px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:py-6">
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
           <div className="absolute -right-16 -top-20 hidden h-64 w-64 rounded-full border-2 border-[var(--qs-line)] sm:block" />
           <div className="absolute right-[6%] top-[10%] hidden h-10 w-10 rotate-12 rounded-xl border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/40 lg:block" />

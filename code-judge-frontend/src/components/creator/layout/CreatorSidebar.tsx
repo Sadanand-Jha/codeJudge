@@ -229,7 +229,14 @@ function NavRow({
         premiumLocked ? (
           <Lock className="h-3 w-3 shrink-0 text-[var(--qs-muted)]" aria-label="Pro plan required" />
         ) : (
-          <span className="shrink-0 rounded-full border border-current px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-[0.08em] opacity-75">
+          <span
+            className={cn(
+              "shrink-0 rounded-full border px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-[0.08em]",
+              isActive
+                ? "border-[var(--qs-ink)] text-[var(--qs-on-brand)]"
+                : "border-current opacity-75"
+            )}
+          >
             Pro
           </span>
         )

@@ -52,6 +52,7 @@ interface ExamModeShellProps {
   onTerminate?: (summary: ViolationSummary) => void;
   autoEnter?: boolean;
   fullWidth?: boolean;
+  overlapHeader?: boolean;
   /** Creator-defined field names. When non-empty, a registration form is
    * shown after "Enter Exam Mode" and the attempt starts only on submit. */
   registrationFields?: string[];
@@ -74,6 +75,7 @@ export default function ExamModeShell({
   onTerminate,
   autoEnter = false,
   fullWidth = false,
+  overlapHeader = false,
   registrationFields = [],
   children,
 }: ExamModeShellProps) {
@@ -569,7 +571,7 @@ export default function ExamModeShell({
       className="qs-ui student-quiz-theme fixed inset-0 z-[100] flex flex-col overflow-hidden bg-[var(--qs-bg)] text-[var(--qs-ink)]"
     >
       {/* Exam command bar */}
-      <header className="exam-command-bar relative flex h-16 shrink-0 items-center justify-between gap-2 overflow-hidden border-b-2 border-[var(--qs-ink)] bg-[#241F4A] px-3 text-white sm:h-[4.5rem] sm:px-5">
+      <header className="exam-command-bar relative flex h-40 shrink-0 items-center justify-between gap-2 overflow-hidden border-b-2 border-[var(--qs-ink)] bg-[#241F4A] px-3 text-white sm:h-[11.25rem] sm:px-5">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
           <div className="absolute inset-0 bg-[#2A2358]" />
           <div className="absolute left-0 top-0 h-full w-[38%] bg-[#4A3F5E]" style={{ clipPath: "polygon(0 0, 100% 0, 0 100%)" }} />
@@ -585,6 +587,11 @@ a1d3·8c40·2fe9·b76a·19d5</pre>
           <span className="min-w-0">
             <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.17em] text-[var(--qs-sun)]"><Radio className="h-3 w-3" /> {isLive ? "Secure attempt" : "Preview mode"}</span>
             <span className="mt-0.5 block truncate text-xs font-bold text-white sm:text-sm">{quizName}</span>
+            {overlapHeader && (
+              <span className="mt-1 flex items-center gap-1 text-[9px] font-semibold text-white/60">
+                <ShieldCheck className="h-3 w-3 shrink-0" /> Tab switching &amp; window changes are monitored
+              </span>
+            )}
           </span>
           <span className="ml-1 inline-flex shrink-0 items-center rounded-full border-2 border-white/40 bg-white/10 px-2 py-1 text-[10px] font-bold text-white sm:px-2.5 sm:text-xs">{progressLabel}</span>
         </div>
@@ -613,7 +620,7 @@ a1d3·8c40·2fe9·b76a·19d5</pre>
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="shrink-0 overflow-hidden"
+            className="relative z-20 shrink-0 overflow-hidden"
           >
             <div className="flex items-center justify-center gap-1.5 bg-[var(--qs-badbg)] px-3 py-1.5 text-[11px] font-semibold text-[var(--qs-bad)]">
               <AlertTriangle className="h-3 w-3 shrink-0" />
@@ -625,12 +632,14 @@ a1d3·8c40·2fe9·b76a·19d5</pre>
       </AnimatePresence>
 
       {/* Always-on monitoring notice. */}
-      <div className="flex shrink-0 items-center justify-center gap-1 border-b-2 border-[var(--qs-line)] bg-[var(--qs-sun)]/25 px-2 py-1 text-[9px] font-bold text-[var(--qs-ink)]">
-        <ShieldCheck className="h-3 w-3" /> Tab switching &amp; window changes are monitored
-      </div>
+      {!overlapHeader && (
+        <div className="flex shrink-0 items-center justify-center gap-1 border-b-2 border-[var(--qs-line)] bg-[var(--qs-sun)]/25 px-2 py-1 text-[9px] font-bold text-[var(--qs-ink)]">
+          <ShieldCheck className="h-3 w-3" /> Tab switching &amp; window changes are monitored
+        </div>
+      )}
 
       {/* Content - viewport-based on mobile, scrollable on desktop */}
-      <div className={cn("flex-1 min-h-0 flex flex-col overflow-hidden bg-[var(--qs-bg)] p-0 sm:block sm:overflow-y-auto sm:overflow-x-hidden sm:p-0", activeViolation && "blur-[6px] pointer-events-none select-none")}>
+      <div className={cn("flex-1 min-h-0 flex flex-col overflow-hidden p-0 sm:block sm:overflow-y-auto sm:overflow-x-hidden sm:p-0", overlapHeader ? "relative z-10 -mt-11 bg-transparent sm:-mt-[3.75rem]" : "bg-[var(--qs-bg)]", activeViolation && "blur-[6px] pointer-events-none select-none")}>
         <div className={cn("mx-auto h-full min-h-0 w-full sm:h-full sm:block", fullWidth ? "" : "max-w-[1600px]")}>{children}</div>
       </div>
 

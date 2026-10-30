@@ -525,7 +525,6 @@ function sectionTitle(questions: PaperQuestion[]): string {
 }
 
 function renderHeaderImage(header: HeaderPlacement, mode: "print" | "preview"): string {
-  const gap = header.gapMm ?? 8;
   const isRepeatedPrint = mode === "print" && header.repeatOnAllPages;
   const x = isRepeatedPrint ? header.rect.x : mode === "print" ? header.rect.x - 15 : header.rect.x;
   const y = isRepeatedPrint ? header.rect.y : mode === "print" ? header.rect.y - 15 : header.rect.y;
