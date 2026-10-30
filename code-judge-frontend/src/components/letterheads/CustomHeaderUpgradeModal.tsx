@@ -94,7 +94,7 @@ function UpgradeDialog({
           >
             Continue with standard PDF
           </button>
-          <button type="button" className="b b-pri sm gap-1.5" onClick={upgrade}>
+          <button type="button" className="b b-pri sm gap-1.5 text-white" onClick={upgrade}>
             <Crown className="h-4 w-4" />
             Upgrade to Pro
           </button>
