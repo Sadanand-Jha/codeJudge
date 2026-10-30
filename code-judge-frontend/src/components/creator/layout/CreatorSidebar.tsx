@@ -38,6 +38,7 @@ import { useAuthStore } from "@/store/authStore";
 import { FOCUS_MODE_ENABLED } from "@/config/focusMode";
 import { verificationLabel, verificationState } from "@/lib/verification";
 import { useMySubscription } from "@/hooks/useMySubscription";
+import { useCreditState } from "@/hooks/useCreditState";
 import { canUseCustomHeader } from "@/lib/planAccess";
 
 export interface CreatorNavItem {
@@ -190,11 +191,13 @@ function NavRow({
   pathname,
   onNavigate,
   premiumLocked = false,
+  badge,
 }: {
   item: CreatorNavItem;
   pathname: string;
   onNavigate?: () => void;
   premiumLocked?: boolean;
+  badge?: string | null;
 }) {
   const isActive = item.match
     ? item.match(pathname)
@@ -207,6 +210,7 @@ function NavRow({
     <Link
       href={item.href}
       onClick={onNavigate}
+      aria-label={badge ? `${item.label} — ${badge}` : undefined}
       className={cn(
         "group flex w-full items-center gap-2.5 rounded-xl border-2 px-3 py-2 text-[13px] font-bold outline-none transition-all duration-150 focus-visible:ring-3 focus-visible:ring-[var(--qs-brand)]/40",
         isActive
@@ -241,6 +245,11 @@ function NavRow({
           </span>
         )
       )}
+      {badge && (
+        <span className="ml-auto shrink-0 rounded-full border-2 border-[var(--qs-credit-chip-border)] bg-[var(--qs-credit-chip-bg)] px-1.5 py-0.5 text-[9px] font-black tracking-[0.08em] text-[var(--qs-credit-chip-text)]">
+          {badge}
+        </span>
+      )}
     </Link>
   );
 }
@@ -257,6 +266,7 @@ export function CreatorSidebar({
   const user = useAuthStore((s) => s.user);
   const { subscription } = useMySubscription();
   const premiumLocked = !canUseCustomHeader(subscription);
+  const { state: creditState } = useCreditState();
   const displayName = user?.displayName || user?.username || "Creator";
   const avatarInitial = displayName.charAt(0).toUpperCase();
   const verification = verificationState(user?.isVerified);
@@ -332,6 +342,11 @@ export function CreatorSidebar({
                   pathname={pathname}
                   onNavigate={onNavigate}
                   premiumLocked={premiumLocked}
+                  badge={
+                    creditState === "empty" && item.href === "/creator/billing/credits"
+                      ? "EMPTY"
+                      : null
+                  }
                 />
               ))}
             </div>

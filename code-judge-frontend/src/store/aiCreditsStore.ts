@@ -12,11 +12,12 @@ import {
   FAIR_USAGE_LIMITS,
   ABUSE_RULES,
   creditCostMap,
-  LOW_CREDIT_THRESHOLD,
+  LOW_CREDIT_RATIO_THRESHOLD,
   type AICreditFeatureId,
   type CreditPurchasePack,
 } from "@/config/aiCredits";
 import { getCreditBalance } from "@/services/aiCredits";
+import { type CreditBalanceStatus } from "@/lib/creditState";
 
 interface CreditMetadata {
   promptHash?: string;
@@ -100,6 +101,14 @@ interface AICreditsState {
   abuse: AbuseDetectionStatus;
   purchases: AICreditPurchase[];
 
+  /**
+   * Balance snapshot metadata. The low-fuel theme must never flash for a user
+   * who has credits just because the first fetch has not resolved yet.
+   */
+  status: CreditBalanceStatus;
+  hasSnapshot: boolean;
+  expiresAt: number | null;
+
   /* actions */
   consumeCredits: (featureId: AICreditFeatureId, metadata?: CreditMetadata) => Promise<{ success: boolean; reason?: string; retryAfterMs?: number; message?: string }>;
   refundCredits: (featureId: AICreditFeatureId) => Promise<void>;
@@ -141,6 +150,9 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
   fairUsage: EMPTY_FAIR_USAGE,
   abuse: EMPTY_ABUSE,
   purchases: [],
+  status: "idle",
+  hasSnapshot: false,
+  expiresAt: null,
 
   consumeCredits: async (featureId, metadata?: CreditMetadata): Promise<{ success: boolean; reason?: string; retryAfterMs?: number; message?: string }> => {
     const cost = creditCostMap[featureId];
@@ -243,6 +255,8 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
         totalRemaining: next,
         remaining: next,
       },
+      status: "ready",
+      hasSnapshot: true,
     }));
   },
 
@@ -271,10 +285,13 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
           status: meta?.status ?? "completed",
         },
       ],
+      status: "ready",
+      hasSnapshot: true,
     });
   },
 
   refresh: async () => {
+    set({ status: "loading" });
     try {
       const snapshot = await getCreditBalance();
       const planTotal = Math.max(0, snapshot.planCreditsTotal);
@@ -304,9 +321,13 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
           remaining: Math.max(0, snapshot.balance),
           monthlyAllowance: planTotal,
         },
+        status: "ready",
+        hasSnapshot: true,
+        expiresAt: Number.isFinite(expiry) && expiry > 0 ? expiry : null,
       }));
     } catch {
-      // Keep the last known balance when the API is unavailable.
+      // Keep the last known balance (and cached theme) when the API is unavailable.
+      set({ status: "error" });
     }
   },
 }));
@@ -392,7 +413,7 @@ function detectAbuse(
 
 export function checkLowCreditWarning(remaining: number, monthlyAllowance: number): boolean {
   if (monthlyAllowance <= 0) return false;
-  return remaining / monthlyAllowance < LOW_CREDIT_THRESHOLD;
+  return remaining / monthlyAllowance < LOW_CREDIT_RATIO_THRESHOLD;
 }
 
 export function getRecommendedPack(
