@@ -5017,6 +5017,19 @@ textarea {
   line-height: 1.55;
 }
 
+/* Onest is the display face for the auth + student dashboard surfaces. */
+.qs-onest {
+  font-family: var(--font-onest), "Onest", var(--font-inter), system-ui, sans-serif;
+}
+
+.qs-onest :is(h1, h2, h3, h4, h5, h6, .qs-display) {
+  font-family: var(--font-onest), "Onest", var(--font-inter), system-ui, sans-serif;
+}
+
+.qs-onest :is(button, input, select, textarea) {
+  font-family: var(--font-onest), "Onest", var(--font-inter), system-ui, sans-serif;
+}
+
 /* Low-fuel warning theme. data-credit-state lives on the Studio shell so the
    header/sidebar can react, but the tinted tokens are only applied to the
    dashboard page surface. Other Studio pages keep the normal light theme. */

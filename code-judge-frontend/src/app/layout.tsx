@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Bricolage_Grotesque } from "next/font/google";
+import { Inter, Bricolage_Grotesque, Onest } from "next/font/google";
 import "./globals.css";
 import "katex/dist/katex.min.css";
 import { Toaster } from "@/components/ui/toast";
@@ -156,6 +156,13 @@ const bricolage = Bricolage_Grotesque({
   display: "swap",
 });
 
+const onest = Onest({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-onest",
+  display: "swap",
+});
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -187,7 +194,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildSiteJsonLd()) }}
         />
       </head>
-      <body className={`${inter.variable} ${inter.className} ${bricolage.variable} min-h-screen bg-[var(--background)]`} suppressHydrationWarning>
+      <body className={`${inter.variable} ${inter.className} ${bricolage.variable} ${onest.variable} min-h-screen bg-[var(--background)]`} suppressHydrationWarning>
         <ThemeProvider>
           <AuthHydrator />
           <ModalScrollLock />

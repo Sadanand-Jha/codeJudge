@@ -55,7 +55,11 @@ function initField(value = ""): FieldState {
   return { value, error: null, touched: false };
 }
 
-export default function RegistrationForm() {
+export default function RegistrationForm({
+  nextPath = null,
+}: {
+  nextPath?: string | null;
+}) {
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
 
@@ -423,7 +427,9 @@ export default function RegistrationForm() {
           setAccountType(null);
           setProfileStep(1);
           if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-          router.push("/login");
+          router.push(
+            nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : "/login"
+          );
         } else {
           const message = res.message || "Registration failed";
           if (/token expired or invalid/i.test(message)) expireRegistrationSession();
@@ -439,7 +445,7 @@ export default function RegistrationForm() {
         setSubmitting(false);
       }
     },
-    [form.username.value, form.email.value, form.password.value, form.confirmPassword.value, registrationToken, selectedAvatarUrl, accountType, usernameStatus.available, validateUsernameField, validatePasswordField, validateConfirmPasswordField, playQuizSound, router, setAuth, expireRegistrationSession]
+    [form.username.value, form.email.value, form.password.value, form.confirmPassword.value, registrationToken, selectedAvatarUrl, accountType, usernameStatus.available, validateUsernameField, validatePasswordField, validateConfirmPasswordField, playQuizSound, router, setAuth, expireRegistrationSession, nextPath]
   );
 
   const isUsernameReady =
@@ -464,7 +470,12 @@ export default function RegistrationForm() {
   const signInPrompt = (
     <p className="mt-5 border-t-2 border-[var(--qs-line)] pt-4 text-center text-xs text-[var(--qs-muted)]">
       Already have an account?{" "}
-      <Link href="/login" className="inline-flex items-center gap-1 font-bold text-[var(--qs-brand)] transition-colors hover:underline">
+      <Link
+        href={
+          nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : "/login"
+        }
+        className="inline-flex items-center gap-1 font-bold text-[var(--qs-brand)] transition-colors hover:underline"
+      >
         <LogIn className="h-3.5 w-3.5" /> Sign in
       </Link>
     </p>

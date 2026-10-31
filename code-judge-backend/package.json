@@ -22,6 +22,7 @@
     "test:letterheads": "tsx src/__tests__/letterhead.test.ts",
     "test:decoy": "tsx src/__tests__/quizDecoy.test.ts",
     "test:billing": "tsx src/__tests__/billing.test.ts",
+    "test:billing:bundle": "tsx src/__tests__/bundleCheckout.test.ts",
     "test:ai-credits": "tsx src/__tests__/aiCredits.test.ts",
     "test:entitlements": "tsx src/services/entitlements/__tests__/resolver.test.ts",
     "test:entitlements:db": "tsx src/services/entitlements/__tests__/concurrency.test.ts",

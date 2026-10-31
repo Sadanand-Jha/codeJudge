@@ -2,7 +2,6 @@ import apiClient from "@/lib/axios";
 import type {
   SendOtpPayload,
   VerifyOtpPayload,
-  SetUsernamePayload,
   AuthResponse,
   CheckUsernameResponse,
 } from "@/types/auth";
@@ -37,11 +36,6 @@ export async function checkUsername(username: string): Promise<CheckUsernameResp
   const response = await apiClient.get<CheckUsernameResponse>("/auth/check-username", {
     params: { username },
   });
-  return response.data;
-}
-
-export async function setUsername(payload: SetUsernamePayload): Promise<AuthResponse> {
-  const response = await apiClient.post<AuthResponse>("/auth/set-username", payload);
   return response.data;
 }
 

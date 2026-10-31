@@ -1,16 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { AlertCircle, BadgeCheck, Info, Loader2, Lock, ShieldCheck, X } from "lucide-react";
+import { AlertCircle, BadgeCheck, FileText, Info, Loader2, Lock, ShieldCheck, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import type { PackOrderSummary } from "@/services/aiCredits";
+import {
+  getCheckoutSuggestion,
+  type PackUpgradeSuggestion,
+} from "@/services/billing";
+import { trackCheckoutEvent } from "@/services/analytics";
+import { CheckoutSuggestionCard } from "../CheckoutSuggestionCard";
 import { QS_DIALOG_PANEL, QS_ROW, QS_ROW_LABEL, QS_SQ_BTN } from "./styles";
 
 export type PurchasePhase = "summary" | "processing" | "success" | "failed" | "cancelled";
 
 export interface PurchaseReceipt {
   transactionId: string;
+  orderId: string;
   packName: string;
   credits: number;
   newBalance: number;
@@ -39,7 +46,9 @@ export function OrderSummaryDialog({
   receipt,
   onClose,
   onPay,
+  onSwitchPack,
   onBack,
+  onViewInvoice,
 }: {
   summary: PackOrderSummary;
   balance: number;
@@ -49,10 +58,69 @@ export function OrderSummaryDialog({
   receipt: PurchaseReceipt | null;
   onClose: () => void;
   onPay: (method: string) => void;
+  onSwitchPack: (packCode: string) => void;
   onBack: () => void;
+  onViewInvoice?: (orderId: string) => void;
 }) {
   const [method, setMethod] = useState<(typeof METHODS)[number]["id"]>("upi");
+  const [suggestion, setSuggestion] = useState<PackUpgradeSuggestion | null>(null);
+  const [declined, setDeclined] = useState(false);
   const busy = phase === "processing";
+
+  useEffect(() => {
+    let active = true;
+    getCheckoutSuggestion({ packId: summary.pack.id })
+      .then((response) => {
+        if (!active || response.suggestion?.kind !== "pack_upgrade") return;
+        setSuggestion(response.suggestion);
+        trackCheckoutEvent({
+          event: "suggestion_shown",
+          suggestionType: response.suggestion.suggestionType,
+          sourceProductId: response.suggestion.sourceProductId,
+          productId: response.suggestion.productId,
+          planCode: response.planCode,
+        });
+      })
+      .catch(() => {
+        // Checkout remains usable without a suggestion.
+      });
+    return () => {
+      active = false;
+    };
+  }, [summary.pack.id]);
+
+  const acceptSuggestion = () => {
+    if (!suggestion) return;
+    trackCheckoutEvent({
+      event: "suggestion_accepted",
+      suggestionType: suggestion.suggestionType,
+      sourceProductId: suggestion.sourceProductId,
+      productId: suggestion.productId,
+    });
+    onSwitchPack(suggestion.pack.code);
+  };
+
+  const declineSuggestion = () => {
+    if (!suggestion) return;
+    setDeclined(true);
+    trackCheckoutEvent({
+      event: "suggestion_declined",
+      suggestionType: suggestion.suggestionType,
+      sourceProductId: suggestion.sourceProductId,
+      productId: suggestion.productId,
+    });
+  };
+
+  const revisitSuggestion = () => {
+    if (!suggestion) return;
+    setDeclined(false);
+    trackCheckoutEvent({
+      event: "switch_back",
+      suggestionType: suggestion.suggestionType,
+      sourceProductId: suggestion.sourceProductId,
+      productId: suggestion.productId,
+    });
+  };
 
   return (
     <motion.div
@@ -111,6 +179,16 @@ export function OrderSummaryDialog({
               </b>
             </div>
 
+            {suggestion && (
+              <CheckoutSuggestionCard
+                suggestion={suggestion}
+                declined={declined}
+                onAccept={acceptSuggestion}
+                onDecline={declineSuggestion}
+                onReopen={revisitSuggestion}
+              />
+            )}
+
             <p className="mt-2 mb-3 text-sm font-bold">Pay with</p>
             <div className="mb-[18px] flex flex-wrap gap-2">
               {METHODS.map((m) => (
@@ -167,10 +245,20 @@ export function OrderSummaryDialog({
             <p className="mt-1 text-xs tabular-nums text-[var(--qs-muted)]">
               Transaction {receipt.transactionId} · Balance {receipt.newBalance}
             </p>
+            {onViewInvoice && (
+              <button
+                type="button"
+                onClick={() => onViewInvoice(receipt.orderId)}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-3 text-sm font-bold transition-colors hover:border-[var(--qs-brand)]"
+              >
+                <FileText className="h-4 w-4" />
+                View invoice
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}
-              className="mt-5 w-full rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] py-[15px] text-base font-extrabold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
+              className="mt-3 w-full rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] py-[15px] text-base font-extrabold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
             >
               Done
             </button>

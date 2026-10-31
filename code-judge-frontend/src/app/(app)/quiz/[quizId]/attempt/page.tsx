@@ -1,7 +1,7 @@
 
 "use client";
 
-import { use, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Home, PartyPopper, Send, ShieldCheck, Volume2, VolumeX } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -30,6 +30,10 @@ import { useQuizSounds, type QuizSound } from "@/hooks/useQuizSounds";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
 import { QuizRichText } from "@/components/quiz/QuizRichText";
+import {
+  MobileAttemptView,
+  type MobileAttemptQuestion,
+} from "@/components/quiz/attempt/MobileAttemptView";
 
 type AnswerValue = StoredAttemptAnswer;
 
@@ -236,6 +240,20 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   }, [attemptId, submit, submitting, timeLeft]);
 
   const current = questions[index];
+  const mobileQuestions = useMemo<MobileAttemptQuestion[]>(
+    () =>
+      questions.map((question) => ({
+        id: question.id,
+        statement: question.problem_statement,
+        description: question.problem_description,
+        multiple: question.quiz_problem_type === 2,
+        options: question.options.map((option) => ({
+          id: String(option.id),
+          text: option.option_statement,
+        })),
+      })),
+    [questions],
+  );
   const answeredCount = Object.values(answers).filter((answer) =>
     answer.option !== undefined || (answer.options?.length ?? 0) > 0 || Boolean(answer.textAnswer?.trim()),
   ).length;
@@ -309,6 +327,10 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     setError("The quiz has ended. Your saved answers are being submitted.");
     setTimeLeft(0);
     return true;
+  }, []);
+
+  const draftAnswer = useCallback((problemId: number, answer: AnswerValue) => {
+    setAnswers((previous) => ({ ...previous, [problemId]: answer }));
   }, []);
 
   const persistAnswer = useCallback((problemId: number, answer: AnswerValue) => {
@@ -418,6 +440,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       onTerminate={handleTerminate}
       registrationFields={skipRegistration ? [] : quiz.registration_fields ?? []}
       overlapHeader
+      hideChrome={isMobile}
     >
       {submitting && <SubmissionProgressOverlay complete={submissionComplete} soundEnabled={soundEnabled} onSound={playQuizSound} onHome={handleGoHome} />}
       {starting || (!attemptId && !error) ? (
@@ -428,6 +451,25 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         <div className="flex h-full items-center justify-center p-6">
           <StatusScreen text={error || "This quiz has no available questions."} />
         </div>
+      ) : isMobile ? (
+        <QuizPageReady className="h-full min-h-0" label="Loading question">
+          <MobileAttemptView
+            quizName={quiz.name}
+            questions={mobileQuestions}
+            current={mobileQuestions[index]}
+            index={index}
+            answers={answers}
+            markedForReview={markedForReview}
+            timeLeft={timeLeft}
+            submitting={submitting}
+            onAnswer={persistAnswer}
+            onDraftAnswer={draftAnswer}
+            onNavigate={goToQuestion}
+            onToggleMarked={toggleMarkedForReview}
+            onSubmit={handleManualSubmit}
+            onQuit={() => void handleQuitAttempt()}
+          />
+        </QuizPageReady>
       ) : (
       <div className="qs-ui relative h-full min-h-0 overflow-hidden bg-transparent px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:py-6">
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">

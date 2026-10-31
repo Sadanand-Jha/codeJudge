@@ -107,16 +107,17 @@ export class OAuthRepository {
       await client.query("BEGIN");
       const avatarId = profile.avatarUrl ? await this.upsertAvatar(client, profile.avatarUrl) : null;
 
+      // Email is an immutable account identity field. Refreshing an OAuth
+      // login must never rewrite it, even if the provider reports a change.
       const result = await client.query<{ id: number; email: string }>(
         `UPDATE users
-            SET email = $2,
-                display_name = $3,
-                first_name = COALESCE($4, first_name),
-                last_name = COALESCE($5, last_name),
-                avatar_id = COALESCE($6, avatar_id),
+            SET display_name = $2,
+                first_name = COALESCE($3, first_name),
+                last_name = COALESCE($4, last_name),
+                avatar_id = COALESCE($5, avatar_id),
                 is_verified = TRUE,
-                oauth_provider = $7,
-                oauth_provider_user_id = $8,
+                oauth_provider = $6,
+                oauth_provider_user_id = $7,
                 lastlogin = NOW(),
                 updatedat = NOW(),
                 updated_at = NOW()
@@ -124,7 +125,6 @@ export class OAuthRepository {
           RETURNING id, email`,
         [
           userId,
-          profile.email,
           profile.name.slice(0, 120),
           profile.firstName?.slice(0, 80) || null,
           profile.lastName?.slice(0, 80) || null,

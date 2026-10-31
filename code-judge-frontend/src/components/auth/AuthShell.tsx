@@ -34,7 +34,7 @@ export function AuthShell({
   cardClassName,
 }: AuthShellProps) {
   return (
-    <div className={cn("qs-ui", styles.page)}>
+    <div className={cn("qs-ui qs-onest", styles.page)}>
       <div className={styles.hero} aria-hidden="true">
         <i className={styles.heroA} />
         <i className={styles.heroB} />

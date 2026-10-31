@@ -34,6 +34,7 @@ import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { getBillingTransactions, type BillingTransaction } from "@/services/billing";
 import { cn } from "@/lib/helpers";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
+import { InvoiceV2Dialog } from "./InvoiceV2Dialog";
 import { useBillingData } from "./hooks";
 import { BillButton, EmptyState, ErrorState, PageHeader, StatCard, StatusBadge, formatINR, type StatusTone } from "./ui";
 
@@ -47,6 +48,7 @@ export type PayMethodKind = "UPI" | "Card" | "NetBanking" | "Wallet" | "Razorpay
 
 export interface CreditTransaction {
   id: string;
+  orderId: string;
   packId: string;
   packName: string;
   credits: number;
@@ -159,8 +161,16 @@ function mapBillingTransaction(txn: BillingTransaction): CreditTransaction {
   const parsed = Date.parse(txn.paidAt ?? txn.createdAt);
   return {
     id: txn.orderNo,
-    packId: txn.packCode ?? (txn.planSlug ? `plan:${txn.planSlug}` : txn.orderId),
-    packName: txn.planName ?? txn.packName ?? "Credit purchase",
+    orderId: txn.orderId,
+    packId:
+      txn.orderType === "bundle"
+        ? txn.orderId
+        : txn.packCode ?? (txn.planSlug ? `plan:${txn.planSlug}` : txn.orderId),
+    packName:
+      txn.orderType === "bundle"
+        ? [txn.planName, txn.packName].filter(Boolean).join(" + ") ||
+          "Plan + credit bundle"
+        : txn.planName ?? txn.packName ?? "Credit purchase",
     credits: txn.credits,
     price: txn.amountPaise / 100,
     timestamp: Number.isNaN(parsed) ? Date.now() : parsed,
@@ -238,21 +248,6 @@ function receiptText(txn: CreditTransaction, getValidity: CreditValidityLookup):
     `Purchase date: ${fmtDateTime(txn.timestamp)}`,
     `Credits valid till: ${expiry ? fmtDate(expiry) : "Unavailable"}`,
     `Status: ${STATUS_META[txn.status].label}`,
-  ].join("\n");
-}
-
-function invoiceText(txn: CreditTransaction): string {
-  const base = txn.price / 1.18;
-  const gst = txn.price - base;
-  return [
-    "QuizSupport — GST Invoice",
-    `Order ID: ${txn.id}`,
-    `Item: ${txn.packName} (${txn.credits} credits)`,
-    `Taxable value: ${formatINR(base)}`,
-    `GST @ 18%: ${formatINR(gst)}`,
-    `Total (incl. GST): ${formatINR(txn.price)}`,
-    `Payment method: ${txn.methodLabel}`,
-    `Purchase date: ${fmtDateTime(txn.timestamp)}`,
   ].join("\n");
 }
 
@@ -497,6 +492,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
   const [sort, setSort] = useState<SortKey>("newest");
   const [page, setPage] = useState(1);
   const [activeTxn, setActiveTxn] = useState<CreditTransaction | null>(null);
+  const [invoiceOrderId, setInvoiceOrderId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
   const menuRef = useRef<HTMLDivElement>(null);
@@ -575,8 +571,14 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
 
   const handleInvoice = (txn: CreditTransaction) => {
     if (onDownloadInvoice) return onDownloadInvoice(txn);
-    downloadFile(`${txn.id}-gst-invoice.txt`, invoiceText(txn));
-    toast.success({ title: "GST invoice downloaded", description: `Invoice for order ${txn.id}.` });
+    if (txn.status !== "completed") {
+      toast.info({
+        title: "Invoice unavailable",
+        description: "An invoice is available after the payment is completed.",
+      });
+      return;
+    }
+    setInvoiceOrderId(txn.orderId);
   };
 
   const handleRetry = (txn: CreditTransaction) => {
@@ -961,6 +963,15 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
           onReceipt={handleReceipt}
           onInvoice={handleInvoice}
         />
+
+        <AnimatePresence>
+          {invoiceOrderId && (
+            <InvoiceV2Dialog
+              orderId={invoiceOrderId}
+              onClose={() => setInvoiceOrderId(null)}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </CreditValidityContext.Provider>
   );

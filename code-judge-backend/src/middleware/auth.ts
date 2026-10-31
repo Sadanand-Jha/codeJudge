@@ -70,3 +70,58 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     });
   }
 };
+
+/**
+ * Optional authentication for public personalization endpoints (for example
+ * checkout suggestions). A missing token is allowed, but a present invalid or
+ * blacklisted token is rejected instead of silently downgrading to anonymous.
+ */
+export const optionalAuthenticate = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token =
+      req.cookies?.session_token ||
+      req.headers.authorization?.replace(/^Bearer\s+/i, "");
+
+    if (!token) {
+      next();
+      return;
+    }
+
+    const isBlacklisted = await redisClient.get(`blacklist:${token}`);
+    if (isBlacklisted) {
+      res.status(401).json({
+        success: false,
+        message: "Session expired. Please log in again.",
+        statusCode: 401,
+      });
+      return;
+    }
+
+    const decoded = verifySessionToken(token);
+    req.user = {
+      userId: decoded.userId,
+      email: decoded.email,
+    };
+    next();
+  } catch (error) {
+    if (error instanceof SessionConfigurationError) {
+      console.error("Authentication is misconfigured:", error.message);
+      res.status(500).json({
+        success: false,
+        message: "Authentication is temporarily unavailable",
+        statusCode: 500,
+      });
+      return;
+    }
+    console.error("Optional authentication error:", error);
+    res.status(401).json({
+      success: false,
+      message: "Invalid or expired token",
+      statusCode: 401,
+    });
+  }
+};
