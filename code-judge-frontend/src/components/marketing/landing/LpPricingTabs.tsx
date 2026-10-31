@@ -63,6 +63,7 @@ function planFeatures(plan: PricingPlan) {
   if (plan.credits > 0) rows.push(`${plan.credits} free AI credits / month`);
   for (const feature of plan.features) {
     if (plan.credits > 0 && feature.toLowerCase().includes("credit")) continue;
+    if (feature.toLowerCase().includes("trial")) continue;
     rows.push(feature);
   }
   if (rows.length === 0) {
@@ -116,9 +117,7 @@ export default function LpPricingTabs({
                     : 0;
                 const pill = plan.featured
                   ? "Most popular"
-                  : plan.trialDays > 0
-                    ? `${plan.trialDays}-day trial`
-                    : plan.discountBadge || "Monthly plan";
+                  : plan.discountBadge || "Monthly plan";
                 const chip =
                   plan.credits > 0
                     ? `${plan.credits} free AI credits / month`

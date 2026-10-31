@@ -370,8 +370,8 @@
 }
 
 @theme inline {
-  /* Site-wide body typeface (Inter, loaded in app/layout.tsx) */
-  --font-sans: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* Site-wide typeface (Onest, loaded in app/layout.tsx) */
+  --font-sans: var(--font-onest), "Onest", ui-sans-serif, system-ui, sans-serif;
 
   /* Core surfaces */
   --color-background: var(--background);
@@ -497,7 +497,7 @@
 body {
   background: var(--background);
   color: var(--text-primary);
-  font-family: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-onest), "Onest", -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -510,7 +510,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-bricolage), "Bricolage Grotesque", var(--font-inter), "Inter", system-ui, sans-serif;
+  font-family: var(--font-onest), "Onest", system-ui, sans-serif;
 }
 
 html {
@@ -3802,7 +3802,7 @@ svg {
   box-shadow:
     0 8px 30px rgba(0, 0, 0, 0.45),
     0 0 18px rgba(139, 92, 246, 0.25);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-onest), "Onest", system-ui, sans-serif;
   width: 300px;
   overflow: hidden;
   user-select: none;
@@ -4967,8 +4967,8 @@ textarea {
 /* ============================================================
    QuizSupport quiz design — ".qs-ui"
    Marketing / quiz-hub visual language: lavender canvas, indigo
-   ink, violet brand, yellow offset shadows, Bricolage Grotesque
-   display type + DM Sans body. Everything is scoped under
+   ink, violet brand, yellow offset shadows, Onest display
+   and body type. Everything is scoped under
    .qs-ui so the rest of the app is untouched.
    ============================================================ */
 
@@ -5012,9 +5012,22 @@ textarea {
 
   background: var(--qs-bg);
   color: var(--qs-ink);
-  font-family: var(--font-inter), "Inter", system-ui, sans-serif;
+  font-family: var(--font-onest), "Onest", system-ui, sans-serif;
   font-size: 17px;
   line-height: 1.55;
+}
+
+/* Onest is the site-wide typeface. */
+.qs-onest {
+  font-family: var(--font-onest), "Onest", system-ui, sans-serif;
+}
+
+.qs-onest :is(h1, h2, h3, h4, h5, h6, .qs-display) {
+  font-family: var(--font-onest), "Onest", system-ui, sans-serif;
+}
+
+.qs-onest :is(button, input, select, textarea) {
+  font-family: var(--font-onest), "Onest", system-ui, sans-serif;
 }
 
 /* Low-fuel warning theme. data-credit-state lives on the Studio shell so the
@@ -5158,7 +5171,7 @@ textarea {
   .qs-ui h2,
   .qs-ui h3,
   .qs-ui .qs-display {
-    font-family: var(--font-bricolage), "Bricolage Grotesque", var(--font-inter), system-ui, sans-serif;
+    font-family: var(--font-onest), "Onest", system-ui, sans-serif;
     line-height: 1.05;
     margin: 0;
     letter-spacing: -0.02em;
@@ -5186,7 +5199,7 @@ textarea {
     justify-content: center;
     gap: 8px;
     white-space: nowrap;
-    font-family: var(--font-inter), "Inter", system-ui, sans-serif;
+    font-family: var(--font-onest), "Onest", system-ui, sans-serif;
     font-size: 16px;
     font-weight: 800;
     line-height: 1;
@@ -5260,7 +5273,7 @@ textarea {
 
   .qs-input {
     width: 100%;
-    font-family: var(--font-inter), "Inter", system-ui, sans-serif;
+    font-family: var(--font-onest), "Onest", system-ui, sans-serif;
     font-size: 18px;
     font-weight: 700;
     letter-spacing: 0.14em;
@@ -5304,7 +5317,7 @@ textarea {
     align-items: center;
     gap: 10px;
     text-align: left;
-    font-family: var(--font-inter), "Inter", system-ui, sans-serif;
+    font-family: var(--font-onest), "Onest", system-ui, sans-serif;
     font-size: 16px;
     font-weight: 500;
     color: var(--qs-ink);
@@ -5341,7 +5354,7 @@ textarea {
   .qs-code-chip {
     display: inline-block;
     margin-top: 12px;
-    font-family: var(--font-inter), "Inter", system-ui, sans-serif;
+    font-family: var(--font-onest), "Onest", system-ui, sans-serif;
     font-size: 20px;
     font-weight: 700;
     letter-spacing: 0.18em;
@@ -5365,7 +5378,7 @@ textarea {
     border-radius: 50%;
     background: var(--qs-ink);
     color: var(--qs-bg);
-    font-family: var(--font-bricolage), "Bricolage Grotesque", system-ui, sans-serif;
+    font-family: var(--font-onest), "Onest", system-ui, sans-serif;
     font-size: 18px;
     font-weight: 800;
     margin-bottom: 16px;
@@ -5390,7 +5403,7 @@ textarea {
   }
 
   .qs-exams strong {
-    font-family: var(--font-bricolage), "Bricolage Grotesque", system-ui, sans-serif;
+    font-family: var(--font-onest), "Onest", system-ui, sans-serif;
     font-size: 28px;
     font-weight: 800;
     letter-spacing: -0.02em;
@@ -5454,7 +5467,7 @@ textarea {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    font-family: var(--font-bricolage), "Bricolage Grotesque", system-ui, sans-serif;
+    font-family: var(--font-onest), "Onest", system-ui, sans-serif;
     font-size: 24px;
     font-weight: 800;
     letter-spacing: -0.03em;
@@ -5795,7 +5808,7 @@ textarea {
   }
 
   .qs-lp .trial-banner strong {
-    font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+    font-family: var(--font-onest), "Onest", sans-serif;
     font-size: clamp(30px, 4.2vw, 48px);
     font-weight: 800;
     line-height: 1;
@@ -6032,7 +6045,7 @@ textarea {
 
   .qs-lp .tc b {
     display: block;
-    font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+    font-family: var(--font-onest), "Onest", sans-serif;
     font-size: 20px;
     font-weight: 800;
     letter-spacing: -0.02em;
@@ -6130,7 +6143,7 @@ textarea {
 
   .qs-lp .pvh b {
     flex: 1;
-    font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+    font-family: var(--font-onest), "Onest", sans-serif;
     font-size: 20px;
   }
 
@@ -6202,7 +6215,7 @@ textarea {
   }
 
   .qs-lp .ms b {
-    font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+    font-family: var(--font-onest), "Onest", sans-serif;
     font-size: 26px;
     font-weight: 800;
     line-height: 1.1;
@@ -6295,7 +6308,7 @@ textarea {
     height: 28px;
     border-radius: 50%;
     border: 2px solid var(--line);
-    font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+    font-family: var(--font-onest), "Onest", sans-serif;
     font-size: 13px;
     font-weight: 800;
     flex: none;
@@ -6508,7 +6521,7 @@ textarea {
     border-radius: 50%;
     background: var(--ink);
     color: var(--bg);
-    font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+    font-family: var(--font-onest), "Onest", sans-serif;
     font-size: 18px;
     font-weight: 800;
     margin-bottom: 16px;
@@ -6577,7 +6590,7 @@ textarea {
   }
 
   .qs-lp .exl strong {
-    font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+    font-family: var(--font-onest), "Onest", sans-serif;
     font-size: 30px;
     font-weight: 800;
     letter-spacing: -0.02em;
@@ -6625,7 +6638,7 @@ textarea {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+    font-family: var(--font-onest), "Onest", sans-serif;
     font-size: 20px;
     font-weight: 800;
   }
@@ -6635,13 +6648,13 @@ textarea {
     color: #1a1240;
     border-radius: 99px;
     padding: 2px 11px;
-    font-family: var(--font-inter), "Inter", sans-serif;
+    font-family: var(--font-onest), "Onest", sans-serif;
     font-size: 12px;
     font-weight: 800;
   }
 
   .qs-lp .pr {
-    font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+    font-family: var(--font-onest), "Onest", sans-serif;
     font-size: 56px;
     font-weight: 800;
     line-height: 1;
@@ -6650,7 +6663,7 @@ textarea {
   }
 
   .qs-lp .pr small {
-    font-family: var(--font-inter), "Inter", sans-serif;
+    font-family: var(--font-onest), "Onest", sans-serif;
     font-size: 14px;
     font-weight: 600;
     letter-spacing: 0;
@@ -6704,7 +6717,7 @@ textarea {
 
   .qs-lp .offer-strip b {
     display: block;
-    font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+    font-family: var(--font-onest), "Onest", sans-serif;
     font-size: 18px;
     font-weight: 800;
     line-height: 1.25;
@@ -6863,7 +6876,7 @@ textarea {
     cursor: pointer;
     list-style: none;
     padding: 14px 0;
-    font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+    font-family: var(--font-onest), "Onest", sans-serif;
     font-size: 20px;
     font-weight: 800;
     display: flex;
@@ -7152,7 +7165,7 @@ textarea {
 
   .qs-lp .pgh h4 {
     margin: 0 0 2px;
-    font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+    font-family: var(--font-onest), "Onest", sans-serif;
     font-size: 24px;
     font-weight: 800;
   }
@@ -7257,7 +7270,7 @@ textarea {
 
   .qs-lp .lp-stat b {
     display: block;
-    font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+    font-family: var(--font-onest), "Onest", sans-serif;
     font-size: clamp(34px, 4.6vw, 56px);
     line-height: 1;
     letter-spacing: -0.03em;
@@ -7338,7 +7351,7 @@ textarea {
   .qs-lp .cmp thead th {
     background: var(--ink);
     color: var(--bg);
-    font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+    font-family: var(--font-onest), "Onest", sans-serif;
     font-size: 17px;
     font-weight: 800;
   }
@@ -7441,7 +7454,7 @@ textarea {
 
   .qs-lp .room-flow-step b {
     display: block;
-    font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+    font-family: var(--font-onest), "Onest", sans-serif;
     font-size: 21px;
     margin-bottom: 3px;
   }
@@ -7508,7 +7521,7 @@ textarea {
 
   .qs-lp .pay-ad b {
     display: block;
-    font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+    font-family: var(--font-onest), "Onest", sans-serif;
     font-size: clamp(22px, 2.4vw, 28px);
     letter-spacing: -0.02em;
     margin: 9px 0 5px;
@@ -7893,7 +7906,7 @@ textarea {
     border-radius: 50%;
     background: var(--sun);
     color: #1a1240;
-    font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+    font-family: var(--font-onest), "Onest", sans-serif;
     font-size: 15px;
     font-weight: 800;
     box-shadow: 3px 3px 0 var(--ink);
@@ -8843,7 +8856,7 @@ textarea {
 
   .qs-lp .pgroup {
     margin: 38px 0 0;
-    font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+    font-family: var(--font-onest), "Onest", sans-serif;
     font-size: 24px;
     font-weight: 800;
     letter-spacing: -0.02em;
@@ -9285,7 +9298,7 @@ textarea {
     border-radius: 12px;
     background: var(--qs-surface);
     color: var(--qs-ink);
-    font-family: var(--font-inter), "Inter", system-ui, sans-serif;
+    font-family: var(--font-onest), "Onest", system-ui, sans-serif;
     font-size: 14px;
     font-weight: 700;
     line-height: 1;
@@ -9994,7 +10007,7 @@ textarea {
 }
 
 .qs-lp .qp-credit-coin strong {
-  font-family: var(--font-bricolage), "Bricolage Grotesque", var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-onest), "Onest", system-ui, sans-serif;
   font-size: 62px;
   font-weight: 800;
   line-height: 0.95;
@@ -10017,7 +10030,7 @@ textarea {
 }
 
 .qs-lp .qp-credit-visual-price b {
-  font-family: var(--font-bricolage), "Bricolage Grotesque", var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-onest), "Onest", system-ui, sans-serif;
   font-size: 38px;
   font-weight: 800;
   line-height: 1;
@@ -10116,7 +10129,7 @@ textarea {
 
 .qs-lp .qp-plan-top h3,
 .qs-lp .qp-pack-top h3 {
-  font-family: var(--font-bricolage), "Bricolage Grotesque", var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-onest), "Onest", system-ui, sans-serif;
   font-size: 25px;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -10168,7 +10181,7 @@ textarea {
 
 .qs-lp .qp-price b,
 .qs-lp .qp-pack-price b {
-  font-family: var(--font-bricolage), "Bricolage Grotesque", var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-onest), "Onest", system-ui, sans-serif;
   font-size: 58px;
   font-weight: 800;
   line-height: 1;
@@ -10582,7 +10595,7 @@ textarea {
 }
 
 .qs-lp .qp-pack-credits strong {
-  font-family: var(--font-bricolage), "Bricolage Grotesque", var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-onest), "Onest", system-ui, sans-serif;
   font-size: 24px;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -10664,7 +10677,7 @@ textarea {
 
 .qs-lp .qp-table td strong {
   display: block;
-  font-family: var(--font-bricolage), "Bricolage Grotesque", var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-onest), "Onest", system-ui, sans-serif;
   font-size: 18px;
   font-weight: 800;
 }
@@ -11188,13 +11201,13 @@ textarea {
   border-radius: 50%;
   background: var(--sun);
   color: #1a1240;
-  font-family: var(--font-bricolage), "Bricolage Grotesque", var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-onest), "Onest", system-ui, sans-serif;
   font-size: 16px;
   font-weight: 800;
 }
 
 .qp-trial-step h3 {
-  font-family: var(--font-bricolage), "Bricolage Grotesque", var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-onest), "Onest", system-ui, sans-serif;
   font-size: 20px;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -11750,7 +11763,7 @@ textarea {
   background-attachment: fixed;
   background-size: 160% 160%;
   color: var(--qs-ink);
-  font-family: var(--font-inter), Inter, system-ui, sans-serif;
+  font-family: var(--font-onest), "Onest", system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.5;
   overflow-x: hidden;
@@ -11771,7 +11784,7 @@ textarea {
   padding: 0 20px;
 }
 .lpx h1,.lpx h2,.lpx h3,.lpx .lpx-logo {
-  font-family: var(--font-bricolage), "Bricolage Grotesque", var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-onest), "Onest", system-ui, sans-serif;
   letter-spacing: -.02em;
 }
 :where(.lpx) a {
@@ -11874,7 +11887,7 @@ textarea {
   min-height: 46px;
   color: var(--qs-on-brand);
   box-shadow: 3px 3px 0 var(--qs-sun);
-  font-family: var(--font-inter), Inter, system-ui, sans-serif;
+  font-family: var(--font-onest), "Onest", system-ui, sans-serif;
   white-space: nowrap;
   cursor: pointer;
   border-radius: 12px;
@@ -11939,7 +11952,7 @@ textarea {
   display: flex;
 }
 .lpx-trial b {
-  font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+  font-family: var(--font-onest), "Onest", sans-serif;
   font-size: 1.5rem;
   font-weight: 800;
 }
@@ -11962,6 +11975,26 @@ textarea {
   margin-top: 12px;
   font-size: 1rem;
   line-height: 1.55;
+}
+.lpx-ai-note {
+  max-width: 52ch;
+  color: var(--qs-muted);
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 18px;
+  font-size: .9rem;
+  font-weight: 500;
+  line-height: 1.45;
+  display: flex;
+}
+.lpx-ai-note svg {
+  color: var(--qs-brand);
+  flex: none;
+  margin-top: 2px;
+}
+.lpx-ai-note b {
+  color: var(--qs-ink);
+  font-weight: 700;
 }
 .lpx-join {
   flex-wrap: wrap;
@@ -12053,7 +12086,7 @@ textarea {
   display: grid;
 }
 .lpx-stats b {
-  font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+  font-family: var(--font-onest), "Onest", sans-serif;
   font-size: 2.2rem;
   font-weight: 800;
   line-height: 1.15;
@@ -12096,7 +12129,7 @@ textarea {
   line-height: 1.05;
 }
 .lpx-tag {
-  font-family: var(--font-inter), Inter, sans-serif;
+  font-family: var(--font-onest), "Onest", sans-serif;
   border: 1.5px solid;
   border-radius: 99px;
   padding: 3px 10px;
@@ -12118,7 +12151,7 @@ textarea {
   display: grid;
 }
 .lpx-stage-title {
-  font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+  font-family: var(--font-onest), "Onest", sans-serif;
   letter-spacing: -.03em;
   font-size: clamp(2rem,4.5vw,3.6rem);
   font-weight: 800;
@@ -12140,7 +12173,7 @@ textarea {
 .lpx-screen i {
   color: #d9d4ff;
   height: 44px;
-  font-family: var(--font-inter), Inter, sans-serif;
+  font-family: var(--font-onest), "Onest", sans-serif;
   background: #251f52;
   border-radius: 10px;
   margin-bottom: 12px;
@@ -12186,7 +12219,7 @@ textarea {
 }
 .lpx-fr-n {
   color: var(--qs-sun);
-  font-family: var(--font-inter), Inter, sans-serif;
+  font-family: var(--font-onest), "Onest", sans-serif;
   font-size: .75rem;
   font-weight: 800;
 }
@@ -12254,7 +12287,7 @@ textarea {
   background: var(--qs-surface);
   height: 42px;
   color: var(--qs-ink);
-  font-family: var(--font-inter), Inter, sans-serif;
+  font-family: var(--font-onest), "Onest", sans-serif;
   cursor: pointer;
   border-radius: 99px;
   padding: 0 18px;
@@ -12334,7 +12367,7 @@ textarea {
   display: block;
 }
 .lpx-live-row b {
-  font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+  font-family: var(--font-onest), "Onest", sans-serif;
   font-size: 1.5rem;
   font-weight: 800;
 }
@@ -12425,7 +12458,7 @@ textarea {
   display: flex;
 }
 .lpx-room-head b {
-  font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+  font-family: var(--font-onest), "Onest", sans-serif;
   font-size: 1.2rem;
   font-weight: 800;
 }
@@ -12475,7 +12508,7 @@ textarea {
 .lpx-code {
   background: var(--qs-sun);
   color: #1f1a45;
-  font-family: var(--font-inter), Inter, sans-serif;
+  font-family: var(--font-onest), "Onest", sans-serif;
   letter-spacing: .08em;
   border: 2px dashed #1f1a45;
   border-radius: 10px;
@@ -12514,7 +12547,7 @@ textarea {
   width: 44px;
   height: 44px;
   color: var(--qs-bg);
-  font-family: var(--font-inter), Inter, sans-serif;
+  font-family: var(--font-onest), "Onest", sans-serif;
   border-radius: 50%;
   place-items: center;
   font-size: 1rem;
@@ -12599,7 +12632,7 @@ textarea {
   display: grid;
 }
 .lpx-wh small {
-  font-family: var(--font-inter), Inter, sans-serif;
+  font-family: var(--font-onest), "Onest", sans-serif;
   opacity: .9;
   font-size: .85rem;
   font-weight: 600;
@@ -12620,7 +12653,7 @@ textarea {
 }
 .lpx-wb h4 {
   color: var(--qs-muted);
-  font-family: var(--font-inter), Inter, sans-serif;
+  font-family: var(--font-onest), "Onest", sans-serif;
   font-size: .85rem;
   font-weight: 600;
 }
@@ -12780,7 +12813,7 @@ textarea {
 }
 .lpx-switch button {
   color: var(--qs-ink);
-  font-family: var(--font-inter), Inter, sans-serif;
+  font-family: var(--font-onest), "Onest", sans-serif;
   cursor: pointer;
   background: 0 0;
   border: 0;
@@ -13040,7 +13073,7 @@ textarea {
 }
 .lpx-footer b {
   color: var(--qs-ink);
-  font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+  font-family: var(--font-onest), "Onest", sans-serif;
   font-size: 1rem;
   font-weight: 800;
 }
@@ -13395,7 +13428,7 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+  font-family: var(--font-onest), "Onest", sans-serif;
   font-size: 14px;
   line-height: 1.2;
   font-weight: 800;
@@ -13591,7 +13624,7 @@ textarea {
 }
 
 .lpx .ss-question {
-  font-family: var(--font-bricolage), "Bricolage Grotesque", sans-serif;
+  font-family: var(--font-onest), "Onest", sans-serif;
   font-size: 13px;
   font-weight: 800;
   line-height: 1.25;
@@ -14894,6 +14927,18 @@ textarea {
 
 .lpx-hero-shell .lpx-lead {
   color: rgba(255, 255, 255, 0.8);
+}
+
+.lpx-hero-shell .lpx-ai-note {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.lpx-hero-shell .lpx-ai-note b {
+  color: #fff;
+}
+
+.lpx-hero-shell .lpx-ai-note svg {
+  color: var(--qs-sun);
 }
 
 .lpx-hero-shell .lpx-join-error {

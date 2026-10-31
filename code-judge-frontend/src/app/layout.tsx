@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Bricolage_Grotesque } from "next/font/google";
+import { Onest } from "next/font/google";
 import "./globals.css";
 import "katex/dist/katex.min.css";
 import { Toaster } from "@/components/ui/toast";
@@ -83,7 +83,6 @@ function migrateLegacyStorageKeys() {
 
     // Map legacy keys to new quizsupport keys
     const keyMapping: Record<string, string> = {
-      token: STORAGE_KEYS.AUTH_TOKEN,
       user: STORAGE_KEYS.AUTH_USER,
       quizsupport_theme: STORAGE_KEYS.THEME,
       quizsupport_quiz_creation: STORAGE_KEYS.QUIZ_CREATION,
@@ -132,25 +131,21 @@ function migrateLegacyStorageKeys() {
     // ignore migration errors
   }
 
-  // Clean up removed localStorage keys
+  // Clean up removed localStorage keys. `token` came from the legacy
+  // Authorization flow; sessions are now cookie-only, so never migrate it.
   try {
     localStorage.removeItem("quizsupport_rooms");
+    localStorage.removeItem("token");
+    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
   } catch {
     // ignore
   }
 }
 
-const inter = Inter({
+const onest = Onest({
   subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
-/* QuizSupport marketing/quiz design typefaces (scoped via .qs-ui) */
-const bricolage = Bricolage_Grotesque({
-  subsets: ["latin"],
-  weight: ["600", "800"],
-  variable: "--font-bricolage",
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-onest",
   display: "swap",
 });
 
@@ -185,7 +180,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildSiteJsonLd()) }}
         />
       </head>
-      <body className={`${inter.variable} ${inter.className} ${bricolage.variable} min-h-screen bg-[var(--background)]`} suppressHydrationWarning>
+      <body className={`${onest.variable} ${onest.className} min-h-screen bg-[var(--background)]`} suppressHydrationWarning>
         <ThemeProvider>
           <AuthHydrator />
           <ModalScrollLock />

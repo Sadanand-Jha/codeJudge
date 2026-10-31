@@ -252,8 +252,12 @@ function toTopUp(txn: BillingTransaction): AICreditPurchase {
   const parsed = Date.parse(txn.paidAt ?? txn.createdAt);
   return {
     transactionId: txn.orderNo,
-    packId: txn.packCode ?? txn.orderId,
-    packName: txn.packName ?? "Credit pack",
+    packId: txn.orderId,
+    packName:
+      txn.orderType === "bundle"
+        ? [txn.planName, txn.packName].filter(Boolean).join(" + ") ||
+          "Plan + credit bundle"
+        : txn.packName ?? "Credit pack",
     credits: txn.credits,
     price: txn.amountPaise / 100,
     timestamp: Number.isNaN(parsed) ? Date.now() : parsed,
@@ -554,7 +558,11 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
             balance: current.balance,
             stats: current.stats,
             purchases: rows
-              .filter((row) => row.orderType === "credit_pack" && row.status === "paid")
+              .filter(
+                (row) =>
+                  (row.orderType === "credit_pack" || row.orderType === "bundle") &&
+                  row.status === "paid"
+              )
               .map(toTopUp),
           };
         })

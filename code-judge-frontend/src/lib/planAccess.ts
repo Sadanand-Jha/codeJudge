@@ -10,3 +10,11 @@ export function canUseCustomHeader(subscription: HeaderPlan): boolean {
   if (!subscription?.isPaid) return false;
   return Boolean(subscription.planSlug && CUSTOM_HEADER_PLAN_SLUGS.has(subscription.planSlug));
 }
+
+export type ProfilePhotoPlan = Pick<MySubscription, "isPaid" | "status"> | null | undefined;
+
+/** Custom profile photos require an active paid plan or an active trial. */
+export function canChangeProfilePhoto(subscription: ProfilePhotoPlan): boolean {
+  if (!subscription?.isPaid) return false;
+  return subscription.status === "active" || subscription.status === "trialing";
+}

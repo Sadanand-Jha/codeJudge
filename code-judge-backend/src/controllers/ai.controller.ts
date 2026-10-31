@@ -17,7 +17,6 @@
  * internal LLM errors are never surfaced verbatim to the client.
  */
 import type { Request, Response } from "express";
-import jwt from "jsonwebtoken";
 import { randomUUID } from "node:crypto";
 import { streamChatWithAI, chatWithAI } from "../services/ai.service.js";
 import type { LiveUsage, ChatMessageInput } from "../services/ai.service.js";
@@ -34,6 +33,7 @@ import {
   type AiCreditCharge,
 } from "../services/aiCredits.service.ts";
 import { EntitlementError } from "../services/entitlements/errors.ts";
+import { verifySessionToken } from "../services/session.js";
 
 /**
  * Best-effort user id for operational logging. The AI endpoints are not
@@ -46,11 +46,7 @@ const getUserId = (req: Request): string | undefined => {
     req.headers.authorization?.replace(/^Bearer\s+/i, "");
   if (!token) return undefined;
   try {
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "your-fallback-secret-key-change-in-production"
-    ) as { userId?: string };
-    return decoded.userId;
+    return verifySessionToken(token).userId;
   } catch {
     return undefined;
   }

@@ -69,3 +69,40 @@ export const verifyOrderSchema = z.object({
   razorpay_signature: z.string().trim().min(1).max(255),
   pack_id: packKeyField.optional().nullable(),
 });
+
+
+const optionalText = z.string().trim().max(120).optional().nullable();
+
+export const suggestionQuerySchema = z
+  .object({
+    plan_id: planIdField.optional(),
+    plan_slug: z.string().trim().min(1).max(120).optional(),
+    pack_id: packKeyField.optional(),
+    pack: packKeyField.optional(),
+  })
+  .refine((value) => Boolean(value.plan_id || value.plan_slug || value.pack_id || value.pack), {
+    message: "plan_id, plan_slug, or pack_id is required",
+    path: ["plan_id"],
+  });
+
+export const createBundleOrderSchema = z.object({
+  bundle_id: planIdField,
+  coupon: couponField,
+  coupon_code: couponField,
+  currency: currencyField,
+});
+
+export const checkoutSuggestionEventSchema = z.object({
+  event: z.enum([
+    "suggestion_shown",
+    "suggestion_accepted",
+    "suggestion_declined",
+    "switch_back",
+    "purchase_completed",
+  ]),
+  suggestion_type: z.enum(["A", "B"]).optional().nullable(),
+  source_product_id: optionalText,
+  product_id: optionalText,
+  plan_code: optionalText,
+  session_id: optionalText,
+});

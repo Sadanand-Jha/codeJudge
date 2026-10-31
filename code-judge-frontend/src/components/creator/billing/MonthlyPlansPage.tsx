@@ -16,16 +16,22 @@ import { getApiErrorMessage } from "@/lib/apiError";
 import { formatTrialEnd, getTrialState, useMySubscription } from "@/hooks/useMySubscription";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { useToast } from "@/hooks/useToast";
-import { useTrialStatus } from "@/hooks/useTrialStatus";
 import {
   openRazorpayCheckout,
   RazorpayCheckoutDismissedError,
   type RazorpayPaymentPayload,
 } from "@/services/aiCredits";
-import { createPlanOrder, verifyPlanPayment } from "@/services/billing";
+import {
+  createBundleOrder,
+  createPlanOrder,
+  verifyBundlePayment,
+  verifyPlanPayment,
+} from "@/services/billing";
+import { trackCheckoutEvent } from "@/services/analytics";
 import { formatPricingAmount, getPlanDiscount, type PricingPlan } from "@/services/pricing";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { PlanCheckoutDialog, type PlanPurchaseReceipt } from "./PlanCheckoutDialog";
+import { InvoiceV2Dialog } from "./InvoiceV2Dialog";
 import { TrialRequestPanel } from "./TrialRequestPanel";
 import type { PurchasePhase } from "./credits/OrderSummaryDialog";
 import { PageHeader } from "./ui";
@@ -38,22 +44,17 @@ const PILL =
 function PlanCard({
   plan,
   currentPlanId,
-  trialAvailable,
   onSelect,
 }: {
   plan: PricingPlan;
   currentPlanId: string;
-  trialAvailable: boolean;
   onSelect: (plan: PricingPlan) => void;
 }) {
   const isCurrent = plan.slug === currentPlanId;
   const isHot = plan.featured && !isCurrent;
   const includedCredits = plan.credits > 0;
   const discount = getPlanDiscount(plan);
-  const showTrialCta = Boolean(plan.trialDays) && trialAvailable;
-  const features = plan.features.filter(
-    (feature) => trialAvailable || !/trial/i.test(feature)
-  );
+  const features = plan.features.filter((feature) => !/trial/i.test(feature));
 
   return (
     <article
@@ -93,9 +94,7 @@ function PlanCard({
               : "bg-[var(--qs-bg)] text-[var(--qs-muted)]"
           )}
         >
-          {showTrialCta
-            ? `${plan.trialDays}-day trial`
-            : plan.discountBadge || (discount > 0 ? `${discount}% off` : "Monthly")}
+          {plan.discountBadge || (discount > 0 ? `${discount}% off` : "Monthly")}
         </span>
       </div>
 
@@ -189,19 +188,6 @@ function PlanCard({
           <Check className="h-4 w-4" />
           Current plan
         </span>
-      ) : showTrialCta ? (
-        <Link
-          href="#trial-request"
-          className={cn(
-            "flex w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] py-[13px] text-[14px] font-extrabold transition-all",
-            isHot
-              ? "bg-[var(--qs-sun)] text-[#1A1240] hover:brightness-105"
-              : "bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:bg-[var(--qs-ink)] hover:text-[var(--qs-bg)]"
-          )}
-        >
-          {`Request ${plan.trialDays}-day free trial`}
-          <ArrowRight className="h-4 w-4" />
-        </Link>
       ) : (
         <button
           type="button"
@@ -231,13 +217,13 @@ export function MonthlyPlansPage({
   const refreshCredits = useAICreditsStore((state) => state.refresh);
   const { subscription, isLoading, refresh: refreshSubscription } = useMySubscription();
   const { catalog, isLoading: catalogLoading, error: catalogError, refresh: refreshCatalog } = usePricingCatalog();
-  const { status: trialStatus } = useTrialStatus();
   const toast = useToast();
   const [checkoutPlan, setCheckoutPlan] = useState<PricingPlan | null>(null);
   const [phase, setPhase] = useState<PurchasePhase>("summary");
   const [phaseError, setPhaseError] = useState<string | null>(null);
   const [processingNote, setProcessingNote] = useState("Creating your order…");
   const [receipt, setReceipt] = useState<PlanPurchaseReceipt | null>(null);
+  const [invoiceOrderId, setInvoiceOrderId] = useState<string | null>(null);
   const [dismissedInitialPlan, setDismissedInitialPlan] = useState(false);
 
   useEffect(() => {
@@ -263,7 +249,6 @@ export function MonthlyPlansPage({
         : "Trial expired"
       : displayPlan?.name ?? "Free plan";
   const trialEndsOn = formatTrialEnd(subscription?.trialEnd ?? null);
-  const trialAvailable = trialStatus?.eligible === true;
   const isFreePlan = !isLoading && !isTrialActive && !isTrialExpired && !displayPlan;
 
   const deepLinkPlan =
@@ -289,8 +274,11 @@ export function MonthlyPlansPage({
     setReceipt(null);
   };
 
-  const runPlanPurchase = async () => {
-    const plan = checkoutPlan;
+  const runPlanPurchase = async (selection: {
+    mode: "plan" | "bundle";
+    bundleId?: number;
+  }) => {
+    const plan = activeCheckoutPlan;
     if (!plan || phase === "processing") return;
 
     setPhase("processing");
@@ -298,8 +286,56 @@ export function MonthlyPlansPage({
     setReceipt(null);
     try {
       setProcessingNote("Creating your order…");
-      const order = await createPlanOrder({ planId: plan.id, planSlug: plan.slug });
+      if (selection.mode === "bundle") {
+        if (!selection.bundleId) {
+          throw new Error("The bundle selection expired. Close this window and try again.");
+        }
+        const order = await createBundleOrder({ bundleId: selection.bundleId });
+        setProcessingNote("Waiting for payment…");
+        const payment: RazorpayPaymentPayload | null = await openRazorpayCheckout({
+          order,
+          itemName: `${order.planName} + ${order.packCredits} AI credits`,
+          notes: {
+            bundle_id: String(order.bundleId),
+            plan_id: String(order.planId),
+            pack_id: String(order.packId),
+          },
+        }).catch((error: unknown) => {
+          if (error instanceof RazorpayCheckoutDismissedError) return null;
+          throw error;
+        });
+        if (!payment) {
+          setPhase("cancelled");
+          return;
+        }
 
+        setProcessingNote("Activating your plan and credits…");
+        const verified = await verifyBundlePayment(order, payment);
+        await Promise.allSettled([refreshSubscription(), refreshCredits()]);
+        trackCheckoutEvent({
+          event: "purchase_completed",
+          suggestionType: "A",
+          sourceProductId: `plan:${order.planId}`,
+          productId: `bundle:${order.bundleId}`,
+          planCode: order.planSlug,
+        });
+        setReceipt({
+          transactionId: verified.transactionId,
+          orderId: verified.orderId,
+          planName: `${verified.planName ?? order.planName} + ${verified.packName ?? order.packName}`,
+          credits: verified.credits,
+          newBalance: verified.newBalance,
+          expiresAt: verified.expiresAt,
+        });
+        setPhase("success");
+        toast.success({
+          title: "Bundle activated",
+          description: `${verified.planName ?? order.planName} and ${verified.credits} AI credits are ready.`,
+        });
+        return;
+      }
+
+      const order = await createPlanOrder({ planId: plan.id, planSlug: plan.slug });
       setProcessingNote("Waiting for payment…");
       const payment: RazorpayPaymentPayload | null = await openRazorpayCheckout({
         order,
@@ -318,9 +354,15 @@ export function MonthlyPlansPage({
       setProcessingNote("Activating your plan…");
       const verified = await verifyPlanPayment(order, payment);
       await Promise.allSettled([refreshSubscription(), refreshCredits()]);
+      trackCheckoutEvent({
+        event: "purchase_completed",
+        productId: `plan:${plan.slug}`,
+        planCode: plan.slug,
+      });
 
       setReceipt({
         transactionId: verified.transactionId,
+        orderId: verified.orderId,
         planName: verified.planName ?? plan.name,
         credits: verified.credits,
         newBalance: verified.newBalance,
@@ -466,7 +508,6 @@ export function MonthlyPlansPage({
               key={plan.slug}
               plan={plan}
               currentPlanId={isTrialActive ? "" : activePlanId}
-              trialAvailable={trialAvailable}
               onSelect={startCheckout}
             />
           ))}
@@ -503,6 +544,7 @@ export function MonthlyPlansPage({
       <AnimatePresence>
         {activeCheckoutPlan && (
           <PlanCheckoutDialog
+            key={activeCheckoutPlan.slug}
             plan={activeCheckoutPlan}
             balance={balance.totalRemaining}
             phase={phase}
@@ -510,11 +552,21 @@ export function MonthlyPlansPage({
             processingNote={processingNote}
             receipt={receipt}
             onClose={closeCheckout}
-            onPay={() => void runPlanPurchase()}
+            onPay={(selection) => void runPlanPurchase(selection)}
+            onViewInvoice={setInvoiceOrderId}
             onBack={() => {
               setPhase("summary");
               setPhaseError(null);
             }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {invoiceOrderId && (
+          <InvoiceV2Dialog
+            orderId={invoiceOrderId}
+            onClose={() => setInvoiceOrderId(null)}
           />
         )}
       </AnimatePresence>

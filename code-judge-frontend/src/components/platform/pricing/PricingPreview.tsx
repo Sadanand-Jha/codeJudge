@@ -100,9 +100,8 @@ export function PricingPreview({
                 ) : (
                   plans.map((plan) => {
                     const percent = discountPercent(plan);
-                    const pill = plan.trialDays
-                      ? `${plan.trialDays}-day trial`
-                      : plan.discountBadge || (percent > 0 ? `${percent}% off` : null);
+                    const pill =
+                      plan.discountBadge || (percent > 0 ? `${percent}% off` : null);
                     return (
                       <article key={plan.slug} className={`qp-plan${plan.featured ? " is-hot" : ""}`}>
                         {plan.featured && <span className="qp-badge">Most popular</span>}
@@ -122,7 +121,7 @@ export function PricingPreview({
                           {plan.credits > 0 ? `${plan.credits} AI credits / month` : "AI credits sold separately"}
                         </p>
                         <ul className="qp-features">
-                          {plan.features.map((feature, index) => (
+                          {plan.features.filter((feature) => !/trial/i.test(feature)).map((feature, index) => (
                             <li key={`${feature}-${index}`}>
                               <span className="qp-tick" aria-hidden="true">
                                 <Check size={11} strokeWidth={3.5} />

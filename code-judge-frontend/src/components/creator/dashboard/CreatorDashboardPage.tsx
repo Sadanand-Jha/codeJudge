@@ -717,7 +717,7 @@ function StatusMixPanel({ quizzes }: { quizzes: QuizRow[] }) {
               y="76"
               textAnchor="middle"
               className="qs-display"
-              style={{ fill: "var(--qs-ink)", font: "800 30px 'Bricolage Grotesque', sans-serif" }}
+              style={{ fill: "var(--qs-ink)", font: "800 30px 'Onest', sans-serif" }}
             >
               {total}
             </text>
@@ -725,7 +725,7 @@ function StatusMixPanel({ quizzes }: { quizzes: QuizRow[] }) {
               x="70"
               y="92"
               textAnchor="middle"
-              style={{ fill: "var(--qs-muted)", font: "700 10px 'DM Sans', sans-serif" }}
+              style={{ fill: "var(--qs-muted)", font: "700 10px 'Onest', sans-serif" }}
             >
               Quizzes
             </text>

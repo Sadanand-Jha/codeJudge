@@ -5,7 +5,7 @@ import { useAICreditsStore } from "@/store/aiCreditsStore";
 const rawBase =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://api.quizsupport.com/api";
+  "/api";
 const API_BASE = rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "");
 
 /**

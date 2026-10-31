@@ -77,8 +77,12 @@ function getSubjectInfo(name: string): SubjectInfo {
 }
 
 /* ─── Status → compact qs-ui tone ─── */
+function normalizeStatus(status: string) {
+  return status.trim().toLowerCase().replace(/[_\s-]+/g, " ");
+}
+
 function statusTone(status: string): { text: string; dot: string; chip: string } {
-  switch (status.trim().toLowerCase()) {
+  switch (normalizeStatus(status)) {
     case "completed":
       return { text: "text-[var(--qs-ok)]", dot: "bg-[var(--qs-ok)]", chip: "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]" };
     case "submitted":
@@ -111,8 +115,7 @@ function scoreBar(pct: number): string {
    ═══════════════════════════════════════════════════════════════ */
 
 function statusLabel(status: string) {
-  return status
-    .trim()
+  return normalizeStatus(status)
     .split(/\s+/)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(" ");
@@ -151,7 +154,7 @@ function StatCard({
         </span>
       </div>
       <div>
-        <p className="mt-0.5 truncate text-[20px] font-extrabold leading-[1.15] text-[var(--qs-ink)] tabular-nums lg:mt-0 lg:text-[28px] lg:leading-none lg:tracking-tight lg:[font-family:var(--font-bricolage),var(--font-inter),system-ui,sans-serif]">{value}</p>
+        <p className="mt-0.5 truncate text-[20px] font-extrabold leading-[1.15] text-[var(--qs-ink)] tabular-nums lg:mt-0 lg:text-[28px] lg:leading-none lg:tracking-tight lg:[font-family:var(--font-onest),system-ui,sans-serif]">{value}</p>
         <p className="mt-0.5 truncate text-[11px] text-[var(--qs-muted)] lg:mt-1.5">{hint}</p>
       </div>
     </div>
@@ -542,7 +545,7 @@ export default function YourActivitySection({
 
   const overview = useMemo(() => {
     const list = recentQuizzes || [];
-    const completed = list.filter((q) => q.status.trim().toLowerCase() === "completed").length;
+    const completed = list.filter((q) => normalizeStatus(q.status) === "completed").length;
     const scores = list
       .filter((q) => q.result_available !== false)
       .map((q) => Number(q.percentage))

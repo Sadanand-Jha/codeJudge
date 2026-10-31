@@ -116,7 +116,7 @@ export function buildTrapSvgDataUri({
   height,
   color,
   fontSize,
-  fontFamily = "DM Sans, system-ui, sans-serif",
+  fontFamily = "Onest, system-ui, sans-serif",
 }: TrapSvgOptions): string {
   const w = Math.max(1, Math.ceil(width));
   const h = Math.max(1, Math.ceil(height));

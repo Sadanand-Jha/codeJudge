@@ -44,7 +44,6 @@ export function CreatorProfilePage() {
     displayName: profile.displayName,
     bio: profile.bio,
     website: profile.website,
-    email: profile.email,
     phone: profile.phone,
     location: profile.location,
     experience: profile.experienceYears,
@@ -189,11 +188,17 @@ export function CreatorProfilePage() {
                 <div className="relative">
                   <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
                   <input
-                    className={cn(INPUT_CLS, "pl-9")}
-                    value={form.email}
-                    onChange={(e) => update("email", e.target.value)}
+                    className={cn(INPUT_CLS, "cursor-not-allowed pl-9 text-text-muted")}
+                    value={profile.email}
+                    readOnly
+                    aria-readonly="true"
+                    tabIndex={-1}
+                    title="Email cannot be changed"
                   />
                 </div>
+                <p className="mt-1 text-[10px] font-medium text-text-muted">
+                  Email cannot be changed.
+                </p>
               </div>
               <div>
                 <label className={LABEL_CLS}>Phone</label>

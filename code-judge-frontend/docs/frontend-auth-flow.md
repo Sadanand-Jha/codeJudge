@@ -2,7 +2,7 @@
 
 ## Overview
 
-The frontend uses a **3-step email verification registration** and **token-based session management**. All auth pages protect against already-authenticated users via `AuthGuard`.
+The frontend uses a **3-step email verification registration** and **cookie-based session management**. The signed JWT lives only in the backend-issued httpOnly `session_token` cookie; no session token is written to `localStorage`. Auth pages redirect already-authenticated users away via `AuthGuard` / the login page redirect effect.
 
 ---
 
@@ -33,11 +33,10 @@ The frontend uses a **3-step email verification registration** and **token-based
 - User confirms password
 - Client validates password strength and match
 - Calls `POST /api/auth/register` with `{ email, password, registration_token }`
-- Backend creates user, returns `{ user, token }`
+- Backend creates the user and returns `{ user }`; registration does **not** start a session
 - On success:
-  - Stores auth in `localStorage` and `useAuthStore`
-  - Resets form
-  - Redirects to `/login`
+  - Resets the form
+  - Redirects to `/login` so the user signs in normally
 - Toast: `Account created successfully!`
 
 ### Resend OTP
@@ -50,10 +49,15 @@ The frontend uses a **3-step email verification registration** and **token-based
 
 ## Login Flow (`/login`)
 
-- Email/handle and password fields
-- Simulated login (currently)
-- On success: stores token/user in `localStorage` and `useAuthStore`
-- Redirects to `/dashboard`
+- Email/username + password, or Google/GitHub OAuth
+- Password login: `POST /api/auth/login` sets the httpOnly `session_token` cookie
+- OAuth: Authorization Code + PKCE via `/api/auth/oauth/:provider/start`; the
+  backend callback sets the same httpOnly session cookie. OAuth access/refresh
+  tokens are never stored in the browser. See `docs/oauth-login.md`.
+- On success: stores the user profile in `localStorage`/`useAuthStore` (the
+  session itself lives only in the httpOnly cookie)
+- Redirects to `?next=` when present, otherwise `/creator` for teachers or
+  `/quiz` for students
 
 ---
 
@@ -71,16 +75,22 @@ The frontend uses a **3-step email verification registration** and **token-based
 
 ```typescript
 interface AuthState {
-  token: string | null;
-  user: { id: string; email: string; username?: string } | null;
+  token: string | null;          // in-memory sentinel ("session"), not a JWT
+  user: UserProfile | null;
   isAuthenticated: boolean;
+  hasHydrated: boolean;
 
-  setAuth(token, user): void;   // persists to localStorage
-  logout(): void;                // clears localStorage
+  setAuth(token, user): void;    // ignores token; session is the cookie
+  fetchMe(): Promise<UserProfile | null>;
+  logout(): void;
+  hydrate(): Promise<void>;
 }
 ```
 
-**Persistence**: Token and user are stored in `localStorage` under keys `token` and `user`.
+**Persistence**: Only `{ user, isAuthenticated }` is persisted in
+`localStorage`. The session itself is restored by calling `/auth/me` with the
+httpOnly cookie. Legacy `quizsupport_token` / `quizsupport_user` values and any
+persisted `token` field are removed during rehydration.
 
 ---
 
@@ -116,19 +126,30 @@ interface AuthState {
 
 ## Environment Variables
 
-```
-NEXT_PUBLIC_API_URL=http://10.107.212.98:8000/api
+Cookie auth requires requests to go through the **frontend origin**. Prefer the
+relative `/api` base, which `next.config.ts` rewrites to `BACKEND_URL`:
+
+```dotenv
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+BACKEND_URL=http://localhost:8000
+# Leave NEXT_PUBLIC_BACKEND_URL unset (or set it to the same origin) so axios
+# uses /api. An absolute API host breaks the host-only session cookie.
 ```
 
-All auth requests use `fetch()` directly with this base URL.
+See `.env.example` in the frontend and `docs/oauth-login.md`.
 
 ---
 
 ## Files Involved
 
-- `src/app/(auth)/register/page.tsx` — 3-step registration form with inline store
-- `src/app/(auth)/login/page.tsx` — Login form (simulated)
-- `src/app/(auth)/forgot-password/page.tsx` — Forgot password (simulated)
-- `src/components/guards/AuthGuard.tsx` — Route guard for unauthenticated pages
-- `src/store/authStore.ts` — Zustand auth state with localStorage
-- `src/services/auth.ts` — Axios-based API helpers (legacy, register page uses fetch directly)
+- `src/app/(auth)/register/page.tsx` — registration route wrapper
+- `src/components/forms/RegistrationForm.tsx` — 3-step OTP + password form
+- `src/app/(auth)/login/page.tsx` — password + OAuth login and error messages
+- `src/app/(auth)/forgot-password/page.tsx` — password reset flow
+- `src/components/guards/AuthGuard.tsx` — redirects already-authenticated users
+- `src/store/authStore.ts` — cookie-backed Zustand auth state; hydrates via `/auth/me`
+- `src/lib/axios.ts` — `withCredentials` API client (no bearer token)
+- `src/lib/authHeaders.ts` — native `fetch` auth headers (cookie-only; returns `{}`)
+- `src/services/auth.ts` — auth API helpers
+- `src/components/auth/OAuthButtons.tsx` — Google/GitHub start buttons
+- `docs/oauth-login.md` — OAuth setup, architecture, and security notes

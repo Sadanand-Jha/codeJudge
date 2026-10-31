@@ -203,6 +203,13 @@ export default async function HomePage() {
             <div>
               <h1>Choose a topic. AI writes your paper.</h1>
               <p className="lpx-lead">Pick subject and chapters. Share one code. Watch results land.</p>
+              <div className="lpx-ai-note">
+                <Sparkles size={15} aria-hidden />
+                <span>
+                  <b>Enterprise-grade AI models</b> — tuned for exam-quality questions
+                  and the best results.
+                </span>
+              </div>
             </div>
             <div className="lpx-hero-demo">
               <SampleQuizDemo timerSeconds={45} />

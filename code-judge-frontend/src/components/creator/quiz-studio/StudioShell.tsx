@@ -225,7 +225,7 @@ export function StudioStepper() {
                   </span>
                   <span
                     className={cn(
-                      "min-w-0 text-[8px] font-extrabold uppercase leading-[1.15] tracking-[0.02em] sm:text-[10px] sm:leading-tight sm:tracking-normal lg:text-[11px]",
+                      "hidden min-w-0 text-[8px] font-extrabold uppercase leading-[1.15] tracking-[0.02em] sm:inline sm:text-[10px] sm:leading-tight sm:tracking-normal lg:text-[11px]",
                       step.label.includes("&") ? "whitespace-normal" : "whitespace-nowrap"
                     )}
                   >

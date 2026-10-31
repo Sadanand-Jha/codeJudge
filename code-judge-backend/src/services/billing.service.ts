@@ -16,6 +16,7 @@ import type {
   OrderType,
   PurchasableCreditPack,
   PurchasablePlan,
+  PurchasablePlanBundle,
 } from "../repositories/billing.repository.ts";
 import {
   addDays,
@@ -32,6 +33,11 @@ import {
   RazorpayClient,
   RazorpayGatewayError,
 } from "./billing/razorpay.client.ts";
+import {
+  buildPackUpgradeSuggestion,
+  buildPlanBundleSuggestion,
+  type CheckoutSuggestion,
+} from "./billing/suggestions.ts";
 import type {
   RazorpayPayment,
   RazorpayRefund,
@@ -42,6 +48,7 @@ import {
 } from "./billing/signatures.ts";
 import { invalidateEntitlements } from "./entitlement.service.ts";
 import { writeSubscriptionAudit } from "./subscriptionAudit.service.ts";
+import * as invoiceService from "./invoice.service.ts";
 
 const BILLING_LOCK_NAMESPACE = 72_831;
 const ACTIVE_ORDER_STATUSES = new Set(["pending", "failed"]);
@@ -87,6 +94,56 @@ export interface PlanOrderResponse {
   keyId: string;
 }
 
+export interface BundleOrderResponse {
+  orderId: string;
+  orderNo: string;
+  razorpayOrderId: string;
+  amountPaise: number;
+  currency: string;
+  bundleId: number;
+  planId: number;
+  planSlug: string;
+  planName: string;
+  planCredits: number;
+  packId: number;
+  packCode: string;
+  packName: string;
+  packCredits: number;
+  packValidityDays: number;
+  credits: number;
+  validityDays: number;
+  keyId: string;
+}
+
+export interface VerifiedBundlePurchase {
+  transactionId: string;
+  orderId: string;
+  bundleId: number | null;
+  planId: number | null;
+  planSlug: string | null;
+  planName: string | null;
+  packId: number | null;
+  packCode: string | null;
+  packName: string | null;
+  planCredits: number;
+  packCredits: number;
+  credits: number;
+  validityDays: number;
+  packValidityDays: number | null;
+  startsAt: string | null;
+  expiresAt: string | null;
+  packExpiresAt: string | null;
+  subscriptionId: number | null;
+  newBalance: number;
+  currency: string;
+  amountPaise: number;
+}
+
+export interface CheckoutSuggestionResponse {
+  suggestion: CheckoutSuggestion | null;
+  planCode: string | null;
+}
+
 export interface VerifyCreditOrderInput {
   orderKey: string;
   razorpayOrderId: string | null;
@@ -96,6 +153,7 @@ export interface VerifyCreditOrderInput {
 
 export interface VerifiedCreditResponse {
   transactionId: string;
+  orderId: string;
   packId: string;
   credits: number;
   newBalance: number;
@@ -133,6 +191,8 @@ interface CompletedOrder {
   plan: { id: number; slug: string; name: string } | null;
   subscriptionId: number | null;
   balance: CreditBalanceSummary;
+  /** True only for the transaction that moved the order into "paid". */
+  newlyPaid: boolean;
 }
 
 /**
@@ -236,6 +296,25 @@ function packOrderNotes(pack: PurchasableCreditPack, orderId: string): Record<st
 }
 
 /**
+ * Builds Razorpay notes for a bundle checkout. Both catalog ids are included
+ * so support can reconcile a combined purchase from the gateway dashboard.
+ */
+function bundleOrderNotes(
+  bundle: PurchasablePlanBundle,
+  orderId: string
+): Record<string, string> {
+  return {
+    local_order_id: orderId,
+    order_type: "bundle",
+    bundle_id: String(bundle.id),
+    plan_id: String(bundle.planId),
+    plan_slug: bundle.plan.slug,
+    pack_id: String(bundle.packId),
+    pack_code: bundle.pack.code,
+  };
+}
+
+/**
  * Locks and validates a coupon for this user and item, then computes its discount and bonus days. Limits, validity windows, and plan allowlists are enforced before the order exists.
  */
 async function resolveCouponForCheckout(
@@ -307,6 +386,11 @@ async function createPendingOrder(
     creditsTotal: number;
     couponCode: string | null;
     notes: string;
+    parentOrderId?: string | null;
+    bundleId?: number | null;
+    bundlePlanCredits?: number;
+    bundlePackCredits?: number;
+    bundlePackValidityDays?: number | null;
   },
   client: PoolClient
 ): Promise<OrderRow> {
@@ -345,6 +429,11 @@ async function createPendingOrder(
       couponId: coupon?.coupon.id ?? null,
       couponCode: coupon?.coupon.code ?? null,
       notes: input.notes.slice(0, 255),
+      parentOrderId: input.parentOrderId ?? null,
+      bundleId: input.bundleId ?? null,
+      bundlePlanCredits: input.bundlePlanCredits ?? 0,
+      bundlePackCredits: input.bundlePackCredits ?? 0,
+      bundlePackValidityDays: input.bundlePackValidityDays ?? null,
     },
     client
   );
@@ -463,6 +552,37 @@ function planOrderResponse(
 }
 
 /**
+ * Formats a bundle order for the frontend checkout. The pay button, credits and
+ * value copy all use this server-owned snapshot.
+ */
+function bundleOrderResponse(
+  order: OrderRow,
+  bundle: PurchasablePlanBundle,
+  keyId: string
+): BundleOrderResponse {
+  return {
+    orderId: order.id,
+    orderNo: order.orderNo,
+    razorpayOrderId: order.gatewayOrderId ?? "",
+    amountPaise: order.amountPaise,
+    currency: order.currency,
+    bundleId: bundle.id,
+    planId: bundle.planId,
+    planSlug: bundle.plan.slug,
+    planName: bundle.plan.name,
+    planCredits: order.bundlePlanCredits,
+    packId: bundle.packId,
+    packCode: bundle.pack.code,
+    packName: bundle.pack.name,
+    packCredits: order.bundlePackCredits,
+    packValidityDays: order.bundlePackValidityDays ?? bundle.pack.validityDays,
+    credits: order.bundlePlanCredits + order.bundlePackCredits,
+    validityDays: order.validityDays,
+    keyId,
+  };
+}
+
+/**
  * Creates, converts, or extends the user's subscription based on the purchased plan. It returns the exact order window used for credits and entitlement access.
  */
 async function activatePlanSubscription(
@@ -563,6 +683,115 @@ function validateGatewayPayment(order: OrderRow, payment: RazorpayPayment): void
 }
 
 /**
+ * Creates the two paid grant orders for a bundle: one plan grant (subscription
+ * window) and one pack grant (its own validity). Both inserts happen inside the
+ * parent payment transaction, so a bundle grants both or neither.
+ */
+async function grantBundleChildrenTx(
+  client: PoolClient,
+  parent: OrderRow,
+  now: Date,
+  finalBalance: number
+): Promise<void> {
+  if (
+    parent.packId === null ||
+    parent.catalogPlanId === null ||
+    parent.bundlePlanCredits < 0 ||
+    parent.bundlePackCredits < 0
+  ) {
+    throw new BillingError(
+      409,
+      "BUNDLE_INVALID",
+      "This bundle is missing its catalogue snapshot."
+    );
+  }
+
+  const pack = await billingRepository.findCreditPackById(parent.packId, client);
+  if (!pack) {
+    throw new BillingError(
+      409,
+      "PACK_UNAVAILABLE",
+      "The credit pack in this bundle is no longer available."
+    );
+  }
+
+  const packValidityDays = Math.max(
+    1,
+    parent.bundlePackValidityDays ?? pack.validityDays
+  );
+  const planStartsAt = parent.startsAt ?? now;
+  const planExpiresAt =
+    parent.expiresAt ?? addDays(planStartsAt, Math.max(1, parent.validityDays));
+  const packStartsAt = now;
+  const packExpiresAt = addDays(packStartsAt, packValidityDays);
+
+  const planGrant = await billingRepository.insertBundleGrantOrder(
+    {
+      orderNo: orderNumber(),
+      userId: parent.userId,
+      parentOrderId: parent.id,
+      orderType: "plan",
+      planId: parent.planId,
+      catalogPlanId: parent.catalogPlanId,
+      catalogPriceId: parent.catalogPriceId,
+      packId: null,
+      validityDays: parent.validityDays,
+      creditsTotal: parent.bundlePlanCredits,
+      startsAt: planStartsAt,
+      expiresAt: planExpiresAt,
+      subscriptionId: parent.subscriptionId,
+    },
+    client
+  );
+
+  const packGrant = await billingRepository.insertBundleGrantOrder(
+    {
+      orderNo: orderNumber(),
+      userId: parent.userId,
+      parentOrderId: parent.id,
+      orderType: "credit_pack",
+      planId: null,
+      catalogPlanId: null,
+      catalogPriceId: null,
+      packId: parent.packId,
+      validityDays: packValidityDays,
+      creditsTotal: parent.bundlePackCredits,
+      startsAt: packStartsAt,
+      expiresAt: packExpiresAt,
+      subscriptionId: null,
+    },
+    client
+  );
+
+  if (planGrant.creditsTotal > 0) {
+    await billingRepository.insertCreditTransaction(
+      {
+        userId: parent.userId,
+        orderId: planGrant.id,
+        amount: planGrant.creditsTotal,
+        reason: "plan_credit_grant",
+        refId: parent.orderNo,
+        balanceAfter: finalBalance,
+      },
+      client
+    );
+  }
+  if (packGrant.creditsTotal > 0) {
+    await billingRepository.insertCreditTransaction(
+      {
+        userId: parent.userId,
+        orderId: packGrant.id,
+        amount: packGrant.creditsTotal,
+        reason: "credit_pack_purchase",
+        refId: parent.orderNo,
+        balanceAfter: finalBalance,
+      },
+      client
+    );
+  }
+}
+
+/**
  * Applies a verified payment inside an existing transaction. It locks the user and order, activates a plan when needed, grants credits, and returns the resulting balance and subscription.
  */
 async function completeOrderTx(
@@ -600,6 +829,7 @@ async function completeOrderTx(
       plan,
       subscriptionId: order.subscriptionId,
       balance: await billingRepository.getCreditBalance(order.userId, client),
+      newlyPaid: false,
     };
   }
 
@@ -613,7 +843,7 @@ async function completeOrderTx(
   let expiresAt = addDays(now, Math.max(1, order.validityDays));
   let subscriptionId: number | null = order.subscriptionId;
 
-  if (order.orderType === "plan") {
+  if (order.orderType === "plan" || order.orderType === "bundle") {
     const placement = await activatePlanSubscription(client, order, now);
     startsAt = placement.startsAt;
     expiresAt = placement.expiresAt;
@@ -629,7 +859,7 @@ async function completeOrderTx(
       gatewayPayload: payment,
       startsAt,
       expiresAt,
-      creditsTotal: order.creditsTotal,
+      creditsTotal: order.orderType === "bundle" ? 0 : order.creditsTotal,
       validityDays: order.validityDays,
       subscriptionId,
     },
@@ -637,7 +867,9 @@ async function completeOrderTx(
   );
 
   const balance = await billingRepository.getCreditBalance(updated.userId, client);
-  if (updated.creditsTotal > 0) {
+  if (updated.orderType === "bundle") {
+    await grantBundleChildrenTx(client, updated, now, balance.total);
+  } else if (updated.creditsTotal > 0) {
     await billingRepository.insertCreditTransaction(
       {
         userId: updated.userId,
@@ -652,14 +884,19 @@ async function completeOrderTx(
     );
   }
 
-  return { order: updated, plan, subscriptionId, balance };
+  return { order: updated, plan, subscriptionId, balance, newlyPaid: true };
 }
 
 /**
  * Runs cache invalidation and audit logging after a plan transaction commits. Failures here are logged because the paid entitlement must not be rolled back.
  */
 async function afterOrderActivated(result: CompletedOrder): Promise<void> {
-  if (result.order.orderType !== "plan") return;
+  if (result.newlyPaid) {
+    await invoiceService.sendOrderEmails(result.order);
+  }
+  if (result.order.orderType !== "plan" && result.order.orderType !== "bundle") {
+    return;
+  }
   try {
     await invalidateEntitlements(result.order.userId);
   } catch (error) {
@@ -677,11 +914,16 @@ async function afterOrderActivated(result: CompletedOrder): Promise<void> {
     after: {
       orderId: result.order.id,
       orderNo: result.order.orderNo,
+      orderType: result.order.orderType,
       planId: result.order.catalogPlanId,
       planSlug: result.plan?.slug ?? null,
+      packId: result.order.packId,
       startsAt: result.order.startsAt,
       expiresAt: result.order.expiresAt,
-      credits: result.order.creditsTotal,
+      credits:
+        result.order.orderType === "bundle"
+          ? result.order.bundlePlanCredits + result.order.bundlePackCredits
+          : result.order.creditsTotal,
     },
   });
 }
@@ -749,6 +991,7 @@ function creditVerificationResult(
 ): VerifiedCreditResponse {
   return {
     transactionId: order.orderNo,
+    orderId: order.id,
     packId: packCode,
     credits: order.creditsTotal,
     newBalance: balance.total,
@@ -779,6 +1022,50 @@ function planVerificationResult(
   };
 }
 
+/**
+ * Formats a verified bundle response. Amounts and credits come from the parent
+ * order snapshot and the child grants, never from the client.
+ */
+function bundleVerificationResult(
+  order: OrderRow,
+  balance: CreditBalanceSummary,
+  plan: { id: number; slug: string; name: string } | null,
+  pack: PurchasableCreditPack | null,
+  grants: OrderRow[] = []
+): VerifiedBundlePurchase {
+  const packGrant = grants.find((grant) => grant.orderType === "credit_pack");
+  return {
+    transactionId: order.orderNo,
+    orderId: order.id,
+    bundleId: order.bundleId,
+    planId: order.catalogPlanId,
+    planSlug: plan?.slug ?? null,
+    planName: plan?.name ?? null,
+    packId: order.packId,
+    packCode: pack?.code ?? null,
+    packName: pack?.name ?? null,
+    planCredits: order.bundlePlanCredits,
+    packCredits: order.bundlePackCredits,
+    credits: order.bundlePlanCredits + order.bundlePackCredits,
+    validityDays: order.validityDays,
+    packValidityDays: order.bundlePackValidityDays ?? pack?.validityDays ?? null,
+    startsAt: order.startsAt?.toISOString() ?? null,
+    expiresAt: order.expiresAt?.toISOString() ?? null,
+    packExpiresAt:
+      packGrant?.expiresAt?.toISOString() ??
+      (order.startsAt == null
+        ? null
+        : addDays(
+            order.startsAt,
+            order.bundlePackValidityDays ?? pack?.validityDays ?? 180
+          ).toISOString()),
+    subscriptionId: order.subscriptionId,
+    newBalance: balance.total,
+    currency: order.currency,
+    amountPaise: order.amountPaise,
+  };
+}
+
 export class BillingService {
   /**
    * Reports whether checkout can run on this instance. The public config endpoint exposes the same answer to the client.
@@ -793,6 +1080,122 @@ export class BillingService {
   getPublicConfig(): { configured: boolean; keyId: string | null } {
     const config = getRazorpayConfig();
     return { configured: Boolean(config), keyId: config?.keyId ?? null };
+  }
+
+  /**
+   * Returns the server-owned upsell for a selected plan or pack. Prices,
+   * eligibility, and per-credit value are computed here, never in the client.
+   */
+  async getCheckoutSuggestion(
+    userId: string | null,
+    input: {
+      planId?: number | null;
+      planSlug?: string | null;
+      packId?: string | number | null;
+    }
+  ): Promise<CheckoutSuggestionResponse> {
+    const packs = await billingRepository.listPurchasableCreditPacks();
+
+    if (input.planId != null || input.planSlug) {
+      const plan = await billingRepository.findPurchasablePlan({
+        planId: input.planId ?? null,
+        planSlug: input.planSlug ?? null,
+      });
+      if (!plan) {
+        throw new BillingError(404, "PLAN_NOT_FOUND", "This plan is not available.");
+      }
+
+      const hasActivePlan = userId
+        ? await billingRepository.hasActivePlanOrder(userId)
+        : false;
+      const bundle = await billingRepository.findPlanBundleForPlan(plan.planId);
+      const suggestion = bundle
+        ? buildPlanBundleSuggestion({ bundle, hasActivePlan })
+        : null;
+      if (suggestion) {
+        return { suggestion, planCode: plan.slug };
+      }
+
+      // Subscribers cannot buy a second plan, so fall back to the best pack
+      // upgrade (if they do not already own it).
+      if (userId && hasActivePlan && packs.length > 1) {
+        const holdings = await billingRepository.getActivePackHoldings(userId);
+        const highestOwned = holdings[0]?.priceInr ?? null;
+        const source = [...packs].sort((a, b) => a.priceInr - b.priceInr)[0];
+        return {
+          suggestion: buildPackUpgradeSuggestion({
+            selectedPack: source,
+            packs,
+            highestOwnedPackPriceInr: highestOwned,
+          }),
+          planCode: plan.slug,
+        };
+      }
+
+      return { suggestion: null, planCode: plan.slug };
+    }
+
+    if (input.packId == null) {
+      throw new BillingError(400, "SUGGESTION_INPUT_REQUIRED", "Select a plan or pack first.");
+    }
+    const selectedPack = await billingRepository.findPurchasableCreditPack(
+      String(input.packId)
+    );
+    if (!selectedPack) {
+      throw new BillingError(404, "PACK_NOT_FOUND", "This credit pack is not available.");
+    }
+
+    const holdings = userId
+      ? await billingRepository.getActivePackHoldings(userId)
+      : [];
+    return {
+      suggestion: buildPackUpgradeSuggestion({
+        selectedPack,
+        packs,
+        highestOwnedPackPriceInr: holdings[0]?.priceInr ?? null,
+      }),
+      planCode: null,
+    };
+  }
+
+  /**
+   * Best-effort checkout funnel telemetry. A logging failure must never block
+   * a purchase or a UI action.
+   */
+  async recordCheckoutEvent(
+    userId: string | null,
+    input: {
+      event:
+        | "suggestion_shown"
+        | "suggestion_accepted"
+        | "suggestion_declined"
+        | "switch_back"
+        | "purchase_completed";
+      suggestionType: "A" | "B" | null;
+      sourceProductId: string | null;
+      productId: string | null;
+      planCode: string | null;
+      sessionId: string | null;
+    }
+  ): Promise<{ recorded: boolean }> {
+    try {
+      await billingRepository.insertCheckoutSuggestionEvent({
+        userId,
+        event: input.event,
+        suggestionType: input.suggestionType,
+        sourceProductId: input.sourceProductId,
+        productId: input.productId,
+        planCode: input.planCode,
+        sessionId: input.sessionId,
+      });
+      return { recorded: true };
+    } catch (error) {
+      console.error("Checkout suggestion event could not be recorded", {
+        event: input.event,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return { recorded: false };
+    }
   }
 
   /**
@@ -955,6 +1358,116 @@ export class BillingService {
   }
 
   /**
+   * Creates the parent bundle checkout. Eligibility, catalogue prices, coupon
+   * applicability, and the discount snapshot are all validated server-side.
+   */
+  async createBundleOrder(
+    userId: string,
+    input: {
+      bundleId: number;
+      couponCode: string | null;
+      currency?: string | null;
+    }
+  ): Promise<BundleOrderResponse> {
+    const config = requireGatewayConfig();
+    const bundle = await billingRepository.findPlanBundleById(input.bundleId);
+    if (!bundle) {
+      throw new BillingError(404, "BUNDLE_NOT_FOUND", "This bundle is not available.");
+    }
+
+    const plan = bundle.plan;
+    const pack = bundle.pack;
+    const planValidityDays = validityDaysForPeriod(
+      plan.billingPeriod,
+      plan.customDays
+    );
+    const regularPaise = Math.max(
+      bundle.mrpPaise,
+      plan.amountPaise + pack.priceInr * 100
+    );
+    if (bundle.amountPaise <= 0 || bundle.amountPaise >= regularPaise) {
+      throw new BillingError(
+        409,
+        "BUNDLE_INVALID",
+        "This bundle is not currently available at a valid price."
+      );
+    }
+
+    const currency = resolveCurrency(plan.currency, input.currency);
+    const couponCode = normalizeCouponCode(input.couponCode);
+    const legacyPlanId = await billingRepository.findLegacyMonthlyPlanId(plan.slug);
+
+    let prepared: { order: OrderRow; created: boolean };
+    try {
+      prepared = await withTransaction(async (client) => {
+        await lockBillingUser(client, userId);
+        if (await billingRepository.hasActivePlanOrder(userId, client)) {
+          throw new BillingError(
+            409,
+            "PLAN_ALREADY_ACTIVE",
+            "You already have an active plan. Choose a credit pack instead."
+          );
+        }
+
+        const reusable = await billingRepository.findReusablePendingOrder(
+          {
+            userId,
+            orderType: "bundle",
+            catalogPlanId: plan.planId,
+            packId: pack.id,
+            couponCode,
+          },
+          client
+        );
+        if (reusable) return { order: reusable, created: false };
+
+        const order = await createPendingOrder(
+          {
+            userId,
+            orderType: "bundle",
+            legacyPlanId,
+            catalogPlanId: plan.planId,
+            catalogPriceId: plan.priceId,
+            packId: pack.id,
+            currency,
+            listPricePaise: regularPaise,
+            sellingPricePaise: bundle.amountPaise,
+            baseValidityDays: planValidityDays,
+            creditsTotal: 0,
+            couponCode,
+            notes: `Bundle: ${bundle.name}`,
+            bundleId: bundle.id,
+            bundlePlanCredits: Math.max(0, plan.credits),
+            bundlePackCredits: Math.max(0, pack.credits),
+            bundlePackValidityDays: Math.max(1, pack.validityDays),
+          },
+          client
+        );
+        return { order, created: true };
+      });
+    } catch (error) {
+      if (isUniqueViolation(error, "uq_orders_open_checkout")) {
+        throw new BillingError(
+          409,
+          "CHECKOUT_IN_PROGRESS",
+          "A checkout for this bundle is already being created. Please try again in a moment."
+        );
+      }
+      throw error;
+    }
+
+    if (!prepared.created) {
+      return bundleOrderResponse(prepared.order, bundle, config.keyId);
+    }
+
+    const withGateway = await startGatewayOrder(
+      prepared.order,
+      bundleOrderNotes(bundle, prepared.order.id)
+    );
+    return bundleOrderResponse(withGateway, bundle, config.keyId);
+  }
+
+  /**
    * Verifies a credit-pack payment and grants credits exactly once. Already-paid orders return the current balance without re-granting.
    */
   async verifyCreditOrder(
@@ -1014,6 +1527,7 @@ export class BillingService {
         plan,
         subscriptionId: order.subscriptionId,
         balance: await billingRepository.getCreditBalance(order.userId),
+        newlyPaid: false,
       });
     }
 
@@ -1023,6 +1537,57 @@ export class BillingService {
     );
     await afterOrderActivated(completed);
     return planVerificationResult(completed);
+  }
+
+  /**
+   * Verifies a bundle payment. The parent owns the gateway payment; children are
+   * granted atomically inside the same transaction.
+   */
+  async verifyBundleOrder(
+    userId: string,
+    input: VerifyCreditOrderInput
+  ): Promise<VerifiedBundlePurchase> {
+    const order = await billingRepository.findOrderForUser(userId, input.orderKey);
+    if (!order) {
+      throw new BillingError(404, "ORDER_NOT_FOUND", "Order not found.");
+    }
+    if (order.orderType !== "bundle") {
+      throw new BillingError(400, "WRONG_ORDER_TYPE", "This is not a bundle order.");
+    }
+
+    const plan =
+      order.catalogPlanId === null
+        ? null
+        : await billingRepository.findPlanSummaryById(order.catalogPlanId);
+    const pack =
+      order.packId === null
+        ? null
+        : await billingRepository.findCreditPackById(order.packId);
+
+    if (order.status === "paid") {
+      const grants = await billingRepository.listBundleGrantOrders(order.id);
+      return bundleVerificationResult(
+        order,
+        await billingRepository.getCreditBalance(order.userId),
+        plan,
+        pack,
+        grants
+      );
+    }
+
+    const { payment } = await verifySignatureAndPayment(order, input);
+    const completed = await withTransaction((client) =>
+      completeOrderTx(client, order, payment, input.razorpaySignature)
+    );
+    await afterOrderActivated(completed);
+    const grants = await billingRepository.listBundleGrantOrders(completed.order.id);
+    return bundleVerificationResult(
+      completed.order,
+      completed.balance,
+      completed.plan,
+      pack,
+      grants
+    );
   }
 
   /**
@@ -1092,6 +1657,10 @@ export class BillingService {
     if (!order) {
       throw new BillingError(404, "ORDER_NOT_FOUND", "Order not found.");
     }
+    const grants =
+      order.orderType === "bundle"
+        ? await billingRepository.listBundleGrantOrders(order.id)
+        : [];
     return {
       orderId: order.id,
       orderNo: order.orderNo,
@@ -1099,8 +1668,14 @@ export class BillingService {
       status: order.status,
       amountPaise: order.amountPaise,
       currency: order.currency,
-      credits: order.creditsTotal,
-      creditsRemaining: order.creditsRemaining,
+      credits:
+        order.orderType === "bundle"
+          ? grants.reduce((sum, grant) => sum + grant.creditsTotal, 0)
+          : order.creditsTotal,
+      creditsRemaining:
+        order.orderType === "bundle"
+          ? grants.reduce((sum, grant) => sum + grant.creditsRemaining, 0)
+          : order.creditsRemaining,
       planId: order.catalogPlanId,
       packId: order.packId,
       startsAt: order.startsAt?.toISOString() ?? null,
@@ -1108,6 +1683,27 @@ export class BillingService {
       paidAt: order.paidAt?.toISOString() ?? null,
       failureReason: order.failureReason,
     };
+  }
+
+  /**
+   * Returns the canonical invoice snapshot for one user-owned paid order.
+   */
+  async getInvoice(userId: string, orderKey: string) {
+    return invoiceService.getInvoiceForUser(userId, orderKey);
+  }
+
+  /**
+   * Renders the invoice PDF for download.
+   */
+  async getInvoicePdf(userId: string, orderKey: string) {
+    return invoiceService.getInvoicePdfForUser(userId, orderKey);
+  }
+
+  /**
+   * Re-sends the invoice email with the PDF attached.
+   */
+  async emailInvoice(userId: string, orderKey: string) {
+    return invoiceService.emailInvoiceForUser(userId, orderKey);
   }
 
   /**
@@ -1278,8 +1874,29 @@ export class BillingService {
       );
     }
 
-    const balance = await billingRepository.getCreditBalance(refunded.userId, client);
-    if (refunded.creditsRemaining > 0) {
+    let balance = await billingRepository.getCreditBalance(refunded.userId, client);
+    if (refunded.orderType === "bundle") {
+      const grants = await billingRepository.refundBundleGrantOrders(
+        refunded.id,
+        `Refund ${refund.id}`,
+        client
+      );
+      balance = await billingRepository.getCreditBalance(refunded.userId, client);
+      for (const grant of grants) {
+        if (grant.creditsRemaining <= 0) continue;
+        await billingRepository.insertCreditTransaction(
+          {
+            userId: refunded.userId,
+            orderId: grant.id,
+            amount: -grant.creditsRemaining,
+            reason: "refund",
+            refId: refunded.orderNo,
+            balanceAfter: balance.total,
+          },
+          client
+        );
+      }
+    } else if (refunded.creditsRemaining > 0) {
       await billingRepository.insertCreditTransaction(
         {
           userId: refunded.userId,
@@ -1301,6 +1918,7 @@ export class BillingService {
           : await billingRepository.findPlanSummaryById(refunded.catalogPlanId, client),
       subscriptionId: refunded.subscriptionId,
       balance,
+      newlyPaid: false,
     };
   }
 }

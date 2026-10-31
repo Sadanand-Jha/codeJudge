@@ -57,6 +57,11 @@ const FOCUS_ALLOWED_EXACT = ["/", "/robots.txt", "/sitemap.xml"];
 const NOINDEX_NOFOLLOW_PREFIXES = ["/quiz", "/rooms", "/profile", "/settings", "/creator", "/platform"];
 const NOINDEX_FOLLOW_PREFIXES = ["/login", "/register", "/forgot-password"];
 
+// Fast UX gate only. A cookie's presence says nothing about its validity, so
+// every protected API must still verify the JWT via the backend authenticate
+// middleware. This just avoids rendering an app shell for signed-out visitors.
+const AUTH_REQUIRED_PREFIXES = ["/quiz", "/profile", "/settings", "/creator"];
+
 function matchesPrefix(pathname: string, prefixes: string[]): boolean {
   return prefixes.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
@@ -91,10 +96,10 @@ function isPathAllowed(pathname: string): boolean {
 
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const normalized = pathname !== "/" && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
 
   if (FOCUS_MODE_ENABLED && !isPathAllowed(pathname)) {
     const url = request.nextUrl.clone();
-    const normalized = pathname !== "/" && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
 
     // Marketing pages that are blocked but kept in the build: send visitors
     // home instead of the quiz hub.
@@ -111,8 +116,15 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  if (matchesPrefix(normalized, AUTH_REQUIRED_PREFIXES) && !request.cookies.has("session_token")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = "";
+    url.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
+    return NextResponse.redirect(url);
+  }
+
   const response = NextResponse.next();
-  const normalized = pathname !== "/" && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
   if (matchesPrefix(normalized, NOINDEX_NOFOLLOW_PREFIXES)) {
     response.headers.set("X-Robots-Tag", "noindex, nofollow");
   } else if (matchesPrefix(normalized, NOINDEX_FOLLOW_PREFIXES)) {

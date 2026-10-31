@@ -8,14 +8,12 @@ import {
   ChevronRight,
   Check,
   Plus,
-  Trash2,
   FileText,
   Layers,
   HelpCircle,
   ListChecks,
   Eye,
   Timer,
-  Clock3,
   BookmarkPlus,
   FolderOpen,
   Save,
@@ -26,8 +24,8 @@ import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/helpers";
 import { deleteSectionBlueprint, getQuestionGeneratorCatalog, getSectionBlueprints, saveSectionBlueprint, useSectionBlueprint as applySectionBlueprint } from "@/services/aiGenerate";
 import type { SectionBlueprint } from "@/services/aiGenerate";
-import { EXAMS, LANGUAGES } from "@/components/tests/mockData";
 import { AiStreamText } from "@/components/ui";
+import styles from "./CreateTestWizard.module.css";
 import { SectionCard } from "./sections/SectionCard";
 import { AIGenerateModal } from "./sections/AIGenerateModal";
 import { QuestionsStep } from "./sections/QuestionsStep";
@@ -53,7 +51,7 @@ const STEPS = [
 
 // The current curated question bank is Operating Systems only. Keep the UI
 // aligned with the backend rather than presenting unavailable mock subjects.
-const SUBJECT_POOL = ["Operating System"];
+const DURATION_PRESETS = [60, 90, 120, 180];
 
 const cloneBlueprintSections = (sections: Section[]): Section[] => sections.map((section, sectionIndex) => ({
   ...section,
@@ -91,27 +89,18 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   const [description, setDescription] = useState("");
   const [instructions, setInstructions] = useState("");
   const [duration, setDuration] = useState(180);
-  const [examId, setExamId] = useState("");
   const [subjects, setSubjects] = useState<string[]>(["Operating System"]);
-  // Same subject source as Create Problem (question-generator catalog), so
-  // both pages always show identical subjects. Null = still loading.
-  const [catalogSubjects, setCatalogSubjects] = useState<string[] | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
     getQuestionGeneratorCatalog(controller.signal)
       .then((catalog) => {
         const names = catalog.subjects.map((s) => s.name);
-        setCatalogSubjects(names);
         if (names.length > 0) setSubjects(names);
       })
-      .catch((err) => {
-        if (err?.name !== "AbortError") setCatalogSubjects([]);
-      });
+      .catch(() => undefined);
     return () => controller.abort();
   }, []);
-  const [language, setLanguage] = useState<string>("english");
-  const [difficulty, setDifficulty] = useState("medium");
   const [sections, setSections] = useState<Section[]>([createDefaultSection(0)]);
   const [draftId] = useState(() => `draft-${Date.now()}`);
   const [paperHeader, setPaperHeader] = useState<PaperHeaderMeta>({ ...DEFAULT_PAPER_HEADER });
@@ -152,8 +141,6 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
     () => paperHeader.subject.trim() ? [paperHeader.subject.trim()] : subjects.length === 1 ? subjects : [],
     [paperHeader.subject, subjects]
   );
-
-  const selectedExam = EXAMS.find((e) => e.id === examId);
 
   const canContinue = () => {
     if (step === 0) return title.trim().length > 3;
@@ -359,179 +346,186 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   }, [persistPaper]);
 
   return (
-    <div className="creator-mobile-calm w-full space-y-4 pb-10 pt-1 sm:pt-2">
-      <header className="relative overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3.5 sm:px-5 sm:py-4">
-        <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
-              <FileText className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <h1 className="text-lg font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-xl">{meta.title}</h1>
-                <span className="rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.12em] text-[#1a1240]">Draft</span>
+    <div className={cn(styles.root, "creator-mobile-calm qs-onest")}>
+      <section className={styles.hero}>
+        <i className={styles.heroA} aria-hidden="true" />
+        <i className={styles.heroB} aria-hidden="true" />
+        <i className={styles.heroC} aria-hidden="true" />
+        <i className={styles.heroD} aria-hidden="true" />
+
+        <div className={styles.heroInner}>
+          <div className={styles.head}>
+            <div className={styles.titleRow}>
+              <span className={styles.icon}>
+                <FileText className="h-7 w-7" />
+              </span>
+              <div className={styles.titleWrap}>
+                <h1 className={styles.title}>
+                  {meta.title}
+                  <span className={styles.pill}>Draft</span>
+                </h1>
+                <p className={styles.sub}>{meta.subtitle}</p>
               </div>
-              <p className="mt-0.5 max-w-2xl text-xs leading-5 text-[var(--qs-muted)]">{meta.subtitle}</p>
+            </div>
+
+            <div className={styles.meta}>
+              <div className={styles.metric}>
+                <strong>{totalQuestions}</strong>
+                <small>questions</small>
+              </div>
+              <div className={styles.metric}>
+                <strong>{totalMarks}</strong>
+                <small>marks</small>
+              </div>
+              <div className={styles.metric}>
+                <strong>{duration || 0}</strong>
+                <small>min</small>
+              </div>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-3 border-t-2 border-[var(--qs-line)] pt-2 text-xs text-[var(--qs-muted)] sm:border-0 sm:pt-0">
-            <span><strong className="text-sm font-extrabold tabular-nums text-[var(--qs-ink)]">{totalQuestions}</strong> questions</span>
-            <span className="h-4 w-0.5 rounded-full bg-[var(--qs-line)]" />
-            <span><strong className="text-sm font-extrabold tabular-nums text-[var(--qs-ink)]">{duration || 0}</strong> min</span>
-          </div>
         </div>
-      </header>
+      </section>
 
-      {/* Mobile progress keeps the active task clear without a tiny, overflowing stepper. */}
-      <div className="rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3 shadow-[3px_3px_0_var(--qs-sun)] sm:hidden">
-        <div className="flex items-center justify-between gap-3 text-xs">
-          <span className="font-extrabold text-[var(--qs-ink)]">{STEPS[step].label}</span>
-          <span className="shrink-0 font-bold tabular-nums text-[var(--qs-muted)]">{step + 1} / {STEPS.length}</span>
-        </div>
-        <div className="mt-2 h-2.5 overflow-hidden rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)]">
-          <div className="h-full rounded-full bg-[var(--qs-brand)] transition-all duration-300" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
-        </div>
-      </div>
-
-      {/* Desktop stepper */}
-      <div className="hidden items-center gap-1 overflow-x-auto pb-1 sm:flex">
-        {STEPS.map((s, i) => {
-          const done = i < step;
-          const active = i === step;
-          return (
-            <div key={s.id} className="flex shrink-0 items-center gap-1">
-              <button
-                type="button"
-                onClick={() => i < step && setStep(i)}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-xl border-2 px-3 py-1.5 text-[11px] font-bold transition-all",
-                  active &&
-                    "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)]",
-                  done && "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]",
-                  !active && !done && "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)]"
-                )}
-              >
-                {done ? <Check className="h-3 w-3" /> : <s.icon className="h-3 w-3" />}
-                {s.label}
-              </button>
-              {i < STEPS.length - 1 && (
-                <ChevronRight className={cn("mx-0.5 h-3.5 w-3.5", done ? "text-[var(--qs-ok)]" : "text-[var(--qs-muted)]")} />
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Primary navigation stays above the working area, so teachers never need to hunt for it. */}
-      <div className="sticky top-[2px] z-30 flex items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card/95 px-3 py-2.5 shadow-[0_10px_28px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:px-4">
-        <button
-          type="button"
-          onClick={goBack}
-          disabled={step === 0}
-          className="b sm shrink-0 gap-1.5"
-        >
-          <ChevronLeft className="h-4 w-4" /> Back
-        </button>
-
-        <div className="hidden min-w-0 flex-1 items-center justify-center gap-2 text-center sm:flex">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[11px] font-extrabold text-[var(--qs-on-brand)]">
-            {step + 1}
-          </span>
-          <div className="min-w-0 text-left">
-            <p className="truncate text-xs font-extrabold text-[var(--qs-ink)]">{STEPS[step].label}</p>
-            <p className="text-[10px] font-semibold text-[var(--qs-muted)]">Step {step + 1} of {STEPS.length}</p>
-          </div>
+      <div className={styles.body}>
+        <div className={styles.steps}>
+          {STEPS.map((s, i) => {
+            const done = i < step;
+            const active = i === step;
+            return (
+              <div key={s.id} className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => i < step && setStep(i)}
+                  aria-current={active ? "step" : undefined}
+                  className={cn(styles.step, done && styles.stepDone, active && styles.stepActive)}
+                >
+                  {done ? <Check className="h-4 w-4" /> : <s.icon className="h-4 w-4" />}
+                  <span>{s.label}</span>
+                </button>
+                {i < STEPS.length - 1 && <ChevronRight className={cn(styles.chev, "h-4 w-4")} />}
+              </div>
+            );
+          })}
         </div>
 
-        {sectionChoicePending ? (
-          <span className="ml-auto max-w-[12rem] text-right text-[10px] font-semibold leading-4 text-[var(--qs-muted)] sm:max-w-none sm:text-xs">
-            Choose a section option to continue
-          </span>
-        ) : hasNextStep ? (
-          <button
-            type="button"
-            onClick={goForward}
-            disabled={!canContinue() || autoSavingSections}
-            className="b b-pri sm ml-auto gap-1.5"
-          >
-            <span className="hidden sm:inline">{autoSavingSections ? "Saving…" : "Continue"}</span>
-            <span className="max-w-[9rem] truncate sm:hidden">{STEPS[step + 1].label}</span>
-            <ChevronRight className="h-4 w-4 shrink-0" />
+        <div className={styles.bar}>
+          <button type="button" onClick={goBack} disabled={step === 0} className={styles.back}>
+            <ChevronLeft className="h-4 w-4" /> Back
           </button>
-        ) : (
-          <span
-            className={cn(
-              "ml-auto inline-flex h-9 items-center gap-1.5 rounded-full border-2 px-3 text-[11px] font-bold",
-              saveState === "error"
-                ? "border-[var(--qs-bad)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]"
-                : "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]"
-            )}
-          >
-            <Check className="h-3.5 w-3.5" />
-            {saveState === "saved" ? "Paper saved" : saveState === "saving" ? "Saving paper…" : saveState === "error" ? "Paper not saved" : "Generate your paper"}
-          </span>
-        )}
-      </div>
 
-      {/* Panel */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          data-creator-step-panel
-          key={step}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.25 }}
-          className={cn(
-            "rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 sm:p-6",
-            step === 1 && sectionEditorOpen && "overflow-hidden"
+          <div className={styles.cur}>
+            <span className={styles.num}>{step + 1}</span>
+            <div className={styles.curText}>
+              <p className={styles.curTitle}>{STEPS[step].label}</p>
+              <p className={styles.curStep}>Step {step + 1} of {STEPS.length}</p>
+            </div>
+          </div>
+
+          {sectionChoicePending ? (
+            <span className={styles.pending}>Choose a section option to continue</span>
+          ) : hasNextStep ? (
+            <button
+              type="button"
+              onClick={goForward}
+              disabled={!canContinue() || autoSavingSections}
+              className={styles.next}
+            >
+              <span>{autoSavingSections ? "Saving…" : "Continue"}</span>
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          ) : (
+            <span className={cn(styles.statusPill, saveState === "error" && styles.statusBad)}>
+              <Check className="h-3.5 w-3.5" />
+              {saveState === "saved" ? "Paper saved" : saveState === "saving" ? "Saving paper…" : saveState === "error" ? "Paper not saved" : "Generate your paper"}
+            </span>
           )}
-        >
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            data-creator-step-panel
+            key={step}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.25 }}
+            className={cn(styles.panel, step === 1 && sectionEditorOpen && "overflow-hidden")}
+          >
           {step === 0 && (
-            <div className="space-y-5">
-              <div>
-                <label className="mb-2 block text-sm font-bold text-[var(--qs-ink)]">Test Title<span className="ml-1 text-red-500">*</span></label>
+            <div>
+              <div className={styles.field}>
+                <label htmlFor="test-title" className={styles.label}>
+                  <span>
+                    Test title <span className={styles.req}>*</span>
+                  </span>
+                </label>
                 <input
+                  id="test-title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. JEE Main 2026 Mock Test 01"
-                  className="h-12 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-[15px] font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
+                  autoComplete="off"
+                  className={styles.input}
                 />
               </div>
-              <div className="grid gap-4 md:grid-cols-2">
+
+              <div className={cn(styles.g2, styles.field)}>
                 <div>
-                  <label className="mb-2 block text-sm font-bold text-[var(--qs-ink)]">Description</label>
+                  <label htmlFor="test-description" className={styles.label}>
+                    Description <span className={styles.optional}>Optional</span>
+                  </label>
                   <textarea
+                    id="test-description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={4}
-                    placeholder="What does this test cover — pattern, difficulty, target audience..."
-                    className="min-h-[108px] w-full resize-y rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3 text-[15px] font-medium leading-relaxed text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
+                    placeholder="What does this test cover: pattern, difficulty, target audience…"
+                    className={styles.textarea}
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-bold text-[var(--qs-ink)]">Instructions</label>
+                  <label htmlFor="test-instructions" className={styles.label}>
+                    Instructions <span className={styles.optional}>Printed on the paper</span>
+                  </label>
                   <textarea
+                    id="test-instructions"
                     value={instructions}
                     onChange={(e) => setInstructions(e.target.value)}
                     rows={4}
                     placeholder="e.g. Each question carries 4 marks. No negative marking."
-                    className="min-h-[108px] w-full resize-y rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3 text-[15px] font-medium leading-relaxed text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
+                    className={styles.textarea}
                   />
                 </div>
               </div>
-              <div className="md:max-w-xs">
-                <label className="mb-2 block text-sm font-bold text-[var(--qs-ink)]">Duration (minutes)</label>
-                <div className="relative">
-                  <Timer className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
-                  <input
-                    type="number"
-                    min={5}
-                    max={600}
-                    value={duration || ""}
-                    onChange={(e) => setDuration(Number(e.target.value))}
-                    className="h-12 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-10 pr-4 text-[15px] font-bold tabular-nums text-[var(--qs-ink)] outline-none transition-colors focus:border-[var(--qs-brand)]"
-                  />
+
+              <div className={styles.fieldLast}>
+                <span className={styles.label}>Duration (minutes)</span>
+                <div className={styles.durationRow}>
+                  <div className={styles.durationWrap}>
+                    <Timer className={styles.durationIcon} />
+                    <input
+                      type="number"
+                      min={5}
+                      max={600}
+                      value={duration || ""}
+                      onChange={(e) => setDuration(Number(e.target.value))}
+                      aria-label="Duration in minutes"
+                      className={cn(styles.input, styles.durationInput)}
+                    />
+                  </div>
+                  <div className={styles.chips}>
+                    {DURATION_PRESETS.map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setDuration(preset)}
+                        aria-pressed={duration === preset}
+                        className={cn(styles.chip, duration === preset && styles.chipOn)}
+                      >
+                        {preset} min
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -776,77 +770,53 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
           )}
 
           {step === 3 && (
-            <div className="space-y-4">
-              <div className="mx-auto max-w-md overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
-                <div className="flex h-32 items-center justify-center border-b-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
-                  {selectedExam ? (
-                    <div className="flex flex-col items-center gap-2">
-                      <span className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[var(--qs-on-brand)]/40 bg-[var(--qs-on-brand)]/10">
-                        <selectedExam.icon className="h-6 w-6" />
-                      </span>
-                      <span className="text-sm font-extrabold">
-                        {selectedExam.name} · {title || "Untitled Test"}
+            <div>
+              <article className={styles.paper}>
+                <h2 className={styles.paperTitle}>{title.trim() || "Untitled test"}</h2>
+                <div className={styles.paperMeta}>
+                  <span>Time: {generatedPaper?.durationMinutes ?? duration ?? 0} min</span>
+                  <span>Max marks: {generatedPaper?.totalMarks ?? totalMarks}</span>
+                </div>
+
+                {description.trim() ? (
+                  <>
+                    <h4 className={styles.paperHeading}>About</h4>
+                    <p className={styles.paperText}>{description}</p>
+                  </>
+                ) : null}
+
+                <h4 className={styles.paperHeading}>Instructions</h4>
+                {instructions.trim() ? (
+                  <p className={styles.paperText}>{instructions}</p>
+                ) : (
+                  <p className={cn(styles.paperText, styles.empty)}>No instructions added.</p>
+                )}
+
+                <h4 className={styles.paperHeading}>Sections</h4>
+                <div>
+                  {sections.map((section) => (
+                    <div key={section.id} className={styles.paperRow}>
+                      <span>{section.name || "Untitled section"}</span>
+                      <span>
+                        {getSectionQuestionCount(section)} Qs · {getSectionMarks(section)} marks
                       </span>
                     </div>
-                  ) : (
-                    <span className="text-sm font-bold">Question Paper</span>
-                  )}
+                  ))}
                 </div>
-                <div className="p-4">
-                  <h3 className="text-sm font-bold text-[var(--qs-ink)]">{title || "Untitled Test"}</h3>
-                  <p className="mt-1 line-clamp-2 text-xs text-[var(--qs-muted)]">{description || "No description yet."}</p>
-                  <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-[var(--qs-ink)]">
-                    <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 font-bold">
-                      {(generatedPaper?.totalQuestions ?? totalQuestions)} Qs
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 font-bold">
-                      <Clock3 className="h-3 w-3" /> {generatedPaper?.durationMinutes ?? duration ?? 0} min
-                    </span>
-                    <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 font-bold capitalize">{difficulty}</span>
-                    <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 font-bold capitalize">
-                      {LANGUAGES.find((l) => l.id === language)?.label}
-                    </span>
-                    <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 font-bold">
-                      {generatedPaper?.totalMarks ?? totalMarks} marks
-                    </span>
-                  </div>
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t-2 border-[var(--qs-line)] pt-3">
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1.5 text-xs font-bold",
-                        saveState === "error" ? "text-[var(--qs-bad)]" : saveState === "saved" ? "text-[var(--qs-ok)]" : "text-[var(--qs-muted)]"
-                      )}
-                    >
-                      {saveState === "saved" ? <Check className="h-3.5 w-3.5" /> : null}
-                      {saveState === "saved"
-                        ? "Saved to your account"
-                        : saveState === "saving"
-                          ? "Saving to your account…"
-                          : saveState === "error"
-                            ? "Could not save this paper"
-                            : "Generate the paper to save it"}
-                    </span>
-                    <span className="rounded-lg border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-3 py-1 text-[11px] font-bold text-[#1a1240]">
-                      {generatedPaper ? "Question paper" : "Draft"}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              </article>
 
-              {saveError && (
-                <p className="mx-auto max-w-md rounded-xl border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] px-3 py-2 text-center text-xs font-semibold text-[var(--qs-bad)]">
-                  {saveError}
-                </p>
-              )}
+              {saveError && <p className={styles.saveError}>{saveError}</p>}
 
-              <div className="flex flex-wrap items-center justify-center gap-3">
-                <button type="button" onClick={() => setStep(2)} className="b">Back to Questions</button>
+              <div className={styles.actions}>
+                <button type="button" onClick={() => setStep(2)} className={styles.actionGhost}>
+                  Back to Questions
+                </button>
                 {saveState === "error" && generatedPaper && (
-                  <button type="button" onClick={() => void persistPaper(generatedPaper)} className="b b-pri gap-1.5">
+                  <button type="button" onClick={() => void persistPaper(generatedPaper)} className={styles.actionPrimary}>
                     Retry save
                   </button>
                 )}
-                <Link href="/creator/tests" className="b b-pri gap-1.5">
+                <Link href="/creator/tests" className={styles.actionPrimary}>
                   View my tests
                 </Link>
               </div>
@@ -854,6 +824,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
           )}
         </motion.div>
       </AnimatePresence>
+      </div>
 
       <AnimatePresence>
         {saveBlueprintOpen && (
