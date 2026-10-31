@@ -31,14 +31,12 @@ router.get('/check-username', checkUsernameController);
 
 /**
  * GET /api/auth/oauth/google/start?next=/quiz
- * GET /api/auth/oauth/github/start?next=/quiz
  * Creates a PKCE + state request and redirects to the provider.
  */
 router.get('/oauth/:provider/start', startOAuthController);
 
 /**
  * GET /api/auth/oauth/google/callback
- * GET /api/auth/oauth/github/callback
  * Provider callback. Validates state, signs in/creates the user, sets the
  * httpOnly session_token cookie, then redirects back to the frontend login page.
  */

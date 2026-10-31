@@ -1,5 +1,5 @@
 // OAuth login endpoints. The browser starts at the frontend origin
-// (/api/auth/oauth/:provider/start), is redirected to Google/GitHub, and comes
+// (/api/auth/oauth/:provider/start), is redirected to Google, and comes
 // back to the frontend origin so the session cookie is set first-party.
 import crypto from "node:crypto";
 import type { Request, Response } from "express";
@@ -25,9 +25,9 @@ const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL
 // PRODUCTION OAUTH CHECKLIST (fix these if "oAuth kaam nahi kar raha hai"):
 // 1. NODE_ENV=production (or VERCEL=1)  -> cookies get secure: true
 // 2. FRONTEND_URL / OAUTH_CALLBACK_BASE_URL = public HTTPS frontend origin,
-//    NOT http://localhost:3000 (Google/GitHub redirect_uri must match exactly).
+//    NOT http://localhost:3000 (Google redirect_uri must match exactly).
 // 3. Register this exact callback in the provider console:
-//    https://<FRONTEND_URL>/api/auth/oauth/<provider>/callback   (include www)
+//    https://<FRONTEND_URL>/api/auth/oauth/google/callback   (include www)
 // 4. Frontend and backend are cross-origin? -> SESSION_COOKIE_SAME_SITE=none
 //    (cookieSameSite() above). Same-origin /api rewrite -> keep "lax".
 // 5. Redis must be reachable: OAuth state is stored in Redis; if Redis is down

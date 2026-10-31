@@ -35,8 +35,6 @@ async function main() {
   process.env.OAUTH_CALLBACK_BASE_URL = "";
   process.env.GOOGLE_CLIENT_ID = "google-client";
   process.env.GOOGLE_CLIENT_SECRET = "google-secret";
-  process.env.GITHUB_CLIENT_ID = "github-client";
-  process.env.GITHUB_CLIENT_SECRET = "github-secret";
   process.env.JWT_SECRET = "test-secret-with-more-than-32-characters";
 
   await test("Google authorization URL has S256 PKCE, state, scopes, and callback", async () => {
@@ -52,18 +50,6 @@ async function main() {
     );
     assert.ok(state.length >= 16);
     assert.ok(codeVerifier.length >= 43);
-  });
-
-  await test("GitHub authorization URL has S256 PKCE and minimum scopes", async () => {
-    const { authorizationUrl, state } = await createAuthorizationRequest("github");
-    assert.equal(authorizationUrl.origin, "https://github.com");
-    assert.equal(authorizationUrl.searchParams.get("code_challenge_method"), "S256");
-    assert.equal(authorizationUrl.searchParams.get("state"), state);
-    assert.equal(authorizationUrl.searchParams.get("scope"), "read:user user:email");
-    assert.equal(
-      authorizationUrl.searchParams.get("redirect_uri"),
-      "http://localhost:3000/api/auth/oauth/github/callback",
-    );
   });
 
   await test("callback base URL can be overridden independently of FRONTEND_URL", () => {

@@ -51,18 +51,8 @@ const GOOGLE_SERVER: oidc.ServerMetadata = {
   id_token_signing_alg_values_supported: ["RS256"],
 };
 
-const GITHUB_SERVER: oidc.ServerMetadata = {
-  issuer: "https://github.com",
-  authorization_endpoint: "https://github.com/login/oauth/authorize",
-  token_endpoint: "https://github.com/login/oauth/access_token",
-  response_types_supported: ["code"],
-  grant_types_supported: ["authorization_code"],
-  token_endpoint_auth_methods_supported: ["client_secret_post"],
-  code_challenge_methods_supported: ["S256"],
-};
-
 export function isOAuthProvider(value: unknown): value is OAuthProvider {
-  return value === "google" || value === "github";
+  return value === "google";
 }
 
 function firstOrigin(value: string | undefined): string {
@@ -83,9 +73,8 @@ export function getOAuthCallbackUrl(provider: OAuthProvider): string {
 }
 
 function getProviderSettings(provider: OAuthProvider): ProviderSettings {
-  const clientId = (provider === "google" ? process.env.GOOGLE_CLIENT_ID : process.env.GITHUB_CLIENT_ID)?.trim() || "";
-  const clientSecret =
-    (provider === "google" ? process.env.GOOGLE_CLIENT_SECRET : process.env.GITHUB_CLIENT_SECRET)?.trim() || "";
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim() || "";
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim() || "";
 
   return {
     provider,
@@ -97,9 +86,8 @@ function getProviderSettings(provider: OAuthProvider): ProviderSettings {
 }
 
 function getConfiguration(settings: ProviderSettings): oidc.Configuration {
-  const server = settings.provider === "google" ? GOOGLE_SERVER : GITHUB_SERVER;
   return new oidc.Configuration(
-    server,
+    GOOGLE_SERVER,
     settings.clientId,
     {
       client_secret: settings.clientSecret,
@@ -268,50 +256,9 @@ async function fetchGoogleProfile(accessToken: string): Promise<OAuthProfile> {
   };
 }
 
-async function fetchGitHubProfile(accessToken: string): Promise<OAuthProfile> {
-  const headers = {
-    Authorization: `Bearer ${accessToken}`,
-    Accept: "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
-    "User-Agent": "quizsupport-oauth",
-  };
-
-  const [userPayload, emailsPayload] = await Promise.all([
-    fetchJson("https://api.github.com/user", { headers }),
-    fetchJson("https://api.github.com/user/emails", { headers }),
-  ]);
-
-  const user = asRecord(userPayload);
-  const emails = Array.isArray(emailsPayload) ? emailsPayload.map(asRecord) : [];
-  const verifiedEmail =
-    emails.find((entry) => entry.primary === true && entry.verified === true) ||
-    emails.find((entry) => entry.verified === true);
-
-  const providerUserId = user.id != null ? String(user.id) : null;
-  const login = asString(user.login);
-  const email = asString(verifiedEmail?.email)?.toLowerCase() || null;
-
-  if (!providerUserId) throw new OAuthFlowError("profile_fetch_failed", "GitHub profile has no id");
-  if (!email) throw new OAuthFlowError("email_unavailable", "GitHub account has no verified email");
-
-  const name = asString(user.name) || login || email;
-  const fallbackName = splitName(name);
-
-  return {
-    provider: "github",
-    providerUserId,
-    email,
-    emailVerified: true,
-    name,
-    avatarUrl: normalizeAvatarUrl(user.avatar_url),
-    firstName: fallbackName.firstName,
-    lastName: fallbackName.lastName,
-  };
-}
-
 /** Fetch only the profile fields the app needs; tokens are never persisted. */
 export async function fetchOAuthProfile(provider: OAuthProvider, accessToken: string): Promise<OAuthProfile> {
-  return provider === "google" ? fetchGoogleProfile(accessToken) : fetchGitHubProfile(accessToken);
+  return fetchGoogleProfile(accessToken);
 }
 
 export { OAUTH_STATE_TTL_SECONDS };
