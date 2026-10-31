@@ -8,10 +8,29 @@ export const SESSION_COOKIE = "session_token";
 
 const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
 
+/**
+ * SameSite policy for cookies set by the backend.
+ *
+ * - "lax" : default. Safe when the frontend calls the backend same-origin
+ *   (e.g. via the frontend's `/api` rewrite). NOT sent on cross-site
+ *   fetch/XHR requests, so a cross-origin frontend will not send the cookie
+ *   back after login → 401 on /me and protected routes.
+ * - "none": required when frontend and backend are on different origins
+ *   (e.g. Vercel frontend → Cloudflare tunnel/nginx backend). Must be paired
+ *   with `secure: true` (enforced in production) and HTTPS everywhere.
+ *
+ * Set SESSION_COOKIE_SAME_SITE=none in production if your frontend origin
+ * differs from the API origin; otherwise keep "lax".
+ */
+export function cookieSameSite(): "lax" | "none" | "strict" {
+  const raw = (process.env.SESSION_COOKIE_SAME_SITE || "lax").toLowerCase();
+  return raw === "none" || raw === "strict" ? (raw as "none" | "strict") : "lax";
+}
+
 export const sessionCookieOptions = {
   httpOnly: true,
-  secure: isProduction,
-  sameSite: "lax" as const,
+  secure: isProduction, // true in production (NODE_ENV=production / VERCEL=1)
+  sameSite: cookieSameSite(),
   path: "/",
 };
 

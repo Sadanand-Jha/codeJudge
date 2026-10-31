@@ -14,6 +14,7 @@ import { isDatabaseUnavailableError } from "../utils/databaseError.ts";
 import {
   SessionConfigurationError,
   clearSessionCookie,
+  cookieSameSite,
   setSessionCookie,
   verifySessionToken,
 } from "../services/session.js";
@@ -27,7 +28,7 @@ const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL
 const cookieOptions = {
   httpOnly: true,
   secure: isProduction, // Local host pe FALSE, Vercel pe automatic TRUE
-  sameSite: "lax" as const,
+  sameSite: cookieSameSite(),
   path: "/",
 };
 
