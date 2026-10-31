@@ -1,34 +1,57 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { AlertCircle, ArrowRight, AtSign, BrainCircuit, Eye, EyeOff, KeyRound, Lock, UserPlus } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { AlertCircle, ArrowRight, AtSign, BrainCircuit, Eye, EyeOff, KeyRound, Lock, ShieldCheck, UserPlus } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { login } from "@/services/auth";
 import { toast } from "@/lib/toast";
-import AuthBackground from "@/components/auth/AuthBackground";
-import { AuthBrandMark, AuthLoader, AuthThemeControls } from "@/components/auth/AuthThemeChrome";
+import OAuthButtons from "@/components/auth/OAuthButtons";
+import { AuthShell } from "@/components/auth/AuthShell";
+import { AuthLoader } from "@/components/auth/AuthThemeChrome";
 import { getApiErrorMessage } from "@/lib/apiError";
 import type { UserProfile } from "@/store/authStore";
 
+const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+  access_denied: "Sign-in was cancelled. You can try again whenever you're ready.",
+  provider_error: "The provider couldn't complete sign-in. Please try again.",
+  invalid_state: "That sign-in link expired or was already used. Please start again.",
+  invalid_provider: "That sign-in provider isn't supported.",
+  provider_not_configured: "This sign-in provider isn't available right now.",
+  provider_unavailable: "We couldn't reach the sign-in provider. Please try again.",
+  token_exchange_failed: "We couldn't complete sign-in with the provider. Please try again.",
+  profile_fetch_failed: "We couldn't read your profile from the provider. Please try again.",
+  email_unavailable: "The provider didn't share a verified email address for your account.",
+  email_not_verified: "Please verify your email with the provider, then try again.",
+  account_error: "We couldn't sign you in to your account. Please try again.",
+  session_failed: "Sign-in succeeded, but we couldn't start your session. Please try again.",
+  server_error: "Something went wrong on our side. Please try again.",
+};
+
+const AUTH_PAGE_PATHS = ["/login", "/register", "/forgot-password"];
+
 function safeNextPath(value: string | null): string | null {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
+  if (!value || value.length > 512 || !value.startsWith("/") || value.startsWith("//")) return null;
   // Backslashes are treated as slashes by some browsers, which would turn
   // "/\evil.com" into an external navigation.
   if (value.includes("\\") || /[\u0000-\u001f]/.test(value)) return null;
+
+  const path = value.split(/[?#]/, 1)[0];
+  if (AUTH_PAGE_PATHS.some((authPath) => path === authPath || path.startsWith(`${authPath}/`))) {
+    return null;
+  }
   return value;
 }
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
-  // Read ?next= once on the client. Only same-origin paths are accepted so
-  // this cannot become an open redirect.
-  const [nextPath] = useState<string | null>(() =>
-    typeof window === "undefined"
-      ? null
-      : safeNextPath(new URLSearchParams(window.location.search).get("next"))
-  );
+  const searchParams = useSearchParams();
+  // Only same-origin ?next= paths are accepted, so this cannot become an open
+  // redirect. The page is wrapped in Suspense because useSearchParams opts the
+  // client subtree out of static prerendering.
+  const nextPath = useMemo(() => safeNextPath(searchParams.get("next")), [searchParams]);
+  const oauthError = searchParams.get("oauth_error");
   const setAuth = useAuthStore((s) => s.setAuth);
   const currentUser = useAuthStore((s) => s.user);
   const hydrate = useAuthStore((s) => s.hydrate);
@@ -38,7 +61,22 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(() =>
+    oauthError
+      ? OAUTH_ERROR_MESSAGES[oauthError] || "We couldn't complete that sign-in. Please try again."
+      : null
+  );
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("oauth_error") && !params.has("oauth")) return;
+    // Remove the one-time result from the URL so a refresh doesn't repeat the
+    // message. Keep ?next= so retrying still returns to the intended page.
+    const url = new URL(window.location.href);
+    url.searchParams.delete("oauth_error");
+    url.searchParams.delete("oauth");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, []);
 
   useEffect(() => {
     hydrate();
@@ -71,11 +109,11 @@ export default function LoginPage() {
     try {
       const res = await login({ identifier: identifier.trim().toLowerCase(), password });
       if (res.success && res.data) {
-        const { token, user } = res.data as { token?: string; user?: UserProfile };
-        // The backend authenticates via an httpOnly cookie; the body carries no
-        // token, so store a sentinel to keep the session local.
+        const { user } = res.data as { user?: UserProfile };
+        // The backend authenticates via an httpOnly cookie; the response never
+        // carries a session token for the browser to persist.
         if (!user) throw new Error("Login response did not include a user profile");
-        setAuth(token || "session", user);
+        setAuth("session", user);
         toast.success("Logged in successfully");
         router.push(nextPath || (user.role?.toLowerCase() === "teacher" ? "/creator" : "/quiz"));
       } else {
@@ -190,6 +228,8 @@ export default function LoginPage() {
             </button>
           </form>
 
+          <OAuthButtons nextPath={nextPath} disabled={loading} />
+
           <div className="mt-5 grid grid-cols-1 gap-2.5 border-t-2 border-[var(--qs-line)] pt-5 min-[420px]:grid-cols-2">
             <Link href="/forgot-password" className="b b-full group">
               <KeyRound className="h-3.5 w-3.5 transition-transform group-hover:-rotate-6" /> Reset password
@@ -203,5 +243,19 @@ export default function LoginPage() {
       </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="qs-ui flex min-h-screen items-center justify-center">
+          <AuthLoader />
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }

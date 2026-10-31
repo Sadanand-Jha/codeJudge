@@ -74,6 +74,15 @@ export const profileUpdateSchema = z.object({
     .max(80, "Display name must be at most 80 characters"),
 }).strict();
 
+/** Client-generated name for a direct Cloudinary avatar upload. */
+export const avatarUploadSignatureSchema = z.object({
+  fileName: z
+    .string()
+    .trim()
+    .min(1, "A file name is required")
+    .max(160, "File name is too long"),
+}).strict();
+
 /** Email-or-username login. The repository still binds this value as a SQL
  * parameter; format validation is an additional boundary, not SQL escaping. */
 export const loginSchema = z.object({

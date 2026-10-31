@@ -83,7 +83,6 @@ function migrateLegacyStorageKeys() {
 
     // Map legacy keys to new quizsupport keys
     const keyMapping: Record<string, string> = {
-      token: STORAGE_KEYS.AUTH_TOKEN,
       user: STORAGE_KEYS.AUTH_USER,
       quizsupport_theme: STORAGE_KEYS.THEME,
       quizsupport_quiz_creation: STORAGE_KEYS.QUIZ_CREATION,
@@ -132,9 +131,12 @@ function migrateLegacyStorageKeys() {
     // ignore migration errors
   }
 
-  // Clean up removed localStorage keys
+  // Clean up removed localStorage keys. `token` came from the legacy
+  // Authorization flow; sessions are now cookie-only, so never migrate it.
   try {
     localStorage.removeItem("quizsupport_rooms");
+    localStorage.removeItem("token");
+    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
   } catch {
     // ignore
   }

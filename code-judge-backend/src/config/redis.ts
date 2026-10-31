@@ -84,6 +84,12 @@ class RedisCompatWrapper {
     return client.setEx(key, seconds, value);
   }
 
+  /** Atomically read and delete a one-time value (OAuth state). */
+  async getDel(key: string): Promise<string | null> {
+    const client = await ensureConnected();
+    return client.getDel(key);
+  }
+
   async del(...keys: (string | string[])[]): Promise<number> {
     const client = await ensureConnected();
     const flat = keys.flat() as string[];

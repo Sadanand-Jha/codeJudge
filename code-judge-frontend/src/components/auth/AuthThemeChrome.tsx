@@ -270,7 +270,10 @@ function RegisterAIShowcase() {
 export function AuthThemeControls() {
   return (
     <div className="fixed right-3 top-3 z-30 sm:right-5 sm:top-5">
-      <ThemeToggle variant="icon" />
+      <ThemeToggle
+        variant="icon"
+        className="h-10 w-10 rounded-xl border-2 border-white/35 bg-white/10 text-white hover:bg-white/20 hover:text-white sm:h-[42px] sm:w-[42px]"
+      />
     </div>
   );
 }

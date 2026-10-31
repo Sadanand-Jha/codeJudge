@@ -4,6 +4,7 @@
 // /api/auth/reset-password.
 import { Router } from 'express';
 import { authRegisterSchema, loginSchema, validate } from '../middleware/validate.ts';
+import { oauthCallbackController, startOAuthController } from '../controllers/oauth.controller.js';
 import {
   sendOtpController,
   verifyOtpController,
@@ -27,6 +28,21 @@ const router = Router();
  * Returns whether the username is available
  */
 router.get('/check-username', checkUsernameController);
+
+/**
+ * GET /api/auth/oauth/google/start?next=/quiz
+ * GET /api/auth/oauth/github/start?next=/quiz
+ * Creates a PKCE + state request and redirects to the provider.
+ */
+router.get('/oauth/:provider/start', startOAuthController);
+
+/**
+ * GET /api/auth/oauth/google/callback
+ * GET /api/auth/oauth/github/callback
+ * Provider callback. Validates state, signs in/creates the user, sets the
+ * httpOnly session_token cookie, then redirects back to the frontend login page.
+ */
+router.get('/oauth/:provider/callback', oauthCallbackController);
 
 /**
  * POST /api/auth/send-otp

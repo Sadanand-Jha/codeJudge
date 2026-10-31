@@ -24,7 +24,8 @@
     "test:billing": "tsx src/__tests__/billing.test.ts",
     "test:ai-credits": "tsx src/__tests__/aiCredits.test.ts",
     "test:entitlements": "tsx src/services/entitlements/__tests__/resolver.test.ts",
-    "test:entitlements:db": "tsx src/services/entitlements/__tests__/concurrency.test.ts"
+    "test:entitlements:db": "tsx src/services/entitlements/__tests__/concurrency.test.ts",
+    "test:oauth": "tsx src/__tests__/oauth.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.6.0",
@@ -50,6 +51,7 @@
     "multer": "^2.2.0",
     "nodemailer": "^9.0.3",
     "openai": "^7.4.0",
+    "openid-client": "^6.8.8",
     "otp-generator": "^4.0.1",
     "pdfjs-dist": "^6.3.289",
     "pg": "^8.22.0",
