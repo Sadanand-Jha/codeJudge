@@ -15,6 +15,7 @@ import dns from "dns";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { pool } from "./config/database.ts"; // Serverless-cached pool
+import redisClient from "./config/redis.js";
 
 // Re-export pool for backward compatibility (services importing from app.ts still work)
 export { pool };
@@ -65,6 +66,15 @@ if (process.env.NODE_ENV === "production" && isWildcard) {
 }
 
 app.set("trust proxy", 1);
+
+// NOTE: trust proxy makes Express honor X-Forwarded-* from the ingress proxy.
+// The tunnel/load balancer in front of this container MUST forward
+//   proxy_set_header X-Forwarded-Proto $scheme;   (nginx)
+//   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+// Cloudflare tunnel (cloudflared) sends X-Forwarded-Proto / cf-visitor by
+// default, so no nginx config is needed if you use the bundled tunnel.
+// Without X-Forwarded-Proto, req.protocol/req.secure resolve to http even
+// when the public URL is https, which can break secure-cookie behavior.
 
 app.use(
   cors({
@@ -147,6 +157,17 @@ app.get("/health", async (req, res) => {
   } catch (e) {
     health.database = "disconnected";
     health.status = "degraded";
+  }
+
+  // Redis connectivity: sessions (blacklist), OAuth state, rate limits live here.
+  // A failure here breaks login/OAuth/rate-limiting even when Postgres is up.
+  try {
+    await redisClient.get("__health__");
+    health.redis = "connected";
+  } catch (e) {
+    health.redis = "disconnected";
+    health.status = "degraded";
+    console.error("Redis health check failed:", e instanceof Error ? e.message : e);
   }
 
   if (process.env.NODE_ENV !== "production") {

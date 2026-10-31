@@ -16,15 +16,28 @@ import {
   isProviderConfigured,
 } from "../services/oauth.js";
 import { upsertOAuthUser } from "../services/oauthAccount.js";
-import { safeNextPath, setSessionCookie } from "../services/session.js";
+import { safeNextPath, setSessionCookie, cookieSameSite } from "../services/session.js";
 import type { OAuthErrorCode, OAuthProvider, OAuthStateRecord } from "../types/oauth.js";
 
 const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
 
+// ============================================================================
+// PRODUCTION OAUTH CHECKLIST (fix these if "oAuth kaam nahi kar raha hai"):
+// 1. NODE_ENV=production (or VERCEL=1)  -> cookies get secure: true
+// 2. FRONTEND_URL / OAUTH_CALLBACK_BASE_URL = public HTTPS frontend origin,
+//    NOT http://localhost:3000 (Google/GitHub redirect_uri must match exactly).
+// 3. Register this exact callback in the provider console:
+//    https://<FRONTEND_URL>/api/auth/oauth/<provider>/callback   (include www)
+// 4. Frontend and backend are cross-origin? -> SESSION_COOKIE_SAME_SITE=none
+//    (cookieSameSite() above). Same-origin /api rewrite -> keep "lax".
+// 5. Redis must be reachable: OAuth state is stored in Redis; if Redis is down
+//    the callback fails with "server_error" (logged).
+// ============================================================================
+
 const stateCookieOptions = {
   httpOnly: true,
   secure: isProduction,
-  sameSite: "lax" as const,
+  sameSite: cookieSameSite(),
   path: "/api/auth/oauth",
   maxAge: OAUTH_STATE_TTL_SECONDS * 1000,
 };
@@ -47,7 +60,7 @@ function clearStateCookie(res: Response, provider: OAuthProvider): void {
   res.clearCookie(stateCookieName(provider), {
     httpOnly: true,
     secure: isProduction,
-    sameSite: "lax",
+    sameSite: cookieSameSite(),
     path: "/api/auth/oauth",
   });
 }
