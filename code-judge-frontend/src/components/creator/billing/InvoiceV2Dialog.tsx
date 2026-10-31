@@ -233,11 +233,6 @@ function InvoicePaper({ data }: { data: InvoiceData }) {
               {formatInr(data.totalPaise)}
             </span>
           </div>
-          {!data.gstRegistered && (
-            <p className="mt-3 rounded-[12px] border-2 border-dashed border-[#ddd6fe] px-3 py-2.5 text-[12px] leading-5 text-[#5d5878]">
-              Supplier is not registered under GST. No GST has been charged on this invoice.
-            </p>
-          )}
         </div>
       </div>
 

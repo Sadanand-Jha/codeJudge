@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Bricolage_Grotesque, Onest } from "next/font/google";
+import { Onest } from "next/font/google";
 import "./globals.css";
 import "katex/dist/katex.min.css";
 import { Toaster } from "@/components/ui/toast";
@@ -142,20 +142,6 @@ function migrateLegacyStorageKeys() {
   }
 }
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
-/* QuizSupport marketing/quiz design typefaces (scoped via .qs-ui) */
-const bricolage = Bricolage_Grotesque({
-  subsets: ["latin"],
-  weight: ["600", "800"],
-  variable: "--font-bricolage",
-  display: "swap",
-});
-
 const onest = Onest({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
@@ -194,7 +180,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildSiteJsonLd()) }}
         />
       </head>
-      <body className={`${inter.variable} ${inter.className} ${bricolage.variable} ${onest.variable} min-h-screen bg-[var(--background)]`} suppressHydrationWarning>
+      <body className={`${onest.variable} ${onest.className} min-h-screen bg-[var(--background)]`} suppressHydrationWarning>
         <ThemeProvider>
           <AuthHydrator />
           <ModalScrollLock />

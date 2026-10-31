@@ -3,7 +3,8 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, Eye, EyeOff, KeyRound, LogIn, Mail, RefreshCw } from "lucide-react";
+import { ArrowRight, Check, Eye, EyeOff, KeyRound, Lock, LogIn, Mail, RefreshCw } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "@/lib/toast";
 import { requestPasswordReset, verifyResetOtp, resetPassword } from "@/services/auth";
 import {
@@ -12,11 +13,17 @@ import {
   validateConfirmPassword,
   validateOtp,
 } from "@/lib/validators";
-import AuthBackground from "@/components/auth/AuthBackground";
-import { AuthBrandMark, AuthLoader, AuthThemeControls } from "@/components/auth/AuthThemeChrome";
+import { AuthShell } from "@/components/auth/AuthShell";
+import { AuthLoader, ResetSecurityShowcase } from "@/components/auth/AuthThemeChrome";
 import { OtpInput } from "@/components/auth/OtpInput";
 
 const AUTH_PRIMARY_BUTTON = "b b-pri b-lg b-full group min-h-12";
+
+const INPUT_CLASS =
+  "h-[50px] w-full rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] pl-11 pr-4 text-[15px] font-medium text-[var(--qs-ink)] outline-none transition-[border-color,box-shadow] placeholder:text-[#8b86a8] focus:border-[var(--qs-brand)] focus:ring-4 focus:ring-[var(--qs-brand)]/15";
+
+const LABEL_CLASS =
+  "mb-2 block text-[11.5px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]";
 
 type Step = "email" | "verify" | "reset";
 
@@ -201,67 +208,110 @@ export default function ForgotPasswordPage() {
     password.value === confirmPassword.value;
 
   const isResetEnabled = passwordsMatch && !submitting;
+  const stepNumber = step === "email" ? 1 : step === "verify" ? 2 : 3;
+  const title =
+    step === "email" ? (
+      <>
+        Reset your
+        <br />
+        password.
+      </>
+    ) : step === "verify" ? (
+      <>
+        Check your
+        <br />
+        email.
+      </>
+    ) : (
+      <>
+        Set a new
+        <br />
+        password.
+      </>
+    );
+  const description =
+    step === "email"
+      ? "Enter your account email and we'll send a secure verification code."
+      : step === "verify"
+      ? `We sent a 6-digit code to ${email.value}.`
+      : "Choose a strong password you haven't used before.";
 
   return (
-    <div className="qs-ui relative flex min-h-dvh items-center justify-center overflow-hidden px-6 py-20">
-      <AuthBackground />
-      <AuthThemeControls />
-
-      {/* Brand — page top-left corner */}
-      <div className="absolute left-4 top-4 z-20 sm:left-6 sm:top-6">
-        <AuthBrandMark />
+    <AuthShell
+      eyebrow="ACCOUNT RECOVERY"
+      title={title}
+      description={description}
+      showcase={<ResetSecurityShowcase />}
+      align="center"
+      stretchCard={false}
+      fitViewport
+      footer={
+        <p className="text-xs text-[var(--qs-muted)]">
+          Remember your password?{" "}
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-1 font-bold text-[var(--qs-brand)] transition-colors hover:underline"
+          >
+            <LogIn className="h-3.5 w-3.5" /> Sign in
+          </Link>
+        </p>
+      }
+    >
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[var(--qs-muted)]">
+          Step {stepNumber} of 3
+        </span>
+        <div
+          className="flex w-28 items-center gap-1.5"
+          aria-label={`Password reset step ${stepNumber} of 3`}
+        >
+          {[1, 2, 3].map((item) => (
+            <span
+              key={item}
+              className={`h-1 flex-1 rounded-full transition-colors ${
+                item <= stepNumber ? "bg-[var(--qs-brand)]" : "bg-[var(--qs-line)]"
+              }`}
+            />
+          ))}
+        </div>
       </div>
 
-      <div className="relative z-10 w-full max-w-sm">
-        {/* Brand */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex w-36 items-center gap-2" aria-label={`Password reset step ${step === "email" ? 1 : step === "verify" ? 2 : 3} of 3`}>
-            {[1, 2, 3].map((item) => {
-              const current = step === "email" ? 1 : step === "verify" ? 2 : 3;
-              return <span key={item} className={`h-1 flex-1 rounded-full transition-colors ${item <= current ? "bg-[var(--qs-brand)]" : "bg-[var(--qs-line)]"}`} />;
-            })}
-          </div>
-          <h1 className="text-xl text-[var(--qs-ink)]">
-            {step === "email" && "Reset your password"}
-            {step === "verify" && "Check your email"}
-            {step === "reset" && "Set a new password"}
-          </h1>
-          <p className="mt-2 text-sm text-[var(--qs-muted)]">
-            {step === "email" && "Enter your account email to get started"}
-            {step === "verify" && `We sent a code to ${email.value}`}
-            {step === "reset" && "Choose a strong new password"}
-          </p>
-        </div>
-
-        {/* Card */}
-        <div className="qs-shadow">
-        <div className="qs-card p-6">
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={step}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+        >
           {/* Step 1: Email */}
           {step === "email" && (
             <form className="space-y-5" onSubmit={handleSendOtp}>
               <div>
-                <label htmlFor="reset-email" className="mb-2 block text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--qs-muted)]">Account email</label>
+                <label htmlFor="reset-email" className={LABEL_CLASS}>
+                  Account email
+                </label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
-                <input
-                  id="reset-email"
-                  type="email"
-                  value={email.value}
-                  onChange={(e) =>
-                    setEmail({ value: e.target.value, error: null, touched: true })
-                  }
-                  onBlur={() =>
-                    setEmail((prev) => ({ ...prev, error: validateEmail(prev.value) }))
-                  }
-                  className={`w-full rounded-xl border-2 bg-[var(--qs-surface)] py-3 pl-10 pr-4 text-sm font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] ${
-                    email.touched && email.error
-                      ? "border-[var(--qs-bad)]"
-                      : email.touched && !email.error
-                      ? "border-[var(--qs-ok)]"
-                      : "border-[var(--qs-line)]"
-                  }`}
-                  placeholder="you@example.com"
-                />
+                  <Mail className="pointer-events-none absolute left-[15px] top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)]" />
+                  <input
+                    id="reset-email"
+                    type="email"
+                    value={email.value}
+                    onChange={(e) =>
+                      setEmail({ value: e.target.value, error: null, touched: true })
+                    }
+                    onBlur={() =>
+                      setEmail((prev) => ({ ...prev, error: validateEmail(prev.value) }))
+                    }
+                    className={`${INPUT_CLASS} ${
+                      email.touched && email.error
+                        ? "!border-[var(--qs-bad)]"
+                        : email.touched && !email.error
+                        ? "!border-[var(--qs-ok)]"
+                        : ""
+                    }`}
+                    placeholder="you@example.com"
+                  />
                 </div>
                 {email.touched && email.error && (
                   <p className="mt-2 text-xs text-[var(--qs-bad)]">{email.error}</p>
@@ -283,14 +333,11 @@ export default function ForgotPasswordPage() {
           {step === "verify" && (
             <form className="space-y-5" onSubmit={handleVerifyOtp}>
               <div className="text-center">
-                <div className="mx-auto mb-3 flex justify-center">
-                  <img src="/logos/mark.png" alt="QuizSupport" width={52} height={48} className="h-12 w-auto object-contain" />
+                <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-poly-1)] text-[var(--qs-brand)]">
+                  <Mail className="h-6 w-6" />
                 </div>
-                <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--qs-brand)]">
-                  <Mail className="h-3 w-3" /> Check your email
-                </span>
-                <p className="mt-2.5 text-xs leading-5 text-[var(--qs-muted)]">
-                  We sent a 6-digit code to<br />
+                <p className="text-sm leading-6 text-[var(--qs-muted)]">
+                  Enter the 6-digit code sent to{" "}
                   <span className="font-bold text-[var(--qs-ink)]">{email.value}</span>
                 </p>
               </div>
@@ -331,10 +378,14 @@ export default function ForgotPasswordPage() {
           {/* Step 3: New password */}
           {step === "reset" && (
             <form className="space-y-4" onSubmit={handleResetPassword}>
-              {/* Password */}
               <div>
+                <label htmlFor="reset-password" className={LABEL_CLASS}>
+                  New password
+                </label>
                 <div className="relative">
+                  <Lock className="pointer-events-none absolute left-[15px] top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)]" />
                   <input
+                    id="reset-password"
                     type={showPassword ? "text" : "password"}
                     value={password.value}
                     onChange={(e) =>
@@ -343,21 +394,21 @@ export default function ForgotPasswordPage() {
                     onBlur={() =>
                       setPassword((prev) => ({ ...prev, error: validatePassword(prev.value) }))
                     }
-                    className={`w-full rounded-xl border-2 bg-[var(--qs-surface)] px-4 py-3 pr-11 text-sm font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] ${
+                    className={`${INPUT_CLASS} pr-12 ${
                       password.touched && password.error
-                        ? "border-[var(--qs-bad)]"
-                        : "border-[var(--qs-line)]"
+                        ? "!border-[var(--qs-bad)]"
+                        : ""
                     }`}
-                    placeholder="New password"
+                    placeholder="Enter a new password"
                   />
                   <button
                     type="button"
                     tabIndex={-1}
                     onClick={() => setShowPassword((v) => !v)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-brand)]/10 hover:text-[var(--qs-ink)]"
+                    className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-[10px] text-[var(--qs-muted)] transition-colors hover:text-[var(--qs-brand)] focus-visible:outline-none"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
                 {password.touched && password.error && (
@@ -365,10 +416,14 @@ export default function ForgotPasswordPage() {
                 )}
               </div>
 
-              {/* Confirm Password */}
               <div>
+                <label htmlFor="reset-confirm-password" className={LABEL_CLASS}>
+                  Confirm new password
+                </label>
                 <div className="relative">
+                  <Lock className="pointer-events-none absolute left-[15px] top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)]" />
                   <input
+                    id="reset-confirm-password"
                     type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword.value}
                     onChange={(e) =>
@@ -380,26 +435,26 @@ export default function ForgotPasswordPage() {
                         error: validateConfirmPassword(password.value, prev.value),
                       }))
                     }
-                    className={`w-full rounded-xl border-2 bg-[var(--qs-surface)] px-4 py-3 pr-11 text-sm font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] ${
+                    className={`${INPUT_CLASS} pr-12 ${
                       confirmPassword.touched && confirmPassword.error
-                        ? "border-[var(--qs-bad)]"
+                        ? "!border-[var(--qs-bad)]"
                         : confirmPassword.touched && passwordsMatch
-                        ? "border-[var(--qs-ok)]"
-                        : "border-[var(--qs-line)]"
+                        ? "!border-[var(--qs-ok)]"
+                        : ""
                     }`}
-                    placeholder="Confirm new password"
+                    placeholder="Re-enter the new password"
                   />
                   <button
                     type="button"
                     tabIndex={-1}
                     onClick={() => setShowConfirmPassword((v) => !v)}
                     aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-brand)]/10 hover:text-[var(--qs-ink)]"
+                    className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-[10px] text-[var(--qs-muted)] transition-colors hover:text-[var(--qs-brand)] focus-visible:outline-none"
                   >
                     {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4" />
+                      <EyeOff className="h-5 w-5" />
                     ) : (
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-5 w-5" />
                     )}
                   </button>
                 </div>
@@ -409,7 +464,9 @@ export default function ForgotPasswordPage() {
                 {confirmPassword.touched &&
                   !confirmPassword.error &&
                   passwordsMatch && (
-                    <p className="mt-2 flex items-center gap-1.5 text-xs font-bold text-[var(--qs-ok)]"><Check className="h-3.5 w-3.5" /> Passwords match</p>
+                    <p className="mt-2 flex items-center gap-1.5 text-xs font-bold text-[var(--qs-ok)]">
+                      <Check className="h-3.5 w-3.5" /> Passwords match
+                    </p>
                   )}
               </div>
 
@@ -424,17 +481,8 @@ export default function ForgotPasswordPage() {
               </button>
             </form>
           )}
-        </div>
-        </div>
-
-        {/* Footer */}
-        <p className="mt-6 text-center text-xs text-[var(--qs-muted)]">
-          Remember your password?{" "}
-          <Link href="/login" className="inline-flex items-center gap-1 font-bold text-[var(--qs-brand)] transition-colors hover:underline">
-            <LogIn className="h-3.5 w-3.5" /> Sign in
-          </Link>
-        </p>
-      </div>
-    </div>
+        </motion.div>
+      </AnimatePresence>
+    </AuthShell>
   );
 }

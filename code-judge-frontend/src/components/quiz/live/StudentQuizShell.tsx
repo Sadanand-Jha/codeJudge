@@ -14,7 +14,7 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 
 /* ═══════════════════════════════════════════════════════════════
    Shared student-quiz page shell — QuizSupport design language
-   (.qs-ui): lavender canvas, indigo ink, violet brand, Bricolage
+   (.qs-ui): lavender canvas, indigo ink, violet brand, Onest
    display type. Logic-free: pages keep their own data fetching.
 
    Backgrounds:

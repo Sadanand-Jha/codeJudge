@@ -83,7 +83,28 @@
   display: grid;
   grid-template-columns: 1.05fr 0.95fr;
   gap: 56px;
-  align-items: start;
+  align-items: stretch;
+}
+
+.wrapEnd {
+  align-items: end;
+}
+
+.wrapCenter {
+  align-items: center;
+}
+
+@media (min-width: 901px) {
+  .pageFit {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .wrapFit {
+    height: 100%;
+    padding-top: clamp(88px, 11vh, 120px);
+    padding-bottom: clamp(20px, 4vh, 40px);
+  }
 }
 
 .intro {
@@ -175,6 +196,8 @@
 
 .cardCol {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .card {
@@ -184,6 +207,11 @@
   padding: 34px 34px 30px;
   box-shadow: 12px 12px 0 var(--qs-sun);
   position: relative;
+  flex: 1;
+}
+
+.cardAuto {
+  flex: none;
 }
 
 .footer {

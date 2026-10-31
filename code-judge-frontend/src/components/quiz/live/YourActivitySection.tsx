@@ -154,7 +154,7 @@ function StatCard({
         </span>
       </div>
       <div>
-        <p className="mt-0.5 truncate text-[20px] font-extrabold leading-[1.15] text-[var(--qs-ink)] tabular-nums lg:mt-0 lg:text-[28px] lg:leading-none lg:tracking-tight lg:[font-family:var(--font-bricolage),var(--font-inter),system-ui,sans-serif]">{value}</p>
+        <p className="mt-0.5 truncate text-[20px] font-extrabold leading-[1.15] text-[var(--qs-ink)] tabular-nums lg:mt-0 lg:text-[28px] lg:leading-none lg:tracking-tight lg:[font-family:var(--font-onest),system-ui,sans-serif]">{value}</p>
         <p className="mt-0.5 truncate text-[11px] text-[var(--qs-muted)] lg:mt-1.5">{hint}</p>
       </div>
     </div>

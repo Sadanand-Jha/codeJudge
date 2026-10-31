@@ -52,8 +52,9 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
     id: "ai",
     tab: "AI question generator",
     heading: "Your syllabus in. A question set out.",
-    body: "The AI Studio reads your files or a topic, drafts questions with answer keys, and keeps every generation ready for review.",
+    body: "The AI Studio runs on enterprise-grade models, so every set comes back sharper. It reads your files or a topic, drafts questions with answer keys, and keeps every generation ready for review.",
     bullets: [
+      "Enterprise-grade models tuned for exam-quality output",
       "Generate from PDF, DOCX, PPT, CSV or images",
       "Generate by topic, subject and difficulty",
       "Ask the assistant to refine a set",

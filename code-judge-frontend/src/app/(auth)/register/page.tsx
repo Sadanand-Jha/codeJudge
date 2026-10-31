@@ -4,7 +4,11 @@ import { Suspense, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import RegistrationForm from "@/components/forms/RegistrationForm";
-import { AuthLoader } from "@/components/auth/AuthThemeChrome";
+import {
+  AuthLoader,
+  AuthShowcasePanel,
+} from "@/components/auth/AuthThemeChrome";
+import { AuthShell } from "@/components/auth/AuthShell";
 import { safeNextPath } from "@/lib/safeNext";
 
 function RegisterContent() {
@@ -34,20 +38,37 @@ function RegisterContent() {
 
   if (!hasHydrated) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="qs-ui flex min-h-screen items-center justify-center">
         <AuthLoader />
       </div>
     );
   }
 
-  return <RegistrationForm nextPath={nextPath} />;
+  return (
+    <AuthShell
+      eyebrow="START FREE"
+      title={
+        <>
+          Create your
+          <br />
+          account.
+        </>
+      }
+      description="Start with your email, verify it, then set up your workspace in a few quick steps."
+      showcase={<AuthShowcasePanel mode="register" />}
+      align="end"
+      stretchCard={false}
+    >
+      <RegistrationForm nextPath={nextPath} embedded />
+    </AuthShell>
+  );
 }
 
 export default function RegisterPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="qs-ui flex min-h-screen items-center justify-center">
           <AuthLoader />
         </div>
       }

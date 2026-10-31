@@ -22,6 +22,7 @@ import { AuthBrandMark, AuthLoader, AuthShowcasePanel, AuthThemeControls } from 
 import { OtpInput } from "@/components/auth/OtpInput";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { PREDEFINED_AVATARS } from "@/config/dicebear";
+import OAuthButtons from "@/components/auth/OAuthButtons";
 
 const AUTH_PRIMARY_BUTTON = "b b-pri b-lg b-full group min-h-12";
 
@@ -57,8 +58,10 @@ function initField(value = ""): FieldState {
 
 export default function RegistrationForm({
   nextPath = null,
+  embedded = false,
 }: {
   nextPath?: string | null;
+  embedded?: boolean;
 }) {
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
@@ -482,21 +485,35 @@ export default function RegistrationForm({
   );
 
   return (
-    <div className="qs-ui relative flex min-h-dvh items-center justify-center overflow-x-hidden px-4 py-20 sm:px-6 lg:px-8 lg:pb-8 lg:pt-4">
-      <AuthBackground />
-      <AuthThemeControls />
+    <div
+      className={
+        embedded
+          ? "w-full"
+          : "qs-ui relative flex min-h-dvh items-center justify-center overflow-x-hidden px-4 py-20 sm:px-6 lg:px-8 lg:pb-8 lg:pt-4"
+      }
+    >
+      {!embedded && <AuthBackground />}
+      {!embedded && <AuthThemeControls />}
 
       {/* Brand — page top-left corner */}
-      <div className="absolute left-4 top-2 z-20 sm:left-6 sm:top-3">
-        <AuthBrandMark />
-      </div>
+      {!embedded && (
+        <div className="absolute left-4 top-2 z-20 sm:left-6 sm:top-3">
+          <AuthBrandMark />
+        </div>
+      )}
 
-      <div className="relative z-10 grid w-full max-w-[1160px] items-center gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(380px,.72fr)]">
-        <AuthShowcasePanel mode="register" />
+      <div
+        className={
+          embedded
+            ? "w-full"
+            : "relative z-10 grid w-full max-w-[1160px] items-end gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(380px,.72fr)]"
+        }
+      >
+        {!embedded && <AuthShowcasePanel mode="register" />}
       <div className="mx-auto w-full max-w-md">
         {/* Brand */}
         {step !== "register" && (
-        <div className="mb-8 text-center">
+        <div className={`mb-8 text-center ${embedded ? "hidden lg:block" : ""}`}>
           {/* The profile sub-flow (register step) renders its own per-screen titles. */}
           <div className="mx-auto mb-4 flex w-44 items-center gap-2" aria-label={`Registration step ${step === "email" ? 1 : 2} of 6`}>
             {[1, 2, 3, 4, 5, 6].map((item) => (
@@ -516,8 +533,8 @@ export default function RegistrationForm({
 
         {/* Card for email + OTP. The profile sub-flow renders open (no card). */}
         {step !== "register" && (
-        <div className="qs-shadow">
-        <div className="qs-card p-6">
+        <div className={embedded ? "" : "qs-shadow"}>
+        <div className={embedded ? "" : "qs-card p-6"}>
           {/* Step 1: Email */}
           {step === "email" && (
             <form className="space-y-5" onSubmit={handleSendOtp}>
@@ -592,6 +609,9 @@ export default function RegistrationForm({
               </button>
             </form>
           )}
+          {step === "email" && (
+            <OAuthButtons nextPath={nextPath} disabled={sendingOtp} />
+          )}
 
           {/* Step 2: OTP */}
           {step === "verify" && (
@@ -652,7 +672,13 @@ export default function RegistrationForm({
 
           {/* Step 3: Profile onboarding — one task per screen, open layout (no card). */}
           {step === "register" && (
-            <div className="qs-card mx-auto w-full max-w-[390px] p-4 sm:p-6">
+            <div
+              className={
+                embedded
+                  ? "mx-auto w-full max-w-[390px]"
+                  : "qs-card mx-auto w-full max-w-[390px] p-4 sm:p-6"
+              }
+            >
               <p className="text-center text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--qs-muted)]">
                 Profile setup · {profileStep} of 4
               </p>

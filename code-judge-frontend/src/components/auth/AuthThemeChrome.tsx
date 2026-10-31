@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { BrainCircuit, CheckCircle2, FileText, Layers3, LoaderCircle, ShieldCheck, Sparkles, WandSparkles } from "lucide-react";
+import { BrainCircuit, CheckCircle2, FileText, KeyRound, Layers3, LoaderCircle, Mail, ShieldCheck, Sparkles, WandSparkles } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/helpers";
@@ -264,6 +264,97 @@ function RegisterAIShowcase() {
         ))}
       </div>
     </div>
+  );
+}
+
+export function ResetSecurityShowcase() {
+  const steps = [
+    { icon: Mail, title: "Email check", detail: "We confirm your account email" },
+    { icon: KeyRound, title: "One-time code", detail: "6 digits, valid for 10 minutes" },
+    { icon: ShieldCheck, title: "New password", detail: "Set it and sign in instantly" },
+  ];
+
+  return (
+    <section className="relative hidden min-h-[580px] overflow-hidden rounded-[30px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-7 lg:flex lg:flex-col lg:justify-between xl:p-8">
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div
+          className="absolute inset-0 opacity-[0.55]"
+          style={{
+            backgroundImage:
+              "linear-gradient(var(--qs-line) 1px, transparent 1px), linear-gradient(90deg, var(--qs-line) 1px, transparent 1px)",
+            backgroundSize: "32px 32px",
+          }}
+        />
+      </div>
+
+      <div className="relative">
+        <span className="inline-flex items-center gap-2 rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-[var(--qs-brand)]">
+          <ShieldCheck className="h-3 w-3" /> Secure account recovery
+        </span>
+        <h2 className="mt-5 max-w-lg text-[34px] font-black leading-[1.03] tracking-[-0.04em] text-[var(--qs-ink)] xl:text-[38px]">
+          Back to your workspace, safely.
+        </h2>
+        <p className="mt-3 max-w-md text-[13px] leading-5 text-[var(--qs-muted)]">
+          A one-time code confirms it&apos;s you. Your password never travels by email.
+        </p>
+      </div>
+
+      <div className="relative my-4 rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3.5">
+        <div className="flex items-center gap-2.5">
+          <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+            <ShieldCheck className="h-5 w-5" />
+            <span className="absolute -right-1 -top-1 h-2.5 w-2.5 animate-pulse rounded-full border-2 border-[var(--qs-surface)] bg-[var(--qs-ok)]" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-black text-[var(--qs-ink)]">Account recovery</p>
+            <p className="mt-0.5 text-[10px] leading-4 text-[var(--qs-muted)]">
+              Three quick checks, then you&apos;re back in.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-3 space-y-1.5">
+          {steps.map(({ icon: Icon, title, detail }, index) => (
+            <div
+              key={title}
+              className="flex items-center gap-2.5 rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 py-1.5"
+            >
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-[var(--qs-bg)] text-[var(--qs-brand)]">
+                <Icon className="h-3.5 w-3.5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[9.5px] font-black text-[var(--qs-ink)]">{title}</p>
+                <p className="mt-0.5 text-[8.5px] text-[var(--qs-muted)]">{detail}</p>
+              </div>
+              <span className="shrink-0 text-[7.5px] font-black uppercase tracking-[0.12em] text-[var(--qs-ok)]">
+                {index === 0 ? "Verified" : index === 1 ? "Protected" : "Ready"}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-2.5 flex items-center gap-1.5 text-[8.5px] font-semibold text-[var(--qs-muted)]">
+          <ShieldCheck className="h-2.5 w-2.5 text-[var(--qs-ok)]" /> Protected by one-time verification
+        </p>
+      </div>
+
+      <div className="relative grid grid-cols-3 gap-2">
+        {[
+          { icon: ShieldCheck, label: "OTP protected", detail: "one-time code" },
+          { icon: KeyRound, label: "Encrypted", detail: "hashed password" },
+          { icon: Mail, label: "No app needed", detail: "email only" },
+        ].map(({ icon: Icon, label, detail }) => (
+          <div
+            key={label}
+            className="rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-2 text-center"
+          >
+            <Icon className="mx-auto h-3.5 w-3.5 text-[var(--qs-brand)]" />
+            <p className="mt-1.5 text-[9px] font-black text-[var(--qs-ink)]">{label}</p>
+            <p className="mt-0.5 text-[8px] text-[var(--qs-muted)]">{detail}</p>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
