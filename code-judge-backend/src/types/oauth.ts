@@ -1,6 +1,6 @@
-// Shared OAuth types. Only Google and GitHub are enabled; adding another
+// Shared OAuth types. Only Google is enabled; adding another
 // provider means extending this union, the client config, and the login UI.
-export type OAuthProvider = "google" | "github";
+export type OAuthProvider = "google";
 
 export interface OAuthProfile {
   provider: OAuthProvider;
