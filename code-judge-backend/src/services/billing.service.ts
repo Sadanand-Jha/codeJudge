@@ -36,6 +36,7 @@ import {
 import {
   buildPackUpgradeSuggestion,
   buildPlanBundleSuggestion,
+  bundlePrices,
   type CheckoutSuggestion,
 } from "./billing/suggestions.ts";
 import type {
@@ -446,6 +447,60 @@ async function createPendingOrder(
   }
 
   return order;
+}
+
+/**
+ * Checks that a reusable pending order still matches the live catalog price,
+ * so a stale order can never be charged at an old amount.
+ */
+async function reusableOrderIsCurrent(
+  order: OrderRow,
+  input: {
+    userId: string;
+    catalogPlanId: number | null;
+    currency: string;
+    listPricePaise: number;
+    sellingPricePaise: number;
+    couponCode: string | null;
+  },
+  client: PoolClient
+): Promise<boolean> {
+  if (
+    order.currency !== input.currency ||
+    order.mrpPaise !== input.listPricePaise
+  ) {
+    return false;
+  }
+  if (!input.couponCode) {
+    return order.amountPaise === input.sellingPricePaise;
+  }
+  const coupon = await resolveCouponForCheckout(client, {
+    code: input.couponCode,
+    userId: input.userId,
+    planId: input.catalogPlanId,
+    amountPaise: input.sellingPricePaise,
+  });
+  return (
+    order.amountPaise ===
+    input.sellingPricePaise - (coupon?.discountPaise ?? 0)
+  );
+}
+
+async function discardStalePendingOrder(
+  order: OrderRow,
+  client: PoolClient
+): Promise<void> {
+  const failed = await billingRepository.markOrderFailed(
+    {
+      orderId: order.id,
+      reason:
+        "Catalog price changed. The checkout was restarted with the current price.",
+    },
+    client
+  );
+  if (failed) {
+    await billingRepository.releaseCouponReservation(order.id, client);
+  }
 }
 
 /**
@@ -1236,7 +1291,24 @@ export class BillingService {
           },
           client
         );
-        if (reusable) return { order: reusable, created: false };
+        if (
+          reusable &&
+          (await reusableOrderIsCurrent(
+            reusable,
+            {
+              userId,
+              catalogPlanId: null,
+              currency,
+              listPricePaise: pack.priceInr * 100,
+              sellingPricePaise: pack.priceInr * 100,
+              couponCode,
+            },
+            client
+          ))
+        ) {
+          return { order: reusable, created: false };
+        }
+        if (reusable) await discardStalePendingOrder(reusable, client);
 
         const order = await createPendingOrder(
           {
@@ -1321,7 +1393,24 @@ export class BillingService {
           },
           client
         );
-        if (reusable) return { order: reusable, created: false };
+        if (
+          reusable &&
+          (await reusableOrderIsCurrent(
+            reusable,
+            {
+              userId,
+              catalogPlanId: plan.planId,
+              currency,
+              listPricePaise: plan.mrpAmountPaise ?? plan.amountPaise,
+              sellingPricePaise: plan.amountPaise,
+              couponCode,
+            },
+            client
+          ))
+        ) {
+          return { order: reusable, created: false };
+        }
+        if (reusable) await discardStalePendingOrder(reusable, client);
 
         const order = await createPendingOrder(
           {
@@ -1389,11 +1478,11 @@ export class BillingService {
       plan.billingPeriod,
       plan.customDays
     );
-    const regularPaise = Math.max(
-      bundle.mrpPaise,
-      plan.amountPaise + pack.priceInr * 100
-    );
-    if (bundle.amountPaise <= 0 || bundle.amountPaise >= regularPaise) {
+    const { regularPaise, amountPaise } = bundlePrices({
+      planAmountPaise: plan.amountPaise,
+      packPriceInr: pack.priceInr,
+    });
+    if (amountPaise <= 0 || amountPaise >= regularPaise) {
       throw new BillingError(
         409,
         "BUNDLE_INVALID",
@@ -1419,7 +1508,24 @@ export class BillingService {
           },
           client
         );
-        if (reusable) return { order: reusable, created: false };
+        if (
+          reusable &&
+          (await reusableOrderIsCurrent(
+            reusable,
+            {
+              userId,
+              catalogPlanId: plan.planId,
+              currency,
+              listPricePaise: regularPaise,
+              sellingPricePaise: amountPaise,
+              couponCode,
+            },
+            client
+          ))
+        ) {
+          return { order: reusable, created: false };
+        }
+        if (reusable) await discardStalePendingOrder(reusable, client);
 
         const order = await createPendingOrder(
           {
@@ -1431,7 +1537,7 @@ export class BillingService {
             packId: pack.id,
             currency,
             listPricePaise: regularPaise,
-            sellingPricePaise: bundle.amountPaise,
+            sellingPricePaise: amountPaise,
             baseValidityDays: planValidityDays,
             creditsTotal: 0,
             couponCode,

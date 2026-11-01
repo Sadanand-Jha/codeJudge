@@ -68,6 +68,25 @@ export interface PackUpgradeSuggestion {
 
 export type CheckoutSuggestion = PlanBundleSuggestion | PackUpgradeSuggestion;
 
+export const BUNDLE_DISCOUNT_PAISE = 2_000;
+
+/**
+ * Bundles always give a flat ₹20 off the live plan + pack price. The configured
+ * bundle amount is ignored so the displayed price and the Razorpay charge can
+ * never drift apart.
+ */
+export function bundlePrices(input: {
+  planAmountPaise: number;
+  packPriceInr: number;
+}): { regularPaise: number; amountPaise: number } {
+  const regularPaise = Math.max(0, Math.trunc(input.planAmountPaise)) +
+    Math.max(0, Math.trunc(input.packPriceInr)) * 100;
+  return {
+    regularPaise,
+    amountPaise: Math.max(0, regularPaise - BUNDLE_DISCOUNT_PAISE),
+  };
+}
+
 function suggestedPack(pack: PurchasableCreditPack): SuggestedPack {
   return {
     id: pack.id,
@@ -92,8 +111,10 @@ export function buildPlanBundleSuggestion(input: {
 }): PlanBundleSuggestion | null {
   const { bundle } = input;
 
-  const regularPaise = bundle.plan.amountPaise + bundle.pack.priceInr * 100;
-  const amountPaise = Math.max(0, Math.trunc(bundle.amountPaise));
+  const { regularPaise, amountPaise } = bundlePrices({
+    planAmountPaise: bundle.plan.amountPaise,
+    packPriceInr: bundle.pack.priceInr,
+  });
   const credits = Math.max(0, bundle.plan.credits) + Math.max(0, bundle.pack.credits);
   if (amountPaise <= 0 || amountPaise >= regularPaise || credits <= 0) {
     return null;

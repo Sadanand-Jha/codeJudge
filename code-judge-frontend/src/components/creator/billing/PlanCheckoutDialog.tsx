@@ -176,7 +176,10 @@ export function PlanCheckoutDialog({
         role="dialog"
         aria-modal="true"
         aria-label={`Upgrade to ${plan.name}`}
-        className={cn(QS_DIALOG_PANEL, "m-auto")}
+        className={cn(
+          QS_DIALOG_PANEL,
+          "m-auto max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain"
+        )}
         style={
           suggestion && phase === "summary" ? { maxWidth: 780 } : undefined
         }

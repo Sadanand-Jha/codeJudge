@@ -2,16 +2,29 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { AlertCircle, BadgeCheck, FileText, Info, Loader2, Lock, ShieldCheck, X } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowRight,
+  BadgeCheck,
+  CalendarClock,
+  Check,
+  FileText,
+  Info,
+  Loader2,
+  Lock,
+  ShieldCheck,
+  Sparkles,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/helpers";
 import type { PackOrderSummary } from "@/services/aiCredits";
 import {
   getCheckoutSuggestion,
   type PackUpgradeSuggestion,
 } from "@/services/billing";
+import { formatPricingAmount } from "@/services/pricing";
 import { trackCheckoutEvent } from "@/services/analytics";
-import { CheckoutSuggestionCard } from "../CheckoutSuggestionCard";
-import { QS_DIALOG_PANEL, QS_ROW, QS_ROW_LABEL, QS_SQ_BTN } from "./styles";
+import { QS_DIALOG_PANEL, QS_SQ_BTN } from "./styles";
 
 export type PurchasePhase = "summary" | "processing" | "success" | "failed" | "cancelled";
 
@@ -34,6 +47,229 @@ function PhaseShell({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col items-center py-4 text-center" role="status" aria-live="polite">
       {children}
     </div>
+  );
+}
+
+type MethodId = (typeof METHODS)[number]["id"];
+
+function rupees(paise: number): string {
+  return `₹${Math.round(paise / 100).toLocaleString("en-IN")}`;
+}
+
+function perCredit(paise: number): string {
+  return `₹${(paise / 100).toFixed(2)}`;
+}
+
+function PackCard({
+  summary,
+  balance,
+  method,
+  onMethodChange,
+  onPay,
+}: {
+  summary: PackOrderSummary;
+  balance: number;
+  method: MethodId;
+  onMethodChange: (method: MethodId) => void;
+  onPay: () => void;
+}) {
+  const credits = Math.max(0, summary.credits);
+  const months = summary.pack.validityMonths;
+  const validity = `${months} month${months === 1 ? "" : "s"}`;
+
+  return (
+    <article className="flex flex-col rounded-[20px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-[20px] font-extrabold leading-tight tracking-[-0.015em]">
+          {summary.pack.name}
+        </h3>
+        <span className="whitespace-nowrap rounded-full bg-[var(--qs-bg)] px-2.5 py-1 text-[11px] font-extrabold text-[var(--qs-muted)]">
+          One-time
+        </span>
+      </div>
+      <p className="mt-1.5 text-[13.5px] font-medium leading-[1.4] text-[var(--qs-muted)]">
+        {summary.pack.blurb || `${credits.toLocaleString("en-IN")} AI credits for ${validity}.`}
+      </p>
+      <p className="mt-3 text-[12px] font-bold text-[var(--qs-brand)]">
+        Top-up credits · no subscription needed
+      </p>
+      <div className="mt-1 flex flex-wrap items-baseline gap-2">
+        <span className="text-[38px] font-extrabold leading-none tracking-[-0.03em]">
+          {formatPricingAmount(summary.total, "INR")}
+        </span>
+        <span className="text-[13px] font-bold text-[var(--qs-muted)]">one-time</span>
+      </div>
+      <div className="mt-3">
+        <div className="flex justify-between gap-2 text-[12px] font-bold text-[var(--qs-brand)]">
+          <span>Balance after</span>
+          <span className="tabular-nums">
+            {(balance + credits).toLocaleString("en-IN")} credits
+          </span>
+        </div>
+        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[var(--qs-line)]">
+          <div
+            className="h-full rounded-full bg-[var(--qs-brand)]"
+            style={{ width: "100%" }}
+          />
+        </div>
+      </div>
+      <hr className="my-3 border-0 border-t-2 border-dashed border-[var(--qs-line)]" />
+      <ul className="grid gap-2 text-[13.5px] font-semibold">
+        <li className="flex items-center gap-2.5">
+          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+            <Check className="h-3 w-3" strokeWidth={2.6} />
+          </span>
+          {credits.toLocaleString("en-IN")} AI credits added instantly
+        </li>
+        <li className="flex items-center gap-2.5">
+          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+            <Check className="h-3 w-3" strokeWidth={2.6} />
+          </span>
+          Valid for {validity} from purchase
+        </li>
+      </ul>
+
+      <div className="mt-auto pt-4">
+        <p className="mb-2 text-[12px] font-bold text-[var(--qs-muted)]">Pay with</p>
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {METHODS.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              aria-pressed={method === m.id}
+              onClick={() => onMethodChange(m.id)}
+              className={cn(
+                "rounded-full border-2 px-3.5 py-1.5 text-[12.5px] font-bold transition-colors",
+                method === m.id
+                  ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
+                  : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
+              )}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={onPay}
+          className="flex w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-4 py-3 text-[15px] font-extrabold text-[var(--qs-ink)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_3px_0_var(--qs-ink)] active:translate-y-0.5 active:shadow-none"
+        >
+          <Lock className="h-3.5 w-3.5" /> Pay {formatPricingAmount(summary.total, "INR")}
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function UpgradeCard({
+  suggestion,
+  balance,
+  selectedPackName,
+  onAccept,
+  onDecline,
+}: {
+  suggestion: PackUpgradeSuggestion;
+  balance: number;
+  selectedPackName: string;
+  onAccept: () => void;
+  onDecline: () => void;
+}) {
+  const pack = suggestion.pack;
+  const source = suggestion.sourcePack;
+  const upgradeCreditsAfter = balance + suggestion.credits;
+  const multiple =
+    source.credits > 0 ? suggestion.credits / source.credits : 0;
+  const extraRupees = Math.max(0, suggestion.priceDifferencePaise) / 100;
+  const sourceRatePaise =
+    source.credits > 0 ? suggestion.comparedAmountPaise / source.credits : 0;
+
+  return (
+    <article className="relative order-first flex flex-col rounded-[20px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] p-4 text-[var(--qs-on-brand)] shadow-[6px_6px_0_var(--qs-sun)] sm:order-none">
+      <span className="absolute -top-3.5 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-[var(--qs-ink)] px-3.5 py-[5px] text-[12px] font-extrabold text-[var(--qs-sun)]">
+        <Sparkles className="h-3 w-3" />
+        {suggestion.badge}
+      </span>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <h3 className="text-[20px] font-extrabold leading-tight tracking-[-0.015em]">
+          {pack.name}
+        </h3>
+        <span className="whitespace-nowrap rounded-full bg-[var(--qs-sun)] px-2.5 py-1 text-[11px] font-extrabold text-[#1A1240]">
+          +{suggestion.extraCredits} credits
+        </span>
+      </div>
+      <p className="mt-1.5 text-[13.5px] font-medium leading-[1.4] text-white/80">
+        {suggestion.description}
+      </p>
+      <div className="mt-1 flex flex-wrap items-baseline gap-2">
+        <span className="text-[38px] font-extrabold leading-none tracking-[-0.03em]">
+          {formatPricingAmount(suggestion.amountPaise / 100, "INR")}
+        </span>
+        <span className="text-[13px] font-bold text-white/80">today</span>
+      </div>
+      <p className="mt-1 text-[12px] font-bold text-[var(--qs-sun)]">
+        {rupees(suggestion.comparedAmountPaise)} → {rupees(suggestion.amountPaise)}
+        {multiple > 1 ? ` · ${Number(multiple.toFixed(1))}× credits` : ""}
+      </p>
+      <div className="mt-3">
+        <div className="flex justify-between gap-2 text-[12px] font-bold text-[var(--qs-sun)]">
+          <span>Balance after</span>
+          <span className="text-right tabular-nums">
+            {upgradeCreditsAfter.toLocaleString("en-IN")} credits
+            {multiple > 1 ? ` · ${Number(multiple.toFixed(1))}× more` : ""}
+          </span>
+        </div>
+        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/20">
+          <div className="h-full w-full rounded-full bg-[var(--qs-sun)]" />
+        </div>
+      </div>
+      <hr className="my-3 border-0 border-t-2 border-dashed border-white/35" />
+      <ul className="grid gap-2 text-[13.5px] font-semibold">
+        <li className="flex items-center gap-2.5">
+          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--qs-sun)] text-[#1A1240]">
+            <Check className="h-3 w-3" strokeWidth={2.6} />
+          </span>
+          {pack.name} — {pack.credits.toLocaleString("en-IN")} AI credits, valid{" "}
+          {pack.validityDays} days
+        </li>
+        <li className="flex items-center gap-2.5">
+          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--qs-sun)] text-[#1A1240]">
+            <Check className="h-3 w-3" strokeWidth={2.6} />
+          </span>
+          {suggestion.extraCredits} more credits than {selectedPackName}
+        </li>
+        <li className="flex items-center gap-2.5">
+          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--qs-sun)] text-[#1A1240]">
+            <Check className="h-3 w-3" strokeWidth={2.6} />
+          </span>
+          {perCredit(suggestion.perCreditPaise)} per credit
+          {sourceRatePaise > 0 ? `, not ${perCredit(sourceRatePaise)}` : ""}
+        </li>
+      </ul>
+      <div className="mt-auto pt-4">
+        <button
+          type="button"
+          onClick={onAccept}
+          className="flex w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-4 py-3 text-[15px] font-extrabold text-[#1A1240] shadow-[0_4px_0_var(--qs-ink)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_6px_0_var(--qs-ink)] active:translate-y-0.5 active:shadow-none"
+        >
+          Switch to {pack.name} · {formatPricingAmount(suggestion.amountPaise / 100, "INR")}
+          <ArrowRight className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onDecline}
+          className="mt-2 w-full text-center text-[12px] font-bold text-white/75 underline decoration-2 underline-offset-2 hover:text-white"
+        >
+          No thanks
+        </button>
+        <p className="mt-2 text-center text-[12px] font-semibold text-white/85">
+          Just{" "}
+          <b className="font-extrabold text-[var(--qs-sun)]">
+            {formatPricingAmount(extraRupees, "INR")}
+          </b>{" "}
+          more than {selectedPackName} to get {suggestion.extraCredits} more credits
+        </p>
+      </div>
+    </article>
   );
 }
 
@@ -62,7 +298,7 @@ export function OrderSummaryDialog({
   onBack: () => void;
   onViewInvoice?: (orderId: string) => void;
 }) {
-  const [method, setMethod] = useState<(typeof METHODS)[number]["id"]>("upi");
+  const [method, setMethod] = useState<MethodId>("upi");
   const [suggestion, setSuggestion] = useState<PackUpgradeSuggestion | null>(null);
   const [declined, setDeclined] = useState(false);
   const busy = phase === "processing";
@@ -139,7 +375,15 @@ export function OrderSummaryDialog({
         role="dialog"
         aria-modal="true"
         aria-label={`Buy ${summary.pack.name}`}
-        className={cn(QS_DIALOG_PANEL, "m-auto")}
+        className={cn(
+          QS_DIALOG_PANEL,
+          "m-auto max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain"
+        )}
+        style={
+          suggestion && !declined && phase === "summary"
+            ? { maxWidth: 780 }
+            : undefined
+        }
         onClick={(e) => e.stopPropagation()}
       >
         <header className="mb-4 flex items-center justify-between gap-3">
@@ -159,68 +403,61 @@ export function OrderSummaryDialog({
 
         {phase === "summary" && (
           <>
-            <div className={cn(QS_ROW, "border-t-2 border-[var(--qs-line)]")}>
-              <div>
-                <b className="block text-[15px] font-extrabold">{summary.pack.name}</b>
-                <small className="text-sm text-[var(--qs-muted)]">{summary.credits} credits</small>
-              </div>
-              <strong className="text-[24px] font-black tabular-nums">
-                ₹{summary.total}
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-2.5 text-sm">
+              <span className="font-semibold text-[var(--qs-muted)]">Current balance</span>
+              <strong className="text-base font-extrabold tabular-nums">
+                {balance.toLocaleString("en-IN")} credits
               </strong>
             </div>
-            <div className={cn(QS_ROW, "border-t-2 border-[var(--qs-line)]")}>
-              <span className={QS_ROW_LABEL}>Current balance</span>
-              <span className="font-bold tabular-nums">{balance} credits</span>
-            </div>
-            <div className={cn(QS_ROW, "border-t-2 border-[var(--qs-line)]")}>
-              <span className="text-sm font-bold">New balance</span>
-              <b className="text-[22px] font-black tabular-nums text-[var(--qs-ok)]">
-                {balance + summary.credits}
-              </b>
+
+            <div
+              className={cn(
+                "mt-6 grid gap-4",
+                suggestion && !declined && "sm:grid-cols-[1fr_1.18fr] sm:items-stretch"
+              )}
+            >
+              <PackCard
+                summary={summary}
+                balance={balance}
+                method={method}
+                onMethodChange={setMethod}
+                onPay={() => onPay(method)}
+              />
+              {suggestion && !declined && (
+                <UpgradeCard
+                  suggestion={suggestion}
+                  balance={balance}
+                  selectedPackName={summary.pack.name}
+                  onAccept={acceptSuggestion}
+                  onDecline={declineSuggestion}
+                />
+              )}
             </div>
 
-            {suggestion && (
-              <CheckoutSuggestionCard
-                suggestion={suggestion}
-                declined={declined}
-                onAccept={acceptSuggestion}
-                onDecline={declineSuggestion}
-                onReopen={revisitSuggestion}
-              />
+            {suggestion && declined && (
+              <button
+                type="button"
+                onClick={revisitSuggestion}
+                className="mt-3 flex w-full items-center justify-between gap-2 rounded-[12px] border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2.5 text-left text-xs font-bold text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-brand)]"
+              >
+                <span className="flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  See the {suggestion.pack.name} instead
+                </span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
             )}
 
-            <p className="mt-2 mb-3 text-sm font-bold">Pay with</p>
-            <div className="mb-[18px] flex flex-wrap gap-2">
-              {METHODS.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  aria-pressed={method === m.id}
-                  onClick={() => setMethod(m.id)}
-                  className={cn(
-                    "rounded-full border-2 px-3.5 py-1.5 text-sm font-bold transition-colors",
-                    method === m.id
-                      ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
-                      : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
-                  )}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-
-            <p className="-mt-2 mb-3 text-xs font-semibold text-[var(--qs-muted)]">
+            <p className="mt-4 flex items-center justify-center gap-2.5 text-center text-[12.5px] font-semibold text-[var(--qs-muted)]">
+              <CalendarClock className="h-4 w-4 shrink-0 text-[var(--qs-brand)]" />
+              Credits are added instantly and stay valid for{" "}
+              {summary.pack.validityMonths} month
+              {summary.pack.validityMonths === 1 ? "" : "s"} from purchase.
+            </p>
+            <p className="mt-1.5 text-center text-xs font-medium text-[var(--qs-muted)]">
               You&apos;ll complete the payment in the secure Razorpay window.
             </p>
-
-            <button
-              type="button"
-              onClick={() => onPay(method)}
-              className="flex w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] py-[15px] text-base font-extrabold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
-            >
-              <Lock className="h-4 w-4" /> Pay ₹{summary.total}
-            </button>
-            <p className="mt-3.5 text-center text-xs font-medium text-[var(--qs-muted)]">
+            <p className="mt-1.5 text-center text-xs font-medium text-[var(--qs-muted)]">
               Secure payments via UPI, Cards &amp; Net Banking
             </p>
           </>
