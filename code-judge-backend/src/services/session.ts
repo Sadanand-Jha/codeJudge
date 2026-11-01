@@ -27,11 +27,19 @@ export function cookieSameSite(): "lax" | "none" | "strict" {
   return raw === "none" || raw === "strict" ? (raw as "none" | "strict") : "lax";
 }
 
+// www.quizsupport.com (frontend) and api.quizsupport.com (API) are sibling
+// subdomains. Share the session cookie across the registrable domain so the
+// browser sends it whether a request goes through the Next.js /api rewrite or
+// straight to the API host. Local dev omits Domain so localhost keeps working.
+const cookieDomain =
+  process.env.COOKIE_DOMAIN?.trim() || (isProduction ? ".quizsupport.com" : undefined);
+
 export const sessionCookieOptions = {
   httpOnly: true,
   secure: isProduction, // true in production (NODE_ENV=production / VERCEL=1)
   sameSite: cookieSameSite(),
   path: "/",
+  ...(cookieDomain ? { domain: cookieDomain } : {}),
 };
 
 export class SessionConfigurationError extends Error {
@@ -83,10 +91,19 @@ function remainingSessionMs(token: string): number | null {
   return Math.max(0, decoded.exp * 1000 - Date.now());
 }
 
+// Sessions issued before the Domain attribute was added are host-only. Clear
+// that legacy variant so it cannot shadow the shared cookie, and clear both
+// variants on logout.
+function clearLegacyHostCookie(res: Response): void {
+  if (!cookieDomain) return;
+  res.clearCookie(SESSION_COOKIE, { path: "/" });
+}
+
 /** Mint a short-lived signed JWT and set it as an httpOnly session cookie. */
 export function setSessionCookie(res: Response, userId: string, email: string): string {
   const token = createSessionToken(userId, email);
   const maxAge = remainingSessionMs(token);
+  clearLegacyHostCookie(res);
   res.cookie(SESSION_COOKIE, token, {
     ...sessionCookieOptions,
     ...(maxAge != null ? { maxAge } : {}),
@@ -95,6 +112,7 @@ export function setSessionCookie(res: Response, userId: string, email: string): 
 }
 
 export function clearSessionCookie(res: Response): void {
+  clearLegacyHostCookie(res);
   res.clearCookie(SESSION_COOKIE, sessionCookieOptions);
 }
 
