@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Coins, Sparkles, X } from "lucide-react";
+import { ArrowRight, Check, Coins, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useMySubscription } from "@/hooks/useMySubscription";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
@@ -153,50 +153,28 @@ function PackCard({
 
 function PlanCard({
   plan,
-  selected,
-  onSelect,
+  onBuy,
 }: {
   plan: PricingPlan;
-  selected: boolean;
-  onSelect: () => void;
+  onBuy: () => void;
 }) {
   const featured = plan.featured;
   const features = plan.features.slice(0, 4);
 
   return (
-    <label
+    <div
       className={cn(
-        "relative flex cursor-pointer flex-col gap-1.5 rounded-[20px] border-2 border-[var(--qs-ink)] p-5 pt-6 transition-[transform,box-shadow]",
+        "relative flex flex-col gap-1.5 rounded-[20px] border-2 border-[var(--qs-ink)] p-5 pt-6",
         featured
           ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
-          : "bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]",
-        selected && "-translate-x-0.5 -translate-y-0.5 shadow-[6px_6px_0_var(--qs-sun)]"
+          : "bg-[var(--qs-surface)] text-[var(--qs-ink)]"
       )}
     >
-      <input
-        type="radio"
-        name="upgrade-monthly-plan"
-        value={plan.slug}
-        checked={selected}
-        onChange={onSelect}
-        className="sr-only"
-      />
       {featured && (
         <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--qs-ink)] px-3 py-[3px] text-[11px] font-extrabold uppercase tracking-[0.05em] text-[var(--qs-bg)]">
           Most popular
         </span>
       )}
-      <span
-        aria-hidden
-        className={cn(
-          "absolute right-3.5 top-3.5 grid h-6 w-6 place-items-center rounded-full border-2 border-current",
-          selected
-            ? "border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]"
-            : "text-transparent"
-        )}
-      >
-        <Check className="h-3.5 w-3.5" strokeWidth={3.5} />
-      </span>
       <span className="text-[12px] font-extrabold uppercase tracking-[0.08em] opacity-80">
         {plan.name}
       </span>
@@ -228,7 +206,19 @@ function PlanCard({
           </li>
         ))}
       </ul>
-    </label>
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onBuy();
+        }}
+        className="mt-3 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-3 py-2.5 text-[13px] font-extrabold text-[#1A1240] shadow-[3px_3px_0_var(--qs-ink)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
+      >
+        Upgrade to {plan.name} · {formatPricingAmount(plan.price, plan.currency)}
+        /mo
+        <ArrowRight className="h-3.5 w-3.5" />
+      </button>
+    </div>
   );
 }
 
@@ -251,7 +241,6 @@ function UpgradeModalContent({
   const [creditsSyncing, setCreditsSyncing] = useState(true);
   const [tab, setTab] = useState<UpgradeTab | null>(detail.tab ?? null);
   const [packId, setPackId] = useState<string | null>(null);
-  const [planSlug, setPlanSlug] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -415,20 +404,6 @@ function UpgradeModalContent({
           ? "plans"
           : "credits";
 
-  const coveringPlan =
-    creditShortfall > 0
-      ? [...catalog.plans]
-          .sort((a, b) => a.price - b.price)
-          .find((plan) => plan.credits >= creditShortfall)
-      : undefined;
-  const recommendedPlan =
-    coveringPlan ??
-    catalog.plans.find((plan) => plan.featured) ??
-    catalog.plans[0] ??
-    null;
-  const selectedPlan =
-    catalog.plans.find((plan) => plan.slug === planSlug) ?? recommendedPlan;
-
   const coveringPack =
     creditShortfall > 0
       ? [...catalog.creditPacks]
@@ -461,31 +436,17 @@ function UpgradeModalContent({
           ? "Your plan is active. Add a one-time credit pack to keep generating right away."
           : "Pick an AI credit pack for an instant top-up, or move to a monthly plan with credits included.");
 
-  const startCheckout = () => {
-    if (effectiveTab === "credits" && selectedPack) {
-      onClose();
-      router.push(
-        `/creator/billing/credits?pack=${encodeURIComponent(selectedPack.id)}`
-      );
-      return;
-    }
-    if (effectiveTab === "plans" && selectedPlan) {
-      onClose();
-      router.push(
-        `/creator/billing/plans?plan=${encodeURIComponent(selectedPlan.slug)}`
-      );
-    }
+  const startCreditsCheckout = () => {
+    if (!selectedPack) return;
+    onClose();
+    router.push(
+      `/creator/billing/credits?pack=${encodeURIComponent(selectedPack.id)}`
+    );
   };
 
-  const ctaLabel =
-    effectiveTab === "credits" && selectedPack
-      ? `Buy ${selectedPack.name} · ${formatPricingAmount(selectedPack.price)}`
-      : effectiveTab === "plans" && selectedPlan
-        ? `Upgrade to ${selectedPlan.name} · ${formatPricingAmount(
-            selectedPlan.price,
-            selectedPlan.currency
-          )}/mo`
-        : "Choose an option";
+  const ctaLabel = selectedPack
+    ? `Buy ${selectedPack.name} · ${formatPricingAmount(selectedPack.price)}`
+    : "Choose an option";
 
   const activeOptions =
     effectiveTab === "credits"
@@ -529,17 +490,17 @@ function UpgradeModalContent({
             type="button"
             onClick={onClose}
             aria-label="Close upgrade options"
-            className="cursor-pointer absolute right-4 top-4 z-20 grid h-[38px] w-[38px] place-items-center rounded-[11px] border-2 border-white/25 bg-white/10 text-white transition-colors hover:border-[var(--qs-sun)] hover:bg-white/15 sm:right-6 sm:top-6 sm:h-[42px] sm:w-[42px]"
+            className="qs-cinema-close cursor-pointer absolute right-4 top-4 z-20 grid h-[38px] w-[38px] place-items-center rounded-[11px] border-2 border-white/25 bg-white/10 text-white transition-colors hover:border-[var(--qs-sun)] hover:bg-white/15 sm:right-6 sm:top-6 sm:h-[42px] sm:w-[42px]"
           >
             <X className="h-4 w-4" strokeWidth={3} />
           </button>
 
           <header className="relative z-10 flex items-start gap-3 pr-12 sm:items-center sm:gap-4 sm:pr-14">
-            <div className="grid h-11 w-11 flex-none place-items-center rounded-[13px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240] shadow-[3px_3px_0_rgba(0,0,0,0.35)]">
+            <div className="hidden h-11 w-11 flex-none place-items-center rounded-[13px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240] shadow-[3px_3px_0_rgba(0,0,0,0.35)] sm:grid">
               <Sparkles className="h-[22px] w-[22px]" strokeWidth={2.2} />
             </div>
             <div className="min-w-0">
-              <div className="qs-cinema-eyebrow flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.16em]">
+              <div className="qs-cinema-eyebrow hidden items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.16em] sm:flex">
                 <span aria-hidden className="qs-cinema-dot" />
                 Now showing · {detail.eyebrow ?? "AI features"}
               </div>
@@ -700,22 +661,28 @@ function UpgradeModalContent({
                     <PlanCard
                       key={plan.slug}
                       plan={plan}
-                      selected={selectedPlan?.slug === plan.slug}
-                      onSelect={() => setPlanSlug(plan.slug)}
+                      onBuy={() => {
+                        onClose();
+                        router.push(
+                          `/creator/billing/plans?plan=${encodeURIComponent(plan.slug)}`
+                        );
+                      }}
                     />
                   ))}
             </div>
           </>
         )}
 
-        <button
-          type="button"
-          onClick={startCheckout}
-          disabled={isLoading || activeOptions === 0}
-          className="mt-2 w-full cursor-pointer rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] py-3.5 text-base font-extrabold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {ctaLabel}
-        </button>
+        {effectiveTab === "credits" && (
+          <button
+            type="button"
+            onClick={startCreditsCheckout}
+            disabled={isLoading || activeOptions === 0}
+            className="mt-2 w-full cursor-pointer rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] py-3.5 text-base font-extrabold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {ctaLabel}
+          </button>
+        )}
 
         <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 text-[12px] font-medium text-[var(--qs-muted)]">
           <span>

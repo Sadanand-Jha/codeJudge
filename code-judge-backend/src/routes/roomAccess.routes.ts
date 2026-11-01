@@ -3,6 +3,7 @@
 // the code + password they received from their teacher.
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.ts";
+import { requirePaidPlan } from "../middleware/requirePaidPlan.ts";
 import { requireTeacher } from "../middleware/requireTeacher.ts";
 import { roomJoinRateLimit } from "../middleware/roomJoinRateLimit.ts";
 import {
@@ -27,7 +28,7 @@ const router = Router();
 
 router.use(authenticate);
 
-router.post("/", requireTeacher, validate(roomCreateSchema), createRoomWithCredentials);
+router.post("/", requireTeacher, requirePaidPlan, validate(roomCreateSchema), createRoomWithCredentials);
 router.post("/join/form", roomJoinRateLimit, validate(roomJoinSchema), previewRoomJoin);
 router.post("/join", roomJoinRateLimit, validate(roomJoinSchema), joinRoom);
 router.get("/enrolled", getEnrolledRooms);

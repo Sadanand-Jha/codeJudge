@@ -33,6 +33,8 @@ assert.match(planDialog, /getCheckoutSuggestion/);
 assert.match(planDialog, /suggestion_shown/);
 assert.match(planDialog, /suggestion_accepted/);
 assert.match(planDialog, /suggestion_declined/);
+assert.match(planDialog, /Continue with monthly/);
+assert.match(planDialog, /Buy bundle/);
 
 const packDialog = read("components/creator/billing/credits/OrderSummaryDialog.tsx");
 assert.match(packDialog, /getCheckoutSuggestion/);

@@ -15267,3 +15267,44 @@ textarea {
   opacity: 0.4;
 }
 
+/* Upgrade modal — strip the cinema treatment on phones. */
+@media (max-width: 639px) {
+  .qs-cinema-panel {
+    box-shadow: none;
+  }
+
+  .qs-cinema-hero {
+    background: var(--qs-surface);
+  }
+
+  .qs-cinema-hero::before,
+  .qs-cinema-hero::after,
+  .qs-cinema-beam,
+  .qs-cinema-grain,
+  .qs-cinema-glow,
+  .qs-cinema-perf {
+    display: none;
+  }
+
+  .qs-cinema-hero .qs-color-word {
+    background-image: none;
+    color: var(--qs-brand);
+    -webkit-text-fill-color: currentColor;
+    animation: none;
+  }
+
+  .qs-cinema-title {
+    color: var(--qs-ink) !important;
+  }
+
+  .qs-cinema-copy {
+    color: var(--qs-muted) !important;
+  }
+
+  .qs-cinema-close {
+    border-color: var(--qs-line) !important;
+    background: var(--qs-surface) !important;
+    color: var(--qs-ink) !important;
+  }
+}
+

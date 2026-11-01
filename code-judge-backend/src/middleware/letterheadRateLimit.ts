@@ -50,6 +50,9 @@ function createSignatureRateLimit(scope: string, maxSignatures: number) {
 /** Per-user upload-signature limit: 20 requests per 10 minutes. */
 export const letterheadSignatureRateLimit = createSignatureRateLimit("letterhead", 20);
 
+/** Room documents can be uploaded in batches: 40 signatures per 10 minutes. */
+export const roomDocumentSignatureRateLimit = createSignatureRateLimit("room_document", 40);
+
 /** Avatar uploads are small and infrequent: 10 signatures per 10 minutes. */
 export const avatarSignatureRateLimit = createSignatureRateLimit("avatar", 10);
 

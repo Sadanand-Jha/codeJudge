@@ -83,14 +83,14 @@ function suggestedPack(pack: PurchasableCreditPack): SuggestedPack {
 /**
  * Builds the monthly-plan bundle suggestion. The comparison price is always the
  * live plan + pack selling price, and a bundle is shown only when it is
- * genuinely cheaper and adds credits. Existing subscribers never see it.
+ * genuinely cheaper and adds credits. Existing subscribers can still take a
+ * bundle because the plan portion renews or switches their subscription while
+ * the pack credits stack on top.
  */
 export function buildPlanBundleSuggestion(input: {
   bundle: PurchasablePlanBundle;
-  hasActivePlan: boolean;
 }): PlanBundleSuggestion | null {
-  const { bundle, hasActivePlan } = input;
-  if (hasActivePlan) return null;
+  const { bundle } = input;
 
   const regularPaise = bundle.plan.amountPaise + bundle.pack.priceInr * 100;
   const amountPaise = Math.max(0, Math.trunc(bundle.amountPaise));
@@ -120,8 +120,8 @@ export function buildPlanBundleSuggestion(input: {
     productId: `bundle:${bundle.id}`,
     bundleId: bundle.id,
     sourceProductId: `plan:${bundle.planId}`,
-    title: `${bundle.plan.name} + ${bundle.pack.credits} AI credits`,
-    description: `Everything in ${bundle.plan.name}, plus ${bundle.pack.credits} extra AI credits in one payment.`,
+    title: `${bundle.plan.name} + ${bundle.pack.name}`,
+    description: `Everything in ${bundle.plan.name}, plus the ${bundle.pack.name} (${bundle.pack.credits} AI credits, valid ${bundle.pack.validityDays} days) in one payment.`,
     badge: bundle.badge,
     amountPaise,
     compareAtPaise: regularPaise,

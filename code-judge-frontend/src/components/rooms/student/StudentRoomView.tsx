@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Clock,
+  Download,
   FileText,
   Loader2,
   LogOut,
@@ -21,11 +22,14 @@ import { timeAgo } from "@/lib/formatters";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { toast } from "@/lib/toast";
 import { useAuthStore } from "@/store/authStore";
+import { useRoomAnnouncements } from "@/hooks/useRoomAnnouncements";
+import { useRoomDocuments } from "@/hooks/useRoomDocuments";
 import {
-  useRoomContentStore,
-  type RoomAnnouncement,
+  downloadRoomDocument,
+  formatDocumentSize,
   type RoomDocument,
-} from "@/store/roomContentStore";
+} from "@/services/roomDocuments";
+import type { RoomAnnouncement } from "@/services/roomAnnouncements";
 import {
   getRoomSummary,
   leaveRoom,
@@ -71,9 +75,11 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const currentUser = useAuthStore((s) => s.user);
-  const announcements = useRoomContentStore((s) => s.announcements);
-  const documents = useRoomContentStore((s) => s.documents);
-  const seedRoom = useRoomContentStore((s) => s.seedRoom);
+  const { announcements } = useRoomAnnouncements(
+    roomId,
+    hasHydrated && isAuthenticated
+  );
+  const { documents } = useRoomDocuments(roomId, hasHydrated && isAuthenticated);
   const { reload: reloadStudentRooms } = useStudentRooms();
 
   const [room, setRoom] = useState<RoomSummary | null>(null);
@@ -152,11 +158,6 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
     () => room?.members?.find((member) => member.is_you) ?? null,
     [room]
   );
-
-  useEffect(() => {
-    if (!room) return;
-    seedRoom(room.id);
-  }, [room, seedRoom]);
 
   const roomAnnouncements = useMemo(
     () =>
@@ -527,6 +528,17 @@ function RecentUpdatesPanel({
   const latestAnnouncements = announcements.slice(0, 2);
   const latestDocuments = documents.slice(0, 3);
 
+  const download = async (document: RoomDocument) => {
+    try {
+      await downloadRoomDocument(room.id, document.id, document.name);
+    } catch (error: unknown) {
+      toast.error({
+        title: "Download failed",
+        description: getApiErrorMessage(error, "Please try again."),
+      });
+    }
+  };
+
   return (
     <section className="relative mb-4 mr-1 min-w-0 lg:flex lg:flex-col">
       <div aria-hidden className="absolute left-1 top-1 -bottom-1 -right-1 rounded-[18px] bg-[var(--qs-sun)]" />
@@ -625,9 +637,18 @@ function RecentUpdatesPanel({
                         {document.name}
                       </span>
                       <span className="mt-0.5 block text-[12px] font-semibold text-[var(--qs-muted)]">
-                        {document.type} · {document.size} · {timeAgo(document.addedAt)}
+                        {document.type} · {formatDocumentSize(document.bytes)} ·{" "}
+                        {timeAgo(document.addedAt)}
                       </span>
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => void download(document)}
+                      aria-label={`Download ${document.name}`}
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-bg)] hover:text-[var(--qs-brand)]"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 ))
               )}

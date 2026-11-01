@@ -1108,16 +1108,24 @@ export class BillingService {
       const hasActivePlan = userId
         ? await billingRepository.hasActivePlanOrder(userId)
         : false;
-      const bundle = await billingRepository.findPlanBundleForPlan(plan.planId);
-      const suggestion = bundle
-        ? buildPlanBundleSuggestion({ bundle, hasActivePlan })
-        : null;
+      // Upsell bundles are optional. A missing bundle catalogue must never take
+      // down plan suggestions or checkout, so log and continue without one.
+      let bundle: PurchasablePlanBundle | null = null;
+      try {
+        bundle = await billingRepository.findPlanBundleForPlan(plan.planId);
+      } catch (error) {
+        console.error("Plan bundle suggestion lookup failed", {
+          planId: plan.planId,
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+      const suggestion = bundle ? buildPlanBundleSuggestion({ bundle }) : null;
       if (suggestion) {
         return { suggestion, planCode: plan.slug };
       }
 
-      // Subscribers cannot buy a second plan, so fall back to the best pack
-      // upgrade (if they do not already own it).
+      // With no bundle configured for this plan, fall back to the best pack
+      // upgrade for subscribers (if they do not already own it).
       if (userId && hasActivePlan && packs.length > 1) {
         const holdings = await billingRepository.getActivePackHoldings(userId);
         const highestOwned = holdings[0]?.priceInr ?? null;
@@ -1401,14 +1409,6 @@ export class BillingService {
     try {
       prepared = await withTransaction(async (client) => {
         await lockBillingUser(client, userId);
-        if (await billingRepository.hasActivePlanOrder(userId, client)) {
-          throw new BillingError(
-            409,
-            "PLAN_ALREADY_ACTIVE",
-            "You already have an active plan. Choose a credit pack instead."
-          );
-        }
-
         const reusable = await billingRepository.findReusablePendingOrder(
           {
             userId,

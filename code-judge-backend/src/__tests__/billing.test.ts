@@ -253,10 +253,7 @@ const bundle: PurchasablePlanBundle = {
   plan,
   pack: basicPack,
 };
-const bundleSuggestion = buildPlanBundleSuggestion({
-  bundle,
-  hasActivePlan: false,
-});
+const bundleSuggestion = buildPlanBundleSuggestion({ bundle });
 assert.ok(bundleSuggestion);
 assert.equal(bundleSuggestion.suggestionType, "A");
 assert.equal(bundleSuggestion.productId, "bundle:7");
@@ -265,14 +262,13 @@ assert.equal(bundleSuggestion.compareAtPaise, 29_800);
 assert.equal(bundleSuggestion.savingsPaise, 2_980);
 assert.equal(bundleSuggestion.credits, 150);
 assert.equal(bundleSuggestion.plan.validityDays, 30);
-assert.equal(
-  buildPlanBundleSuggestion({ bundle, hasActivePlan: true }),
-  null
-);
+assert.equal(bundleSuggestion.title, `${plan.name} + ${basicPack.name}`);
+assert.match(bundleSuggestion.description, /valid 180 days/);
+assert.equal(bundleSuggestion.pack.name, basicPack.name);
+assert.equal(bundleSuggestion.pack.validityDays, 180);
 assert.equal(
   buildPlanBundleSuggestion({
     bundle: { ...bundle, amountPaise: 29_800 },
-    hasActivePlan: false,
   }),
   null
 );

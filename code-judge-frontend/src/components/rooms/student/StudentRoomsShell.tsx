@@ -2,6 +2,7 @@
 
 import { Suspense } from "react";
 import { usePathname } from "next/navigation";
+import CompleteProfileModal from "@/components/profile/CompleteProfileModal";
 import { StudentRoomsProvider } from "./StudentRoomsProvider";
 import StudentRoomsNavbar from "./StudentRoomsNavbar";
 
@@ -23,6 +24,7 @@ export default function StudentRoomsShell({ children }: { children: React.ReactN
         </Suspense>
         <div className="min-w-0 flex-1">{children}</div>
       </div>
+      <CompleteProfileModal />
     </StudentRoomsProvider>
   );
 }

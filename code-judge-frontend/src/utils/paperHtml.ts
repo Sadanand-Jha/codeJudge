@@ -64,6 +64,8 @@ export interface PaperOptions {
   mcqBubbles?: boolean;
   /** "two-column" lays the questions out in two newspaper-style columns. */
   layout?: "single" | "two-column";
+  /** How many MCQ answer options sit on one line (1, 2 or 4). */
+  optionsPerLine?: 1 | 2 | 4;
 }
 
 export interface PaperBuildInput {
@@ -324,8 +326,11 @@ function renderOptions(question: PaperQuestion, optionsConfig: PaperOptions, two
   if (question.type && !CHOICE_TYPES.has(question.type)) return "";
 
   const hasImages = options.some((option) => option.imageUrl);
-  // The browser measurement pass makes the final 4 -> 2 -> 1 decision. This
-  // initial class keeps the live preview useful before that pass runs.
+  const explicitColumns = optionsConfig.optionsPerLine;
+  const columns = explicitColumns
+    ? Math.min(explicitColumns, options.length)
+    : null;
+  // Without an explicit choice, keep the compact 4 -> 2 -> 1 fallback.
   const initialLayout =
     hasImages || options.length > 4
       ? "opts-1"
@@ -343,7 +348,11 @@ function renderOptions(question: PaperQuestion, optionsConfig: PaperOptions, two
       return `<div class="opt"><span class="opt-label">${bubble}${label}</span><span class="opt-text">${content}</span></div>`;
     })
     .join("");
-  return `<div class="opts ${initialLayout}" data-options data-count="${options.length}"${hasImages ? ' data-has-images="true"' : ""}>${items}</div>`;
+  const layoutClass = columns ? "opts" : initialLayout;
+  const layoutStyle = columns
+    ? ` style="grid-template-columns:repeat(${columns},minmax(0,1fr))"`
+    : "";
+  return `<div class="opts ${layoutClass}"${layoutStyle} data-options data-count="${options.length}"${columns ? ` data-per-line="${explicitColumns}"` : ""}${hasImages ? ' data-has-images="true"' : ""}>${items}</div>`;
 }
 
 function renderQuestionImages(question: PaperQuestion): string {
@@ -634,17 +643,17 @@ p { margin: 0; }
 .question:last-child { margin-bottom: 0; }
 .q-no { position: absolute; top: 0; left: 0; font-weight: 700; }
 .q-marks { position: absolute; top: 0; right: 0; font-size: 10pt; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
-.q-text { min-width: 0; padding-right: 9mm; word-break: normal; overflow-wrap: normal; hyphens: manual; }
+.q-text { min-width: 0; padding-right: 9mm; word-break: normal; overflow-wrap: anywhere; hyphens: manual; }
 .q-text .ln { margin: 0 0 1mm; }
 .q-text .ln:last-child { margin-bottom: 0; }
 .opts { display: grid; column-gap: 4mm; row-gap: 1mm; margin-top: 1.2mm; }
 .opts-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .opts-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .opts-1 { grid-template-columns: minmax(0, 1fr); }
-.opt { display: grid; grid-template-columns: 7mm minmax(0, 1fr); align-items: start; min-width: 0; font-size: 10pt; line-height: 1.25; break-inside: avoid; word-break: normal; overflow-wrap: normal; hyphens: manual; }
+.opt { display: grid; grid-template-columns: 7mm minmax(0, 1fr); align-items: start; min-width: 0; font-size: 10pt; line-height: 1.25; break-inside: avoid; word-break: normal; overflow-wrap: anywhere; hyphens: manual; }
 .opt-label { white-space: nowrap; }
 .opt-label .bubble { display: inline-block; width: 3.2mm; }
-.opt-text { min-width: 0; word-break: normal; overflow-wrap: normal; hyphens: manual; }
+.opt-text { min-width: 0; word-break: normal; overflow-wrap: anywhere; hyphens: manual; }
 .opt img { max-width: 100%; height: auto; margin-top: 1mm; }
 .nw { white-space: nowrap; }
 sup, sub { font-size: 66%; line-height: 0; }
@@ -656,7 +665,7 @@ pre.code { margin: 1.5mm 0 0; padding: 1.5mm 2mm; border: 0.5pt solid #000; font
 .tblwrap { margin: 1.5mm 0 0; break-inside: avoid; }
 table.tbl { width: 100%; border-collapse: collapse; font-size: 10pt; }
 .qs.two table.tbl { table-layout: fixed; }
-table.tbl th, table.tbl td { padding: 1mm 1.5mm; border: 0.5pt solid #000; text-align: left; vertical-align: top; overflow-wrap: normal; }
+table.tbl th, table.tbl td { padding: 1mm 1.5mm; border: 0.5pt solid #000; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
 table.tbl th { font-weight: 700; }
 .qimg { margin: 3mm 0 0; text-align: center; break-inside: avoid; }
 .qimg img { max-width: 100%; height: auto; }

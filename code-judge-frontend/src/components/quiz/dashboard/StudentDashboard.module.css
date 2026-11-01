@@ -364,11 +364,11 @@
 
 @media (max-width: 767px) {
   .input {
-    height: 66px;
+    height: 52px;
   }
 
   .joinBtn {
-    min-height: 66px;
+    min-height: 52px;
   }
 }
 
