@@ -19,11 +19,33 @@ const userRepo = new userRepository();
 // Vercel par hain YA NODE_ENV production hai -> secure: true ho jayega
 const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
 
+// Frontend (www.quizsupport.com) and API (api.quizsupport.com) are sibling
+// subdomains. Scope the session cookies to the registrable domain so both
+// hosts receive them (SSR + direct cross-origin API calls). Local dev omits
+// Domain so localhost/127.0.0.1 keep working. Override with COOKIE_DOMAIN if
+// the production hostnames change.
+const cookieDomain =
+  process.env.COOKIE_DOMAIN?.trim() || (isProduction ? ".quizsupport.com" : undefined);
+
 const cookieOptions = {
   httpOnly: true,
   secure: isProduction, // Local host pe FALSE, Vercel pe automatic TRUE
-  sameSite: "lax" as const,
+  sameSite: "lax" as const, // www + api are same-site, so Lax cookies flow
   path: "/",
+  ...(cookieDomain ? { domain: cookieDomain } : {}),
+};
+
+// Cookies issued before the Domain attribute was added are host-only. Clear
+// that legacy variant when signing in so it cannot shadow the shared cookie
+// on api.quizsupport.com, and clear both variants on logout.
+const clearLegacyHostCookie = (res: Response, name: string) => {
+  if (!cookieDomain) return;
+  res.clearCookie(name, { path: "/" });
+};
+
+const clearAuthCookie = (res: Response, name: string) => {
+  clearLegacyHostCookie(res, name);
+  res.clearCookie(name, cookieOptions);
 };
 
 /**
@@ -399,6 +421,7 @@ export const loginController = async (req: Request, res: Response) => {
     );
 
     // 1. LOGIN TIME
+    clearLegacyHostCookie(res, "session_token");
     res.cookie("session_token", sessionToken, {
       ...cookieOptions,
       maxAge: 10 * 24 * 60 * 60 * 1000,
@@ -543,6 +566,7 @@ export const ownerVerifyOtpController = async (req: Request, res: Response) => {
       return;
     }
 
+    clearLegacyHostCookie(res, PLATFORM_COOKIE);
     res.cookie(PLATFORM_COOKIE, platformToken, {
       ...cookieOptions,
       maxAge: platformCookieMaxAgeMs(),
@@ -585,7 +609,7 @@ export const ownerLogoutController = async (req: Request, res: Response) => {
     if (token) {
       await revokePlatformToken(token);
     }
-    res.clearCookie(PLATFORM_COOKIE, cookieOptions);
+    clearAuthCookie(res, PLATFORM_COOKIE);
     res.status(200).json({ success: true, message: "Platform session revoked" });
   } catch (error: any) {
     console.error("Error in ownerLogoutController:", error);
@@ -772,8 +796,8 @@ export const logoutController = async (req: Request, res: Response) => {
       }
     }
 
-    // 2. LOGOUT TIME (Must match cookieOptions exactly)
-    res.clearCookie("session_token", cookieOptions);
+    // 2. LOGOUT TIME (Must match cookieOptions exactly, plus legacy host-only)
+    clearAuthCookie(res, "session_token");
 
     res.status(200).json({
       success: true,
