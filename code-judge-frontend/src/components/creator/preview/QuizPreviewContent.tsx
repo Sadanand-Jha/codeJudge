@@ -26,7 +26,13 @@ import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import { getAdminQuizById, getQuizProblemsPublic } from "@/services/quiz";
 import type { QuizBasic, PublicQuizProblem } from "@/services/quiz";
+import type { StoredAttemptAnswer } from "@/lib/quizAttemptStorage";
 import ExamModeShell from "@/components/quiz/exam/ExamModeShell";
+import {
+  MobileAttemptView,
+  type MobileAttemptQuestion,
+} from "@/components/quiz/attempt/MobileAttemptView";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 /* ── Types ── */
 
@@ -95,6 +101,7 @@ interface DisplayMechanic {
 export default function QuizPreviewContent({ quizId }: { quizId: string }) {
   const router = useRouter();
   const onExitPreview = useCallback(() => router.push("/creator/quizzes"), [router]);
+  const isMobile = useIsMobile();
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [marked, setMarked] = useState<Record<number, boolean>>({});
@@ -166,6 +173,53 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
 
   const totalMarks = useMemo(() => questions.reduce((s, q) => s + q.marks, 0), [questions]);
 
+  const questionTypeById = useMemo(
+    () => new Map(questions.map((question) => [question.id, question.type])),
+    [questions]
+  );
+
+  const mobileQuestions = useMemo<MobileAttemptQuestion[]>(
+    () =>
+      questions.map((question) => ({
+        id: question.id,
+        statement: question.q,
+        multiple: false,
+        options: isChoiceType(question.type)
+          ? question.options.map((option) => ({ id: option.label, text: option.text }))
+          : [],
+      })),
+    [questions]
+  );
+
+  const mobileAnswers = useMemo<Record<number, StoredAttemptAnswer>>(() => {
+    const mapped: Record<number, StoredAttemptAnswer> = {};
+    for (const [id, value] of Object.entries(answers)) {
+      if (!value) continue;
+      const type = questionTypeById.get(Number(id));
+      mapped[Number(id)] = type && isChoiceType(type) ? { option: value } : { textAnswer: value };
+    }
+    return mapped;
+  }, [answers, questionTypeById]);
+
+  const markedForReview = useMemo(
+    () => new Set(questions.filter((question) => marked[question.id]).map((question) => question.id)),
+    [questions, marked]
+  );
+
+  const handleMobileAnswer = useCallback((problemId: number, answer: StoredAttemptAnswer) => {
+    setAnswers((prev) => {
+      const next = { ...prev };
+      const value = answer.textAnswer ?? answer.option ?? answer.options?.[0];
+      if (value === undefined) delete next[problemId];
+      else next[problemId] = value;
+      return next;
+    });
+  }, []);
+
+  const handleMobileToggleMarked = useCallback((problemId: number) => {
+    setMarked((prev) => ({ ...prev, [problemId]: !prev[problemId] }));
+  }, []);
+
   const getNavigatorClass = (question: PreviewQuestion, idx: number) => {
     if (idx === current) return "bg-pink-500 text-white shadow-sm";
     if (marked[question.id]) return "bg-amber-500 text-white";
@@ -205,7 +259,40 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
       autoEnter
       fullWidth
       overlapHeader
+      hideChrome={isMobile}
     >
+      {isMobile ? (
+        mobileQuestions[current] ? (
+          <MobileAttemptView
+            quizName={quiz.name}
+            questions={mobileQuestions}
+            current={mobileQuestions[current]}
+            index={current}
+            answers={mobileAnswers}
+            markedForReview={markedForReview}
+            timeLeft={null}
+            submitting={false}
+            isPreview
+            onAnswer={handleMobileAnswer}
+            onDraftAnswer={handleMobileAnswer}
+            onNavigate={setCurrent}
+            onToggleMarked={handleMobileToggleMarked}
+            onSubmit={onExitPreview}
+            onQuit={onExitPreview}
+          />
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+            <p className="text-sm text-[var(--qs-muted)]">This quiz has no questions to preview.</p>
+            <button
+              type="button"
+              onClick={onExitPreview}
+              className="rounded-xl border border-[var(--qs-line)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--qs-ink)]"
+            >
+              Back to Studio
+            </button>
+          </div>
+        )
+      ) : (
       <div className="flex h-full w-full flex-col overflow-hidden bg-transparent text-text-primary">
       {/* ── MAIN GRID ── */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[clamp(350px,27.5vw,450px)_minmax(0,1fr)_clamp(325px,27.5vw,425px)] gap-3 p-3 overflow-hidden sm:pt-6">
@@ -521,6 +608,7 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
         </div>
       )}
       </div>
+      )}
     </ExamModeShell>
   );
 }

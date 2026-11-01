@@ -5,7 +5,7 @@ import { withPaperHeaderDefaults, type PaperHeaderMeta } from "@/utils/paperHead
 const rawBase =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://api.quizsupport.com/api";
+  "/api";
 const API_BASE = rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "");
 const SAVED_TESTS_PATH = "/v1/admin/tests/saved-papers";
 const LEGACY_STORAGE_KEY = "quizsupport.creator.tests.v1";

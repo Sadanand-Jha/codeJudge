@@ -40,6 +40,7 @@ export default function NavbarRightActions() {
                 alt={savedAvatar.label}
                 width={32}
                 height={32}
+                unoptimized
                 className="h-full w-full object-cover"
               />
             ) : (

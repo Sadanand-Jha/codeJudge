@@ -65,7 +65,7 @@ function Astronaut({ index }: { index: number }) {
       {/* Helmet + avatar visor */}
       <div className="absolute left-1/2 top-0 z-10 h-[58px] w-[62px] -translate-x-1/2 rounded-[48%] border-[5px] border-slate-100 bg-gradient-to-br from-white to-slate-300 p-[3px] shadow-[inset_-5px_-5px_10px_rgba(71,85,105,.28),0_0_0_1px_rgba(148,163,184,.45)]">
         <div className="relative h-full w-full overflow-hidden rounded-[45%] border-2 border-violet-300/50 bg-[#11162B] shadow-[inset_0_0_12px_rgba(34,211,238,.3)]">
-          <Image src={avatar.url} alt="" fill sizes="52px" className="object-cover" />
+          <Image src={avatar.url} alt="" fill sizes="52px" unoptimized className="object-cover" />
           <span className="absolute inset-x-1 top-1 h-2 rounded-full bg-white/20 blur-[1px]" />
         </div>
       </div>

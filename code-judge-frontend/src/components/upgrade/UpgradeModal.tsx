@@ -510,14 +510,14 @@ function UpgradeModalContent({
         aria-modal="true"
         aria-labelledby="upgrade-modal-title"
         onClick={(event) => event.stopPropagation()}
-        className="qs-ui qs-cinema-panel relative m-auto w-full max-w-[860px] overflow-hidden rounded-[22px] border-2 border-[var(--qs-ink)] shadow-[8px_8px_0_var(--qs-sun)] sm:rounded-[24px]"
+        className="qs-ui qs-cinema-panel relative m-auto flex w-full max-w-[860px] flex-col overflow-hidden rounded-[22px] border-2 border-[var(--qs-ink)] shadow-[8px_8px_0_var(--qs-sun)] sm:rounded-[24px]"
         style={{
           background: "var(--qs-surface)",
           color: "var(--qs-ink)",
           fontSize: 15,
         }}
       >
-        <div className="qs-cinema-hero relative overflow-hidden border-b-2 border-[var(--qs-ink)] px-5 pb-5 pt-6 sm:px-7 sm:pb-7 sm:pt-8">
+        <div className="qs-cinema-hero relative shrink-0 overflow-hidden border-b-2 border-[var(--qs-ink)] px-5 pb-5 pt-6 sm:px-7 sm:pb-7 sm:pt-8">
           <span aria-hidden className="qs-cinema-beam" />
           <span aria-hidden className="qs-cinema-grain" />
           <span aria-hidden className="qs-cinema-glow qs-cinema-glow-a" />
@@ -560,7 +560,7 @@ function UpgradeModalContent({
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.12, duration: 0.32, ease: "easeOut" }}
-          className="p-5 sm:p-7"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 sm:p-7"
         >
         <div
           aria-live="polite"

@@ -6,6 +6,7 @@ import { orderNumber } from "./billing/calculations.ts";
 import { withEntitlementLock } from "./entitlements/guards.ts";
 import { invalidateEntitlements } from "./entitlement.service.ts";
 import { writeSubscriptionAudit } from "./subscriptionAudit.service.ts";
+import { sendTrialApprovalEmail } from "./trialEmail.service.ts";
 import {
   type AdminTrialRequestRow,
   type TrialPlanRow,
@@ -416,6 +417,7 @@ export class TrialRequestService {
         orderId: order.id,
         creditsGranted: credits,
         before: request,
+        trialDays: plan.trial_days,
         trialEndsAt,
       };
     });
@@ -439,6 +441,14 @@ export class TrialRequestService {
       },
       reason: result.request.reviewNote,
       ip: actor.ip ?? null,
+    });
+
+    await sendTrialApprovalEmail({
+      userId: result.request.userId,
+      planName: result.request.planName,
+      trialDays: result.trialDays,
+      trialEndsAt: result.trialEndsAt,
+      credits: result.creditsGranted,
     });
 
     return {

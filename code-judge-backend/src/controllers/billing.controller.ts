@@ -4,6 +4,10 @@
 import type { Request, Response } from "express";
 import { billingService } from "../services/billing.service.ts";
 import { isBillingError } from "../services/billing/errors.ts";
+import {
+  checkoutSuggestionEventSchema,
+  suggestionQuerySchema,
+} from "../middleware/billing.validate.ts";
 
 interface RawBodyRequest extends Request {
   rawBody?: Buffer;
@@ -97,6 +101,122 @@ export const verifyCreditOrderHandler = async (
       razorpay_signature: string;
     };
     const data = await billingService.verifyCreditOrder(userIdFrom(req), {
+      orderKey: String(body.order_id),
+      razorpayOrderId: body.razorpay_order_id ?? null,
+      razorpayPaymentId: body.razorpay_payment_id,
+      razorpaySignature: body.razorpay_signature,
+    });
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    sendBillingError(res, error);
+  }
+};
+
+/**
+ * Returns the eligible checkout upsell for a plan or pack. The endpoint is
+ * public; a valid session personalizes eligibility but is not required.
+ */
+export const getCheckoutSuggestionHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const parsed = suggestionQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json({
+        success: false,
+        code: "INVALID_SUGGESTION_QUERY",
+        message: parsed.error.errors[0]?.message ?? "Invalid suggestion query.",
+      });
+      return;
+    }
+    const data = await billingService.getCheckoutSuggestion(
+      req.user?.userId ?? null,
+      {
+        planId: parsed.data.plan_id ?? null,
+        planSlug: parsed.data.plan_slug ?? null,
+        packId: parsed.data.pack_id ?? parsed.data.pack ?? null,
+      }
+    );
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    sendBillingError(res, error);
+  }
+};
+
+/**
+ * Records a checkout-upsell funnel event. Anonymous events are accepted so the
+ * logged-out pricing suggestions can be measured too.
+ */
+export const recordCheckoutEventHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const parsed = checkoutSuggestionEventSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        success: false,
+        code: "INVALID_EVENT",
+        message: parsed.error.errors[0]?.message ?? "Invalid checkout event.",
+      });
+      return;
+    }
+    const body = parsed.data;
+    const data = await billingService.recordCheckoutEvent(req.user?.userId ?? null, {
+      event: body.event,
+      suggestionType: body.suggestion_type ?? null,
+      sourceProductId: body.source_product_id ?? null,
+      productId: body.product_id ?? null,
+      planCode: body.plan_code ?? null,
+      sessionId: body.session_id ?? null,
+    });
+    res.status(202).json({ success: true, data });
+  } catch (error) {
+    sendBillingError(res, error);
+  }
+};
+
+/**
+ * Creates the parent Razorpay order for a plan + credit-pack bundle.
+ */
+export const createBundleOrderHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const body = req.body as {
+      bundle_id: number;
+      coupon?: string | null;
+      coupon_code?: string | null;
+      currency?: string | null;
+    };
+    const data = await billingService.createBundleOrder(userIdFrom(req), {
+      bundleId: body.bundle_id,
+      couponCode: body.coupon ?? body.coupon_code ?? null,
+      currency: body.currency ?? null,
+    });
+    res.status(201).json({ success: true, data });
+  } catch (error) {
+    sendBillingError(res, error);
+  }
+};
+
+/**
+ * Verifies a bundle payment and returns the combined grant summary.
+ */
+export const verifyBundleOrderHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const body = req.body as {
+      order_id: string | number;
+      razorpay_payment_id: string;
+      razorpay_order_id?: string | null;
+      razorpay_signature: string;
+    };
+    const data = await billingService.verifyBundleOrder(userIdFrom(req), {
       orderKey: String(body.order_id),
       razorpayOrderId: body.razorpay_order_id ?? null,
       razorpayPaymentId: body.razorpay_payment_id,
@@ -214,6 +334,63 @@ export const getOrderHandler = async (
 ): Promise<void> => {
   try {
     const data = await billingService.getOrder(userIdFrom(req), req.params.orderId);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    sendBillingError(res, error);
+  }
+};
+
+/**
+ * Returns the invoice snapshot for a paid order.
+ */
+export const getInvoiceHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const data = await billingService.getInvoice(userIdFrom(req), req.params.orderId);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    sendBillingError(res, error);
+  }
+};
+
+/**
+ * Streams the invoice as a downloadable PDF.
+ */
+export const downloadInvoiceHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { data, pdf } = await billingService.getInvoicePdf(
+      userIdFrom(req),
+      req.params.orderId
+    );
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="Invoice-${data.invoiceNo}.pdf"`
+    );
+    res.setHeader("Content-Length", String(pdf.length));
+    res.status(200).send(pdf);
+  } catch (error) {
+    sendBillingError(res, error);
+  }
+};
+
+/**
+ * Re-sends the invoice email with the PDF attached.
+ */
+export const emailInvoiceHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const data = await billingService.emailInvoice(
+      userIdFrom(req),
+      req.params.orderId
+    );
     res.status(200).json({ success: true, data });
   } catch (error) {
     sendBillingError(res, error);

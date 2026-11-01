@@ -131,16 +131,27 @@ export const addMember = async (req: Request, res: Response) => {
 };
 
 // DELETE /api/v1/user/rooms/:roomId/members/:userId
+// Owners can remove any member; members can remove only themselves (leave room).
 export const removeMember = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
     if (!userId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const { roomId, userId: targetUserId } = req.params;
-    const room = await roomRepo.getRoomById(String(roomId), String(userId));
+    const room = await roomRepo.getRoomById(String(roomId));
     if (!room) { res.status(404).json({ success: false, message: "Room not found" }); return; }
+    const isSelf = String(targetUserId) === String(userId);
+    if (isSelf) {
+      if (String(room.owner_id) === String(userId)) {
+        res.status(400).json({ success: false, message: "Room owners cannot leave their own room" });
+        return;
+      }
+    } else {
+      const ownedRoom = await roomRepo.getRoomById(String(roomId), String(userId));
+      if (!ownedRoom) { res.status(404).json({ success: false, message: "Room not found or not owned by you" }); return; }
+    }
     const deleted = await roomRepo.removeMember(String(roomId), String(targetUserId));
     if (!deleted) { res.status(404).json({ success: false, message: "Member not found in room" }); return; }
-    res.status(200).json({ success: true, message: "Member removed" });
+    res.status(200).json({ success: true, message: isSelf ? "Left room" : "Member removed" });
   } catch (e) {
     console.error("removeMember error", e);
     res.status(500).json({ success: false, message: "Internal server error" });

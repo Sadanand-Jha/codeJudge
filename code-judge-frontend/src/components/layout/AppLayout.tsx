@@ -19,7 +19,6 @@ import {
   Repeat,
   UserPlus,
   Users,
-  Sparkles,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -515,7 +514,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
                 ))}
               </nav>
 
-              {/* Bottom: developer link + account dropdown */}
+              {/* Bottom: account dropdown */}
               <div className="shrink-0 space-y-1 border-t-2 border-[var(--qs-line)] p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
                 {!isAuthenticated && (
                   <div className="rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2">
@@ -528,16 +527,6 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
                     </button>
                   </div>
                 )}
-
-                <Link
-                  href="/meet-the-developer"
-                  onClick={() => setSidebarOpen(false)}
-                  aria-label="Meet the developer"
-                  className="mx-1 flex items-center justify-center gap-2 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2 text-[11px] font-bold text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
-                >
-                  <Sparkles className="h-3.5 w-3.5 shrink-0 text-[var(--qs-brand)]" />
-                  <span>Meet the developer</span>
-                </Link>
 
                 <ProfileMenu
                   open={accountMenuOpen}

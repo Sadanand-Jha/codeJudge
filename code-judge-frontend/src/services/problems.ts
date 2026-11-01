@@ -33,7 +33,7 @@ import type { Problem, ProblemListItem, ApiResponse } from "@/types/problem";
 const rawBase =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://api.quizsupport.com/api";
+  "/api";
 const API_BASE = rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "");
 
 function authenticatedFetchOptions(cookieHeader?: string): RequestInit {

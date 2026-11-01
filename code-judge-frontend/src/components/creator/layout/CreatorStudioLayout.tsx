@@ -125,6 +125,8 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
   // blank strip above the header — render those routes edge-to-edge instead.
   const isFullBleedStudio =
     pathname === "/creator/quizzes/create" ||
+    pathname === "/creator/tests/create" ||
+    pathname === "/creator/problems" ||
     /^\/creator\/quizzes\/[^/]+\/edit$/.test(pathname);
 
   if (isPreview) {

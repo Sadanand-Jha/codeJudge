@@ -1,10 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
   BadgeCheck,
   CalendarClock,
+  FileText,
   Info,
   Loader2,
   Lock,
@@ -15,11 +17,19 @@ import {
 import { cn } from "@/lib/helpers";
 import { formatTrialEnd } from "@/hooks/useMySubscription";
 import { formatPricingAmount, type PricingPlan } from "@/services/pricing";
+import { consumePlanBundleIntent } from "@/lib/checkoutIntent";
+import {
+  getCheckoutSuggestion,
+  type PlanBundleSuggestion,
+} from "@/services/billing";
+import { trackCheckoutEvent } from "@/services/analytics";
+import { CheckoutSuggestionCard } from "./CheckoutSuggestionCard";
 import type { PurchasePhase } from "./credits/OrderSummaryDialog";
 import { QS_DIALOG_PANEL, QS_ROW, QS_ROW_LABEL, QS_SQ_BTN } from "./credits/styles";
 
 export interface PlanPurchaseReceipt {
   transactionId: string;
+  orderId: string;
   planName: string;
   credits: number;
   newBalance: number;
@@ -44,6 +54,7 @@ export function PlanCheckoutDialog({
   onClose,
   onPay,
   onBack,
+  onViewInvoice,
 }: {
   plan: PricingPlan;
   balance: number;
@@ -52,12 +63,94 @@ export function PlanCheckoutDialog({
   processingNote: string;
   receipt: PlanPurchaseReceipt | null;
   onClose: () => void;
-  onPay: () => void;
+  onPay: (selection: { mode: "plan" | "bundle"; bundleId?: number }) => void;
   onBack: () => void;
+  onViewInvoice?: (orderId: string) => void;
 }) {
   const busy = phase === "processing";
-  const price = formatPricingAmount(plan.price, plan.currency);
+  const [suggestion, setSuggestion] = useState<PlanBundleSuggestion | null>(null);
+  const [accepted, setAccepted] = useState(false);
+  const [declined, setDeclined] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const intendedBundleId = consumePlanBundleIntent(plan.slug);
+    getCheckoutSuggestion({ planSlug: plan.slug })
+      .then((response) => {
+        if (!active || response.suggestion?.kind !== "plan_bundle") return;
+        setSuggestion(response.suggestion);
+        setAccepted(intendedBundleId === response.suggestion.bundleId);
+        trackCheckoutEvent({
+          event: "suggestion_shown",
+          suggestionType: response.suggestion.suggestionType,
+          sourceProductId: response.suggestion.sourceProductId,
+          productId: response.suggestion.productId,
+          planCode: response.planCode ?? plan.slug,
+        });
+      })
+      .catch(() => {
+        // The checkout still works without a suggestion.
+      });
+    return () => {
+      active = false;
+    };
+  }, [plan.slug]);
+
+  const activeBundle = accepted ? suggestion : null;
+  const displayPrice = activeBundle
+    ? formatPricingAmount(activeBundle.amountPaise / 100, plan.currency)
+    : formatPricingAmount(plan.price, plan.currency);
+  const displayCredits = activeBundle ? activeBundle.credits : plan.credits;
   const validTill = receipt ? formatTrialEnd(receipt.expiresAt) : null;
+
+  const acceptSuggestion = () => {
+    if (!suggestion) return;
+    setAccepted(true);
+    setDeclined(false);
+    trackCheckoutEvent({
+      event: "suggestion_accepted",
+      suggestionType: suggestion.suggestionType,
+      sourceProductId: suggestion.sourceProductId,
+      productId: suggestion.productId,
+      planCode: plan.slug,
+    });
+  };
+
+  const declineSuggestion = () => {
+    if (!suggestion) return;
+    setDeclined(true);
+    trackCheckoutEvent({
+      event: "suggestion_declined",
+      suggestionType: suggestion.suggestionType,
+      sourceProductId: suggestion.sourceProductId,
+      productId: suggestion.productId,
+      planCode: plan.slug,
+    });
+  };
+
+  const revisitSuggestion = () => {
+    if (!suggestion) return;
+    setDeclined(false);
+    trackCheckoutEvent({
+      event: "switch_back",
+      suggestionType: suggestion.suggestionType,
+      sourceProductId: suggestion.sourceProductId,
+      productId: suggestion.productId,
+      planCode: plan.slug,
+    });
+  };
+
+  const returnToPlan = () => {
+    if (!suggestion) return;
+    setAccepted(false);
+    trackCheckoutEvent({
+      event: "switch_back",
+      suggestionType: suggestion.suggestionType,
+      sourceProductId: suggestion.sourceProductId,
+      productId: suggestion.productId,
+      planCode: plan.slug,
+    });
+  };
 
   return (
     <motion.div
@@ -98,17 +191,30 @@ export function PlanCheckoutDialog({
           <>
             <div className={cn(QS_ROW, "border-t-2 border-[var(--qs-line)]")}>
               <div>
-                <b className="block text-[15px] font-extrabold">{plan.name}</b>
-                <small className="text-sm text-[var(--qs-muted)]">Monthly plan</small>
+                <b className="block text-[15px] font-extrabold">
+                  {activeBundle ? activeBundle.title : plan.name}
+                </b>
+                <small className="text-sm text-[var(--qs-muted)]">
+                  {activeBundle
+                    ? `${activeBundle.planCredits} plan + ${activeBundle.packCredits} pack credits`
+                    : "Monthly plan"}
+                </small>
               </div>
-              <strong className="text-[24px] font-black tabular-nums">{price}</strong>
+              <div className="text-right">
+                <strong className="text-[24px] font-black tabular-nums">{displayPrice}</strong>
+                {activeBundle && (
+                  <small className="block text-[11px] font-bold text-[var(--qs-muted)] line-through">
+                    {formatPricingAmount(activeBundle.compareAtPaise / 100, plan.currency)}
+                  </small>
+                )}
+              </div>
             </div>
             <div className={cn(QS_ROW, "border-t-2 border-[var(--qs-line)]")}>
               <span className="flex items-center gap-1.5 text-sm font-semibold text-[var(--qs-muted)]">
                 <Sparkles className="h-4 w-4" />
-                Monthly credits
+                {activeBundle ? "Total credits" : "Monthly credits"}
               </span>
-              <span className="font-bold tabular-nums">{plan.credits.toLocaleString("en-IN")}</span>
+              <span className="font-bold tabular-nums">{displayCredits.toLocaleString("en-IN")}</span>
             </div>
             <div className={cn(QS_ROW, "border-t-2 border-[var(--qs-line)]")}>
               <span className={QS_ROW_LABEL}>Current balance</span>
@@ -117,21 +223,47 @@ export function PlanCheckoutDialog({
             <div className={cn(QS_ROW, "border-t-2 border-[var(--qs-line)]")}>
               <span className="text-sm font-bold">Balance after activation</span>
               <b className="text-[22px] font-black tabular-nums text-[var(--qs-ok)]">
-                {(balance + plan.credits).toLocaleString("en-IN")}
+                {(balance + displayCredits).toLocaleString("en-IN")}
               </b>
             </div>
 
+            {suggestion && !accepted && (
+              <CheckoutSuggestionCard
+                suggestion={suggestion}
+                declined={declined}
+                onAccept={acceptSuggestion}
+                onDecline={declineSuggestion}
+                onReopen={revisitSuggestion}
+              />
+            )}
+            {activeBundle && (
+              <button
+                type="button"
+                onClick={returnToPlan}
+                className="mt-3 w-full rounded-[12px] border-2 border-dashed border-[var(--qs-line)] px-3 py-2 text-xs font-bold text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-brand)]"
+              >
+                Switch back to the monthly plan only
+              </button>
+            )}
+
             <p className="mt-2 mb-3 flex items-start gap-2 rounded-[12px] border-2 border-[var(--qs-line)] px-3 py-2.5 text-xs font-semibold text-[var(--qs-muted)]">
               <CalendarClock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--qs-brand)]" />
-              Your plan activates immediately and stays active for its billing period.
+              {activeBundle
+                ? "Your plan activates immediately; the credit pack has its own validity."
+                : "Your plan activates immediately and stays active for its billing period."}
             </p>
 
             <button
               type="button"
-              onClick={onPay}
+              onClick={() =>
+                onPay({
+                  mode: activeBundle ? "bundle" : "plan",
+                  bundleId: activeBundle?.bundleId,
+                })
+              }
               className="flex w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] py-[15px] text-base font-extrabold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
             >
-              <Lock className="h-4 w-4" /> Pay {price}
+              <Lock className="h-4 w-4" /> Pay {displayPrice}
             </button>
             <p className="mt-3.5 text-center text-xs font-medium text-[var(--qs-muted)]">
               Secure payments via Razorpay
@@ -160,10 +292,20 @@ export function PlanCheckoutDialog({
             <p className="mt-1 text-xs tabular-nums text-[var(--qs-muted)]">
               Transaction {receipt.transactionId} · Balance {receipt.newBalance.toLocaleString("en-IN")}
             </p>
+            {onViewInvoice && (
+              <button
+                type="button"
+                onClick={() => onViewInvoice(receipt.orderId)}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-3 text-sm font-bold transition-colors hover:border-[var(--qs-brand)]"
+              >
+                <FileText className="h-4 w-4" />
+                View invoice
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}
-              className="mt-5 w-full rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] py-[15px] text-base font-extrabold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
+              className="mt-3 w-full rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] py-[15px] text-base font-extrabold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
             >
               Done
             </button>
@@ -187,7 +329,12 @@ export function PlanCheckoutDialog({
               </button>
               <button
                 type="button"
-                onClick={onPay}
+                onClick={() =>
+                  onPay({
+                    mode: activeBundle ? "bundle" : "plan",
+                    bundleId: activeBundle?.bundleId,
+                  })
+                }
                 className="flex-1 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] py-3 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
               >
                 Try again

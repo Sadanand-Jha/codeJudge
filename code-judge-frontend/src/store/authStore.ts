@@ -73,12 +73,33 @@ interface AuthState {
 // session check exactly once.
 let sessionCheck: Promise<void> | null = null;
 
+// Non-secret marker kept in memory for UI code that checks store.token. The
+// actual JWT is only ever in the httpOnly session cookie.
+const SESSION_SENTINEL = "session";
+
+/** Remove a legacy JWT from the persisted Zustand blob, if one exists. */
+function stripPersistedToken(): void {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.AUTH);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as Record<string, unknown> & {
+      state?: Record<string, unknown>;
+    };
+    const target = parsed.state && typeof parsed.state === "object" ? parsed.state : parsed;
+    if (target && typeof target === "object" && "token" in target) {
+      delete target.token;
+      localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(parsed));
+    }
+  } catch {
+    // Corrupt storage — ignore; Zustand will overwrite it on the next write.
+  }
+}
+
 /**
  * Auth state persisted in localStorage via zustand's persist middleware.
- * Token + full user profile are written on login/register and rehydrated on
- * every page load so pages can render user details immediately. The session is
- * then re-validated against /auth/me so a stale or cleared store never leaves
- * a signed-in user looking logged out.
+ * Only the non-sensitive user profile is persisted; credentials/session
+ * tokens never are. The session is re-validated against /auth/me using the
+ * httpOnly cookie, so cleared storage or a revoked session is handled safely.
  */
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -88,14 +109,20 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       hasHydrated: false,
 
-      setAuth: (token, user) => {
-        set({ token, user, isAuthenticated: true });
+      setAuth: (_token, user) => {
+        // Ignore any token passed by callers: the session lives in the
+        // httpOnly cookie, never in JS-accessible storage.
+        set({ token: SESSION_SENTINEL, user, isAuthenticated: true });
       },
 
       setUser: (patch) => {
-        const { user } = get();
+        const { user, token } = get();
         if (!user) return;
-        set({ user: { ...user, ...patch }, isAuthenticated: true });
+        set({
+          token: token ?? SESSION_SENTINEL,
+          user: { ...user, ...patch },
+          isAuthenticated: true,
+        });
       },
 
       fetchMe: async () => {
@@ -114,7 +141,7 @@ export const useAuthStore = create<AuthState>()(
           } else {
             // No persisted profile (fresh load / cleared storage) but the
             // httpOnly cookie still authenticated us — restore the session.
-            set({ user: fetched, isAuthenticated: true });
+            set({ token: SESSION_SENTINEL, user: fetched, isAuthenticated: true });
           }
           return fetched;
         } catch (error: unknown) {
@@ -180,28 +207,39 @@ export const useAuthStore = create<AuthState>()(
       name: STORAGE_KEYS.AUTH,
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
+      // Never write a credential: only profile data is persisted client-side.
       partialize: (state) => ({
-        token: state.token,
         user: state.user,
         isAuthenticated: state.isAuthenticated,
       }),
+      // Even if an older build persisted a JWT, ignore it during rehydration.
+      merge: (persisted, current) => {
+        const saved = (persisted ?? {}) as Partial<Pick<AuthState, "user" | "isAuthenticated">>;
+        const authenticated = Boolean(saved.user) && Boolean(saved.isAuthenticated);
+        return {
+          ...current,
+          user: saved.user ?? null,
+          isAuthenticated: authenticated,
+          token: authenticated ? SESSION_SENTINEL : null,
+        };
+      },
       onRehydrateStorage: () => (state) => {
-        if (!state) return;
-        // One-time import of the legacy separate keys (quizsupport_token /
-        // quizsupport_user) written by previous builds.
-        if (!state.token) {
-          try {
-            const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-            const userStr = localStorage.getItem(STORAGE_KEYS.AUTH_USER);
-            if (token && userStr) {
-              state.setAuth(token, JSON.parse(userStr));
-              localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-              localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
-            }
-          } catch {
-            // Invalid legacy data — ignore and start clean.
-          }
+        if (typeof window === "undefined") return;
+        // Remove credentials written by older builds. Keep the profile for a
+        // brief optimistic render; fetchMe() clears it if /auth/me rejects it.
+        let legacyUser: UserProfile | null = null;
+        try {
+          const rawUser = localStorage.getItem(STORAGE_KEYS.AUTH_USER);
+          if (rawUser) legacyUser = JSON.parse(rawUser) as UserProfile;
+        } catch {
+          // Invalid legacy data — ignore and start clean.
         }
+        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+        localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+        stripPersistedToken();
+
+        if (!state) return;
+        if (!state.user && legacyUser) state.setAuth(SESSION_SENTINEL, legacyUser);
         state.setHasHydrated(true);
       },
     }

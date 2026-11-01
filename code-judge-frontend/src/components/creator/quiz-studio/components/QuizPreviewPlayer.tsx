@@ -1,10 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Eye, ShieldCheck, X } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 import { QuizRichText } from "@/components/quiz/QuizRichText";
+import {
+  MobileAttemptView,
+  type MobileAttemptQuestion,
+} from "@/components/quiz/attempt/MobileAttemptView";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import type { CreatorQuestion } from "../types";
 
 interface QuizPreviewPlayerProps {
@@ -25,6 +30,43 @@ export function QuizPreviewPlayer({ open, onClose, questions, quizTitle }: QuizP
   const [answers, setAnswers] = useState<Record<string, PreviewAnswer>>({});
   const [markedForReview, setMarkedForReview] = useState<Set<string>>(() => new Set());
   const { lockTheme, unlockTheme } = useTheme();
+  const isMobile = useIsMobile();
+
+  const mobileQuestions = useMemo<MobileAttemptQuestion[]>(
+    () =>
+      questions.map((question, questionIndex) => ({
+        id: questionIndex + 1,
+        statement: question.title || "Untitled question",
+        multiple: question.type === "multiple_choice",
+        options: question.options.map((option) => ({
+          id: String(option.id),
+          text: option.contentHtml || option.content,
+        })),
+      })),
+    [questions]
+  );
+
+  const mobileAnswers = useMemo<Record<number, PreviewAnswer>>(() => {
+    const mapped: Record<number, PreviewAnswer> = {};
+    questions.forEach((question, questionIndex) => {
+      const answer = answers[question.id];
+      if (!answer) return;
+      if (answer.textAnswer?.trim()) mapped[questionIndex + 1] = { textAnswer: answer.textAnswer };
+      else if (answer.options?.length) mapped[questionIndex + 1] = { options: answer.options };
+      else if (answer.option !== undefined) mapped[questionIndex + 1] = { option: answer.option };
+    });
+    return mapped;
+  }, [answers, questions]);
+
+  const mobileMarkedForReview = useMemo(
+    () =>
+      new Set(
+        questions.flatMap((question, questionIndex) =>
+          markedForReview.has(question.id) ? [questionIndex + 1] : []
+        )
+      ),
+    [questions, markedForReview]
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -69,8 +111,54 @@ export function QuizPreviewPlayer({ open, onClose, questions, quizTitle }: QuizP
     });
   };
 
+  const handleMobileAnswer = (problemId: number, answer: PreviewAnswer) => {
+    const question = questions[problemId - 1];
+    if (!question) return;
+    setAnswer(question.id, answer);
+  };
+
+  const handleMobileToggleMarked = (problemId: number) => {
+    const question = questions[problemId - 1];
+    if (!question) return;
+    toggleMarkedForReview(question.id);
+  };
+
   return (
     <div className="qs-ui student-quiz-theme fixed inset-0 z-[120] flex flex-col overflow-hidden bg-[var(--qs-bg)] text-[var(--qs-ink)]">
+      {isMobile ? (
+        mobileQuestions[index] ? (
+          <MobileAttemptView
+            quizName={quizTitle.trim() || "Untitled Quiz"}
+            questions={mobileQuestions}
+            current={mobileQuestions[index]}
+            index={index}
+            answers={mobileAnswers}
+            markedForReview={mobileMarkedForReview}
+            timeLeft={null}
+            submitting={false}
+            isPreview
+            onAnswer={handleMobileAnswer}
+            onDraftAnswer={handleMobileAnswer}
+            onNavigate={goToQuestion}
+            onToggleMarked={handleMobileToggleMarked}
+            onSubmit={onClose}
+            onQuit={onClose}
+          />
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+            <Eye className="h-8 w-8 text-[var(--qs-muted)]" />
+            <p className="text-sm font-bold text-[var(--qs-ink)]">No questions to preview yet.</p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-4 py-2.5 text-sm font-bold text-[var(--qs-ink)]"
+            >
+              Exit preview
+            </button>
+          </div>
+        )
+      ) : (
+      <>
       <header className="relative flex h-40 shrink-0 items-center justify-between gap-2 overflow-hidden border-b-2 border-[var(--qs-ink)] bg-[#241F4A] px-3 text-white sm:h-[11.25rem] sm:px-5">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
           <div className="absolute inset-0 bg-[#2A2358]" />
@@ -329,6 +417,8 @@ e90c·5d17·a2f6·83b0</pre>
           </div>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

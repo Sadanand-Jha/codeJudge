@@ -2,7 +2,6 @@
 // login (JWT + Redis session), logout, the /me endpoint, and username availability.
 import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import type { SignOptions } from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import redisClient from "../config/redis.js";
 import { sendOtp, verifyOtp, register, requestPasswordReset, verifyResetOtp, resetPassword, requestOwnerLoginOtp, verifyOwnerLoginOtp } from "../services/auth.js";
@@ -12,6 +11,13 @@ import { authenticate } from "../middleware/auth.js";
 import { getClientIp } from "../utils/getClientIp.js";
 import { PLATFORM_COOKIE, isPlatformAuthConfigured, mintPlatformToken, platformCookieMaxAgeMs, revokePlatformToken } from "../services/platformSession.js";
 import { isDatabaseUnavailableError } from "../utils/databaseError.ts";
+import {
+  SessionConfigurationError,
+  clearSessionCookie,
+  cookieSameSite,
+  setSessionCookie,
+  verifySessionToken,
+} from "../services/session.js";
 
 const userService = new UserService();
 const userRepo = new userRepository();
@@ -183,7 +189,7 @@ export const verifyOtpController = async (req: Request, res: Response) => {
 /**
  * POST /api/auth/register
  * Body: { "email": "user@example.com", "password": "SecurePassword123", "registration_token": "..." }
- * Sets httpOnly, secure, sameSite: 'strict' cookie named session_token on success
+ * Does not set the session cookie; registration redirects to login.
  */
 export const registerController = async (req: Request, res: Response) => {
   try {
@@ -436,8 +442,6 @@ export const loginController = async (req: Request, res: Response) => {
 
     // Return the full merged profile so the frontend can persist it in zustand
     // and render it on every page without a follow-up /auth/me call.
-    // Also return token as fallback for Authorization header when cookies are
-    // not sent (e.g. direct cross-origin call without proxy).
     const mergedData = await buildUserProfile(String(user.id));
 
     res.status(200).json({
@@ -445,10 +449,18 @@ export const loginController = async (req: Request, res: Response) => {
       message: "Login successful",
       data: {
         user: mergedData,
-        token: sessionToken,
       },
     });
   } catch (error: any) {
+    if (error instanceof SessionConfigurationError) {
+      console.error("Login is misconfigured:", error.message);
+      res.status(500).json({
+        success: false,
+        message: "Authentication is temporarily unavailable",
+        statusCode: 500,
+      });
+      return;
+    }
     console.error("Error in loginController:", error);
     res.status(500).json({
       success: false,
@@ -665,12 +677,8 @@ export const meController = async (req: Request, res: Response) => {
       return;
     }
 
-    // Verify JWT token
-    const jwtSecret = process.env.JWT_SECRET || "your-fallback-secret-key-change-in-production";
-    const decoded = jwt.verify(session_token, jwtSecret) as {
-      userId: string;
-      email: string;
-    };
+    // Verify JWT token (fail closed when JWT_SECRET is missing).
+    const decoded = verifySessionToken(session_token);
 
     const mergedData = await buildUserProfile(decoded.userId);
 
@@ -691,6 +699,15 @@ export const meController = async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
+    if (error instanceof SessionConfigurationError) {
+      console.error("Authentication is misconfigured:", error.message);
+      res.status(500).json({
+        success: false,
+        message: "Authentication is temporarily unavailable",
+        statusCode: 500,
+      });
+      return;
+    }
     console.error("Error in meController:", error);
     if (isDatabaseUnavailableError(error)) {
       res.status(503).json({
@@ -740,12 +757,8 @@ export const getProfileController = async (req: Request, res: Response) => {
       return;
     }
 
-    // Verify JWT token
-    const jwtSecret = process.env.JWT_SECRET || "your-fallback-secret-key-change-in-production";
-    const decoded = jwt.verify(session_token, jwtSecret) as {
-      userId: string;
-      email: string;
-    };
+    // Verify JWT token (fail closed when JWT_SECRET is missing).
+    const decoded = verifySessionToken(session_token);
 
     // Return user identity from token
     res.status(200).json({

@@ -9,7 +9,9 @@ import { useToast } from "@/hooks/useToast";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { getApiErrorMessage } from "@/lib/apiError";
+import { trackCheckoutEvent } from "@/services/analytics";
 import { PageHeader } from "./ui";
+import { InvoiceV2Dialog } from "./InvoiceV2Dialog";
 import { CreditPacks } from "./credits/CreditPacks";
 import { HowCreditsWork } from "./credits/HowCreditsWork";
 import {
@@ -74,6 +76,7 @@ export function AICreditsPage({
   const [phaseError, setPhaseError] = useState<string | null>(null);
   const [processingNote, setProcessingNote] = useState("Creating your order…");
   const [receipt, setReceipt] = useState<PurchaseReceipt | null>(null);
+  const [invoiceOrderId, setInvoiceOrderId] = useState<string | null>(null);
 
   const selectedPackId =
     packId && packs.some((pack) => pack.id === packId)
@@ -128,6 +131,10 @@ export function AICreditsPage({
       }
       setProcessingNote("Verifying payment…");
       const verified = await verifyCreditPayment(order, payment);
+      trackCheckoutEvent({
+        event: "purchase_completed",
+        productId: `pack:${summary.pack.id}`,
+      });
       await purchasePack(summary.pack.id, {
         transactionId: verified.transactionId,
         method: paymentMethod(args.method),
@@ -140,6 +147,7 @@ export function AICreditsPage({
       const newBalance = useAICreditsStore.getState().balance.totalRemaining;
       setReceipt({
         transactionId: verified.transactionId,
+        orderId: verified.orderId,
         packName: summary.pack.name,
         credits: verified.credits,
         newBalance: newBalance || verified.newBalance,
@@ -239,10 +247,32 @@ export function AICreditsPage({
             receipt={receipt}
             onClose={closeDialog}
             onPay={handlePay}
+            onViewInvoice={setInvoiceOrderId}
+            onSwitchPack={(packCode) => {
+              if (!packs.some((pack) => pack.id === packCode)) {
+                toast.error({
+                  title: "Pack unavailable",
+                  description: "The recommended pack is no longer available.",
+                });
+                return;
+              }
+              setPackId(packCode);
+              setPhase("summary");
+              setPhaseError(null);
+            }}
             onBack={() => {
               setPhase("summary");
               setPhaseError(null);
             }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {invoiceOrderId && (
+          <InvoiceV2Dialog
+            orderId={invoiceOrderId}
+            onClose={() => setInvoiceOrderId(null)}
           />
         )}
       </AnimatePresence>

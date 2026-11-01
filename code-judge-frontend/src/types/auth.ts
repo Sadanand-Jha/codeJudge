@@ -13,11 +13,6 @@ export interface VerifyOtpPayload {
   otp: string;
 }
 
-export interface SetUsernamePayload {
-  email: string;
-  username: string;
-}
-
 export interface AuthResponse {
   success: boolean;
   message: string;
