@@ -2,6 +2,7 @@
 // login (JWT + Redis session), logout, the /me endpoint, and username availability.
 import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import type { SignOptions } from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import redisClient from "../config/redis.js";
 import { sendOtp, verifyOtp, register, requestPasswordReset, verifyResetOtp, resetPassword, requestOwnerLoginOtp, verifyOwnerLoginOtp } from "../services/auth.js";
