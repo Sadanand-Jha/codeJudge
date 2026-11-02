@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, ChevronLeft, ChevronRight, Mail, Search, X, RefreshCw,
   MoreVertical, Pause, RotateCcw, Timer, TrendingUp, TrendingDown, Trash2,
+  Calculator,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import Link from "next/link";
@@ -16,6 +17,7 @@ import {
   getQuizAnalytics,
   getQuizByCode,
   deleteQuizResponseAttempt,
+  generateQuizResults,
   sendQuizResponsesEmail,
   type QuizResponseStudent,
   type StudentResponseDetail,
@@ -277,6 +279,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
   const [presenceNow, setPresenceNow] = useState(() => Date.now());
   const firstResponsesLoadRef = useRef(true);
 
@@ -581,6 +584,27 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
     }
   }, [sendingEmail, hasResponses, resolvedQuizId, toast]);
 
+  const handleRecalculate = useCallback(async () => {
+    if (recalculating || !hasResponses || !quizEnded) return;
+    setRecalculating(true);
+    try {
+      const result = await generateQuizResults(resolvedQuizId, { force: true, sendEmail: false });
+      const evaluated = result.stats?.evaluated ?? 0;
+      toast.success({
+        title: "Results recalculated",
+        description: `${evaluated} submission${evaluated === 1 ? "" : "s"} re-evaluated.`,
+      });
+      await load();
+    } catch (error) {
+      toast.error({
+        title: "Could not recalculate results",
+        description: apiErrorMessage(error, "Please try again in a moment."),
+      });
+    } finally {
+      setRecalculating(false);
+    }
+  }, [recalculating, hasResponses, quizEnded, resolvedQuizId, toast, load]);
+
   const kpis = [
     { label: "Total students", value: summary.total, sub: "registered", color: "var(--qs-brand)" },
     { label: "Submitted", value: summary.submitted, sub: "completed", color: "var(--qs-ok)" },
@@ -625,6 +649,22 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
             <button type="button" onClick={() => void handleRefresh()} className={topBtn}>
               <RefreshCw className={cn("h-4 w-4", (refreshing || loading) && "animate-spin")} />
               Refresh
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleRecalculate()}
+              disabled={recalculating || !hasResponses || !quizEnded}
+              title={
+                !quizEnded
+                  ? "Results can be recalculated once the quiz ends."
+                  : !hasResponses
+                    ? "Recalculation is available once students respond to this quiz."
+                    : undefined
+              }
+              className={cn(topBtn, "disabled:cursor-not-allowed disabled:opacity-60")}
+            >
+              <Calculator className={cn("h-4 w-4", recalculating && "animate-pulse")} />
+              {recalculating ? "Recalculating…" : "Recalculate Results"}
             </button>
             <button
               type="button"
