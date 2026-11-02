@@ -7,7 +7,7 @@ import {
   getOverview, getSeries, getLive, getActivity, getUsers, getQuizzes,
   getAi, getHealth, getJobs, getErrors, getSecurity, getAudit,
   getStorage, getGrowth, search, getAlerts, getFeedback, getUserFeedback,
-  getObservability, getRequestDetail,
+  getObservability, getRequestDetail, recalculateQuizResults,
 } from "../../controllers/platform.controller.ts";
 import {
   commitQuestionImport,
@@ -26,6 +26,12 @@ import {
   removeBankQuestion,
   updateBankQuestionHandler,
 } from "../../controllers/platformQuestionBank.controller.ts";
+import {
+  getAttemptResponses,
+  getQuizAttempts,
+  getQuizOptions,
+  updateAttemptResponses,
+} from "../../controllers/platformQuizResponses.controller.ts";
 import platformSubscriptionsRouter from "./platformSubscriptions.routes.ts";
 import { randomizeUploadFilename } from "../../utils/uploadName.ts";
 
@@ -112,6 +118,11 @@ router.get("/live", getLive);
 router.get("/activity", getActivity);
 router.get("/users", getUsers);
 router.get("/quizzes", getQuizzes);
+router.get("/quizzes/options", getQuizOptions);
+router.get("/quizzes/:quizId/attempts", getQuizAttempts);
+router.get("/quizzes/:quizId/attempts/:attemptId", getAttemptResponses);
+router.put("/quizzes/:quizId/attempts/:attemptId/responses", updateAttemptResponses);
+router.post("/quizzes/:quizId/recalculate", recalculateQuizResults);
 router.get("/ai", getAi);
 router.get("/health", getHealth);
 router.get("/jobs", getJobs);
