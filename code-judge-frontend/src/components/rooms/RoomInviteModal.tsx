@@ -17,7 +17,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import AudienceModal from "@/components/quiz/creator/settings/audience/AudienceModal";
-import { WhatsAppIcon } from "@/components/creator/common/ShareQuizDialog";
+import { WhatsAppIcon } from "@/components/common/WhatsAppIcon";
+import { WhatsAppShareModal } from "@/components/common/WhatsAppShareModal";
 import { useAuthStore } from "@/store/authStore";
 import {
   getRoomSummary,
@@ -31,7 +32,6 @@ import { toast } from "@/lib/toast";
 import {
   buildRoomJoinLink,
   buildRoomShareMessage,
-  buildWhatsAppHref,
   copyText,
 } from "@/utils/roomShare";
 import {
@@ -70,6 +70,7 @@ export default function RoomInviteModal({
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [copied, setCopied] = useState<"message" | "link" | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -118,7 +119,6 @@ export default function RoomInviteModal({
         passwordExpiresAt: credentials.password_expires_at,
       })
     : "";
-  const whatsappHref = message ? buildWhatsAppHref(message) : undefined;
   const registrationForm = summary?.registration_form;
   const registrationFieldCount = registrationForm?.fields.length ?? 0;
 
@@ -161,14 +161,15 @@ export default function RoomInviteModal({
   }
 
   return (
-    <AudienceModal
-      open={open}
-      onClose={onClose}
-      title="Invite students on WhatsApp"
-      subtitle={`Send a one-tap join link for ${roomName}. The room code stays the same; only the password expires.`}
-      icon={<WhatsAppIcon className="h-5 w-5" />}
-      size="lg"
-    >
+    <>
+      <AudienceModal
+        open={open}
+        onClose={onClose}
+        title="Invite students on WhatsApp"
+        subtitle={`Send a one-tap join link for ${roomName}. The room code stays the same; only the password expires.`}
+        icon={<WhatsAppIcon className="h-5 w-5" />}
+        size="lg"
+      >
       {loading ? (
         <div className="flex min-h-64 items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-[var(--qs-brand)]" />
@@ -364,15 +365,14 @@ export default function RoomInviteModal({
                       </div>
                     </div>
 
-                    <a
-                      href={whatsappHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => setShareOpen(true)}
                       className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[#0b3d2c] bg-[#25D366] px-4 text-sm font-extrabold text-white shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
                     >
                       <WhatsAppIcon className="h-4.5 w-4.5" />
                       Share on WhatsApp
-                    </a>
+                    </button>
 
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <button
@@ -443,6 +443,16 @@ export default function RoomInviteModal({
           ) : null}
         </div>
       )}
-    </AudienceModal>
+      </AudienceModal>
+      {shareOpen && credentials ? (
+        <WhatsAppShareModal
+          title="Share room invite on WhatsApp"
+          subtitle={`${roomName || credentials.name} · one-tap join link`}
+          initialMessage={message}
+          highlight={`Room code ${roomCode} · password included in the message`}
+          onClose={() => setShareOpen(false)}
+        />
+      ) : null}
+    </>
   );
 }

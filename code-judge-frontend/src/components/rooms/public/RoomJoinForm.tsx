@@ -440,6 +440,7 @@ export default function RoomJoinForm({
                     </label>
                     <div
                       className={cn(
+                        "mt-2",
                         styles.codeField,
                         inlineError && styles.codeFieldInvalid,
                         pulse && styles.codeFieldPulse

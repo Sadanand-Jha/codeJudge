@@ -12,6 +12,13 @@ import { authenticate } from "../middleware/auth.js";
 import { getClientIp } from "../utils/getClientIp.js";
 import { PLATFORM_COOKIE, isPlatformAuthConfigured, mintPlatformToken, platformCookieMaxAgeMs, revokePlatformToken } from "../services/platformSession.js";
 import { isDatabaseUnavailableError } from "../utils/databaseError.ts";
+import {
+  SessionConfigurationError,
+  clearSessionCookie,
+  cookieSameSite,
+  setSessionCookie,
+  verifySessionToken,
+} from "../services/session.js";
 
 const userService = new UserService();
 const userRepo = new userRepository();
@@ -19,11 +26,33 @@ const userRepo = new userRepository();
 // Vercel par hain YA NODE_ENV production hai -> secure: true ho jayega
 const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
 
+// Frontend (www.quizsupport.com) and API (api.quizsupport.com) are sibling
+// subdomains. Scope the session cookies to the registrable domain so both
+// hosts receive them (SSR + direct cross-origin API calls). Local dev omits
+// Domain so localhost/127.0.0.1 keep working. Override with COOKIE_DOMAIN if
+// the production hostnames change.
+const cookieDomain =
+  process.env.COOKIE_DOMAIN?.trim() || (isProduction ? ".quizsupport.com" : undefined);
+
 const cookieOptions = {
   httpOnly: true,
   secure: isProduction, // Local host pe FALSE, Vercel pe automatic TRUE
-  sameSite: "lax" as const,
+  sameSite: "lax" as const, // www + api are same-site, so Lax cookies flow
   path: "/",
+  ...(cookieDomain ? { domain: cookieDomain } : {}),
+};
+
+// Cookies issued before the Domain attribute was added are host-only. Clear
+// that legacy variant when signing in so it cannot shadow the shared cookie
+// on api.quizsupport.com, and clear both variants on logout.
+const clearLegacyHostCookie = (res: Response, name: string) => {
+  if (!cookieDomain) return;
+  res.clearCookie(name, { path: "/" });
+};
+
+const clearAuthCookie = (res: Response, name: string) => {
+  clearLegacyHostCookie(res, name);
+  res.clearCookie(name, cookieOptions);
 };
 
 /**
@@ -161,11 +190,11 @@ export const verifyOtpController = async (req: Request, res: Response) => {
 /**
  * POST /api/auth/register
  * Body: { "email": "user@example.com", "password": "SecurePassword123", "registration_token": "..." }
- * Sets httpOnly, secure, sameSite: 'strict' cookie named session_token on success
+ * Does not set the session cookie; registration redirects to login.
  */
 export const registerController = async (req: Request, res: Response) => {
   try {
-    const { email, password, registration_token, username, avatar_url, account_type } = req.body;
+    const { email, password, registration_token, username, avatar_url, account_type, referral_code } = req.body;
 
     if (!email || !password || !registration_token || !username || !avatar_url || !account_type) {
       res.status(400).json({
@@ -206,7 +235,7 @@ export const registerController = async (req: Request, res: Response) => {
       return;
     }
 
-    const result = await register(email, password, registration_token, trimmedUsername, avatar_url, account_type);
+    const result = await register(email, password, registration_token, trimmedUsername, avatar_url, account_type, referral_code);
 
     if (!result.success) {
       res.status(result.statusCode || 400).json(result);
@@ -399,6 +428,7 @@ export const loginController = async (req: Request, res: Response) => {
     );
 
     // 1. LOGIN TIME
+    clearLegacyHostCookie(res, "session_token");
     res.cookie("session_token", sessionToken, {
       ...cookieOptions,
       maxAge: 10 * 24 * 60 * 60 * 1000,
@@ -413,8 +443,6 @@ export const loginController = async (req: Request, res: Response) => {
 
     // Return the full merged profile so the frontend can persist it in zustand
     // and render it on every page without a follow-up /auth/me call.
-    // Also return token as fallback for Authorization header when cookies are
-    // not sent (e.g. direct cross-origin call without proxy).
     const mergedData = await buildUserProfile(String(user.id));
 
     res.status(200).json({
@@ -422,10 +450,18 @@ export const loginController = async (req: Request, res: Response) => {
       message: "Login successful",
       data: {
         user: mergedData,
-        token: sessionToken,
       },
     });
   } catch (error: any) {
+    if (error instanceof SessionConfigurationError) {
+      console.error("Login is misconfigured:", error.message);
+      res.status(500).json({
+        success: false,
+        message: "Authentication is temporarily unavailable",
+        statusCode: 500,
+      });
+      return;
+    }
     console.error("Error in loginController:", error);
     res.status(500).json({
       success: false,
@@ -543,6 +579,7 @@ export const ownerVerifyOtpController = async (req: Request, res: Response) => {
       return;
     }
 
+    clearLegacyHostCookie(res, PLATFORM_COOKIE);
     res.cookie(PLATFORM_COOKIE, platformToken, {
       ...cookieOptions,
       maxAge: platformCookieMaxAgeMs(),
@@ -585,7 +622,7 @@ export const ownerLogoutController = async (req: Request, res: Response) => {
     if (token) {
       await revokePlatformToken(token);
     }
-    res.clearCookie(PLATFORM_COOKIE, cookieOptions);
+    clearAuthCookie(res, PLATFORM_COOKIE);
     res.status(200).json({ success: true, message: "Platform session revoked" });
   } catch (error: any) {
     console.error("Error in ownerLogoutController:", error);
@@ -641,12 +678,8 @@ export const meController = async (req: Request, res: Response) => {
       return;
     }
 
-    // Verify JWT token
-    const jwtSecret = process.env.JWT_SECRET || "your-fallback-secret-key-change-in-production";
-    const decoded = jwt.verify(session_token, jwtSecret) as {
-      userId: string;
-      email: string;
-    };
+    // Verify JWT token (fail closed when JWT_SECRET is missing).
+    const decoded = verifySessionToken(session_token);
 
     const mergedData = await buildUserProfile(decoded.userId);
 
@@ -667,6 +700,15 @@ export const meController = async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
+    if (error instanceof SessionConfigurationError) {
+      console.error("Authentication is misconfigured:", error.message);
+      res.status(500).json({
+        success: false,
+        message: "Authentication is temporarily unavailable",
+        statusCode: 500,
+      });
+      return;
+    }
     console.error("Error in meController:", error);
     if (isDatabaseUnavailableError(error)) {
       res.status(503).json({
@@ -716,12 +758,8 @@ export const getProfileController = async (req: Request, res: Response) => {
       return;
     }
 
-    // Verify JWT token
-    const jwtSecret = process.env.JWT_SECRET || "your-fallback-secret-key-change-in-production";
-    const decoded = jwt.verify(session_token, jwtSecret) as {
-      userId: string;
-      email: string;
-    };
+    // Verify JWT token (fail closed when JWT_SECRET is missing).
+    const decoded = verifySessionToken(session_token);
 
     // Return user identity from token
     res.status(200).json({
@@ -772,8 +810,8 @@ export const logoutController = async (req: Request, res: Response) => {
       }
     }
 
-    // 2. LOGOUT TIME (Must match cookieOptions exactly)
-    res.clearCookie("session_token", cookieOptions);
+    // 2. LOGOUT TIME (Must match cookieOptions exactly, plus legacy host-only)
+    clearAuthCookie(res, "session_token");
 
     res.status(200).json({
       success: true,

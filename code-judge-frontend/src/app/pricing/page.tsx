@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { PricingFooter, PricingNav } from "@/components/pricing/PricingChrome";
+import { PublicPlanCta } from "@/components/pricing/PublicCheckoutCta";
 import { BASIC_TRIAL_CREDITS } from "@/lib/constants";
 import {
   formatPricingAmount,
@@ -137,9 +138,7 @@ export default async function PricingPage() {
 
                     <div className="qp-plan-top">
                       <h3 id={`plan-${plan.id}`}>{plan.name}</h3>
-                      {plan.trialDays ? (
-                        <span className="qp-pill">{plan.trialDays}-day trial</span>
-                      ) : plan.discountBadge || discount > 0 ? (
+                      {plan.discountBadge || discount > 0 ? (
                         <span className="qp-pill">{plan.discountBadge || `${discount}% off`}</span>
                       ) : null}
                     </div>
@@ -164,7 +163,7 @@ export default async function PricingPage() {
                     </p>
 
                     <ul className="qp-features">
-                      {plan.features.map((feature) => (
+                      {plan.features.filter((feature) => !/trial/i.test(feature)).map((feature) => (
                         <li key={feature}>
                           <span className="qp-tick" aria-hidden="true">
                             <Check size={12} strokeWidth={3.5} />
@@ -174,12 +173,11 @@ export default async function PricingPage() {
                       ))}
                     </ul>
 
-                    <Link
-                      href={plan.trialDays ? "/login?next=/creator/billing/plans" : "/register"}
+                    <PublicPlanCta
+                      planSlug={plan.slug}
+                      label={plan.cta || `Choose ${plan.name}`}
                       className="btn qp-plan-cta"
-                    >
-                      {plan.trialDays ? `Request ${plan.trialDays}-day trial` : plan.cta}
-                    </Link>
+                    />
                   </article>
                 );
               })}

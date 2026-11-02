@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
-  Lock,
   MoreVertical,
   Pencil,
   SlidersHorizontal,
@@ -101,8 +100,7 @@ export function LetterheadCard({
             className="absolute inset-0 grid place-items-center bg-[var(--qs-ink)]/55 text-white"
             aria-label="Upgrade to use this letterhead"
           >
-            <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-white bg-black/35 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em]">
-              <Lock className="h-3.5 w-3.5" />
+            <span className="inline-flex items-center rounded-full border-2 border-white bg-black/35 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em]">
               Pro required
             </span>
           </button>
@@ -133,7 +131,7 @@ export function LetterheadCard({
             aria-label={`Actions for ${letterhead.name}`}
             aria-expanded={menuOpen}
           >
-            {locked ? <Lock className="h-4 w-4" /> : <MoreVertical className="h-4 w-4" />}
+            <MoreVertical className="h-4 w-4" />
           </button>
 
           {menuOpen && !locked && (

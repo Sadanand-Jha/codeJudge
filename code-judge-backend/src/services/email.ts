@@ -22,29 +22,46 @@ interface EmailInlineAttachment {
   cid: string;
 }
 
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+}
+
 interface EmailOptions {
   to: string;
   subject: string;
   text?: string;
   html?: string;
   inlineAttachments?: EmailInlineAttachment[];
+  attachments?: EmailAttachment[];
 }
 
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
-// Backend image with the name artwork (mascot + "QuizSupport" wordmark).
-const OTP_LOGO_PATH = path.resolve(moduleDir, '../../public/logo/quizsupport-logo-light.png');
-const OTP_LOGO_CID = 'quizsupport-logo';
+// Backend artwork with mascot + "QuizSupport" wordmark. The light variant is
+// for white backgrounds; the dark variant is for dark email headers.
+const LOGO_PATHS = {
+  light: path.resolve(moduleDir, '../../public/logo/quizsupport-logo-light.png'),
+  dark: path.resolve(moduleDir, '../../public/logo/quizsupport-logo-dark.png'),
+} as const;
+export const OTP_LOGO_CID = 'quizsupport-logo';
 
-let cachedLogo: Buffer | null | undefined;
+const logoCache = new Map<'light' | 'dark', Buffer | null>();
 
-async function getOtpLogo(): Promise<Buffer | null> {
-  if (cachedLogo !== undefined) return cachedLogo;
+export async function getBrandLogo(theme: 'light' | 'dark' = 'light'): Promise<Buffer | null> {
+  if (logoCache.has(theme)) return logoCache.get(theme) ?? null;
   try {
-    cachedLogo = await fs.readFile(OTP_LOGO_PATH);
+    const logo = await fs.readFile(LOGO_PATHS[theme]);
+    logoCache.set(theme, logo);
+    return logo;
   } catch {
-    cachedLogo = null;
+    logoCache.set(theme, null);
+    return null;
   }
-  return cachedLogo;
+}
+
+export async function getOtpLogo(): Promise<Buffer | null> {
+  return getBrandLogo('light');
 }
 
 function requireTransport() {
@@ -66,13 +83,22 @@ async function deliverEmail(options: EmailOptions): Promise<string> {
   let smtpError: unknown = null;
 
   const inlineFiles = options.inlineAttachments ?? [];
-  const smtpAttachments = inlineFiles.map((a) => ({
-    filename: a.filename,
-    content: a.content,
-    contentType: a.contentType,
-    cid: a.cid,
-    contentDisposition: 'inline' as const,
-  }));
+  const regularFiles = options.attachments ?? [];
+  const smtpAttachments = [
+    ...inlineFiles.map((a) => ({
+      filename: a.filename,
+      content: a.content,
+      contentType: a.contentType,
+      cid: a.cid,
+      contentDisposition: 'inline' as const,
+    })),
+    ...regularFiles.map((a) => ({
+      filename: a.filename,
+      content: a.content,
+      contentType: a.contentType,
+      contentDisposition: 'attachment' as const,
+    })),
+  ];
 
   if (ctx) {
     try {
@@ -101,7 +127,7 @@ async function deliverEmail(options: EmailOptions): Promise<string> {
       const resendHtml = inlineFiles.length
         ? options.html?.replace(
             new RegExp(`<img[^>]*src="cid:${OTP_LOGO_CID}"[^>]*>`, 'i'),
-            `<span style="font-size:24px;font-weight:800;color:#1A1240;">Quiz<span style="color:#6A3DF0;">Support</span></span>`
+            `<span style="display:inline-block;background:#ffffff;color:#1b1340;padding:6px 10px;border-radius:8px;font-size:20px;font-weight:800;letter-spacing:-.02em;">Quiz<span style="color:#6b3fef;">Support</span></span>`
           )
         : options.html;
       return await sendViaResend({
@@ -109,6 +135,15 @@ async function deliverEmail(options: EmailOptions): Promise<string> {
         subject: options.subject,
         html: resendHtml || (options.text ? `<p>${options.text}</p>` : undefined),
         text: options.text,
+        ...(regularFiles.length
+          ? {
+              attachments: regularFiles.map((a) => ({
+                filename: a.filename,
+                content: a.content,
+                ...(a.contentType ? { contentType: a.contentType } : {}),
+              })),
+            }
+          : {}),
       });
     } catch (resendError) {
       logger.error(`Resend fallback to ${options.to} also failed:`, resendError);

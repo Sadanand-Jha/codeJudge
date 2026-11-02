@@ -73,7 +73,7 @@ export function CreatorProfilePage() {
   return (
     <div className="mx-auto w-full max-w-[1100px] space-y-4 px-1 py-2 sm:space-y-5">
       {/* 1 — Identity + actions */}
-      <ProfileHeader profile={profile} onEdit={goSettings} onSettings={goSettings} onViewPublic={goPublic} />
+      <ProfileHeader profile={profile} onSettings={goSettings} onViewPublic={goPublic} />
 
       {/* 2 — Four key statistics */}
       {loading ? (

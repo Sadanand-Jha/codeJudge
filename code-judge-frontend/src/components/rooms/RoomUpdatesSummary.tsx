@@ -1,11 +1,15 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, FileText, Megaphone } from "lucide-react";
 import type { Room } from "@/types/room";
-import { useRoomContentStore } from "@/store/roomContentStore";
 import { timeAgo } from "@/lib/formatters";
+import {
+  listRoomAnnouncements,
+  type RoomAnnouncement,
+} from "@/services/roomAnnouncements";
+import { listRoomDocuments, type RoomDocument } from "@/services/roomDocuments";
 
 export default function RoomUpdatesSummary({
   rooms,
@@ -14,13 +18,54 @@ export default function RoomUpdatesSummary({
   rooms: Room[];
   basePath: string;
 }) {
-  const announcements = useRoomContentStore((s) => s.announcements);
-  const documents = useRoomContentStore((s) => s.documents);
-  const seedRoom = useRoomContentStore((s) => s.seedRoom);
+  const [announcements, setAnnouncements] = useState<RoomAnnouncement[]>([]);
+  const [documents, setDocuments] = useState<RoomDocument[]>([]);
+
+  const roomKey = useMemo(
+    () =>
+      rooms
+        .map((room) => room.id)
+        .sort()
+        .join(","),
+    [rooms]
+  );
 
   useEffect(() => {
-    rooms.forEach((room) => seedRoom(room.id));
-  }, [rooms, seedRoom]);
+    let cancelled = false;
+    const ids = roomKey ? roomKey.split(",") : [];
+    if (ids.length === 0) {
+      queueMicrotask(() => {
+        if (cancelled) return;
+        setAnnouncements([]);
+        setDocuments([]);
+      });
+      return;
+    }
+
+    Promise.all([
+      Promise.all(
+        ids.map((id) => listRoomAnnouncements(id).catch(() => [] as RoomAnnouncement[]))
+      ),
+      Promise.all(
+        ids.map((id) => listRoomDocuments(id).catch(() => [] as RoomDocument[]))
+      ),
+    ])
+      .then(([nextAnnouncements, nextDocuments]) => {
+        if (cancelled) return;
+        setAnnouncements(nextAnnouncements.flat());
+        setDocuments(nextDocuments.flat());
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAnnouncements([]);
+          setDocuments([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [roomKey]);
 
   const roomById = useMemo(
     () => new Map(rooms.map((room) => [room.id, room])),

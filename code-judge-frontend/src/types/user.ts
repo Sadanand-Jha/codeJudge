@@ -20,6 +20,7 @@ export interface UserInfo {
   maxRating: number;
   role: string | null;
   isVerified: boolean;
+  needsProfileSetup?: boolean;
   isActive: boolean;
   lastLogin: string | null;
   createdAt: string | null;

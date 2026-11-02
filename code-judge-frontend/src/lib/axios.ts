@@ -6,11 +6,10 @@ const rawBase =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
   "/api";
-// Backend URL comes from env by default (set NEXT_PUBLIC_BACKEND_URL in
-// Vercel, e.g. https://api.quizsupport.com/api). Relative /api keeps the
-// same-origin Next.js rewrite proxy (next.config.ts) as fallback. Absolute
-// env values are honored as-is — api.quizsupport.com is same-site with www,
-// so SameSite=Lax cookies flow (backend CORS allows the www origin).
+// Prefer the relative `/api` base so next.config.ts rewrites to BACKEND_URL and
+// the host-only session cookie remains first-party. An absolute API host is
+// honored, but auth cookies set on the frontend host are NOT sent to another
+// host (even a sibling subdomain), so protected requests will look signed out.
 const API_BASE = rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "") || "/api";
 
 const apiClient = axios.create({
@@ -21,37 +20,18 @@ const apiClient = axios.create({
   },
 });
 
-// Attach Authorization fallback when cookie is not present (e.g. before
-// rewrites deploy or direct cross-origin call). Backend middleware
-// `auth.ts:23` checks both cookie and `Authorization: Bearer <token>`.
-apiClient.interceptors.request.use((config) => {
-  if (typeof window !== "undefined" && !config.headers.Authorization) {
-    try {
-      const raw = localStorage.getItem("quizsupport_auth");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        // Zustand persist shape: { state: { token, user, isAuthenticated }, version }
-        const token = parsed?.state?.token || parsed?.token;
-        if (token && token !== "session") {
-          (config.headers as any).Authorization = `Bearer ${token}`;
-        }
-      }
-    } catch {
-      // ignore parse errors
-    }
-  }
-  return config;
-});
-
+// Session auth is cookie-only. Do not attach a bearer token from localStorage:
+// the signed JWT lives exclusively in the httpOnly `session_token` cookie. The
+// backend keeps `Authorization` support only for non-browser API clients.
 // Response interceptor to unwrap { success, data } envelope
 apiClient.interceptors.response.use(
   (response) => {
     if (response.data && typeof response.data === "object" && "success" in response.data) {
       if (response.data.success === true && "data" in response.data) {
-        const { data, pagination, ...rest } = response.data;
+        const { data, pagination } = response.data;
         response.data = data;
         if (pagination) {
-          (response as any).pagination = pagination;
+          (response as typeof response & { pagination?: unknown }).pagination = pagination;
         }
       }
     }

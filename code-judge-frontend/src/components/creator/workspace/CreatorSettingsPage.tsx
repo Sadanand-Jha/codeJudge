@@ -19,6 +19,7 @@ import { cn } from "@/lib/helpers";
 import { BillButton, PageHeader, Panel, Skeleton, StatusBadge } from "@/components/creator/billing/ui";
 import { useToast } from "@/hooks/useToast";
 import { useAuthStore } from "@/store/authStore";
+import { EditProfileDialog } from "@/components/creator/profile/EditProfileDialog";
 import { SETTINGS_SECTIONS } from "./mockData";
 import type { CreatorSettingsSection } from "./types";
 
@@ -67,6 +68,7 @@ export function CreatorSettingsPage() {
   const [sections, setSections] = useState<CreatorSettingsSection[]>(SETTINGS_SECTIONS);
   const [activeTab, setActiveTab] = useState<string>("account");
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
 
   useEffect(() => {
     if (!hasHydrated) void hydrate();
@@ -149,12 +151,22 @@ export function CreatorSettingsPage() {
               </p>
             )}
           </div>
-          <BillButton variant="ghost" href="/creator/profile" className="w-full shrink-0 sm:w-auto">
+          <BillButton
+            variant="ghost"
+            onClick={() => setEditProfileOpen(true)}
+            className="w-full shrink-0 sm:w-auto"
+          >
             <Pencil className="h-3.5 w-3.5" />
             Edit profile
           </BillButton>
         </section>
       )}
+
+      <EditProfileDialog
+        open={editProfileOpen}
+        initialName={accountName}
+        onClose={() => setEditProfileOpen(false)}
+      />
 
       {/* Confirm dialog */}
       <AnimatePresence>

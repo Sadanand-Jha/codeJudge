@@ -211,6 +211,14 @@ export async function removeMember(roomId: string, identifier: string) {
   return res.data;
 }
 
+/** Removes the signed-in student's own membership from a room. */
+export async function leaveRoom(roomId: string, userId: string) {
+  const res = await apiClient.delete(
+    `/v1/user/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(userId)}`
+  );
+  return res.data;
+}
+
 export async function fetchMyRooms(): Promise<Room[]> {
   // Frontend expects GET /my-rooms on going to rooms page — support both aliases
   let data: unknown;

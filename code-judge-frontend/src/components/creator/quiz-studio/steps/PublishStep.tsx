@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Send, Check, BarChart3, Copy, Loader2 } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
+import { WhatsAppShareModal } from "@/components/common/WhatsAppShareModal";
 import { buildShareMessage, WhatsAppIcon } from "@/components/creator/common/ShareQuizDialog";
 import { copyQuizCode } from "@/services/quiz";
 import { useStudio } from "../StudioProvider";
@@ -333,6 +334,8 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
     status: isScheduled ? "scheduled" : "live",
   } as const;
   const [sharing, setSharing] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareMessage, setShareMessage] = useState("");
 
   const loadCode = useCallback(async (): Promise<string> => {
     if (!state.serverQuizId) return displayCode;
@@ -347,11 +350,11 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
     setSharing(true);
     try {
       const currentCode = await loadCode();
-      const message = buildShareMessage({ ...shareQuiz, code: currentCode }, "clean");
-      window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+      setShareMessage(buildShareMessage({ ...shareQuiz, code: currentCode }, "clean"));
+      setShareOpen(true);
     } catch (err) {
       toast.error({
-        title: "Could not open WhatsApp",
+        title: "Could not prepare the invite",
         description: getApiErrorMessage(err, "Please try again."),
       });
     } finally {
@@ -468,6 +471,16 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
           </div>
         </div>
       </div>
+
+      {shareOpen && (
+        <WhatsAppShareModal
+          title="Share quiz on WhatsApp"
+          subtitle={`${title} · ${summary.questionCount} questions`}
+          initialMessage={shareMessage}
+          highlight={`Quiz code ${displayCode || "—"} · students can join in one tap`}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
     </div>
   );
 }

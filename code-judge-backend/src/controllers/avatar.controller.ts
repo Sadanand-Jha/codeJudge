@@ -2,7 +2,13 @@
 // validation, and provides updateAvatar / getAvatar endpoints for user profile pictures.
 import type { Request, Response } from "express";
 import { pool } from "../config/database.ts";
-import { isValidPredefinedAvatar, PREDEFINED_AVATARS } from "../constants/avatars.ts";
+import { isValidPredefinedAvatar } from "../constants/avatars.ts";
+import {
+  AvatarUploadError,
+  buildAvatarUploadSignature,
+  isOwnedAvatarUrl,
+  requireProfilePhotoAccess,
+} from "../services/avatarUpload.service.ts";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -15,12 +21,16 @@ const AVATAR_DIR = path.resolve(__dirname, "../../public/avatars");
  * Validate avatar URL to allow:
  * - Predefined avatars (e.g., "/api/v1/avatars/1", "/images/avatar-1.png")
  * - Custom backend images (e.g., "/images/custom-profile.jpg", "/uploads/avatar.png")
+ * - The user's own direct Cloudinary uploads (e.g. "https://res.cloudinary.com/.../avatars/42/...")
  */
-function isValidAvatarUrl(url: string | null | undefined): boolean {
+function isValidAvatarUrl(url: string | null | undefined, userId: string | number): boolean {
   if (!url || typeof url !== 'string') return false;
 
   // Allow predefined avatars
   if (isValidPredefinedAvatar(url)) return true;
+
+  // Allow direct Cloudinary uploads scoped to this user's avatar folder.
+  if (isOwnedAvatarUrl(url, userId)) return true;
 
   // Allow local backend images: /images/*, /api/v1/avatars/*, /uploads/*
   const allowedPatterns = [
@@ -57,13 +67,33 @@ export const updateAvatar = async (req: Request, res: Response) => {
       return;
     }
 
-    // Validate that the avatar URL is one of the predefined avatars or a custom backend image
-    if (!isValidAvatarUrl(avatarUrl)) {
+    // Validate that the avatar URL is one of the predefined avatars, a custom
+    // backend image, or a Cloudinary upload owned by this user.
+    if (!isValidAvatarUrl(avatarUrl, userId)) {
       res.status(400).json({
         success: false,
-        message: "Invalid avatar URL. Only predefined avatars or backend image paths are allowed.",
+        message: "Invalid avatar URL. Only predefined avatars or your own uploaded images are allowed.",
       });
       return;
+    }
+
+    // Custom Cloudinary photos are paid/trial-only. Predefined avatars remain
+    // available to everyone.
+    if (isOwnedAvatarUrl(avatarUrl, userId)) {
+      try {
+        await requireProfilePhotoAccess(userId);
+      } catch (error) {
+        if (error instanceof AvatarUploadError) {
+          res.status(error.statusCode).json({
+            success: false,
+            code: error.code,
+            message: error.message,
+            upgradeUrl: "/pricing",
+          });
+          return;
+        }
+        throw error;
+      }
     }
 
     let avatarId: number;
@@ -160,4 +190,42 @@ export const getAvatar = (req: Request, res: Response) => {
   res.setHeader("Cache-Control", "public, max-age=86400, immutable");
   res.setHeader("Content-Type", "image/png");
   res.sendFile(filePath);
+};
+
+/**
+ * POST /api/v1/user/uploads/cloudinary/avatar-signature
+ * Returns a short-lived signature for a direct browser → Cloudinary avatar
+ * upload. The image never passes through this backend; only its final URL is
+ * persisted later through PATCH /api/v1/user/avatar.
+ */
+export const getAvatarUploadSignature = async (req: Request, res: Response) => {
+  const userId = req.user?.userId;
+  if (!userId) {
+    res.status(401).json({
+      success: false,
+      message: "Unauthorized access",
+    });
+    return;
+  }
+
+  try {
+    await requireProfilePhotoAccess(userId);
+    const data = buildAvatarUploadSignature(userId, req.body?.fileName);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    if (error instanceof AvatarUploadError) {
+      res.status(error.statusCode).json({
+        success: false,
+        code: error.code,
+        message: error.message,
+        ...(error.statusCode === 403 ? { upgradeUrl: "/pricing" } : {}),
+      });
+      return;
+    }
+    console.error("Error creating avatar upload signature:", error);
+    res.status(500).json({
+      success: false,
+      message: "Could not prepare the avatar upload. Please try again.",
+    });
+  }
 };

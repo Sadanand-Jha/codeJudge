@@ -113,6 +113,7 @@ export class userRepository {
                 u.rating,
                 u.max_rating,
                 u.is_verified,
+                u.oauth_onboarding_completed,
                 u.country_id,
                 cn.name AS country_name,
                 u.state_id,
@@ -193,6 +194,7 @@ export class userRepository {
             rating: user.rating || 0,
             maxRating: user.max_rating || 0,
             isVerified: user.is_verified || false,
+            needsProfileSetup: user.oauth_onboarding_completed === false,
             isActive: user.is_active ?? true,
             lastLogin: user.last_login || null,
             createdAt: user.created_at,
@@ -201,7 +203,7 @@ export class userRepository {
         };
     }
 
-    async createUser(email: string, password: string, username: string, avatarUrl: string, accountType: "student" | "teacher" = "student"): Promise<any> {
+    async createUser(email: string, password: string, username: string, avatarUrl: string, accountType: "student" | "teacher" = "student", referralCode: string | null = null): Promise<any> {
         const query = `
             WITH chosen_avatar AS (
                 INSERT INTO avatar (is_male, url, created_at, updated_at)
@@ -211,12 +213,12 @@ export class userRepository {
             ), chosen_role AS (
                 SELECT id FROM role WHERE LOWER(name) = $5 LIMIT 1
             )
-            INSERT INTO users (Username, Email, Password, role_id, avatar_id, isactive)
-            SELECT LOWER($1), LOWER($2), $3, chosen_role.id, chosen_avatar.id, TRUE
+            INSERT INTO users (Username, Email, Password, role_id, avatar_id, isactive, referral_code)
+            SELECT LOWER($1), LOWER($2), $3, chosen_role.id, chosen_avatar.id, TRUE, $6
             FROM chosen_avatar CROSS JOIN chosen_role
             RETURNING *
         `;
-        const result = await pool.query(query, [username, email, password, avatarUrl, accountType]);
+        const result = await pool.query(query, [username, email, password, avatarUrl, accountType, referralCode]);
         if (!result.rows[0]) {
             throw new Error(`Registration role is not configured: ${accountType}`);
         }

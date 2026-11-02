@@ -382,6 +382,33 @@ two-page PDF, PNG, DOCX, and rejection of content over the branding area.
 
 ---
 
+## 💳 Checkout upsells
+
+Paid plan checkout can offer a server-owned plan + AI-credit bundle, and ₹99
+credit-pack checkout can offer the better-value ₹199 pack. These are real
+catalog products, not client-side price edits.
+
+- `database/migrations/69_checkout_upsell_bundles.sql` adds `plan_bundles` and
+  seeds a 10%-off bundle from each plan plus the lowest active credit pack.
+  Update `plan_bundles` to change the offer; leave the bundle inactive to hide
+  it.
+- Bundle orders use `order_type = 'bundle'` plus two paid child grant orders
+  (`plan` and `credit_pack`) linked by `parent_order_id`. The parent owns the
+  Razorpay payment and coupon; children own credits and validity. Grants are
+  idempotent through `(parent_order_id, order_type)`, and a full refund
+  cascades to both children.
+- Prices, eligibility, savings, and per-credit values are recomputed by the
+  backend before order creation and again at payment verification/webhook time.
+  Never send or trust client-supplied amounts.
+- Suggestion responses come from `GET /api/v1/billing/suggestions`. Funnel
+  events post to `/api/v1/billing/events` and are stored in `nudge_events`
+  (`suggestion_shown`, `suggestion_accepted`, `suggestion_declined`,
+  `switch_back`, `purchase_completed`).
+- Logged-out pricing CTAs show the eligible suggestion before authentication;
+  the chosen plan bundle is carried through `?next=` and session storage.
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please follow these steps:

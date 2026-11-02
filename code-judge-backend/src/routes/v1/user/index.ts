@@ -22,6 +22,7 @@ import followRoutes from "../follow.routes.ts";
 import { listRooms } from "../../../controllers/room.controller.ts";
 import { submitFeedback } from "../../../controllers/feedback.controller.ts";
 import { getMySubscription } from "../../../controllers/subscription.controller.ts";
+import { getMyReferrals } from "../../../controllers/referral.controller.ts";
 import letterheadRoutes from "../../letterhead.routes.ts";
 import uploadRoutes from "../../upload.routes.ts";
 
@@ -51,6 +52,7 @@ router.post("/forget-password", forgetPassword);
 router.get("/profile", authenticate, profile);
 router.get("/info", authenticate, profile);
 router.get("/subscription", authenticate, getMySubscription);
+router.get("/referrals", authenticate, getMyReferrals);
 router.patch("/profile", authenticate, validate(profileUpdateSchema), updateUserProfile);
 
 // ===================== PROFILE LOCATION ==========

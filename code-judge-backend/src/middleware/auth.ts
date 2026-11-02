@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
 import redisClient from "../config/redis.js";
+import { SessionConfigurationError, verifySessionToken } from "../services/session.js";
 
 // Extend Express Request type to include user
 declare global {
@@ -21,12 +21,8 @@ declare global {
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const token = req.cookies?.session_token || req.headers.authorization?.replace(/^Bearer\s+/i, "");
-    console.log("[AUTH] cookies:", Object.keys(req.cookies || {}));
-    console.log("[AUTH] token present:", !!token);
-    console.log("[AUTH] path:", req.method, req.originalUrl);
 
     if (!token) {
-      console.log("[AUTH] NO TOKEN FOUND — 401");
       res.status(401).json({
         success: false,
         message: "Authentication required",
@@ -46,12 +42,8 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       return;
     }
 
-    // Verify JWT token
-    const jwtSecret = process.env.JWT_SECRET || "your-fallback-secret-key-change-in-production";
-    const decoded = jwt.verify(token, jwtSecret) as {
-      userId: string;
-      email: string;
-    };
+    // Verify JWT token (fail closed when JWT_SECRET is missing).
+    const decoded = verifySessionToken(token);
 
     // Attach user info to request
     req.user = {
@@ -61,7 +53,71 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 
     next();
   } catch (error) {
+    if (error instanceof SessionConfigurationError) {
+      console.error("Authentication is misconfigured:", error.message);
+      res.status(500).json({
+        success: false,
+        message: "Authentication is temporarily unavailable",
+        statusCode: 500,
+      });
+      return;
+    }
     console.error("Authentication error:", error);
+    res.status(401).json({
+      success: false,
+      message: "Invalid or expired token",
+      statusCode: 401,
+    });
+  }
+};
+
+/**
+ * Optional authentication for public personalization endpoints (for example
+ * checkout suggestions). A missing token is allowed, but a present invalid or
+ * blacklisted token is rejected instead of silently downgrading to anonymous.
+ */
+export const optionalAuthenticate = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token =
+      req.cookies?.session_token ||
+      req.headers.authorization?.replace(/^Bearer\s+/i, "");
+
+    if (!token) {
+      next();
+      return;
+    }
+
+    const isBlacklisted = await redisClient.get(`blacklist:${token}`);
+    if (isBlacklisted) {
+      res.status(401).json({
+        success: false,
+        message: "Session expired. Please log in again.",
+        statusCode: 401,
+      });
+      return;
+    }
+
+    const decoded = verifySessionToken(token);
+    req.user = {
+      userId: decoded.userId,
+      email: decoded.email,
+    };
+    next();
+  } catch (error) {
+    if (error instanceof SessionConfigurationError) {
+      console.error("Authentication is misconfigured:", error.message);
+      res.status(500).json({
+        success: false,
+        message: "Authentication is temporarily unavailable",
+        statusCode: 500,
+      });
+      return;
+    }
+    console.error("Optional authentication error:", error);
     res.status(401).json({
       success: false,
       message: "Invalid or expired token",

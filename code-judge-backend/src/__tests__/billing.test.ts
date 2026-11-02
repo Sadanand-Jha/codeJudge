@@ -12,6 +12,15 @@ import {
   verifyPaymentSignature,
   verifyWebhookSignature,
 } from "../services/billing/signatures.ts";
+import {
+  buildPackUpgradeSuggestion,
+  buildPlanBundleSuggestion,
+} from "../services/billing/suggestions.ts";
+import type {
+  PurchasableCreditPack,
+  PurchasablePlan,
+  PurchasablePlanBundle,
+} from "../repositories/billing.repository.ts";
 
 // Discounts are computed server-side in paise and can never exceed the price.
 assert.equal(
@@ -164,5 +173,104 @@ assert.equal(
   }),
   false
 );
+
+// Checkout upsells are entirely server-computed. These pure-function cases
+// cover the ₹99 → ₹199 pack upsell and the plan + pack bundle.
+const basicPack: PurchasableCreditPack = {
+  id: 1,
+  code: "teacher",
+  name: "Teacher Pack",
+  priceInr: 99,
+  credits: 50,
+  validityDays: 180,
+  description: null,
+  isPopular: false,
+};
+const masterPack: PurchasableCreditPack = {
+  id: 2,
+  code: "master",
+  name: "Master Pack",
+  priceInr: 199,
+  credits: 125,
+  validityDays: 180,
+  description: null,
+  isPopular: true,
+};
+
+const packSuggestion = buildPackUpgradeSuggestion({
+  selectedPack: basicPack,
+  packs: [basicPack, masterPack],
+});
+assert.ok(packSuggestion);
+assert.equal(packSuggestion.suggestionType, "B");
+assert.equal(packSuggestion.productId, "pack:master");
+assert.equal(packSuggestion.amountPaise, 19_900);
+assert.equal(packSuggestion.extraCredits, 75);
+assert.equal(packSuggestion.creditMultiplier, 2.5);
+assert.equal(packSuggestion.priceDifferencePaise, 10_000);
+assert.ok(
+  packSuggestion.perCreditPaise < (basicPack.priceInr * 100) / basicPack.credits
+);
+assert.equal(
+  buildPackUpgradeSuggestion({
+    selectedPack: basicPack,
+    packs: [basicPack, masterPack],
+    highestOwnedPackPriceInr: 199,
+  }),
+  null
+);
+assert.equal(
+  buildPackUpgradeSuggestion({ selectedPack: masterPack, packs: [basicPack, masterPack] }),
+  null
+);
+
+const plan: PurchasablePlan = {
+  planId: 2,
+  slug: "pro",
+  name: "Pro",
+  description: null,
+  trialDays: 0,
+  isDefaultFree: false,
+  priceId: 20,
+  billingPeriod: "monthly",
+  customDays: null,
+  amountPaise: 19_900,
+  mrpAmountPaise: 29_900,
+  currency: "INR",
+  taxInclusive: true,
+  credits: 100,
+};
+const bundle: PurchasablePlanBundle = {
+  id: 7,
+  planId: plan.planId,
+  packId: basicPack.id,
+  name: "Pro + 50 AI credits",
+  description: null,
+  badge: "Best value",
+  amountPaise: 26_820,
+  mrpPaise: 29_800,
+  sortOrder: 0,
+  plan,
+  pack: basicPack,
+};
+const bundleSuggestion = buildPlanBundleSuggestion({ bundle });
+assert.ok(bundleSuggestion);
+assert.equal(bundleSuggestion.suggestionType, "A");
+assert.equal(bundleSuggestion.productId, "bundle:7");
+assert.equal(bundleSuggestion.amountPaise, 27_800);
+assert.equal(bundleSuggestion.compareAtPaise, 29_800);
+assert.equal(bundleSuggestion.savingsPaise, 2_000);
+assert.equal(bundleSuggestion.credits, 150);
+assert.equal(bundleSuggestion.plan.validityDays, 30);
+assert.equal(bundleSuggestion.title, `${plan.name} + ${basicPack.name}`);
+assert.match(bundleSuggestion.description, /valid 180 days/);
+assert.equal(bundleSuggestion.pack.name, basicPack.name);
+assert.equal(bundleSuggestion.pack.validityDays, 180);
+const generousBundle = buildPlanBundleSuggestion({
+  bundle: { ...bundle, amountPaise: 1 },
+});
+assert.ok(generousBundle);
+assert.equal(generousBundle.amountPaise, 27_800);
+assert.equal(generousBundle.savingsPaise, 2_000);
 
 console.log("billing.test.ts: all assertions passed");

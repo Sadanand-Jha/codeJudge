@@ -53,6 +53,9 @@ interface ExamModeShellProps {
   autoEnter?: boolean;
   fullWidth?: boolean;
   overlapHeader?: boolean;
+  /** Hide the built-in exam command bar. Used when the page renders its own
+   * mobile chrome (header + action bar) inside the shell. */
+  hideChrome?: boolean;
   /** Creator-defined field names. When non-empty, a registration form is
    * shown after "Enter Exam Mode" and the attempt starts only on submit. */
   registrationFields?: string[];
@@ -76,6 +79,7 @@ export default function ExamModeShell({
   autoEnter = false,
   fullWidth = false,
   overlapHeader = false,
+  hideChrome = false,
   registrationFields = [],
   children,
 }: ExamModeShellProps) {
@@ -571,6 +575,7 @@ export default function ExamModeShell({
       className="qs-ui student-quiz-theme fixed inset-0 z-[100] flex flex-col overflow-hidden bg-[var(--qs-bg)] text-[var(--qs-ink)]"
     >
       {/* Exam command bar */}
+      {!hideChrome && (
       <header className="exam-command-bar relative flex h-40 shrink-0 items-center justify-between gap-2 overflow-hidden border-b-2 border-[var(--qs-ink)] bg-[#241F4A] px-3 text-white sm:h-[11.25rem] sm:px-5">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
           <div className="absolute inset-0 bg-[#2A2358]" />
@@ -611,6 +616,7 @@ a1d3·8c40·2fe9·b76a·19d5</pre>
           </button>
         </div>
       </header>
+      )}
 
       {/* Warning banner — small, auto-dismiss */}
       <AnimatePresence>
@@ -632,14 +638,14 @@ a1d3·8c40·2fe9·b76a·19d5</pre>
       </AnimatePresence>
 
       {/* Always-on monitoring notice. */}
-      {!overlapHeader && (
+      {!hideChrome && !overlapHeader && (
         <div className="flex shrink-0 items-center justify-center gap-1 border-b-2 border-[var(--qs-line)] bg-[var(--qs-sun)]/25 px-2 py-1 text-[9px] font-bold text-[var(--qs-ink)]">
           <ShieldCheck className="h-3 w-3" /> Tab switching &amp; window changes are monitored
         </div>
       )}
 
       {/* Content - viewport-based on mobile, scrollable on desktop */}
-      <div className={cn("flex-1 min-h-0 flex flex-col overflow-hidden p-0 sm:block sm:overflow-y-auto sm:overflow-x-hidden sm:p-0", overlapHeader ? "relative z-10 -mt-11 bg-transparent sm:-mt-[3.75rem]" : "bg-[var(--qs-bg)]", activeViolation && "blur-[6px] pointer-events-none select-none")}>
+      <div className={cn("flex-1 min-h-0 flex flex-col overflow-hidden p-0 sm:block sm:overflow-y-auto sm:overflow-x-hidden sm:p-0", hideChrome ? "relative z-10 bg-[var(--qs-bg)]" : overlapHeader ? "relative z-10 -mt-11 bg-transparent sm:-mt-[3.75rem]" : "bg-[var(--qs-bg)]", activeViolation && "blur-[6px] pointer-events-none select-none")}>
         <div className={cn("mx-auto h-full min-h-0 w-full sm:h-full sm:block", fullWidth ? "" : "max-w-[1600px]")}>{children}</div>
       </div>
 

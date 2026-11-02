@@ -8,8 +8,10 @@ import {
   ArrowLeft,
   ArrowRight,
   Clock,
+  Download,
   FileText,
   Loader2,
+  LogOut,
   Megaphone,
   Search,
   Users,
@@ -18,14 +20,19 @@ import { cn } from "@/lib/helpers";
 import { getAvatarUrlById } from "@/config/dicebear";
 import { timeAgo } from "@/lib/formatters";
 import { getApiErrorMessage } from "@/lib/apiError";
+import { toast } from "@/lib/toast";
 import { useAuthStore } from "@/store/authStore";
+import { useRoomAnnouncements } from "@/hooks/useRoomAnnouncements";
+import { useRoomDocuments } from "@/hooks/useRoomDocuments";
 import {
-  useRoomContentStore,
-  type RoomAnnouncement,
+  downloadRoomDocument,
+  formatDocumentSize,
   type RoomDocument,
-} from "@/store/roomContentStore";
+} from "@/services/roomDocuments";
+import type { RoomAnnouncement } from "@/services/roomAnnouncements";
 import {
   getRoomSummary,
+  leaveRoom,
   type RoomMember,
   type RoomSummary,
 } from "@/services/rooms";
@@ -33,6 +40,8 @@ import { getCreatorStats, type CreatorPublicStats } from "@/services/quiz";
 import TeacherPublicCard from "@/components/rooms/public/TeacherPublicCard";
 import RoomDocumentsPanel from "@/components/rooms/RoomDocumentsPanel";
 import RoomAnnouncementsPanel from "@/components/rooms/RoomAnnouncementsPanel";
+import { ConfirmModal } from "@/components/creator/quiz-studio/components/timing/ConfirmModal";
+import { useStudentRooms } from "./StudentRoomsProvider";
 
 const QS_PRIMARY_BTN =
   "inline-flex items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2.5 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none";
@@ -65,15 +74,21 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
   const searchParams = useSearchParams();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
-  const announcements = useRoomContentStore((s) => s.announcements);
-  const documents = useRoomContentStore((s) => s.documents);
-  const seedRoom = useRoomContentStore((s) => s.seedRoom);
+  const currentUser = useAuthStore((s) => s.user);
+  const { announcements } = useRoomAnnouncements(
+    roomId,
+    hasHydrated && isAuthenticated
+  );
+  const { documents } = useRoomDocuments(roomId, hasHydrated && isAuthenticated);
+  const { reload: reloadStudentRooms } = useStudentRooms();
 
   const [room, setRoom] = useState<RoomSummary | null>(null);
   const [teacher, setTeacher] = useState<CreatorPublicStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   const tab = searchParams.get("tab");
   const section =
@@ -144,11 +159,6 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
     [room]
   );
 
-  useEffect(() => {
-    if (!room) return;
-    seedRoom(room.id);
-  }, [room, seedRoom]);
-
   const roomAnnouncements = useMemo(
     () =>
       [...announcements]
@@ -166,6 +176,31 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
         .sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()),
     [documents, roomId]
   );
+
+  const leaveIdentifier =
+    myMembership?.id ?? (currentUser?.id != null ? String(currentUser.id) : null);
+  const canLeaveRoom = Boolean(room && leaveIdentifier && !room.is_owner);
+
+  async function handleLeaveRoom() {
+    if (!room || !leaveIdentifier || leaving) return;
+    setLeaving(true);
+    try {
+      await leaveRoom(room.id, leaveIdentifier);
+      toast.success({
+        title: "Room left",
+        description: `You are no longer a member of ${room.name}.`,
+      });
+      await reloadStudentRooms();
+      router.replace("/rooms/my");
+      router.refresh();
+    } catch (err: unknown) {
+      toast.error({
+        title: "Couldn't leave the room",
+        description: getApiErrorMessage(err, "Please try again."),
+      });
+      setLeaving(false);
+    }
+  }
 
   if (!hasHydrated || loading) {
     return (
@@ -242,14 +277,26 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
             </div>
           </div>
 
-          <div className="hidden w-full grid-cols-2 gap-2.5 sm:grid-cols-4 md:grid lg:w-auto">
-            <RoomStat label="Classmates" value={room.memberCount} />
-            <RoomStat label="Documents" value={roomDocuments.length} />
-            <RoomStat label="Announcements" value={roomAnnouncements.length} />
-            <RoomStat
-              label="Joined"
-              value={myMembership?.joinedAt ? timeAgo(myMembership.joinedAt) : "—"}
-            />
+          <div className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center md:justify-end">
+            <div className="hidden w-full grid-cols-2 gap-2.5 sm:grid-cols-4 md:grid lg:w-auto">
+              <RoomStat label="Classmates" value={room.memberCount} />
+              <RoomStat label="Documents" value={roomDocuments.length} />
+              <RoomStat label="Announcements" value={roomAnnouncements.length} />
+              <RoomStat
+                label="Joined"
+                value={myMembership?.joinedAt ? timeAgo(myMembership.joinedAt) : "—"}
+              />
+            </div>
+            {canLeaveRoom ? (
+              <button
+                type="button"
+                onClick={() => setLeaveOpen(true)}
+                className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-bad)] bg-[var(--qs-surface)] px-4 py-2.5 text-sm font-extrabold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-badbg)] sm:w-auto"
+              >
+                <LogOut className="h-4 w-4" />
+                Quit room
+              </button>
+            ) : null}
           </div>
         </header>
 
@@ -331,6 +378,21 @@ export default function StudentRoomView({ roomId }: { roomId: string }) {
           </aside>
         </div>
       </div>
+
+      <ConfirmModal
+        open={leaveOpen}
+        onClose={() => {
+          if (!leaving) setLeaveOpen(false);
+        }}
+        onConfirm={() => void handleLeaveRoom()}
+        title="Leave this room?"
+        description="You'll lose access to this room's announcements, documents and classmates. You can rejoin later with the room code and password."
+        details={[{ label: "Room", value: room.name }]}
+        confirmLabel={leaving ? "Leaving…" : "Leave room"}
+        confirmColor="rose"
+        confirmDisabled={leaving}
+        icon={LogOut}
+      />
     </div>
   );
 }
@@ -466,6 +528,17 @@ function RecentUpdatesPanel({
   const latestAnnouncements = announcements.slice(0, 2);
   const latestDocuments = documents.slice(0, 3);
 
+  const download = async (document: RoomDocument) => {
+    try {
+      await downloadRoomDocument(room.id, document.id, document.name);
+    } catch (error: unknown) {
+      toast.error({
+        title: "Download failed",
+        description: getApiErrorMessage(error, "Please try again."),
+      });
+    }
+  };
+
   return (
     <section className="relative mb-4 mr-1 min-w-0 lg:flex lg:flex-col">
       <div aria-hidden className="absolute left-1 top-1 -bottom-1 -right-1 rounded-[18px] bg-[var(--qs-sun)]" />
@@ -564,9 +637,18 @@ function RecentUpdatesPanel({
                         {document.name}
                       </span>
                       <span className="mt-0.5 block text-[12px] font-semibold text-[var(--qs-muted)]">
-                        {document.type} · {document.size} · {timeAgo(document.addedAt)}
+                        {document.type} · {formatDocumentSize(document.bytes)} ·{" "}
+                        {timeAgo(document.addedAt)}
                       </span>
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => void download(document)}
+                      aria-label={`Download ${document.name}`}
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-bg)] hover:text-[var(--qs-brand)]"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 ))
               )}

@@ -799,7 +799,7 @@ export function DocumentEditor() {
     <div
       data-qs-editor-root
       className="fixed inset-0 z-[75] flex flex-col bg-[#efecfb] text-[var(--qs-ink)]"
-      style={{ fontFamily: "var(--font-inter, ui-sans-serif, system-ui)" }}
+      style={{ fontFamily: "var(--font-onest, ui-sans-serif, system-ui)" }}
     >
       <input
         ref={pdfInputRef}

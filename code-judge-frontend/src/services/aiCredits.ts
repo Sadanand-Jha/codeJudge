@@ -86,6 +86,7 @@ export interface RazorpayPaymentPayload {
 
 export interface VerifiedCreditPurchase {
   transactionId: string;
+  orderId: string;
   packId: string;
   credits: number;
   newBalance: number;

@@ -89,7 +89,6 @@ export function AIGenerateModal({
 
   const [files, setFiles] = useState<File[]>([]);
   const [status, setStatus] = useState<AIGenerateStatus>("idle");
-  const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState<AIGenerateError | null>(null);
   const [showReplaceConfirm, setShowReplaceConfirm] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -98,7 +97,6 @@ export function AIGenerateModal({
   const reset = useCallback(() => {
     setFiles([]);
     setStatus("idle");
-    setCurrentStep(0);
     setError(null);
     setShowReplaceConfirm(false);
     abortRef.current?.abort();
@@ -159,19 +157,15 @@ export function AIGenerateModal({
   );
 
   const simulateProgress = useCallback(async () => {
-    setCurrentStep(0);
     setStatus("uploading");
     await new Promise((r) => setTimeout(r, 600));
 
-    setCurrentStep(1);
     setStatus("extracting");
     await new Promise((r) => setTimeout(r, 1200));
 
-    setCurrentStep(2);
     setStatus("analyzing");
     await new Promise((r) => setTimeout(r, 800));
 
-    setCurrentStep(3);
     setStatus("building");
   }, []);
 
@@ -191,6 +185,7 @@ export function AIGenerateModal({
 
     setShowReplaceConfirm(false);
     setError(null);
+    setElapsedSeconds(0);
     abortRef.current = new AbortController();
 
     const progressPromise = simulateProgress();
@@ -227,10 +222,14 @@ export function AIGenerateModal({
         });
         handleClose();
       }, 800);
-    } catch (err: any) {
+    } catch (err) {
       await progressPromise;
+      const apiError = err as {
+        name?: string;
+        response?: { status?: number; data?: { message?: string } };
+      };
 
-      if (err?.name === "CanceledError" || err?.name === "AbortError") {
+      if (apiError?.name === "CanceledError" || apiError?.name === "AbortError") {
         reset();
         return;
       }
@@ -238,19 +237,19 @@ export function AIGenerateModal({
       let errorType: AIGenerateError["type"] = "network";
       let errorMessage = "Something went wrong. Please try again.";
 
-      if (err?.response?.status === 400) {
+      if (apiError?.response?.status === 400) {
         errorType = "upload";
         errorMessage = "Please upload a supported file that passes our safety checks.";
-      } else if (err?.response?.status === 422) {
+      } else if (apiError?.response?.status === 422) {
         errorType = "validation";
         errorMessage =
           "The generated structure couldn't be validated. Please try again.";
-      } else if (err?.response?.status === 500) {
+      } else if (apiError?.response?.status === 500) {
         errorType = "extraction";
         errorMessage =
           "We couldn't extract content from this file. Please try another supported document or image.";
-      } else if (err?.response?.data?.message) {
-        errorMessage = err.response.data.message;
+      } else if (apiError?.response?.data?.message) {
+        errorMessage = apiError.response.data.message;
       }
 
       setError({ type: errorType, message: errorMessage });
@@ -290,10 +289,7 @@ export function AIGenerateModal({
     status === "building";
 
   useEffect(() => {
-    if (!isProcessing) {
-      setElapsedSeconds(0);
-      return;
-    }
+    if (!isProcessing) return;
     const timer = window.setInterval(() => setElapsedSeconds((seconds) => seconds + 1), 1_000);
     return () => window.clearInterval(timer);
   }, [isProcessing]);
@@ -312,200 +308,195 @@ export function AIGenerateModal({
   return (
     <AnimatePresence>
       {open && (
-        <>
-          {/* Backdrop */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
+          className="fixed inset-0 z-[90] flex items-end justify-center bg-[rgba(26,18,64,0.55)] p-3 sm:items-center sm:p-6"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) handleClose();
+          }}
+        >
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
-            onClick={handleClose}
-          />
-
-          {/* Modal */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 8 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ai-generate-title"
+            initial={{ opacity: 0, y: 18, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 18, scale: 0.98 }}
+            transition={{ duration: 0.18 }}
+            className="flex max-h-[92dvh] w-full max-w-xl flex-col overflow-hidden rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[6px_6px_0_var(--qs-sun)]"
           >
-            <div
-              className="ai-color-card max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-card shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header */}
-              <div className="ai-color-header flex items-center justify-between border-b border-border px-5 py-3.5">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-violet-600 text-white">
-                    <Sparkles className="h-4.5 w-4.5" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-bold text-text-primary">
-                      <AiStreamText text="Generate Test Structure with AI" />
-                    </h2>
-                    <p className="text-[11px] text-text-muted">
-                      <AiStreamText text="Powered by AI" />
-                    </p>
-                  </div>
+            <div className="flex items-start justify-between gap-4 border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-5 py-4">
+              <div className="flex min-w-0 items-start gap-3">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1a1240]">
+                  <Sparkles className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <h2 id="ai-generate-title" className="text-lg font-extrabold tracking-tight text-[var(--qs-ink)]">
+                    <AiStreamText text="Generate Test Structure with AI" />
+                  </h2>
+                  <p className="mt-0.5 text-xs font-medium text-[var(--qs-muted)]">
+                    <AiStreamText text="Powered by AI" />
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  disabled={isProcessing}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:text-text-primary disabled:opacity-50"
-                >
-                  <X className="h-4 w-4" />
-                </button>
               </div>
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={isProcessing}
+                className="b b-icon sm"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
-              {/* Body */}
-              <div className="px-5 py-4">
-                {/* Description */}
-                {status === "idle" && !showReplaceConfirm && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="space-y-5"
-                  >
-                    <p className="ai-color-note min-h-10 rounded-xl px-3.5 py-3 text-[13px] leading-5 text-text-secondary">
-                      <AiStreamText text="Upload a question paper, syllabus, textbook, or study material. AI will analyze the document and suggest a structured question-paper layout." />
-                    </p>
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+              {/* Description */}
+              {status === "idle" && !showReplaceConfirm && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="space-y-5"
+                >
+                  <p className="rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3.5 py-3 text-[13px] font-medium leading-5 text-[var(--qs-muted)]">
+                    <AiStreamText text="Upload a question paper, syllabus, textbook, or study material. AI will analyze the document and suggest a structured question-paper layout." />
+                  </p>
 
-                    {/* Upload Area */}
-                    <div
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        setDragOver(true);
-                      }}
-                      onDragLeave={() => setDragOver(false)}
-                      onDrop={handleDrop}
-                      onClick={() => {
-                        if (!canUploadFiles) {
-                          setError({ type: "upload", message: upgradeMessage });
-                          if (!subscriptionLoading) {
-                            showUpgradeModal({ message: upgradeMessage });
-                          }
-                          return;
+                  {/* Upload Area */}
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDragOver(true);
+                    }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={handleDrop}
+                    onClick={() => {
+                      if (!canUploadFiles) {
+                        setError({ type: "upload", message: upgradeMessage });
+                        if (!subscriptionLoading) {
+                          showUpgradeModal({ message: upgradeMessage });
                         }
-                        fileInputRef.current?.click();
-                      }}
-                      className={cn(
-                        "flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-7 text-center transition-all",
-                        canUploadFiles ? "cursor-pointer" : "cursor-not-allowed",
-                        files.length > 0 && "ai-upload-zone",
-                        dragOver
-                          ? "border-pink-500 bg-pink-500/5"
-                          : files.length > 0
-                            ? "border-emerald-500/40 bg-emerald-500/5"
-                            : "border-border bg-card-hover/20 hover:border-pink-500/30 hover:bg-pink-500/5"
-                      )}
-                    >
-                      {files.length > 0 ? (
-                        <>
-                          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-lg shadow-violet-500/15">
-                            <FileText className="h-6 w-6" />
-                          </div>
-                          <p className="mt-3 text-sm font-semibold text-text-primary">
-                            {files.length} file{files.length === 1 ? "" : "s"} selected
-                          </p>
-                          <p className="mt-1 text-[11px] text-text-muted">
-                            {(files.reduce((sum, file) => sum + file.size, 0) / 1024 / 1024).toFixed(2)} MB of 2 MB
-                          </p>
-                          <div className="mt-3 max-h-24 w-full space-y-1 overflow-y-auto text-left">
-                            {files.map((file, index) => (
-                              <div key={`${file.name}-${file.size}-${index}`} className="flex items-center justify-between gap-2 rounded-lg border border-violet-500/10 bg-white/75 px-2.5 py-1.5 text-[11px] shadow-sm dark:bg-white/[0.035]">
-                                <span className="min-w-0 truncate text-text-secondary">{file.name}</span>
-                                <button type="button" onClick={(event) => { event.stopPropagation(); removeFile(index); }} className="shrink-0 text-rose-500 hover:text-rose-600" aria-label={`Remove ${file.name}`}>
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                          {files.length < MAX_FILES && (
-                            <button type="button" onClick={(event) => { event.stopPropagation(); fileInputRef.current?.click(); }} className="mt-3 inline-flex items-center gap-1 rounded-lg bg-violet-500/[0.08] px-2.5 py-1.5 text-[11px] font-semibold text-violet-600 hover:bg-violet-500/[0.13] dark:text-violet-300">
-                              <Upload className="h-3 w-3" /> Add more files
-                            </button>
-                          )}
-                        </>
-                      ) : !subscriptionLoading && !canUploadFiles ? (
-                        <>
-                          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-card text-text-muted">
-                            <Lock className="h-6 w-6" />
-                          </div>
-                          <p className="mt-3 text-sm font-semibold text-text-primary">
-                            File uploads are paid-only
-                          </p>
-                          <p className="mt-1 text-[11px] text-text-muted">
-                            <Link
-                              href={upgradeHref}
-                              onClick={(event) => event.stopPropagation()}
-                              className="font-semibold text-violet-600 underline dark:text-violet-300"
-                            >
-                              Upgrade your plan
-                            </Link>{" "}
-                            to generate test sections from your material.
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-card text-text-muted">
-                            <Upload className="h-6 w-6" />
-                          </div>
-                          <p className="mt-3 text-sm font-semibold text-text-primary">
-                            Drop a document or image here, or click to browse
-                          </p>
-                          <p className="mt-1 text-[11px] text-text-muted">
-                            PDF, Word, PowerPoint, Excel, text, PNG/JPEG/WebP · up to 5 files, 2MB total
-                          </p>
-                        </>
-                      )}
-                    </div>
+                        return;
+                      }
+                      fileInputRef.current?.click();
+                    }}
+                    className={cn(
+                      "flex flex-col items-center justify-center rounded-[14px] border-2 border-dashed px-6 py-7 text-center transition-all",
+                      canUploadFiles ? "cursor-pointer" : "cursor-not-allowed",
+                      dragOver
+                        ? "border-[var(--qs-brand)] bg-[var(--qs-brand)]/[0.04]"
+                        : files.length > 0
+                          ? "border-[var(--qs-ok)]/50 bg-[var(--qs-okbg)]/40"
+                          : "border-[var(--qs-line)] bg-[var(--qs-bg)] hover:border-[var(--qs-brand)] hover:bg-[var(--qs-brand)]/[0.04]"
+                    )}
+                  >
+                    {files.length > 0 ? (
+                      <>
+                        <div className="grid h-12 w-12 place-items-center rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1a1240]">
+                          <FileText className="h-6 w-6" />
+                        </div>
+                        <p className="mt-3 text-sm font-bold text-[var(--qs-ink)]">
+                          {files.length} file{files.length === 1 ? "" : "s"} selected
+                        </p>
+                        <p className="mt-1 text-[11px] font-medium text-[var(--qs-muted)]">
+                          {(files.reduce((sum, file) => sum + file.size, 0) / 1024 / 1024).toFixed(2)} MB of 2 MB
+                        </p>
+                        <div className="mt-3 max-h-24 w-full space-y-1 overflow-y-auto text-left">
+                          {files.map((file, index) => (
+                            <div key={`${file.name}-${file.size}-${index}`} className="flex items-center justify-between gap-2 rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 py-1.5 text-[11px]">
+                              <span className="min-w-0 truncate font-medium text-[var(--qs-ink)]">{file.name}</span>
+                              <button type="button" onClick={(event) => { event.stopPropagation(); removeFile(index); }} className="shrink-0 text-[var(--qs-bad)] transition-opacity hover:opacity-70" aria-label={`Remove ${file.name}`}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        {files.length < MAX_FILES && (
+                          <button type="button" onClick={(event) => { event.stopPropagation(); fileInputRef.current?.click(); }} className="mt-3 inline-flex items-center gap-1 rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]">
+                            <Upload className="h-3 w-3" /> Add more files
+                          </button>
+                        )}
+                      </>
+                    ) : !subscriptionLoading && !canUploadFiles ? (
+                      <>
+                        <div className="grid h-12 w-12 place-items-center rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)]">
+                          <Lock className="h-6 w-6" />
+                        </div>
+                        <p className="mt-3 text-sm font-bold text-[var(--qs-ink)]">
+                          File uploads are paid-only
+                        </p>
+                        <p className="mt-1 text-[11px] font-medium text-[var(--qs-muted)]">
+                          <Link
+                            href={upgradeHref}
+                            onClick={(event) => event.stopPropagation()}
+                            className="font-bold text-[var(--qs-brand)] underline"
+                          >
+                            Upgrade your plan
+                          </Link>{" "}
+                          to generate test sections from your material.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="grid h-12 w-12 place-items-center rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)]">
+                          <Upload className="h-6 w-6" />
+                        </div>
+                        <p className="mt-3 text-sm font-bold text-[var(--qs-ink)]">
+                          Drop a document or image here, or click to browse
+                        </p>
+                        <p className="mt-1 text-[11px] font-medium text-[var(--qs-muted)]">
+                          PDF, Word, PowerPoint, Excel, text, PNG/JPEG/WebP · up to 5 files, 2MB total
+                        </p>
+                      </>
+                    )}
+                  </div>
 
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept={SUPPORTED_ACCEPT}
-                      multiple
-                      className="hidden"
-                      disabled={!canUploadFiles || subscriptionLoading}
-                      onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ""; }}
-                    />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={SUPPORTED_ACCEPT}
+                    multiple
+                    className="hidden"
+                    disabled={!canUploadFiles || subscriptionLoading}
+                    onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ""; }}
+                  />
 
-                    {/* Error */}
-                    {error && (
-                      <div className="flex items-start gap-2.5 rounded-xl border border-rose-500/20 bg-rose-500/5 px-4 py-3">
-                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
-                        <div>
-                          <p className="text-xs font-semibold text-rose-600 dark:text-rose-400">
-                            {error.message}
-                          </p>
-                          <div className="mt-2 flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setError(null);
-                                setFiles([]);
-                              }}
-                              className="text-[11px] font-semibold text-rose-500 hover:text-rose-600"
-                            >
-                              Retry
-                            </button>
-                            <span className="text-text-muted">or</span>
-                            <button
-                              type="button"
-                              onClick={handleClose}
-                              className="text-[11px] font-semibold text-text-secondary hover:text-text-primary"
-                            >
-                              Create Sections Manually
-                            </button>
-                          </div>
+                  {/* Error */}
+                  {error && (
+                    <div className="flex items-start gap-2.5 rounded-xl border-2 border-[var(--qs-bad)]/30 bg-[var(--qs-badbg)] px-4 py-3">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--qs-bad)]" />
+                      <div>
+                        <p className="text-xs font-bold text-[var(--qs-bad)]">
+                          {error.message}
+                        </p>
+                        <div className="mt-2 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setError(null);
+                              setFiles([]);
+                            }}
+                            className="text-[11px] font-bold text-[var(--qs-bad)] hover:underline"
+                          >
+                            Retry
+                          </button>
+                          <span className="text-[var(--qs-muted)]">or</span>
+                          <button
+                            type="button"
+                            onClick={handleClose}
+                            className="text-[11px] font-bold text-[var(--qs-ink)] hover:underline"
+                          >
+                            Create Sections Manually
+                          </button>
                         </div>
                       </div>
-                    )}
-                  </motion.div>
-                )}
+                    </div>
+                  )}
+                </motion.div>
+              )}
 
                 {/* Replace Confirmation */}
                 {showReplaceConfirm && (
@@ -514,13 +505,13 @@ export function AIGenerateModal({
                     animate={{ opacity: 1 }}
                     className="space-y-4"
                   >
-                    <div className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
-                      <AlertCircle className="h-5 w-5 shrink-0 text-amber-500" />
+                    <div className="flex items-start gap-3 rounded-xl border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/15 px-4 py-3">
+                      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-[var(--qs-ink)]" />
                       <div>
-                        <p className="text-sm font-bold text-text-primary">
+                        <p className="text-sm font-bold text-[var(--qs-ink)]">
                           Replace existing sections?
                         </p>
-                        <p className="mt-0.5 text-[11px] text-text-secondary">
+                        <p className="mt-0.5 text-[11px] font-medium text-[var(--qs-muted)]">
                           This will replace the current{" "}
                           {existingSectionCount} section
                           {existingSectionCount !== 1 ? "s" : ""} with the
@@ -534,14 +525,14 @@ export function AIGenerateModal({
                       <button
                         type="button"
                         onClick={() => setShowReplaceConfirm(false)}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2 text-[13px] font-semibold text-text-primary transition-all hover:border-border-hover"
+                        className="b sm"
                       >
                         Cancel
                       </button>
                       <button
                         type="button"
                         onClick={startGeneration}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 py-2 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all hover:shadow-[0_6px_20px_rgba(236,72,153,0.35)]"
+                        className="b b-pri sm gap-1.5"
                       >
                         <Sparkles className="h-3.5 w-3.5" />
                         Generate & Replace
@@ -557,16 +548,16 @@ export function AIGenerateModal({
                     animate={{ opacity: 1 }}
                     className="space-y-3"
                   >
-                    <div className="relative overflow-hidden rounded-2xl border border-violet-500/20 bg-gradient-to-br from-pink-500/[0.07] via-card to-violet-500/[0.09] px-4 pb-4 pt-5 text-center dark:border-violet-400/15">
+                    <div className="relative overflow-hidden rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 pb-4 pt-5 text-center">
                       <motion.div
                         aria-hidden="true"
-                        className="pointer-events-none absolute -left-12 -top-14 h-32 w-32 rounded-full bg-pink-400/15 blur-3xl"
+                        className="pointer-events-none absolute -left-12 -top-14 h-32 w-32 rounded-full bg-[var(--qs-sun)]/25 blur-3xl"
                         animate={{ scale: [0.85, 1.15, 0.9], opacity: [0.35, 0.7, 0.4] }}
                         transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
                       />
                       <motion.div
                         aria-hidden="true"
-                        className="pointer-events-none absolute -bottom-16 -right-10 h-36 w-36 rounded-full bg-violet-500/15 blur-3xl"
+                        className="pointer-events-none absolute -bottom-16 -right-10 h-36 w-36 rounded-full bg-[var(--qs-brand)]/10 blur-3xl"
                         animate={{ scale: [1.1, 0.88, 1.12], opacity: [0.4, 0.7, 0.35] }}
                         transition={{ duration: 5.2, repeat: Infinity, ease: "easeInOut" }}
                       />
@@ -574,33 +565,33 @@ export function AIGenerateModal({
                       <div className="relative mx-auto h-24 w-28">
                         <motion.div
                           aria-hidden="true"
-                          className="absolute inset-1 rounded-full border border-dashed border-violet-400/35"
+                          className="absolute inset-1 rounded-full border border-dashed border-[var(--qs-brand)]/30"
                           animate={{ rotate: 360 }}
                           transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
                         />
                         <motion.div
-                          className="absolute left-1/2 top-1/2 flex h-16 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden rounded-xl border border-white/70 bg-white text-violet-600 shadow-[0_10px_30px_rgba(124,58,237,0.18)] dark:border-white/10 dark:bg-zinc-900 dark:text-violet-300"
+                          className="absolute left-1/2 top-1/2 flex h-16 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] text-[var(--qs-brand)] shadow-[3px_3px_0_var(--qs-sun)]"
                           animate={{ y: [-2, 2, -2], rotate: [-1, 1, -1] }}
                           transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
                         >
                           <FileText className="h-7 w-7" />
                           <motion.span
                             aria-hidden="true"
-                            className="absolute inset-x-1 h-0.5 bg-gradient-to-r from-transparent via-pink-500 to-transparent shadow-[0_0_8px_rgba(236,72,153,0.8)]"
+                            className="absolute inset-x-1 h-0.5 bg-gradient-to-r from-transparent via-[var(--qs-brand)] to-transparent shadow-[0_0_8px_var(--qs-brand)]"
                             animate={{ top: [8, 54, 8] }}
                             transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
                           />
                         </motion.div>
-                        <motion.span className="absolute left-1 top-4 text-pink-500" animate={{ y: [0, -5, 0], opacity: [0.3, 1, 0.3], rotate: [0, 18, 0] }} transition={{ duration: 2.1, repeat: Infinity }}><Sparkles className="h-3.5 w-3.5" /></motion.span>
-                        <motion.span className="absolute bottom-3 right-0 text-violet-500" animate={{ y: [0, 5, 0], opacity: [0.35, 1, 0.35], rotate: [0, -18, 0] }} transition={{ duration: 2.6, repeat: Infinity }}><Sparkles className="h-3 w-3" /></motion.span>
+                        <motion.span className="absolute left-1 top-4 text-[var(--qs-sun)]" animate={{ y: [0, -5, 0], opacity: [0.3, 1, 0.3], rotate: [0, 18, 0] }} transition={{ duration: 2.1, repeat: Infinity }}><Sparkles className="h-3.5 w-3.5" /></motion.span>
+                        <motion.span className="absolute bottom-3 right-0 text-[var(--qs-brand)]" animate={{ y: [0, 5, 0], opacity: [0.35, 1, 0.35], rotate: [0, -18, 0] }} transition={{ duration: 2.6, repeat: Infinity }}><Sparkles className="h-3 w-3" /></motion.span>
                       </div>
 
                       <div className="relative -mt-1">
-                        <div className="flex items-center justify-center gap-2 text-sm font-extrabold text-text-primary">
-                          <BrainCircuit className="h-4 w-4 text-violet-500" />
+                        <div className="flex items-center justify-center gap-2 text-sm font-extrabold text-[var(--qs-ink)]">
+                          <BrainCircuit className="h-4 w-4 text-[var(--qs-brand)]" />
                           AI is designing your sections
                         </div>
-                        <div className="mt-1.5 min-h-5 overflow-hidden text-[11px] text-text-secondary">
+                        <div className="mt-1.5 min-h-5 overflow-hidden text-[11px] font-medium text-[var(--qs-muted)]">
                           <AnimatePresence mode="wait">
                             <motion.p
                               key={activityIndex}
@@ -616,9 +607,9 @@ export function AIGenerateModal({
                       </div>
 
                       <div className="relative mt-4">
-                        <div className="h-2 overflow-hidden rounded-full bg-violet-950/[0.06] dark:bg-white/[0.07]">
+                        <div className="h-2 overflow-hidden rounded-full bg-[var(--qs-line)]">
                           <motion.div
-                            className="relative h-full rounded-full bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-500"
+                            className="relative h-full rounded-full bg-[var(--qs-brand)]"
                             animate={{ width: `${progressPercent}%` }}
                             transition={{ duration: 0.7, ease: "easeOut" }}
                           >
@@ -630,7 +621,7 @@ export function AIGenerateModal({
                             />
                           </motion.div>
                         </div>
-                        <div className="mt-2 flex items-center justify-between text-[10px] font-semibold text-text-muted">
+                        <div className="mt-2 flex items-center justify-between text-[10px] font-semibold text-[var(--qs-muted)]">
                           <span className="inline-flex items-center gap-1"><Clock3 className="h-3 w-3" /> {elapsedSeconds}s elapsed</span>
                           <span>Usually 30–60 seconds</span>
                         </div>
@@ -643,27 +634,27 @@ export function AIGenerateModal({
                         const isCurrent = idx === processingStepIndex;
                         const StepIcon = idx === 0 ? ShieldCheck : idx === 1 ? ScanLine : idx === 2 ? BrainCircuit : Layers3;
                         return (
-                          <div key={step.key} className={cn("rounded-xl border px-1.5 py-2 text-center transition-colors", isDone ? "border-emerald-500/20 bg-emerald-500/[0.06]" : isCurrent ? "border-violet-500/30 bg-violet-500/[0.08]" : "border-border bg-card-hover/20")}>
-                            <div className={cn("mx-auto flex h-6 w-6 items-center justify-center rounded-lg", isDone ? "bg-emerald-500 text-white" : isCurrent ? "bg-gradient-to-br from-pink-500 to-violet-600 text-white" : "bg-card-hover text-text-muted")}>
+                          <div key={step.key} className={cn("rounded-[10px] border-2 px-1.5 py-2 text-center transition-colors", isDone ? "border-[var(--qs-ok)]/35 bg-[var(--qs-okbg)]" : isCurrent ? "border-[var(--qs-brand)]/40 bg-[var(--qs-brand)]/[0.07]" : "border-[var(--qs-line)] bg-[var(--qs-surface)]")}>
+                            <div className={cn("mx-auto flex h-6 w-6 items-center justify-center rounded-lg", isDone ? "bg-[var(--qs-ok)] text-white" : isCurrent ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "bg-[var(--qs-bg)] text-[var(--qs-muted)]")}>
                               {isDone ? <Check className="h-3 w-3" /> : isCurrent ? <StepIcon className="h-3 w-3 animate-pulse" /> : <StepIcon className="h-3 w-3" />}
                             </div>
-                            <p className={cn("mt-1.5 truncate text-[8px] font-bold", isDone ? "text-emerald-600 dark:text-emerald-300" : isCurrent ? "text-violet-600 dark:text-violet-300" : "text-text-muted")}>{step.label.replace(" safely", "").replace(" question-paper", "")}</p>
+                            <p className={cn("mt-1.5 truncate text-[8px] font-bold", isDone ? "text-[var(--qs-ok)]" : isCurrent ? "text-[var(--qs-brand)]" : "text-[var(--qs-muted)]")}>{step.label.replace(" safely", "").replace(" question-paper", "")}</p>
                           </div>
                         );
                       })}
                     </div>
 
-                    <div className="flex items-start gap-2 rounded-xl border border-border bg-card-hover/25 px-3 py-2.5">
-                      <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-pink-500" />
+                    <div className="flex items-start gap-2 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5">
+                      <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--qs-brand)]" />
                       <div className="min-w-0 text-left">
-                        <p className="text-[9px] font-black uppercase tracking-[0.14em] text-text-muted">While AI works</p>
+                        <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[var(--qs-muted)]">While AI works</p>
                         <AnimatePresence mode="wait">
-                          <motion.p key={tipIndex} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="mt-0.5 text-[10px] leading-4 text-text-secondary">{WAITING_TIPS[tipIndex]}</motion.p>
+                          <motion.p key={tipIndex} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="mt-0.5 text-[10px] leading-4 text-[var(--qs-muted)]">{WAITING_TIPS[tipIndex]}</motion.p>
                         </AnimatePresence>
                       </div>
                     </div>
 
-                    <p className="text-center text-[10px] font-semibold text-text-muted">Please keep this window open — your document is being processed securely.</p>
+                    <p className="text-center text-[10px] font-semibold text-[var(--qs-muted)]">Please keep this window open — your document is being processed securely.</p>
                   </motion.div>
                 )}
 
@@ -674,10 +665,10 @@ export function AIGenerateModal({
                     animate={{ opacity: 1 }}
                     className="space-y-4"
                   >
-                    <div className="flex items-start gap-2.5 rounded-xl border border-rose-500/20 bg-rose-500/5 px-4 py-3">
-                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
+                    <div className="flex items-start gap-2.5 rounded-xl border-2 border-[var(--qs-bad)]/30 bg-[var(--qs-badbg)] px-4 py-3">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--qs-bad)]" />
                       <div>
-                        <p className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+                        <p className="text-xs font-bold text-[var(--qs-bad)]">
                           {error.message}
                         </p>
                       </div>
@@ -687,7 +678,7 @@ export function AIGenerateModal({
                       <button
                         type="button"
                         onClick={handleClose}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2 text-[13px] font-semibold text-text-primary transition-all hover:border-border-hover"
+                        className="b sm"
                       >
                         Create Sections Manually
                       </button>
@@ -697,7 +688,7 @@ export function AIGenerateModal({
                           setError(null);
                           setStatus("idle");
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 py-2 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all hover:shadow-[0_6px_20px_rgba(236,72,153,0.35)]"
+                        className="b b-pri sm gap-1.5"
                       >
                         Retry
                       </button>
@@ -712,13 +703,13 @@ export function AIGenerateModal({
                     animate={{ opacity: 1, scale: 1 }}
                     className="flex flex-col items-center py-6 text-center"
                   >
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500">
+                    <div className="grid h-14 w-14 place-items-center rounded-[16px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1a1240]">
                       <Check className="h-7 w-7" />
                     </div>
-                    <p className="mt-3 text-sm font-bold text-text-primary">
+                    <p className="mt-3 text-sm font-bold text-[var(--qs-ink)]">
                       Structure generated!
                     </p>
-                    <p className="mt-1 text-[11px] text-text-muted">
+                    <p className="mt-1 text-[11px] font-medium text-[var(--qs-muted)]">
                       Populating sections...
                     </p>
                   </motion.div>
@@ -727,33 +718,34 @@ export function AIGenerateModal({
 
               {/* Footer */}
               {status === "idle" && !showReplaceConfirm && (
-                <div className="ai-color-header flex flex-col gap-2 border-t border-border px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="flex max-w-[230px] items-start gap-1 text-[9px] leading-3.5 text-text-muted">
-                    <AlertCircle className="mt-px h-2.5 w-2.5 shrink-0" /> AI can make mistakes. Review the generated structure before saving it.
-                  </p>
-                  <div className="flex items-center justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={handleClose}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2 text-[13px] font-semibold text-text-primary transition-all hover:border-border-hover"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleGenerate}
-                      disabled={files.length === 0}
-                      className="section-ai-cta inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 py-2 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all hover:shadow-[0_6px_20px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:shadow-none"
-                    >
-                      <Sparkles className="h-3.5 w-3.5" />
-                      Generate Test Structure
-                    </button>
+                <div className="border-t-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-5 py-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="flex min-w-0 max-w-[290px] items-start gap-1.5 text-[10px] font-medium leading-4 text-[var(--qs-muted)]">
+                      <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" /> AI can make mistakes. Review the generated structure before saving it.
+                    </p>
+                    <div className="flex shrink-0 items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={handleClose}
+                        className="b sm"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleGenerate}
+                        disabled={files.length === 0}
+                        className="b b-pri sm gap-1.5"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Generate Test Structure
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
-            </div>
           </motion.div>
-        </>
+        </motion.div>
       )}
     </AnimatePresence>
   );

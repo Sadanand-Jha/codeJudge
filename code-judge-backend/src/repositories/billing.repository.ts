@@ -6,7 +6,7 @@ import type { BillingPeriod } from "../services/billing/calculations.ts";
 
 type Db = Pool | PoolClient;
 
-export type OrderType = "plan" | "credit_pack";
+export type OrderType = "plan" | "credit_pack" | "bundle";
 export type OrderStatus = "pending" | "paid" | "failed" | "refunded" | "cancelled";
 export type CouponType = "percent" | "flat" | "free_days";
 
@@ -36,6 +36,20 @@ export interface PurchasableCreditPack {
   validityDays: number;
   description: string | null;
   isPopular: boolean;
+}
+
+export interface PurchasablePlanBundle {
+  id: number;
+  planId: number;
+  packId: number;
+  name: string;
+  description: string | null;
+  badge: string;
+  amountPaise: number;
+  mrpPaise: number;
+  sortOrder: number;
+  plan: PurchasablePlan;
+  pack: PurchasableCreditPack;
 }
 
 export interface CouponRow {
@@ -85,6 +99,11 @@ export interface OrderRow {
   couponId: number | null;
   couponCode: string | null;
   subscriptionId: number | null;
+  parentOrderId: string | null;
+  bundleId: number | null;
+  bundlePlanCredits: number;
+  bundlePackCredits: number;
+  bundlePackValidityDays: number | null;
   refundAmountPaise: number;
   failureReason: string | null;
   createdAt: Date;
@@ -177,6 +196,15 @@ function mapOrder(row: Record<string, unknown>): OrderRow {
     couponCode: row.coupon_code == null ? null : String(row.coupon_code),
     subscriptionId:
       row.subscription_id == null ? null : toNumber(row.subscription_id),
+    parentOrderId:
+      row.parent_order_id == null ? null : String(row.parent_order_id),
+    bundleId: row.bundle_id == null ? null : toNumber(row.bundle_id),
+    bundlePlanCredits: toNumber(row.bundle_plan_credits),
+    bundlePackCredits: toNumber(row.bundle_pack_credits),
+    bundlePackValidityDays:
+      row.bundle_pack_validity_days == null
+        ? null
+        : toNumber(row.bundle_pack_validity_days),
     refundAmountPaise: toNumber(row.refund_amount),
     failureReason: row.failure_reason == null ? null : String(row.failure_reason),
     createdAt: toDate(row.created_at) ?? new Date(0),
@@ -317,6 +345,172 @@ export async function findCreditPackById(
 }
 
 /**
+ * Loads one active bundle row and resolves its live plan and pack pricing. The
+ * join keeps the bundle hidden when either side of the catalog is disabled.
+ */
+async function loadPlanBundle(
+  row: Record<string, unknown>,
+  db: Db
+): Promise<PurchasablePlanBundle | null> {
+  const plan = await findPurchasablePlan({ planId: toNumber(row.plan_id) }, db);
+  const pack = await findPurchasableCreditPack(String(row.pack_id), db);
+  if (!plan || !pack) return null;
+
+  return {
+    id: toNumber(row.id),
+    planId: toNumber(row.plan_id),
+    packId: toNumber(row.pack_id),
+    name: String(row.name),
+    description: row.description == null ? null : String(row.description),
+    badge: String(row.badge ?? "Best value"),
+    amountPaise: toNumber(row.amount_paise),
+    mrpPaise: toNumber(row.mrp_paise),
+    sortOrder: toNumber(row.sort_order),
+    plan,
+    pack,
+  };
+}
+
+const PLAN_BUNDLE_COLUMNS = `b.id, b.plan_id, b.pack_id, b.name, b.description,
+  b.badge, b.amount_paise, b.mrp_paise, b.sort_order`;
+
+/**
+ * Returns the active bundle for a plan. A plan can have multiple historical
+ * bundles, so checkout always uses the newest active row.
+ */
+export async function findPlanBundleForPlan(
+  planId: number,
+  db: Db = pool
+): Promise<PurchasablePlanBundle | null> {
+  const result = await db.query(
+    `SELECT ${PLAN_BUNDLE_COLUMNS}
+     FROM plan_bundles b
+     JOIN plans p ON p.id = b.plan_id
+     JOIN ai_credit_packs cp ON cp.id = b.pack_id
+     WHERE b.plan_id = $1
+       AND b.is_active = TRUE
+       AND cp.is_active = TRUE
+       AND p.status = 'active'
+       AND p.is_public = TRUE
+       AND p.is_default_free = FALSE
+     ORDER BY b.sort_order ASC, b.id DESC
+     LIMIT 1`,
+    [planId]
+  );
+  const row = result.rows[0];
+  return row ? loadPlanBundle(row, db) : null;
+}
+
+/**
+ * Loads a bundle by primary key for order creation. Inactive catalog rows are
+ * not purchasable, but historical orders keep their own price snapshot.
+ */
+export async function findPlanBundleById(
+  bundleId: number,
+  db: Db = pool
+): Promise<PurchasablePlanBundle | null> {
+  const result = await db.query(
+    `SELECT ${PLAN_BUNDLE_COLUMNS}
+     FROM plan_bundles b
+     JOIN plans p ON p.id = b.plan_id
+     JOIN ai_credit_packs cp ON cp.id = b.pack_id
+     WHERE b.id = $1
+       AND b.is_active = TRUE
+       AND cp.is_active = TRUE
+       AND p.status = 'active'
+       AND p.is_public = TRUE
+       AND p.is_default_free = FALSE
+     LIMIT 1`,
+    [bundleId]
+  );
+  const row = result.rows[0];
+  return row ? loadPlanBundle(row, db) : null;
+}
+
+/**
+ * Lists all purchasable packs in display order. Suggestion logic compares the
+ * selected pack against this server-owned catalog.
+ */
+export async function listPurchasableCreditPacks(
+  db: Db = pool
+): Promise<PurchasableCreditPack[]> {
+  const result = await db.query(
+    `SELECT id, code, name, price_inr, credits, validity_days, description,
+            is_popular
+     FROM ai_credit_packs
+     WHERE is_active = TRUE
+     ORDER BY sort_order ASC, id ASC`
+  );
+  return result.rows.map((row) => ({
+    id: toNumber(row.id),
+    code: String(row.code),
+    name: String(row.name),
+    priceInr: toNumber(row.price_inr),
+    credits: toNumber(row.credits),
+    validityDays: toNumber(row.validity_days, 180),
+    description: row.description == null ? null : String(row.description),
+    isPopular: row.is_popular === true,
+  }));
+}
+
+/**
+ * Returns whether the user already has a live plan entitlement. Bundle
+ * suggestions must not resell a plan the user is already paying for.
+ */
+export async function hasActivePlanOrder(
+  userId: string,
+  db: Db = pool
+): Promise<boolean> {
+  const result = await db.query(
+    `SELECT EXISTS (
+       SELECT 1
+       FROM orders
+       WHERE user_id = $1
+         AND order_type = 'plan'
+         AND status = 'paid'
+         AND is_active = TRUE
+         AND starts_at <= CURRENT_TIMESTAMP
+         AND expires_at > CURRENT_TIMESTAMP
+     ) AS active`,
+    [userId]
+  );
+  return result.rows[0]?.active === true;
+}
+
+export interface ActivePackHolding {
+  packId: number;
+  priceInr: number;
+}
+
+/**
+ * Lists unexpired packs the user already owns. Upgrade suggestions skip a pack
+ * when the user already owns it or a more expensive pack.
+ */
+export async function getActivePackHoldings(
+  userId: string,
+  db: Db = pool
+): Promise<ActivePackHolding[]> {
+  const result = await db.query(
+    `SELECT cp.id AS pack_id, cp.price_inr
+     FROM orders o
+     JOIN ai_credit_packs cp ON cp.id = o.pack_id
+     WHERE o.user_id = $1
+       AND o.order_type = 'credit_pack'
+       AND o.status = 'paid'
+       AND o.is_active = TRUE
+       AND o.starts_at <= CURRENT_TIMESTAMP
+       AND o.expires_at > CURRENT_TIMESTAMP
+     GROUP BY cp.id, cp.price_inr
+     ORDER BY cp.price_inr DESC`,
+    [userId]
+  );
+  return result.rows.map((row) => ({
+    packId: toNumber(row.pack_id),
+    priceInr: toNumber(row.price_inr),
+  }));
+}
+
+/**
  * Returns the basic identity of a plan for responses and audit records. It deliberately ignores status so historical orders can still describe their plan.
  */
 export async function findPlanSummaryById(
@@ -445,8 +639,10 @@ const ORDER_COLUMNS = `o.id, o.order_no, o.user_id, o.order_type, o.plan_id,
   o.currency, o.status, o.payment_method, o.gateway, o.gateway_order_id,
   o.gateway_payment_id, o.paid_at, o.validity_days, o.starts_at, o.expires_at,
   o.credits_total, o.credits_used, o.credits_remaining, o.is_active,
-  o.coupon_id, o.coupon_code, o.subscription_id, o.refund_amount,
-  o.failure_reason, o.created_at, o.updated_at`;
+  o.coupon_id, o.coupon_code, o.subscription_id, o.parent_order_id,
+  o.bundle_id, o.bundle_plan_credits, o.bundle_pack_credits,
+  o.bundle_pack_validity_days, o.refund_amount, o.failure_reason,
+  o.created_at, o.updated_at`;
 
 /**
  * Finds an existing unpaid checkout for the same user, item, and coupon. Reusing its Razorpay order prevents double-clicks from creating duplicate charges.
@@ -503,6 +699,27 @@ export async function findOrderForUser(
   );
   const row = result.rows[0];
   return row ? mapOrder(row) : null;
+}
+
+/**
+ * Loads the billing contact for an invoice. The username is used as the
+ * display name; email is required for delivery.
+ */
+export async function findInvoiceContactById(
+  userId: string,
+  db: Db = pool
+): Promise<{ name: string; email: string } | null> {
+  const result = await db.query(
+    `SELECT username, email FROM users WHERE id = $1 LIMIT 1`,
+    [userId]
+  );
+  const row = result.rows[0];
+  if (!row || typeof row.email !== "string" || !row.email.trim()) return null;
+  const username =
+    typeof row.username === "string" && row.username.trim()
+      ? row.username.trim()
+      : row.email.split("@")[0];
+  return { name: username, email: row.email.trim() };
 }
 
 /**
@@ -573,6 +790,11 @@ export interface InsertOrderInput {
   couponId: number | null;
   couponCode: string | null;
   notes: string | null;
+  parentOrderId?: string | null;
+  bundleId?: number | null;
+  bundlePlanCredits?: number;
+  bundlePackCredits?: number;
+  bundlePackValidityDays?: number | null;
 }
 
 /**
@@ -587,10 +809,11 @@ export async function insertOrder(
        (order_no, user_id, order_type, plan_id, catalog_plan_id,
         catalog_price_id, pack_id, amount_inr, mrp_inr, discount_inr, currency,
         status, gateway, validity_days, credits_total, coupon_id, coupon_code,
-        notes)
+        notes, parent_order_id, bundle_id, bundle_plan_credits,
+        bundle_pack_credits, bundle_pack_validity_days)
      VALUES
        ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending', 'razorpay',
-        $12, $13, $14, $15, $16)
+        $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
      RETURNING *`,
     [
       input.orderNo,
@@ -609,9 +832,108 @@ export async function insertOrder(
       input.couponId,
       input.couponCode,
       input.notes,
+      input.parentOrderId ?? null,
+      input.bundleId ?? null,
+      input.bundlePlanCredits ?? 0,
+      input.bundlePackCredits ?? 0,
+      input.bundlePackValidityDays ?? null,
     ]
   );
   return mapOrder(result.rows[0]);
+}
+
+export interface InsertBundleGrantInput {
+  orderNo: string;
+  userId: string;
+  parentOrderId: string;
+  orderType: "plan" | "credit_pack";
+  planId: number | null;
+  catalogPlanId: number | null;
+  catalogPriceId: number | null;
+  packId: number | null;
+  validityDays: number;
+  creditsTotal: number;
+  startsAt: Date;
+  expiresAt: Date;
+  subscriptionId: number | null;
+}
+
+/**
+ * Inserts one already-paid child grant for a bundle. Child orders carry no
+ * payment or money of their own; the parent bundle order owns the gateway
+ * payment. Unique(parent_order_id, order_type) makes the grant idempotent.
+ */
+export async function insertBundleGrantOrder(
+  input: InsertBundleGrantInput,
+  db: Db
+): Promise<OrderRow> {
+  const result = await db.query(
+    `INSERT INTO orders
+       (order_no, user_id, order_type, plan_id, catalog_plan_id,
+        catalog_price_id, pack_id, amount_inr, mrp_inr, discount_inr, currency,
+        status, gateway, paid_at, validity_days, starts_at, expires_at,
+        credits_total, subscription_id, parent_order_id, is_active)
+     VALUES
+       ($1, $2, $3, $4, $5, $6, $7, 0, 0, 0, 'INR', 'paid', NULL,
+        CURRENT_TIMESTAMP, $8, $9, $10, $11, $12, $13, TRUE)
+     RETURNING *`,
+    [
+      input.orderNo,
+      input.userId,
+      input.orderType,
+      input.planId,
+      input.catalogPlanId,
+      input.catalogPriceId,
+      input.packId,
+      input.validityDays,
+      input.startsAt,
+      input.expiresAt,
+      input.creditsTotal,
+      input.subscriptionId,
+      input.parentOrderId,
+    ]
+  );
+  return mapOrder(result.rows[0]);
+}
+
+/**
+ * Lists the grant orders belonging to a bundle parent, oldest first.
+ */
+export async function listBundleGrantOrders(
+  parentOrderId: string,
+  db: Db = pool
+): Promise<OrderRow[]> {
+  const result = await db.query(
+    `SELECT ${ORDER_COLUMNS}
+     FROM orders o
+     WHERE o.parent_order_id = $1
+     ORDER BY o.id ASC`,
+    [parentOrderId]
+  );
+  return result.rows.map(mapOrder);
+}
+
+/**
+ * Refunds every still-paid child grant of a bundle and deactivates its
+ * entitlement. The parent order holds the refunded money.
+ */
+export async function refundBundleGrantOrders(
+  parentOrderId: string,
+  reason: string | null,
+  db: Db
+): Promise<OrderRow[]> {
+  const result = await db.query(
+    `UPDATE orders
+     SET status = 'refunded',
+         is_active = FALSE,
+         refunded_at = CURRENT_TIMESTAMP,
+         failure_reason = COALESCE($2, failure_reason)
+     WHERE parent_order_id = $1
+       AND status = 'paid'
+     RETURNING *`,
+    [parentOrderId, reason]
+  );
+  return result.rows.map(mapOrder);
 }
 
 /**
@@ -751,13 +1073,24 @@ export async function listUserOrders(
   db: Db = pool
 ): Promise<OrderListRow[]> {
   const result = await db.query(
-    `SELECT ${ORDER_COLUMNS},
+     `SELECT ${ORDER_COLUMNS},
             p.slug AS plan_slug, p.name AS plan_name,
-            cp.code AS pack_code, cp.name AS pack_name
+            cp.code AS pack_code, cp.name AS pack_name,
+            COALESCE((
+              SELECT SUM(c.credits_total)::int
+              FROM orders c
+              WHERE c.parent_order_id = o.id
+            ), o.credits_total) AS display_credits_total,
+            COALESCE((
+              SELECT SUM(c.credits_remaining)::int
+              FROM orders c
+              WHERE c.parent_order_id = o.id
+            ), o.credits_remaining) AS display_credits_remaining
      FROM orders o
      LEFT JOIN plans p ON p.id = o.catalog_plan_id
      LEFT JOIN ai_credit_packs cp ON cp.id = o.pack_id
      WHERE o.user_id = $1
+       AND o.parent_order_id IS NULL
      ORDER BY o.created_at DESC, o.id DESC
      LIMIT $2`,
     [userId, limit]
@@ -765,6 +1098,8 @@ export async function listUserOrders(
 
   return result.rows.map((row) => ({
     ...mapOrder(row),
+    creditsTotal: toNumber(row.display_credits_total),
+    creditsRemaining: toNumber(row.display_credits_remaining),
     planSlug: row.plan_slug == null ? null : String(row.plan_slug),
     planName: row.plan_name == null ? null : String(row.plan_name),
     packCode: row.pack_code == null ? null : String(row.pack_code),
@@ -1000,5 +1335,53 @@ export async function markGatewayEventProcessed(
      SET processed_at = CURRENT_TIMESTAMP
      WHERE gateway = 'razorpay' AND event_id = $1`,
     [eventId]
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Checkout upsell telemetry
+// ---------------------------------------------------------------------------
+
+const CHECKOUT_EVENT_ACTIONS = {
+  suggestion_shown: "shown",
+  suggestion_accepted: "clicked",
+  suggestion_declined: "dismissed",
+  switch_back: "clicked",
+  purchase_completed: "converted",
+} as const;
+
+/**
+ * Records one checkout-upsell funnel event. Anonymous events keep user_id null;
+ * session_id allows impressions and purchases to be joined without collecting
+ * personal data. Failures are handled by the caller as best-effort telemetry.
+ */
+export async function insertCheckoutSuggestionEvent(
+  input: {
+    userId: string | null;
+    event: keyof typeof CHECKOUT_EVENT_ACTIONS;
+    suggestionType: "A" | "B" | null;
+    sourceProductId: string | null;
+    productId: string | null;
+    planCode: string | null;
+    sessionId: string | null;
+  },
+  db: Db = pool
+): Promise<void> {
+  await db.query(
+    `INSERT INTO nudge_events
+       (user_id, nudge_key, action, plan_code, metadata, event_name, session_id)
+     VALUES ($1, 'checkout_upsell', $2, $3, $4::jsonb, $5, $6)`,
+    [
+      input.userId,
+      CHECKOUT_EVENT_ACTIONS[input.event],
+      input.planCode,
+      JSON.stringify({
+        suggestion_type: input.suggestionType,
+        source_product_id: input.sourceProductId,
+        product_id: input.productId,
+      }),
+      input.event,
+      input.sessionId,
+    ]
   );
 }

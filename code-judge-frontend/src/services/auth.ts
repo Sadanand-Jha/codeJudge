@@ -2,7 +2,6 @@ import apiClient from "@/lib/axios";
 import type {
   SendOtpPayload,
   VerifyOtpPayload,
-  SetUsernamePayload,
   AuthResponse,
   CheckUsernameResponse,
 } from "@/types/auth";
@@ -40,11 +39,6 @@ export async function checkUsername(username: string): Promise<CheckUsernameResp
   return response.data;
 }
 
-export async function setUsername(payload: SetUsernamePayload): Promise<AuthResponse> {
-  const response = await apiClient.post<AuthResponse>("/auth/set-username", payload);
-  return response.data;
-}
-
 export async function login(payload: {
   identifier: string;
   password: string;
@@ -72,6 +66,19 @@ export async function updatePreferences(payload: { theme?: "dark" | "light" }): 
   return response.data;
 }
 
+export async function completeOAuthProfile(payload: {
+  username: string;
+  avatar_url: string;
+  account_type: "student" | "teacher";
+  referral_code?: string;
+}): Promise<AuthResponse> {
+  const response = await apiClient.post<AuthResponse>("/auth/oauth/complete-profile", payload);
+  if (response.data && typeof response.data === "object" && "user" in response.data && !("success" in response.data)) {
+    return { success: true, message: "Profile setup complete", data: response.data };
+  }
+  return response.data;
+}
+
 export async function register(payload: {
   username: string;
   email: string;
@@ -79,6 +86,7 @@ export async function register(payload: {
   registration_token?: string;
   avatar_url: string;
   account_type: "student" | "teacher";
+  referral_code?: string;
 }): Promise<AuthResponse> {
   const response = await apiClient.post<AuthResponse>("/auth/register", payload);
   if (response.data && typeof response.data === "object" && "user" in response.data && !("success" in response.data)) {

@@ -8,6 +8,7 @@ import {
   ArrowRight,
   Clock,
   Loader2,
+  LogOut,
   RefreshCw,
   Search,
   UserPlus,
@@ -16,8 +17,11 @@ import {
 import { cn } from "@/lib/helpers";
 import { getAvatarUrlById } from "@/config/dicebear";
 import { timeAgo } from "@/lib/formatters";
+import { getApiErrorMessage } from "@/lib/apiError";
+import { toast } from "@/lib/toast";
 import { useAuthStore } from "@/store/authStore";
-import { type EnrolledRoom } from "@/services/rooms";
+import { leaveRoom, type EnrolledRoom } from "@/services/rooms";
+import { ConfirmModal } from "@/components/creator/quiz-studio/components/timing/ConfirmModal";
 import { useStudentRooms } from "./StudentRoomsProvider";
 
 type RoomFilter = "all" | "active" | "archived";
@@ -67,11 +71,35 @@ export default function StudentRoomsPage() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
+  const currentUser = useAuthStore((s) => s.user);
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<RoomFilter>("all");
   const [sort, setSort] = useState<RoomSort>("recent");
+  const [leaveTarget, setLeaveTarget] = useState<EnrolledRoom | null>(null);
+  const [leaving, setLeaving] = useState(false);
   const { rooms, loading, error, reload } = useStudentRooms();
+
+  async function handleLeaveRoom() {
+    if (!leaveTarget || !currentUser?.id || leaving) return;
+    setLeaving(true);
+    try {
+      await leaveRoom(leaveTarget.id, String(currentUser.id));
+      toast.success({
+        title: "Room left",
+        description: `You are no longer a member of ${leaveTarget.name}.`,
+      });
+      setLeaveTarget(null);
+      await reload();
+    } catch (err: unknown) {
+      toast.error({
+        title: "Couldn't leave the room",
+        description: getApiErrorMessage(err, "Please try again."),
+      });
+    } finally {
+      setLeaving(false);
+    }
+  }
 
   useEffect(() => {
     if (hasHydrated && !isAuthenticated) {
@@ -383,20 +411,34 @@ export default function StudentRoomsPage() {
                           </div>
                         );
 
-                        return room.is_active ? (
-                          <Link
-                            key={room.id}
-                            href={`/rooms/${room.id}`}
-                            className="block rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 transition-colors active:bg-[var(--qs-bg)]"
-                          >
-                            {body}
-                          </Link>
-                        ) : (
+                        return (
                           <div
                             key={room.id}
-                            className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 opacity-70"
+                            className={cn(
+                              "overflow-hidden rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]",
+                              !room.is_active && "opacity-70"
+                            )}
                           >
-                            {body}
+                            {room.is_active ? (
+                              <Link
+                                href={`/rooms/${room.id}`}
+                                className="block p-3 transition-colors active:bg-[var(--qs-bg)]"
+                              >
+                                {body}
+                              </Link>
+                            ) : (
+                              <div className="p-3">{body}</div>
+                            )}
+                            <div className="border-t-2 border-[var(--qs-line)]/60 px-3 py-2">
+                              <button
+                                type="button"
+                                onClick={() => setLeaveTarget(room)}
+                                className="inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-bad)] px-3 py-1.5 text-xs font-extrabold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-badbg)]"
+                              >
+                                <LogOut className="h-3.5 w-3.5" />
+                                Quit room
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
@@ -407,7 +449,7 @@ export default function StudentRoomsPage() {
                       <table className="w-full min-w-[760px] border-collapse text-left">
                         <thead>
                           <tr>
-                            {["Room", "Teacher", "Members", "Joined", "Status"].map((heading) => (
+                            {["Room", "Teacher", "Members", "Joined", "Status", "Actions"].map((heading) => (
                               <th
                                 key={heading}
                                 className="whitespace-nowrap px-3 py-3.5 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]"
@@ -472,6 +514,19 @@ export default function StudentRoomsPage() {
                               <td className="px-3 py-3">
                                 <RoomStatus active={room.is_active} />
                               </td>
+                              <td className="px-3 py-3">
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setLeaveTarget(room);
+                                  }}
+                                  className="inline-flex shrink-0 items-center gap-1.5 rounded-[9px] border-2 border-[var(--qs-bad)] px-2.5 py-1.5 text-[11px] font-extrabold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-badbg)]"
+                                >
+                                  <LogOut className="h-3 w-3" />
+                                  Quit
+                                </button>
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -488,6 +543,21 @@ export default function StudentRoomsPage() {
           </>
         )}
       </div>
+
+      <ConfirmModal
+        open={leaveTarget !== null}
+        onClose={() => {
+          if (!leaving) setLeaveTarget(null);
+        }}
+        onConfirm={() => void handleLeaveRoom()}
+        title="Leave this room?"
+        description="You'll lose access to this room's announcements, documents and classmates. You can rejoin later with the room code and password."
+        details={leaveTarget ? [{ label: "Room", value: leaveTarget.name }] : []}
+        confirmLabel={leaving ? "Leaving…" : "Leave room"}
+        confirmColor="rose"
+        confirmDisabled={leaving}
+        icon={LogOut}
+      />
     </div>
   );
 }

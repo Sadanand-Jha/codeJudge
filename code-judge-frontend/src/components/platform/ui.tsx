@@ -4,7 +4,7 @@ import React from "react";
 
 /* Shared primitives for the private /platform control center.
    QuizSupport qs language (creator match): light-only white, 2px ink
-   outlines, round corners, Bricolage display, one yellow offset block. */
+   outlines, round corners, Onest display, one yellow offset block. */
 
 export function SectionCard({ id, title, subtitle, right, children }: {
   id?: string; title: string; subtitle?: string; right?: React.ReactNode; children: React.ReactNode;

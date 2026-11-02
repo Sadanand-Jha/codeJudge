@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { PricingFooter, PricingNav } from "@/components/pricing/PricingChrome";
 import { ScrollThemeSection } from "@/components/pricing/ScrollThemeSection";
+import { PublicPackCta } from "@/components/pricing/PublicCheckoutCta";
 import {
   formatPricingAmount,
   getPricingCatalogServer,
@@ -271,12 +272,11 @@ export default async function AICreditsPricingPage() {
                     </li>
                   </ul>
 
-                  <Link
-                    href={`/creator/billing/credits?pack=${pack.id}`}
+                  <PublicPackCta
+                    packId={pack.id}
+                    label={pack.cta}
                     className="btn qp-pack-cta"
-                  >
-                    {pack.cta}
-                  </Link>
+                  />
                 </article>
               ))}
             </div>
