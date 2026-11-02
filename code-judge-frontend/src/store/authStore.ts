@@ -28,6 +28,8 @@ export interface UserProfile {
   rating?: number;
   maxRating?: number;
   isVerified?: boolean;
+  /** New OAuth accounts must choose a username/avatar before using the app. */
+  needsProfileSetup?: boolean;
   isActive?: boolean;
   lastLogin?: string | null;
   createdAt?: string | null;

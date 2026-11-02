@@ -10,6 +10,7 @@ import {
 } from "@/components/auth/AuthThemeChrome";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { safeNextPath } from "@/lib/safeNext";
+import { needsOAuthProfileSetup } from "@/utils/profileCompletion";
 
 function RegisterContent() {
   const router = useRouter();
@@ -18,6 +19,11 @@ function RegisterContent() {
     () => safeNextPath(searchParams.get("next")),
     [searchParams]
   );
+  const referralCode = useMemo(() => {
+    const raw = searchParams.get("ref")?.trim();
+    if (!raw || !/^[A-Za-z0-9-]{1,20}$/.test(raw)) return null;
+    return raw;
+  }, [searchParams]);
   const hydrate = useAuthStore((s) => s.hydrate);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
@@ -28,13 +34,19 @@ function RegisterContent() {
   }, [hydrate]);
 
   useEffect(() => {
-    if (hasHydrated && isAuthenticated) {
-      router.replace(
-        nextPath ||
-          (user?.role?.toLowerCase() === "teacher" ? "/creator" : "/quiz")
-      );
+    if (!hasHydrated || !isAuthenticated) return;
+
+    if (needsOAuthProfileSetup(user)) {
+      const query = nextPath ? `?next=${encodeURIComponent(nextPath)}` : "";
+      router.replace(`/complete-profile${query}`);
+      return;
     }
-  }, [hasHydrated, isAuthenticated, nextPath, router, user?.role]);
+
+    router.replace(
+      nextPath ||
+        (user?.role?.toLowerCase() === "teacher" ? "/creator" : "/quiz")
+    );
+  }, [hasHydrated, isAuthenticated, nextPath, router, user]);
 
   if (!hasHydrated) {
     return (
@@ -59,7 +71,7 @@ function RegisterContent() {
       align="end"
       stretchCard={false}
     >
-      <RegistrationForm nextPath={nextPath} embedded />
+      <RegistrationForm nextPath={nextPath} embedded referralCode={referralCode} />
     </AuthShell>
   );
 }

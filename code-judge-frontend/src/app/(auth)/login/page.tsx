@@ -13,6 +13,7 @@ import { AuthLoader } from "@/components/auth/AuthThemeChrome";
 import { getApiErrorMessage } from "@/lib/apiError";
 import type { UserProfile } from "@/store/authStore";
 import { safeNextPath } from "@/lib/safeNext";
+import { needsOAuthProfileSetup } from "@/utils/profileCompletion";
 
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   access_denied: "Sign-in was cancelled. You can try again whenever you're ready.",
@@ -75,10 +76,16 @@ function LoginContent() {
   }, [hydrate]);
 
   useEffect(() => {
-    if (hasHydrated && isAuthenticated) {
-      router.replace(nextPath || (currentUser?.role?.toLowerCase() === "teacher" ? "/creator" : "/quiz"));
+    if (!hasHydrated || !isAuthenticated) return;
+
+    if (needsOAuthProfileSetup(currentUser)) {
+      const query = nextPath ? `?next=${encodeURIComponent(nextPath)}` : "";
+      router.replace(`/complete-profile${query}`);
+      return;
     }
-  }, [currentUser?.role, hasHydrated, isAuthenticated, nextPath, router]);
+
+    router.replace(nextPath || (currentUser?.role?.toLowerCase() === "teacher" ? "/creator" : "/quiz"));
+  }, [currentUser, hasHydrated, isAuthenticated, nextPath, router]);
 
   if (!hasHydrated) {
     return (

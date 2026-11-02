@@ -194,7 +194,7 @@ export const verifyOtpController = async (req: Request, res: Response) => {
  */
 export const registerController = async (req: Request, res: Response) => {
   try {
-    const { email, password, registration_token, username, avatar_url, account_type } = req.body;
+    const { email, password, registration_token, username, avatar_url, account_type, referral_code } = req.body;
 
     if (!email || !password || !registration_token || !username || !avatar_url || !account_type) {
       res.status(400).json({
@@ -235,7 +235,7 @@ export const registerController = async (req: Request, res: Response) => {
       return;
     }
 
-    const result = await register(email, password, registration_token, trimmedUsername, avatar_url, account_type);
+    const result = await register(email, password, registration_token, trimmedUsername, avatar_url, account_type, referral_code);
 
     if (!result.success) {
       res.status(result.statusCode || 400).json(result);

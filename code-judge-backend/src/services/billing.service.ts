@@ -48,6 +48,7 @@ import {
   verifyWebhookSignature,
 } from "./billing/signatures.ts";
 import { invalidateEntitlements } from "./entitlement.service.ts";
+import { qualifyReferralForFirstPlanTx } from "./referral.service.ts";
 import { writeSubscriptionAudit } from "./subscriptionAudit.service.ts";
 import * as invoiceService from "./invoice.service.ts";
 
@@ -938,6 +939,13 @@ async function completeOrderTx(
       client
     );
   }
+
+  await qualifyReferralForFirstPlanTx(client, {
+    userId: Number(updated.userId),
+    orderId: updated.id,
+    orderType: updated.orderType,
+    paymentMethod: order.paymentMethod ?? updated.paymentMethod,
+  });
 
   return { order: updated, plan, subscriptionId, balance, newlyPaid: true };
 }
