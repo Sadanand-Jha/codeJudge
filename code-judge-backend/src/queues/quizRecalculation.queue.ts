@@ -9,6 +9,8 @@ export const QUIZ_RECALCULATION_QUEUE = "quiz-recalculations";
 export interface QuizRecalculationJobData {
   quizId: number;
   revision: string;
+  /** Manual owner-triggered run: bypass the revision guard and job dedupe. */
+  force?: boolean;
 }
 
 declare global {
@@ -20,12 +22,15 @@ export function isQuizRecalculationQueueConfigured(): boolean {
   return Boolean(process.env.REDIS_URL?.trim());
 }
 
-export function quizRecalculationJobId(quizId: number, revision: string): string {
+export function quizRecalculationJobId(quizId: number, revision: string, force = false): string {
   // BullMQ custom IDs must not contain ":".
   const safeRevision = String(revision || Date.now())
     .replace(/[^a-zA-Z0-9_-]/g, "")
     .slice(0, 80);
-  return `quiz-recalculate-${quizId}-${safeRevision}`;
+  const unique = force
+    ? `-manual-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    : "";
+  return `quiz-recalculate-${quizId}-${safeRevision}${unique}`;
 }
 
 export function getQuizRecalculationQueue(): Queue<QuizRecalculationJobData> {
@@ -44,15 +49,18 @@ export function getQuizRecalculationQueue(): Queue<QuizRecalculationJobData> {
 }
 
 export async function enqueueQuizRecalculation(
-  data: QuizRecalculationJobData
+  data: QuizRecalculationJobData,
+  options: { force?: boolean } = {}
 ): Promise<Job<QuizRecalculationJobData>> {
   const queue = getQuizRecalculationQueue();
-  const jobId = quizRecalculationJobId(data.quizId, data.revision);
-  const existing = await queue.getJob(jobId);
-  if (existing) {
-    const state = await existing.getState();
-    if (state !== "failed") return existing;
-    await existing.remove();
+  const jobId = quizRecalculationJobId(data.quizId, data.revision, options.force);
+  if (!options.force) {
+    const existing = await queue.getJob(jobId);
+    if (existing) {
+      const state = await existing.getState();
+      if (state !== "failed") return existing;
+      await existing.remove();
+    }
   }
   return queue.add("recalculate-quiz", data, { jobId });
 }

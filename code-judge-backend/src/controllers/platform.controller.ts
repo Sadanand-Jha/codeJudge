@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { pool } from "../config/database.js";
 import redisClient from "../config/redis.js";
+import { forceQuizRecalculation } from "../services/quizSubmission.service.ts";
 
 /**
  * Owner-only platform analytics.
@@ -472,6 +473,35 @@ export const getQuizzes = async (_req: Request, res: Response) => {
     return;
   }
   res.json({ success: true, data });
+};
+
+// ── Recalculate quiz results ──────────────────────────────
+export const recalculateQuizResults = async (req: Request, res: Response) => {
+  const quizId = Number(req.params.quizId);
+  if (!Number.isInteger(quizId) || quizId <= 0) {
+    res.status(400).json({ success: false, message: "A valid quiz id is required." });
+    return;
+  }
+
+  try {
+    const quiz = await one(
+      `SELECT q.id, q.name FROM quiz q WHERE q.id = $1 AND q.deleted_at IS NULL`,
+      [quizId]
+    );
+    if (!quiz) {
+      res.status(404).json({ success: false, message: "Quiz not found." });
+      return;
+    }
+
+    const result = await forceQuizRecalculation(quizId);
+    res.json({
+      success: true,
+      data: { quizId, quizName: quiz.name, ...result },
+    });
+  } catch (error) {
+    console.error("[platform] quiz recalculation failed:", error);
+    res.status(500).json({ success: false, message: "Unable to recalculate quiz results." });
+  }
 };
 
 // ── API observability ─────────────────────────────────────

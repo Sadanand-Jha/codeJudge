@@ -298,6 +298,102 @@ export interface BankQuestionUpdate {
   topicId?: number | null;
 }
 
+export interface PlatformQuizOption {
+  id: number;
+  name: string;
+  code: string;
+  attempts: number;
+  lastActivity: string | null;
+}
+
+export interface PlatformAttemptOption {
+  id: number;
+  statement: string | null;
+  description: string | null;
+  isCorrect: boolean;
+  sortOrder: number | null;
+}
+
+export interface PlatformAttemptResponse {
+  id: number;
+  answer: unknown;
+  isAttempted: boolean;
+  timeSpentSeconds: number | null;
+  updatedAt: string | null;
+}
+
+export interface PlatformAttemptQuestion {
+  id: number;
+  questionNumber: number | null;
+  statement: string | null;
+  description: string | null;
+  explanation: string | null;
+  type: number | null;
+  typeName: string | null;
+  marks: number | null;
+  negativeMarks: number | null;
+  options: PlatformAttemptOption[];
+  response: PlatformAttemptResponse | null;
+}
+
+export interface PlatformQuizAttemptSummary {
+  id: number;
+  userId: number;
+  username: string | null;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  status: string;
+  score: number | null;
+  percentage: number | null;
+  rank: number | null;
+  correctAnswers: number | null;
+  wrongAnswers: number | null;
+  skippedQuestions: number | null;
+  totalQuestions: number | null;
+  completedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  attemptNumber: number;
+}
+
+export interface PlatformQuizAttemptDetail {
+  attempt: {
+    id: number;
+    userId: number;
+    quizId: number;
+    status: string;
+    score: number | null;
+    percentage: number | null;
+    rank: number | null;
+    marksObtained: number | null;
+    totalMarks: number | null;
+    correctAnswers: number | null;
+    wrongAnswers: number | null;
+    skippedQuestions: number | null;
+    totalQuestions: number | null;
+    startedAt: string | null;
+    completedAt: string | null;
+    createdAt: string | null;
+    updatedAt: string | null;
+    quizName: string;
+    quizCode: string;
+    passingMarks: number | null;
+    username: string | null;
+    email: string | null;
+    firstName: string | null;
+    lastName: string | null;
+  };
+  questions: PlatformAttemptQuestion[];
+}
+
+export interface AttemptResponseUpdate {
+  problemId: number;
+  optionId?: number | null;
+  optionIds?: number[] | null;
+  textAnswer?: string | null;
+}
+
 export interface UserFeedbackItem {
   id: number;
   category: string;
@@ -553,6 +649,42 @@ export const platformApi = {
     hardest: { id: number; quiz_id: number; statement: string | null; responses: number; skip_rate: number | null; avg_time_s: number | null }[];
     totalQuestions: number | null;
   }>("/quizzes"),
+  recalculateQuizResults: (quizId: number) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.post<{
+        quizId: number;
+        quizName: string;
+        attempts: number;
+        skipped: boolean;
+        queued: boolean;
+      }>(`/v1/platform/quizzes/${encodeURIComponent(String(quizId))}/recalculate`);
+      return response.data;
+    }),
+  quizOptions: (search?: string) =>
+    get<{ quizzes: PlatformQuizOption[] }>(
+      "/quizzes/options",
+      search?.trim() ? { search: search.trim() } : undefined
+    ),
+  quizAttempts: (quizId: number, search?: string) =>
+    get<{ quiz: { id: number; name: string; code: string }; attempts: PlatformQuizAttemptSummary[] }>(
+      `/quizzes/${encodeURIComponent(String(quizId))}/attempts`,
+      search?.trim() ? { search: search.trim() } : undefined
+    ),
+  attemptResponses: (quizId: number, attemptId: number) =>
+    get<PlatformQuizAttemptDetail>(
+      `/quizzes/${encodeURIComponent(String(quizId))}/attempts/${encodeURIComponent(String(attemptId))}`
+    ),
+  updateAttemptResponses: (quizId: number, attemptId: number, responses: AttemptResponseUpdate[]) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.put<{
+        updated: number;
+        attempt: Record<string, unknown>;
+      }>(
+        `/v1/platform/quizzes/${encodeURIComponent(String(quizId))}/attempts/${encodeURIComponent(String(attemptId))}/responses`,
+        { responses }
+      );
+      return response.data;
+    }),
   observability: (
     range: PlatformRange,
     days?: number,

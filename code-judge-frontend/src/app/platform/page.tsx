@@ -9,6 +9,7 @@ import { ChartSkeleton, FeedSkeleton, HeartbeatSkeleton, HeatmapSkeleton, KpiGri
 import { ActivityFeed } from "@/components/platform/ActivityFeed";
 import { SeriesChart } from "@/components/platform/charts";
 import { useAsync } from "@/components/platform/usePlatformAsync";
+import { RecalculateQuizButton } from "@/components/platform/RecalculateQuizButton";
 
 type RangeKey = PlatformRange | "custom";
 
@@ -568,7 +569,10 @@ function QuizzesSnapshot({ top, total, createdToday }: { top: { id: number; name
           {top.map((q) => (
             <div key={q.id} className="flex items-center justify-between gap-3 py-2.5 text-[13px]">
               <span className="min-w-0 truncate"><b className="font-bold text-[var(--qs-ink)]">{q.name}</b> <span className="text-[var(--qs-muted)]">· {q.attempts} attempts</span></span>
-              <span className="shrink-0 tabular-nums text-[11px] text-[var(--qs-muted)]">{timeAgo(q.last_activity)}</span>
+              <span className="flex shrink-0 items-center gap-2">
+                <span className="tabular-nums text-[11px] text-[var(--qs-muted)]">{timeAgo(q.last_activity)}</span>
+                <RecalculateQuizButton quizId={q.id} quizName={q.name} compact />
+              </span>
             </div>
           ))}
         </div>

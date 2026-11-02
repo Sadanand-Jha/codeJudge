@@ -272,7 +272,7 @@ export async function processQuizRecalculation(
     throw new Error("Invalid quiz id for recalculation");
   }
 
-  if (data.revision) {
+  if (data.revision && data.force !== true) {
     const currentRevision = await quizService.getQuizGradingRevision(quizId);
     if (currentRevision !== data.revision) {
       schedulerLog(
@@ -323,6 +323,64 @@ export async function scheduleQuizRecalculation(quizId: number): Promise<void> {
     );
     await processQuizRecalculation({ quizId: numericQuizId, revision });
   }
+}
+
+/**
+ * Force a full re-grade of every final attempt for a quiz. This is the
+ * owner-triggered counterpart to scheduleQuizRecalculation: it ignores the
+ * revision dedupe so a quiz can be recalculated on demand even when the
+ * question data has not changed.
+ */
+export async function forceQuizRecalculation(
+  quizId: number
+): Promise<{ attempts: number; skipped: boolean; queued: boolean }> {
+  const numericQuizId = Number(quizId);
+  if (!Number.isInteger(numericQuizId) || numericQuizId <= 0) {
+    throw new Error("Invalid quiz id for recalculation");
+  }
+  if (!(await quizService.hasFinalQuizAttempts(numericQuizId))) {
+    return { attempts: 0, skipped: false, queued: false };
+  }
+
+  const revision = await quizService.getQuizGradingRevision(numericQuizId);
+  const queueAvailable = isQuizRecalculationQueueConfigured() && process.env.VERCEL !== "1";
+  if (queueAvailable) {
+    try {
+      await enqueueQuizRecalculation(
+        { quizId: numericQuizId, revision, force: true },
+        { force: true }
+      );
+      return { attempts: 0, skipped: false, queued: true };
+    } catch (error) {
+      schedulerLog(
+        "grading",
+        `quiz ${numericQuizId}: could not enqueue manual recalculation; processing inline`,
+        error
+      );
+    }
+  }
+
+  const result = await processQuizRecalculation({
+    quizId: numericQuizId,
+    revision,
+    force: true,
+  });
+  return { ...result, queued: false };
+}
+
+/**
+ * Re-grade a single final attempt after an owner edits its saved responses.
+ * Unlike the quiz-wide recalculation this never touches other attempts.
+ */
+export async function recalculateQuizAttempt(quizId: number, attemptId: number): Promise<any> {
+  const attempt = await quizService.getQuizAttemptById(attemptId);
+  if (!attempt || attempt.deleted_at || Number(attempt.quiz_id) !== Number(quizId)) {
+    throw Object.assign(new Error("Attempt not found for this quiz."), { statusCode: 404 });
+  }
+  return processQuizSubmission({
+    ...resultCalculationJobData(attempt),
+    regrade: true,
+  });
 }
 
 function savedResponseToSubmission(row: any): QuizSubmissionJobData["responses"][number] | null {

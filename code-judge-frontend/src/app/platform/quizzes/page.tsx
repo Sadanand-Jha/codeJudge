@@ -6,6 +6,7 @@ import { SectionCard, ChartSkeleton, MiniStatsSkeleton, EmptyState, ErrorState, 
 import { SeriesChart } from "@/components/platform/charts";
 import { useAsync } from "@/components/platform/usePlatformAsync";
 import { MiniStat, PageHeader } from "@/components/platform/subpage-blocks";
+import { RecalculateQuizButton } from "@/components/platform/RecalculateQuizButton";
 
 /* /platform/quizzes — calls /quizzes (+ /series for the mini chart) only. */
 export default function QuizzesPage() {
@@ -48,10 +49,13 @@ export default function QuizzesPage() {
             {!quizzesQ.data.top?.length ? <EmptyState message="No quizzes yet" /> : (
               <div className="divide-y divide-[var(--border)]">
                 {quizzesQ.data.top.slice(0, 5).map((r) => (
-                  <Link key={r.id} href={`/quiz/${r.code}`} className="flex items-center justify-between gap-3 py-2.5 text-[13px] hover:underline">
-                    <span className="min-w-0 truncate text-[var(--text-primary)]">{r.name}</span>
-                    <span className="shrink-0 tabular-nums text-[var(--text-muted)]">{r.attempts} attempts · {timeAgo(r.last_activity)}</span>
-                  </Link>
+                  <div key={r.id} className="flex items-center justify-between gap-3 py-2.5 text-[13px]">
+                    <Link href={`/quiz/${r.code}`} className="flex min-w-0 flex-1 items-center justify-between gap-3 hover:underline">
+                      <span className="min-w-0 truncate text-[var(--text-primary)]">{r.name}</span>
+                      <span className="shrink-0 tabular-nums text-[var(--text-muted)]">{r.attempts} attempts · {timeAgo(r.last_activity)}</span>
+                    </Link>
+                    <RecalculateQuizButton quizId={r.id} quizName={r.name} compact />
+                  </div>
                 ))}
               </div>
             )}

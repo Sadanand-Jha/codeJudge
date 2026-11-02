@@ -8,7 +8,7 @@ import {
   Sparkles, Server, AlertTriangle, Cpu, ShieldCheck, ScrollText,
   ArrowLeft, LogOut, Gauge, FileUp, ListChecks, MessageSquare, BookOpen,
   BarChart3, Boxes, CreditCard, GitBranch, HeartPulse, Settings2, Wallet,
-  ChevronDown, type LucideIcon,
+  ChevronDown, ClipboardList, type LucideIcon,
 } from "lucide-react";
 import { ownerLogout } from "@/services/auth";
 import { clearPlatformSession, getPlatformEmail, notifyPlatformSessionInvalid } from "@/lib/platformToken";
@@ -34,6 +34,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Quiz analytics", href: "/platform/quizzes", icon: FlaskConical },
       { label: "Top quizzes", href: "/platform/quizzes/top", icon: ListOrdered },
+      { label: "Student responses", href: "/platform/responses", icon: ClipboardList },
       { label: "Pricing", href: "/platform/pricing", icon: CreditCard },
       { label: "Trial requests", href: "/platform/trial-requests", icon: ListChecks },
       { label: "User analytics", href: "/platform/users", icon: Users },

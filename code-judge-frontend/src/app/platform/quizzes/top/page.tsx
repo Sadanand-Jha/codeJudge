@@ -6,6 +6,7 @@ import { platformApi } from "@/services/platform";
 import { SectionCard, TableSkeleton, EmptyState, ErrorState, fmtDuration, timeAgo } from "@/components/platform/ui";
 import { useAsync } from "@/components/platform/usePlatformAsync";
 import { PageHeader } from "@/components/platform/subpage-blocks";
+import { RecalculateQuizButton } from "@/components/platform/RecalculateQuizButton";
 
 /* /platform/quizzes/top — calls /quizzes only. */
 export default function TopQuizzesPage() {
@@ -14,7 +15,7 @@ export default function TopQuizzesPage() {
     <div className="space-y-4">
       <PageHeader title="Top quizzes" detail="Select a row to open quiz details." />
       <SectionCard title="Top quizzes" subtitle="Sorted by engagement">
-        {quizzesQ.loading ? <TableSkeleton rows={5} columns={7} /> : quizzesQ.error ? <ErrorState message={quizzesQ.error.message} onRetry={quizzesQ.retry} /> :
+        {quizzesQ.loading ? <TableSkeleton rows={5} columns={8} /> : quizzesQ.error ? <ErrorState message={quizzesQ.error.message} onRetry={quizzesQ.retry} /> :
           !quizzesQ.data?.top?.length ? <EmptyState message="No quizzes yet" /> : <TopQuizzesTable rows={quizzesQ.data.top} />}
       </SectionCard>
     </div>
@@ -49,6 +50,7 @@ function TopQuizzesTable({ rows }: {
             <SortTh label="Avg. score" active={sort.key === "score"} dir={sort.dir} onClick={() => toggle("score")} />
             <th className="px-3 py-2 text-[11px] font-medium text-[var(--text-secondary)]">Avg. duration</th>
             <SortTh label="Last active" active={sort.key === "recent"} dir={sort.dir} onClick={() => toggle("recent")} />
+            <th className="px-3 py-2 text-right text-[11px] font-medium text-[var(--text-secondary)]">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -64,6 +66,9 @@ function TopQuizzesTable({ rows }: {
               <td className="px-3 py-3 tabular-nums text-[var(--text-secondary)]">{r.avg_score == null ? "—" : `${(+r.avg_score).toFixed(1)}%`}</td>
               <td className="px-3 py-3 tabular-nums text-[var(--text-secondary)]">{fmtDuration(r.avg_duration_s == null ? null : Math.round(r.avg_duration_s))}</td>
               <td className="px-3 py-3 text-[var(--text-secondary)]">{timeAgo(r.last_activity)}</td>
+              <td className="px-3 py-3 text-right">
+                <RecalculateQuizButton quizId={r.id} quizName={r.name} compact />
+              </td>
             </tr>
           ))}
         </tbody>
