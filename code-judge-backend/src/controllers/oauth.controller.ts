@@ -15,11 +15,17 @@ import {
   isOAuthProvider,
   isProviderConfigured,
 } from "../services/oauth.js";
-import { upsertOAuthUser } from "../services/oauthAccount.js";
+import {
+  OAuthUsernameTakenError,
+  completeOAuthProfile,
+  upsertOAuthUser,
+} from "../services/oauthAccount.js";
+import { userRepository } from "../repositories/user.repository.js";
 import { safeNextPath, setSessionCookie, cookieSameSite } from "../services/session.js";
 import type { OAuthErrorCode, OAuthProvider, OAuthStateRecord } from "../types/oauth.js";
 
 const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+const userRepo = new userRepository();
 
 // ============================================================================
 // PRODUCTION OAUTH CHECKLIST (fix these if "oAuth kaam nahi kar raha hai"):
@@ -74,6 +80,14 @@ function redirectToLogin(
   if (params.oauth_error) url.searchParams.set("oauth_error", params.oauth_error);
   const next = safeNextPath(params.next);
   if (next) url.searchParams.set("next", next);
+  noStore(res);
+  res.redirect(302, url.toString());
+}
+
+function redirectToCompleteProfile(res: Response, next: string | null): void {
+  const url = new URL("/complete-profile", getOAuthAppOrigin());
+  const safeNext = safeNextPath(next);
+  if (safeNext) url.searchParams.set("next", safeNext);
   noStore(res);
   res.redirect(302, url.toString());
 }
@@ -245,6 +259,11 @@ export async function oauthCallbackController(req: Request, res: Response): Prom
       return;
     }
 
+    if (user.needsOnboarding) {
+      redirectToCompleteProfile(res, next);
+      return;
+    }
+
     redirectToLogin(res, { oauth: "success", next });
   } catch (error) {
     if (error instanceof OAuthFlowError) {
@@ -255,5 +274,75 @@ export async function oauthCallbackController(req: Request, res: Response): Prom
 
     console.error(`[oauth:${provider}] callback failed`, error instanceof Error ? error.message : error);
     redirectToLogin(res, { oauth_error: "account_error", next });
+  }
+}
+
+/**
+ * POST /api/auth/oauth/complete-profile
+ * One-time post-OAuth setup: the signed-in user picks their role, a real
+ * username, and a predefined avatar. Password-registered users and
+ * already-onboarded OAuth users cannot use this endpoint to change identity
+ * fields.
+ */
+export async function completeOAuthProfileController(req: Request, res: Response): Promise<void> {
+  const userId = req.user?.userId;
+  if (!userId) {
+    res.status(401).json({ success: false, message: "Authentication required", statusCode: 401 });
+    return;
+  }
+
+  const {
+    username,
+    avatar_url: avatarUrl,
+    account_type: accountType,
+  } = req.body as {
+    username: string;
+    avatar_url: string;
+    account_type: "student" | "teacher";
+  };
+
+  try {
+    const updated = await completeOAuthProfile(userId, username, avatarUrl, accountType);
+    if (!updated) {
+      res.status(400).json({
+        success: false,
+        message: "Your profile is already set up.",
+        statusCode: 400,
+      });
+      return;
+    }
+
+    const user = await userRepo.getUserInfo(userId);
+
+    res.status(200).json({
+      success: true,
+      message: "Profile setup complete",
+      data: { user },
+    });
+  } catch (error) {
+    if (error instanceof OAuthUsernameTakenError) {
+      res.status(400).json({
+        success: false,
+        message: "Username is already taken",
+        statusCode: 400,
+      });
+      return;
+    }
+
+    if (error instanceof Error && error.message.startsWith("Registration role is not configured:")) {
+      res.status(503).json({
+        success: false,
+        message: "This account type is temporarily unavailable. Please try again shortly.",
+        statusCode: 503,
+      });
+      return;
+    }
+
+    console.error("[oauth] complete-profile failed", error instanceof Error ? error.message : error);
+    res.status(500).json({
+      success: false,
+      message: "Could not save your profile. Please try again.",
+      statusCode: 500,
+    });
   }
 }

@@ -30,6 +30,7 @@ import {
   Lock,
   Megaphone,
   Plus,
+  Share2,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -121,6 +122,12 @@ const _FULL_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
     ],
   },
   {
+    label: "Refer & Earn",
+    items: [
+      { label: "Refer & Earn", href: "/creator/refer-and-earn", icon: Share2, exact: true },
+    ],
+  },
+  {
     label: "Settings",
     items: [
       { label: "Creator Profile", href: "/creator/profile", icon: UserRound, exact: true },
@@ -154,6 +161,8 @@ const FOCUS_CREATOR_ALLOWED = new Set([
   "/creator/billing/plans",
   "/creator/billing/credits",
   "/creator/billing/transactions",
+  // Refer & Earn
+  "/creator/refer-and-earn",
 ]);
 
 // Exact-only routes: prefix matching on "/creator" would unlock every studio

@@ -6,29 +6,54 @@ import type { OAuthProfile, OAuthProvider } from "../types/oauth.ts";
 
 const DEFAULT_AVATAR = "/api/v1/avatars/1";
 
+interface OAuthUserRecord {
+  id: number;
+  email: string;
+  oauth_onboarding_completed: boolean;
+}
+
 export interface OAuthUserRow {
   id: string;
   email: string;
+  needsOnboarding: boolean;
+}
+
+export class OAuthUsernameTakenError extends Error {
+  constructor() {
+    super("Username is already taken");
+    this.name = "OAuthUsernameTakenError";
+  }
+}
+
+function toUserRow(record: OAuthUserRecord): OAuthUserRow {
+  return {
+    id: String(record.id),
+    email: record.email,
+    needsOnboarding: record.oauth_onboarding_completed === false,
+  };
 }
 
 export class OAuthRepository {
   async findByProvider(provider: OAuthProvider, providerUserId: string): Promise<OAuthUserRow | null> {
-    const result = await pool.query<{ id: number; email: string }>(
-      `SELECT id, email
+    const result = await pool.query<OAuthUserRecord>(
+      `SELECT id, email, oauth_onboarding_completed
          FROM users
         WHERE oauth_provider = $1 AND oauth_provider_user_id = $2
         LIMIT 1`,
       [provider, providerUserId],
     );
-    return result.rows[0] ? { id: String(result.rows[0].id), email: result.rows[0].email } : null;
+    return result.rows[0] ? toUserRow(result.rows[0]) : null;
   }
 
   async findByEmail(email: string): Promise<OAuthUserRow | null> {
-    const result = await pool.query<{ id: number; email: string }>(
-      `SELECT id, email FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+    const result = await pool.query<OAuthUserRecord>(
+      `SELECT id, email, oauth_onboarding_completed
+         FROM users
+        WHERE LOWER(email) = LOWER($1)
+        LIMIT 1`,
       [email],
     );
-    return result.rows[0] ? { id: String(result.rows[0].id), email: result.rows[0].email } : null;
+    return result.rows[0] ? toUserRow(result.rows[0]) : null;
   }
 
   async usernameExists(username: string): Promise<boolean> {
@@ -64,19 +89,19 @@ export class OAuthRepository {
         throw new Error("Student role is not configured");
       }
 
-      const result = await client.query<{ id: number; email: string }>(
+      const result = await client.query<OAuthUserRecord>(
         `INSERT INTO users (
            username, email, password, role_id, avatar_id, isactive,
            display_name, first_name, last_name, is_verified,
-           oauth_provider, oauth_provider_user_id,
+           oauth_provider, oauth_provider_user_id, oauth_onboarding_completed,
            createdat, created_at, updatedat, updated_at, lastlogin
          ) VALUES (
            $1, $2, $3, $4, $5, TRUE,
            $6, $7, $8, TRUE,
-           $9, $10,
+           $9, $10, FALSE,
            NOW(), NOW(), NOW(), NOW(), NOW()
          )
-         RETURNING id, email`,
+         RETURNING id, email, oauth_onboarding_completed`,
         [
           username,
           profile.email,
@@ -92,7 +117,7 @@ export class OAuthRepository {
       );
 
       await client.query("COMMIT");
-      return { id: String(result.rows[0].id), email: result.rows[0].email };
+      return toUserRow(result.rows[0]);
     } catch (error) {
       await client.query("ROLLBACK").catch(() => {});
       throw error;
@@ -109,7 +134,7 @@ export class OAuthRepository {
 
       // Email is an immutable account identity field. Refreshing an OAuth
       // login must never rewrite it, even if the provider reports a change.
-      const result = await client.query<{ id: number; email: string }>(
+      const result = await client.query<OAuthUserRecord>(
         `UPDATE users
             SET display_name = $2,
                 first_name = COALESCE($3, first_name),
@@ -122,7 +147,7 @@ export class OAuthRepository {
                 updatedat = NOW(),
                 updated_at = NOW()
           WHERE id = $1
-          RETURNING id, email`,
+          RETURNING id, email, oauth_onboarding_completed`,
         [
           userId,
           profile.name.slice(0, 120),
@@ -139,7 +164,7 @@ export class OAuthRepository {
       }
 
       await client.query("COMMIT");
-      return { id: String(result.rows[0].id), email: result.rows[0].email };
+      return toUserRow(result.rows[0]);
     } catch (error) {
       await client.query("ROLLBACK").catch(() => {});
       throw error;
@@ -147,6 +172,79 @@ export class OAuthRepository {
       client.release();
     }
   }
+
+  /** Persist the one-time OAuth username/avatar choice. Returns null when the
+   * account is missing or onboarding was already completed. */
+  async completeOnboarding(
+    userId: string,
+    username: string,
+    avatarUrl: string,
+    accountType: "student" | "teacher",
+  ): Promise<OAuthUserRow | null> {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      const pending = await client.query(
+        `SELECT 1 FROM users WHERE id = $1 AND oauth_onboarding_completed = FALSE FOR UPDATE`,
+        [userId],
+      );
+      if (!pending.rows[0]) {
+        await client.query("ROLLBACK");
+        return null;
+      }
+
+      const taken = await client.query(
+        `SELECT 1 FROM users WHERE LOWER(username) = LOWER($1) AND id <> $2 LIMIT 1`,
+        [username, userId],
+      );
+      if (taken.rows[0]) {
+        throw new OAuthUsernameTakenError();
+      }
+
+      const role = await client.query<{ id: number }>(
+        `SELECT id FROM role WHERE LOWER(name) = $1 LIMIT 1`,
+        [accountType],
+      );
+      if (!role.rows[0]) {
+        throw new Error(`Registration role is not configured: ${accountType}`);
+      }
+
+      const avatarId = await this.upsertAvatar(client, avatarUrl);
+      const result = await client.query<OAuthUserRecord>(
+        `UPDATE users
+            SET username = LOWER($2),
+                avatar_id = $3,
+                role_id = $4,
+                oauth_onboarding_completed = TRUE,
+                updatedat = NOW(),
+                updated_at = NOW()
+          WHERE id = $1 AND oauth_onboarding_completed = FALSE
+          RETURNING id, email, oauth_onboarding_completed`,
+        [userId, username, avatarId, role.rows[0].id],
+      );
+
+      if (!result.rows[0]) {
+        await client.query("ROLLBACK");
+        return null;
+      }
+
+      await client.query("COMMIT");
+      return toUserRow(result.rows[0]);
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => {});
+      if (isUniqueViolation(error, "idx_users_username_lower_unique")) {
+        throw new OAuthUsernameTakenError();
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+}
+
+function isUniqueViolation(error: unknown, constraint: string): boolean {
+  const candidate = error as { code?: string; constraint?: string } | null;
+  return candidate?.code === "23505" && candidate.constraint === constraint;
 }
 
 export const oauthRepository = new OAuthRepository();

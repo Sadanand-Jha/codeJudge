@@ -5,6 +5,7 @@
 import { strict as assert } from "node:assert";
 import {
   hasProfileFullName,
+  needsOAuthProfileSetup,
   needsProfileCompletion,
   PROFILE_EDIT_PATH,
 } from "@/utils/profileCompletion";
@@ -70,6 +71,12 @@ test("teachers and signed-out users are never prompted", () => {
     false
   );
   assert.equal(needsProfileCompletion(null), false);
+});
+
+test("only fresh OAuth accounts need the username/avatar setup step", () => {
+  assert.equal(needsOAuthProfileSetup({ needsProfileSetup: true }), true);
+  assert.equal(needsOAuthProfileSetup({ needsProfileSetup: false }), false);
+  assert.equal(needsOAuthProfileSetup(null), false);
 });
 
 test("the edit-profile redirect targets the profile section", () => {

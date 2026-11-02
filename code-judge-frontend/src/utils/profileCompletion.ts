@@ -17,3 +17,11 @@ export function needsProfileCompletion(
   if ((user.role ?? "").trim().toLowerCase() !== "student") return false;
   return !hasProfileFullName(user);
 }
+
+/** True only while a freshly created OAuth account still needs to pick its
+ * username and avatar. Password signups never set this flag. */
+export function needsOAuthProfileSetup(
+  user: Pick<UserProfile, "needsProfileSetup"> | null | undefined
+): boolean {
+  return user?.needsProfileSetup === true;
+}

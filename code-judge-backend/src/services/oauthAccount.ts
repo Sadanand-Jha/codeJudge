@@ -3,7 +3,11 @@
 // after the provider has confirmed they are verified (enforced in oauth.ts).
 import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
-import { oauthRepository, type OAuthUserRow } from "../repositories/oauth.repository.ts";
+import {
+  OAuthUsernameTakenError,
+  oauthRepository,
+  type OAuthUserRow,
+} from "../repositories/oauth.repository.ts";
 import type { OAuthProfile } from "../types/oauth.ts";
 
 const BCRYPT_SALT_ROUNDS = Number.parseInt(process.env.BCRYPT_SALT_ROUNDS || "10", 10) || 10;
@@ -65,3 +69,15 @@ export async function upsertOAuthUser(profile: OAuthProfile): Promise<OAuthUserR
 
   throw new Error("Could not allocate a unique username for the OAuth user");
 }
+
+/** Save the role/username/avatar chosen on the post-OAuth onboarding screen. */
+export async function completeOAuthProfile(
+  userId: string,
+  username: string,
+  avatarUrl: string,
+  accountType: "student" | "teacher",
+): Promise<OAuthUserRow | null> {
+  return oauthRepository.completeOnboarding(userId, username, avatarUrl, accountType);
+}
+
+export { OAuthUsernameTakenError };

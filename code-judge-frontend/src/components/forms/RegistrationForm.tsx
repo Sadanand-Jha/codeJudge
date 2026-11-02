@@ -59,9 +59,11 @@ function initField(value = ""): FieldState {
 export default function RegistrationForm({
   nextPath = null,
   embedded = false,
+  referralCode = null,
 }: {
   nextPath?: string | null;
   embedded?: boolean;
+  referralCode?: string | null;
 }) {
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
@@ -413,6 +415,7 @@ export default function RegistrationForm({
           registration_token: registrationToken,
           avatar_url: selectedAvatarUrl,
           account_type: accountType,
+          referral_code: referralCode?.trim() || undefined,
         });
         if (res.success) {
           toast.success("Account created successfully!");
@@ -448,7 +451,7 @@ export default function RegistrationForm({
         setSubmitting(false);
       }
     },
-    [form.username.value, form.email.value, form.password.value, form.confirmPassword.value, registrationToken, selectedAvatarUrl, accountType, usernameStatus.available, validateUsernameField, validatePasswordField, validateConfirmPasswordField, playQuizSound, router, setAuth, expireRegistrationSession, nextPath]
+    [form.username.value, form.email.value, form.password.value, form.confirmPassword.value, registrationToken, selectedAvatarUrl, accountType, usernameStatus.available, validateUsernameField, validatePasswordField, validateConfirmPasswordField, playQuizSound, router, setAuth, expireRegistrationSession, nextPath, referralCode]
   );
 
   const isUsernameReady =

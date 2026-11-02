@@ -3,8 +3,18 @@
 // /api/auth/logout, /api/auth/forgot-password, /api/auth/verify-reset-otp,
 // /api/auth/reset-password.
 import { Router } from 'express';
-import { authRegisterSchema, loginSchema, validate } from '../middleware/validate.ts';
-import { oauthCallbackController, startOAuthController } from '../controllers/oauth.controller.js';
+import {
+  authRegisterSchema,
+  completeOAuthProfileSchema,
+  loginSchema,
+  validate,
+} from '../middleware/validate.ts';
+import {
+  completeOAuthProfileController,
+  oauthCallbackController,
+  startOAuthController,
+} from '../controllers/oauth.controller.js';
+import { authenticate } from '../middleware/auth.ts';
 import {
   sendOtpController,
   verifyOtpController,
@@ -41,6 +51,18 @@ router.get('/oauth/:provider/start', startOAuthController);
  * httpOnly session_token cookie, then redirects back to the frontend login page.
  */
 router.get('/oauth/:provider/callback', oauthCallbackController);
+
+/**
+ * POST /api/auth/oauth/complete-profile
+ * One-time role/username/avatar selection for a new OAuth account.
+ * Body: { "username": "alice123", "avatar_url": "/images/avatar-1.png", "account_type": "student" }
+ */
+router.post(
+  '/oauth/complete-profile',
+  authenticate,
+  validate(completeOAuthProfileSchema),
+  completeOAuthProfileController,
+);
 
 /**
  * POST /api/auth/send-otp

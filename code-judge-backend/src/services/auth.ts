@@ -11,6 +11,11 @@ import { enqueueOtpEmail } from '../queues/email.queue.ts';
 import generateOtp from './otpGenerator.js';
 import { isPlatformOwner } from './platformSession.js';
 import { ensureFreeSubscription } from './entitlement.service.js';
+import {
+  findReferrerByCode,
+  generateUniqueReferralCode,
+  recordSignupReferral,
+} from './referral.service.ts';
 import { isTransientDatabaseError, withTransientDatabaseRetry } from '../config/database.js';
 
 const OTP_TTL_SECONDS = 5 * 60; // 5 minutes — OTP validity
@@ -382,7 +387,8 @@ export async function register(
   registrationToken: string,
   username: string,
   avatarUrl: string,
-  accountType: "student" | "teacher"
+  accountType: "student" | "teacher",
+  referralCode?: string | null
 ): Promise<ServiceResponse> {
   try {
     // 1. Validate inputs
@@ -431,11 +437,42 @@ export async function register(
       return errorResponse('Username is already taken', 400);
     }
 
+    // 4b. Resolve the optional referral before inserting the account so an
+    // invalid code fails cleanly instead of creating an unattributed signup.
+    const referrer = referralCode?.trim()
+      ? await findReferrerByCode(referralCode)
+      : null;
+    if (referralCode?.trim() && !referrer) {
+      return errorResponse('Invalid referral code', 400);
+    }
+
     // 5. Hash password with bcrypt
     const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
     // 6. Save user to database and get the created user record (includes id)
-    const createdUser = await userService.createUser(normalizedEmail, hashedPassword, normalizedUsername, avatarUrl, accountType);
+    const ownReferralCode = await generateUniqueReferralCode(normalizedUsername);
+    const createdUser = await userService.createUser(
+      normalizedEmail,
+      hashedPassword,
+      normalizedUsername,
+      avatarUrl,
+      accountType,
+      ownReferralCode
+    );
+
+    // 6a. Attribute the signup to the referrer. A failure here must not lose
+    // the account that was just created.
+    if (referrer) {
+      try {
+        await recordSignupReferral({
+          referrerUserId: referrer.id,
+          referredUserId: Number(createdUser.id),
+          code: referralCode as string,
+        });
+      } catch (referralError) {
+        console.error('Failed to record referral signup:', referralError);
+      }
+    }
 
     // 6b. Assign the free plan. The 7-day Basic trial is requested from the
     // billing page and starts only after an owner approves it. A subscription

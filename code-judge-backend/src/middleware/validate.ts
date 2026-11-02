@@ -63,6 +63,26 @@ export const authRegisterSchema = z.object({
   registration_token: z.string().trim().min(16, "Invalid registration token").max(512),
   avatar_url: z.string().refine(isValidPredefinedAvatar, "Please select a valid avatar"),
   account_type: z.enum(["student", "teacher"]),
+  referral_code: z
+    .string()
+    .trim()
+    .max(20, "Referral code is too long")
+    .regex(/^[A-Za-z0-9-]+$/, "Invalid referral code")
+    .optional(),
+}).strict();
+
+/** One-time post-OAuth profile setup. OAuth signups keep the provider's
+ * provisional username/avatar until they pick their own here. */
+export const completeOAuthProfileSchema = z.object({
+  username: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(3, "Username must be at least 3 characters")
+    .max(20, "Username must be at most 20 characters")
+    .regex(/^[a-z0-9]+$/, "Username can only contain lowercase letters and numbers"),
+  avatar_url: z.string().refine(isValidPredefinedAvatar, "Please select a valid avatar"),
+  account_type: z.enum(["student", "teacher"]),
 }).strict();
 
 /** Profile update. Only the display name is user-editable; username and
