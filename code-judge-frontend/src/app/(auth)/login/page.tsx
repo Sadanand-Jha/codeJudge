@@ -44,6 +44,18 @@ function LoginContent() {
   // redirect. The page is wrapped in Suspense because useSearchParams opts the
   // client subtree out of static prerendering.
   const nextPath = useMemo(() => safeNextPath(searchParams.get("next")), [searchParams]);
+  const referralCode = useMemo(() => {
+    const raw = searchParams.get("ref")?.trim();
+    if (!raw || !/^[A-Za-z0-9-]{1,20}$/.test(raw)) return null;
+    return raw;
+  }, [searchParams]);
+  const registerHref = useMemo(() => {
+    const params = new URLSearchParams();
+    if (nextPath) params.set("next", nextPath);
+    if (referralCode) params.set("ref", referralCode);
+    const query = params.toString();
+    return query ? `/register?${query}` : "/register";
+  }, [nextPath, referralCode]);
   const oauthError = searchParams.get("oauth_error");
   const setAuth = useAuthStore((s) => s.setAuth);
   const currentUser = useAuthStore((s) => s.user);
@@ -244,7 +256,11 @@ function LoginContent() {
         </button>
       </form>
 
-      <OAuthButtons nextPath={nextPath} disabled={loading} />
+      <OAuthButtons
+        nextPath={nextPath}
+        referralCode={referralCode}
+        disabled={loading}
+      />
 
       <div className="my-5 h-0.5 bg-[var(--qs-line)]" />
 
@@ -253,11 +269,7 @@ function LoginContent() {
           <KeyRound className="h-4 w-4 transition-transform group-hover:-rotate-6" /> Reset password
         </Link>
         <Link
-          href={
-            nextPath
-              ? `/register?next=${encodeURIComponent(nextPath)}`
-              : "/register"
-          }
+          href={registerHref}
           className="b b-full group min-h-[46px] text-[14px]"
         >
           <UserPlus className="h-4 w-4 transition-transform group-hover:scale-110" /> Create account

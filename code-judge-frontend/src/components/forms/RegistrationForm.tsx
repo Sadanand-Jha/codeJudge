@@ -613,7 +613,7 @@ export default function RegistrationForm({
             </form>
           )}
           {step === "email" && (
-            <OAuthButtons nextPath={nextPath} disabled={sendingOtp} />
+            <OAuthButtons nextPath={nextPath} referralCode={referralCode} disabled={sendingOtp} />
           )}
 
           {/* Step 2: OTP */}

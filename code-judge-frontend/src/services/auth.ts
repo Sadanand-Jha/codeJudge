@@ -70,6 +70,7 @@ export async function completeOAuthProfile(payload: {
   username: string;
   avatar_url: string;
   account_type: "student" | "teacher";
+  referral_code?: string;
 }): Promise<AuthResponse> {
   const response = await apiClient.post<AuthResponse>("/auth/oauth/complete-profile", payload);
   if (response.data && typeof response.data === "object" && "user" in response.data && !("success" in response.data)) {

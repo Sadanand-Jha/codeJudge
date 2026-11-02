@@ -31,16 +31,22 @@ function GoogleIcon() {
 
 interface OAuthButtonsProps {
   nextPath: string | null;
+  referralCode?: string | null;
   disabled?: boolean;
 }
 
-export default function OAuthButtons({ nextPath, disabled = false }: OAuthButtonsProps) {
+export default function OAuthButtons({
+  nextPath,
+  referralCode = null,
+  disabled = false,
+}: OAuthButtonsProps) {
   const [pending, setPending] = useState<OAuthProvider | null>(null);
 
   function start(provider: OAuthProvider) {
     setPending(provider);
     const params = new URLSearchParams();
     if (nextPath) params.set("next", nextPath);
+    if (referralCode) params.set("ref", referralCode);
     const query = params.toString();
     window.location.assign(`/api/auth/oauth/${provider}/start${query ? `?${query}` : ""}`);
   }

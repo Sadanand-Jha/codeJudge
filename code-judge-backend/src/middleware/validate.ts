@@ -83,6 +83,12 @@ export const completeOAuthProfileSchema = z.object({
     .regex(/^[a-z0-9]+$/, "Username can only contain lowercase letters and numbers"),
   avatar_url: z.string().refine(isValidPredefinedAvatar, "Please select a valid avatar"),
   account_type: z.enum(["student", "teacher"]),
+  referral_code: z
+    .string()
+    .trim()
+    .max(20, "Referral code is too long")
+    .regex(/^[A-Za-z0-9-]+$/, "Invalid referral code")
+    .optional(),
 }).strict();
 
 /** Profile update. Only the display name is user-editable; username and
