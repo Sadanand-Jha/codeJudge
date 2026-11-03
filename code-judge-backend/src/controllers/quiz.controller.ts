@@ -2010,6 +2010,19 @@ export const unregisterFromQuiz = async (req: Request, res: Response) => {
 
 // ==================== PREVIOUS QUIZZES ====================
 
+const ATTEMPT_RESULT_VISIBILITY_DELAY_MS = 60 * 60 * 1000;
+
+/**
+ * A student's attempt history may show marks only after the quiz has ended
+ * for everyone plus the standard release delay. The detailed question-wise
+ * breakdown is gated separately by `result_details_visible` on the result
+ * and review endpoints.
+ */
+function isAttemptResultVisible(row: any): boolean {
+  if (!row?.endtime) return false;
+  return new Date(row.endtime).getTime() + ATTEMPT_RESULT_VISIBILITY_DELAY_MS <= Date.now();
+}
+
 /**
  * GET /api/v1/user/quiz/previous
  * Get previous quizzes (attempted by logged-in student)
@@ -2043,17 +2056,19 @@ export const getPreviousQuizzes = async (req: Request, res: Response) => {
       sortOrder: sortOrder as string,
     });
 
-    // Recent attempts must never expose a student's result.
-    const data = result.quizzes.map((row) => ({
-      ...row,
-      result_available: false,
-      score: null,
-      percentage: null,
-      rank: null,
-      correct_answers: null,
-      wrong_answers: null,
-      skipped_questions: null,
-    }));
+    const data = result.quizzes.map((row) => {
+      if (isAttemptResultVisible(row)) return { ...row, result_available: true };
+      return {
+        ...row,
+        result_available: false,
+        score: null,
+        percentage: null,
+        rank: null,
+        correct_answers: null,
+        wrong_answers: null,
+        skipped_questions: null,
+      };
+    });
 
     res.status(200).json({
       success: true,
