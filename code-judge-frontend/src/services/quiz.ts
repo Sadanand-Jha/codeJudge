@@ -887,6 +887,8 @@ export interface QuizResult {
   violations: number;
   flagged: boolean;
   flag_reason: string | null;
+  /** Marks stay visible; this only gates the question-wise breakdown. */
+  result_details_visible: boolean;
 }
 
 export interface ReviewOption {

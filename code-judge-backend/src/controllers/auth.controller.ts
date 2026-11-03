@@ -473,20 +473,21 @@ export const loginController = async (req: Request, res: Response) => {
 
 /**
  * POST /api/auth/owner/send-otp
- * Body: { "email": "owner@example.com" }
- * Sends a one-time login code only to role_id = 2 (owner/admin) accounts.
- * Always responds generically so owner emails cannot be enumerated.
- * This is the ONLY login path for the private /platform control center —
- * password login is never accepted there (see requireOwner + frontend gate).
+ * Body: { "email": "owner@example.com", "password": "OwnerPassword123" }
+ * Sends a one-time login code only after the email + password match a
+ * role_id = 2 (owner/admin) account. Invalid credentials receive the same
+ * generic response so owner emails cannot be enumerated.
+ * This is the ONLY login path for the private /platform control center;
+ * a password-only login is never accepted there (see requireOwner + gate).
  */
 export const ownerSendOtpController = async (req: Request, res: Response) => {
   try {
-    const { email } = req.body;
+    const { email, password } = req.body;
 
-    if (!email) {
+    if (!email || !password) {
       res.status(400).json({
         success: false,
-        message: "Email is required",
+        message: "Email and password are required",
         statusCode: 400,
       });
       return;
@@ -504,7 +505,7 @@ export const ownerSendOtpController = async (req: Request, res: Response) => {
     }
 
     const clientIp = getClientIp(req);
-    const result = await requestOwnerLoginOtp(email, clientIp);
+    const result = await requestOwnerLoginOtp(email, password, clientIp);
 
     if (!result.success) {
       if (result.statusCode === 429) {
@@ -527,21 +528,21 @@ export const ownerSendOtpController = async (req: Request, res: Response) => {
 
 /**
  * POST /api/auth/owner/verify-otp
- * Body: { "email": "owner@example.com", "otp": "123456" }
- * Redeems the owner login OTP and mints a DEDICATED platform token
- * (platform_session cookie + JWT scoped to "platform", signed with
- * the isolated platform signing key). No regular user session is created —
+ * Body: { "email": "owner@example.com", "otp": "123456", "password": "OwnerPassword123" }
+ * Re-checks the owner password, redeems the login OTP and mints a DEDICATED
+ * platform token (platform_session cookie + JWT scoped to "platform", signed
+ * with the isolated platform signing key). No regular user session is created —
  * password-login sessions can never access /platform. Rejects non-owner
- * accounts even with a valid OTP.
+ * accounts even with valid credentials.
  */
 export const ownerVerifyOtpController = async (req: Request, res: Response) => {
   try {
-    const { email, otp } = req.body;
+    const { email, otp, password } = req.body;
 
-    if (!email || !otp) {
+    if (!email || !otp || !password) {
       res.status(400).json({
         success: false,
-        message: "Email and OTP are required",
+        message: "Email, password, and OTP are required",
         statusCode: 400,
       });
       return;
@@ -559,7 +560,7 @@ export const ownerVerifyOtpController = async (req: Request, res: Response) => {
       return;
     }
 
-    const result = await verifyOwnerLoginOtp(email, otp);
+    const result = await verifyOwnerLoginOtp(email, otp, password);
 
     if (!result.success) {
       res.status(result.statusCode || 400).json(result);

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ShieldCheck } from "lucide-react";
 import { ownerSendOtp, ownerVerifyOtp, ownerLogout } from "@/services/auth";
 import { platformApi } from "@/services/platform";
 import { PLATFORM_SESSION_INVALID_EVENT, setPlatformSession, clearPlatformSession } from "@/lib/platformToken";
@@ -11,9 +10,10 @@ export type GateState = "checking" | "otp" | "denied" | "unavailable" | "open";
 /**
  * Single entry point for the private /platform control center.
  * - Only role_id = 2 (owner/admin) accounts may pass.
- * - Every sign-in here is OTP-based and mints a DEDICATED platform token,
- *   kept fully separate from the regular user session (which is never read,
- *   written, or sent by this page). Password login cannot open this gate.
+ * - Every sign-in here requires the owner password AND a one-time code, then
+ *   mints a DEDICATED platform token kept fully separate from the regular user
+ *   session (which is never read, written, or sent by this page). Neither the
+ *   password alone nor the OTP alone can open this gate.
  */
 export function usePlatformGate(): { gate: GateState; setGate: (g: GateState) => void } {
   const [gate, setGate] = useState<GateState>("checking");
@@ -59,6 +59,7 @@ function errMsg(e: unknown): string {
 export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavailable"; onOpen: () => void }) {
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,9 +78,13 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
       setError("Enter a valid owner email address.");
       return;
     }
+    if (!password) {
+      setError("Enter your owner password.");
+      return;
+    }
     setBusy(true);
     setError(null);
-    ownerSendOtp({ email: v })
+    ownerSendOtp({ email: v, password })
       .then((r) => {
         setStep("code");
         setCode("");
@@ -92,6 +97,11 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
 
   const verify = async () => {
     const v = email.trim().toLowerCase();
+    if (!password) {
+      setStep("email");
+      setError("Enter your owner password.");
+      return;
+    }
     if (code.trim().length !== 6) {
       setError("Enter the 6-digit code.");
       return;
@@ -99,10 +109,11 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
     setBusy(true);
     setError(null);
     try {
-      const r = await ownerVerifyOtp({ email: v, otp: code.trim() });
+      const r = await ownerVerifyOtp({ email: v, otp: code.trim(), password });
       const d = (r.data ?? r) as { user?: { email?: string } };
       // The credential is an HttpOnly cookie; JavaScript stores only the
       // non-sensitive display email, then proves the cookie against the API.
+      setPassword("");
       setPlatformSession(d.user?.email ?? v);
       try {
         await platformApi.session();
@@ -131,6 +142,7 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
     }
     clearPlatformSession();
     setStep("email");
+    setPassword("");
     setCode("");
     setError(null);
     setInfo(null);
@@ -149,10 +161,10 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
         <h1 className="mt-5 font-extrabold leading-[1.05] tracking-tight text-[var(--qs-ink)]" style={{ fontSize: "clamp(28px,4vw,34px)" }}>Owner sign in</h1>
         <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--qs-muted)]">
           {mode === "denied"
-            ? "This platform session is not authorized for owner access. Sign in again with the owner email to continue."
+            ? "This platform session is not authorized for owner access. Sign in again with the owner email and password to continue."
             : mode === "unavailable"
               ? "The authorization service is temporarily unavailable. Retry when the API connection is restored."
-            : "Restricted area. Sign in with a one-time code — password login is disabled here."}
+            : "Restricted area. Sign in with your owner password and a one-time code."}
         </p>
         <div className="qs-pill sun mt-3">
           PRIVATE · OWNER
@@ -181,6 +193,17 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") send(); }}
               placeholder="owner@example.com"
+              className="h-11 w-full rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-field)] px-3.5 text-[14px] font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)]"
+            />
+            <label className="block text-[14px] font-bold text-[var(--qs-ink)]" htmlFor="owner-password">Password</label>
+            <input
+              id="owner-password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") send(); }}
+              placeholder="Enter your owner password"
               className="h-11 w-full rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-field)] px-3.5 text-[14px] font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)]"
             />
             {error && <p role="alert" aria-live="polite" className="text-[12px] font-bold text-[var(--qs-bad)]">{error}</p>}
@@ -230,7 +253,7 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
               >
                 {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
               </button>
-              <button onClick={() => { setStep("email"); setCode(""); setInfo(null); setError(null); }} className="b b-ghost sm">
+              <button onClick={() => { setStep("email"); setPassword(""); setCode(""); setInfo(null); setError(null); }} className="b b-ghost sm">
                 Change email
               </button>
             </div>
@@ -238,7 +261,7 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
         )}
       </div>
       </div>
-      <p className="mt-4 text-center text-[12px] font-extrabold uppercase tracking-[0.08em] leading-relaxed text-[var(--qs-muted)]">Owner access only · Passwordless OTP · Server-side authorization</p>
+      <p className="mt-4 text-center text-[12px] font-extrabold uppercase tracking-[0.08em] leading-relaxed text-[var(--qs-muted)]">Owner access only · Password + OTP · Server-side authorization</p>
       </div>
     </div>
   );

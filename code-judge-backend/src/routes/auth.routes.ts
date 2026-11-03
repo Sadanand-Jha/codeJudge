@@ -94,15 +94,15 @@ router.post('/login', validate(loginSchema), loginController);
 
 /**
  * POST /api/auth/owner/send-otp
- * Body: { "email": "owner@example.com" }
- * Owner-only OTP login (role_id = 2). Generic response, rate-limited.
+ * Body: { "email": "owner@example.com", "password": "OwnerPassword123" }
+ * Owner-only password + OTP login (role_id = 2). Generic response, rate-limited.
  */
 router.post('/owner/send-otp', ownerSendOtpController);
 
 /**
  * POST /api/auth/owner/verify-otp
- * Body: { "email": "owner@example.com", "otp": "123456" }
- * Verifies the owner OTP and mints a session on success.
+ * Body: { "email": "owner@example.com", "otp": "123456", "password": "OwnerPassword123" }
+ * Re-checks the owner password, verifies the OTP, and mints a session.
  */
 router.post('/owner/verify-otp', ownerVerifyOtpController);
 

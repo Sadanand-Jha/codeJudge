@@ -143,11 +143,11 @@ export async function logout(): Promise<AuthResponse> {
   return response.data;
 }
 
-// ── Owner OTP login (private /platform control center only) ──
-// Only role_id = 2 accounts receive/verify codes. Password login is never
-// accepted on /platform — the gate below is the single entry point.
+// ── Owner password + OTP login (private /platform control center only) ──
+// Only role_id = 2 accounts receive/verify codes. Both the owner password and
+// the one-time code are required — the gate below is the single entry point.
 
-export async function ownerSendOtp(payload: { email: string }): Promise<AuthResponse> {
+export async function ownerSendOtp(payload: { email: string; password: string }): Promise<AuthResponse> {
   const response = await apiClient.post<AuthResponse>("/auth/owner/send-otp", payload);
   if (response.data && typeof response.data === "object" && "email" in response.data && !("success" in response.data)) {
     return { success: true, message: "OTP sent successfully", data: response.data };
@@ -155,7 +155,7 @@ export async function ownerSendOtp(payload: { email: string }): Promise<AuthResp
   return response.data;
 }
 
-export async function ownerVerifyOtp(payload: { email: string; otp: string }): Promise<AuthResponse> {
+export async function ownerVerifyOtp(payload: { email: string; otp: string; password: string }): Promise<AuthResponse> {
   const response = await apiClient.post<AuthResponse>("/auth/owner/verify-otp", payload);
   if (response.data && typeof response.data === "object" && "user" in response.data && !("success" in response.data)) {
     return { success: true, message: "Owner login successful", data: response.data };

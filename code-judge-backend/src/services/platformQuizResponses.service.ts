@@ -40,6 +40,7 @@ export interface PlatformAttemptRow {
   createdAt: string | null;
   updatedAt: string | null;
   attemptNumber: number;
+  resultDetailsVisible: boolean;
 }
 
 function positiveInt(value: unknown): number | null {
@@ -98,6 +99,7 @@ export async function listQuizAttempts(
             a.completed_at AS "completedAt",
             a.created_at AS "createdAt",
             a.updated_at AS "updatedAt",
+            a.result_details_visible AS "resultDetailsVisible",
             ROW_NUMBER() OVER (
               PARTITION BY a.user_id ORDER BY a.created_at ASC, a.id ASC
             )::int AS "attemptNumber"
@@ -120,6 +122,22 @@ export async function listQuizAttempts(
   return { quiz: quiz.rows[0], attempts: result.rows as PlatformAttemptRow[] };
 }
 
+export async function setAttemptResultDetailsVisibility(
+  quizId: number,
+  attemptId: number,
+  visible: boolean
+): Promise<{ resultDetailsVisible: boolean }> {
+  const result = await pool.query(
+    `UPDATE quiz_attempt
+        SET result_details_visible = $3
+      WHERE id = $1 AND quiz_id = $2 AND deleted_at IS NULL
+      RETURNING result_details_visible AS "resultDetailsVisible"`,
+    [attemptId, quizId, visible]
+  );
+  if (!result.rows.length) fail("Attempt not found for this quiz.", 404);
+  return result.rows[0] as { resultDetailsVisible: boolean };
+}
+
 export async function getQuizAttemptDetail(quizId: number, attemptId: number) {
   const attemptResult = await pool.query(
     `SELECT a.id,
@@ -139,6 +157,7 @@ export async function getQuizAttemptDetail(quizId: number, attemptId: number) {
             a.completed_at AS "completedAt",
             a.created_at AS "createdAt",
             a.updated_at AS "updatedAt",
+            a.result_details_visible AS "resultDetailsVisible",
             q.name AS "quizName",
             q.code AS "quizCode",
             q.passing_marks AS "passingMarks",

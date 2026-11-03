@@ -31,6 +31,7 @@ import {
   getQuizAttempts,
   getQuizOptions,
   updateAttemptResponses,
+  updateAttemptResultVisibility,
 } from "../../controllers/platformQuizResponses.controller.ts";
 import platformSubscriptionsRouter from "./platformSubscriptions.routes.ts";
 import { randomizeUploadFilename } from "../../utils/uploadName.ts";
@@ -122,6 +123,7 @@ router.get("/quizzes/options", getQuizOptions);
 router.get("/quizzes/:quizId/attempts", getQuizAttempts);
 router.get("/quizzes/:quizId/attempts/:attemptId", getAttemptResponses);
 router.put("/quizzes/:quizId/attempts/:attemptId/responses", updateAttemptResponses);
+router.patch("/quizzes/:quizId/attempts/:attemptId/result-visibility", updateAttemptResultVisibility);
 router.post("/quizzes/:quizId/recalculate", recalculateQuizResults);
 router.get("/ai", getAi);
 router.get("/health", getHealth);

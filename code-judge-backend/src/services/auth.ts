@@ -573,14 +573,21 @@ function isOwnerRole(user: any): boolean {
 
 /**
  * POST /api/auth/owner/send-otp
- * Sends a login OTP only if the email belongs to a role_id = 2 account.
- * Always returns a generic message so the endpoint cannot be used to
- * enumerate which emails hold owner access.
+ * Sends a login OTP only if the email + password belong to a role_id = 2
+ * account. Invalid credentials always receive the same response so the
+ * endpoint cannot be used to enumerate which emails hold owner access.
  */
-export async function requestOwnerLoginOtp(email: string, clientIp?: string): Promise<ServiceResponse> {
+export async function requestOwnerLoginOtp(
+  email: string,
+  password: string,
+  clientIp?: string
+): Promise<ServiceResponse> {
   try {
     if (!email || !isValidEmail(email)) {
       return errorResponse('Invalid email format', 400);
+    }
+    if (typeof password !== 'string' || password.length === 0) {
+      return errorResponse('Password is required', 400);
     }
 
     const normalizedEmail = email.toLowerCase();
@@ -640,24 +647,29 @@ export async function requestOwnerLoginOtp(email: string, clientIp?: string): Pr
       return errorResponse(`You have reached the maximum OTP requests. Please try again later.`, 429);
     }
 
-    // Only role_id = 2 accounts receive an OTP — but respond generically.
-    // Both branches are logged (without the OTP value) so email delivery
-    // to non-admins can be audited from server logs.
+    // Both factors must match before a code is issued. The error is
+    // intentionally generic so it does not reveal which factor failed.
     const user = await withTransientDatabaseRetry(() => userService.getUserByEmail(normalizedEmail));
-    if (isOwnerRole(user)) {
-      const otp = generateSixDigitOtp();
-      await cacheOwnerLoginOtp(normalizedEmail, otp);
-      console.log(`[owner-otp] code issued for admin ${normalizedEmail}`);
-      // Still return the same generic response on delivery failure so this
-      // endpoint cannot reveal whether an owner account exists.
-      try {
-        await enqueueOtpEmail(normalizedEmail, otp);
-      } catch (err: any) {
-        await deleteCachedOwnerLoginOtp(normalizedEmail);
-        console.error('Failed to send owner-login OTP email:', err.message || err);
-      }
-    } else {
-      console.log(`[owner-otp] code suppressed for non-admin ${normalizedEmail}`);
+    const passwordMatches =
+      isOwnerRole(user) &&
+      typeof user?.password === 'string' &&
+      (await bcrypt.compare(password, user.password));
+
+    if (!passwordMatches) {
+      console.log(`[owner-otp] credentials rejected for ${normalizedEmail}`);
+      return errorResponse('Invalid email or password', 401);
+    }
+
+    const otp = generateSixDigitOtp();
+    await cacheOwnerLoginOtp(normalizedEmail, otp);
+    console.log(`[owner-otp] code issued for admin ${normalizedEmail}`);
+    // Still return the same generic response on delivery failure so this
+    // endpoint cannot reveal whether an owner account exists.
+    try {
+      await enqueueOtpEmail(normalizedEmail, otp);
+    } catch (err: any) {
+      await deleteCachedOwnerLoginOtp(normalizedEmail);
+      console.error('Failed to send owner-login OTP email:', err.message || err);
     }
 
     await redisClient.setEx(cooldownKey, OTP_RESEND_COOLDOWN_SECONDS, '1');
@@ -677,10 +689,15 @@ export async function requestOwnerLoginOtp(email: string, clientIp?: string): Pr
 
 /**
  * POST /api/auth/owner/verify-otp
- * Redeems an owner login OTP. Only succeeds for role_id = 2 accounts.
- * Returns the user id + email so the controller can mint a session.
+ * Redeems an owner login OTP after re-checking the owner password. Only
+ * succeeds for role_id = 2 accounts. Returns the user id + email so the
+ * controller can mint a session.
  */
-export async function verifyOwnerLoginOtp(email: string, otp: string): Promise<ServiceResponse> {
+export async function verifyOwnerLoginOtp(
+  email: string,
+  otp: string,
+  password: string
+): Promise<ServiceResponse> {
   try {
     // Redis/JSON may hand back a numeric OTP (leading zero dropped) — normalize.
     const code = String(otp ?? "").trim();
@@ -689,6 +706,9 @@ export async function verifyOwnerLoginOtp(email: string, otp: string): Promise<S
     }
     if (!code || code.length !== 6 || !/^\d{6}$/.test(code)) {
       return errorResponse('Invalid OTP format', 400);
+    }
+    if (typeof password !== 'string' || password.length === 0) {
+      return errorResponse('Password is required', 400);
     }
 
     const normalizedEmail = email.toLowerCase();
@@ -713,13 +733,24 @@ export async function verifyOwnerLoginOtp(email: string, otp: string): Promise<S
       return errorResponse(`Invalid OTP. ${newRemaining} attempt(s) remaining.`, 401);
     }
 
-    await deleteCachedOwnerLoginOtp(normalizedEmail);
-
     const user = await withTransientDatabaseRetry(() => userService.getUserByEmail(normalizedEmail));
-    if (!isOwnerRole(user)) {
-      // Do not reveal whether the account exists or its role.
-      return errorResponse('Invalid email or OTP', 401);
+    const passwordMatches =
+      isOwnerRole(user) &&
+      typeof user?.password === 'string' &&
+      (await bcrypt.compare(password, user.password));
+
+    if (!passwordMatches) {
+      // Treat a bad password like a bad code so neither factor can be
+      // brute-forced independently without consuming the OTP attempt budget.
+      const newRemaining = await decrementOwnerLoginAttempts(normalizedEmail);
+      if (newRemaining <= 0) {
+        await deleteCachedOwnerLoginOtp(normalizedEmail);
+        return errorResponse('Too many failed OTP attempts. Please request a new OTP.', 429);
+      }
+      return errorResponse(`Invalid email, password, or OTP. ${newRemaining} attempt(s) remaining.`, 401);
     }
+
+    await deleteCachedOwnerLoginOtp(normalizedEmail);
 
     return successResponse(
       { userId: String(user.id), email: normalizedEmail },

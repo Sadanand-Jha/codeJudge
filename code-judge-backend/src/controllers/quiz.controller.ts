@@ -2202,16 +2202,30 @@ function areStudentResultsAvailable(result: any): boolean {
   return new Date(result.endtime).getTime() + RESULT_VISIBILITY_DELAY_MS <= Date.now();
 }
 
-/** Owners and accepted collaborators can always view results immediately. */
-async function canViewerSeeResult(result: any, viewerId: number): Promise<boolean> {
-  if (isAttemptInProgress(result)) return false;
-  if (Number(result?.createdby) === Number(viewerId)) return true;
+interface ResultAccess {
+  canView: boolean;
+  canViewDetails: boolean;
+}
+
+/**
+ * Owners and accepted collaborators can always view results immediately.
+ * Students can view marks once results are released, but the question-wise
+ * breakdown is only available when the owner has shared it for the attempt.
+ */
+async function resolveResultAccess(result: any, viewerId: number): Promise<ResultAccess> {
+  if (isAttemptInProgress(result)) return { canView: false, canViewDetails: false };
+  if (Number(result?.createdby) === Number(viewerId)) {
+    return { canView: true, canViewDetails: true };
+  }
   const quizId = Number(result?.quiz_id);
   if (Number.isInteger(quizId) && quizId > 0) {
     const isCollaborator = await quizService.isAcceptedCollaborator(Number(viewerId), quizId);
-    if (isCollaborator) return true;
+    if (isCollaborator) return { canView: true, canViewDetails: true };
   }
-  return areStudentResultsAvailable(result);
+  return {
+    canView: areStudentResultsAvailable(result),
+    canViewDetails: result?.result_details_visible !== false,
+  };
 }
 
 /**
@@ -2249,7 +2263,8 @@ export const getQuizResult = async (req: Request, res: Response) => {
       return;
     }
 
-    if (!(await canViewerSeeResult(result, Number(userId)))) {
+    const access = await resolveResultAccess(result, Number(userId));
+    if (!access.canView) {
       res.status(403).json({
         success: false,
         message: "Results will be available 1 hour after the quiz ends",
@@ -2259,7 +2274,7 @@ export const getQuizResult = async (req: Request, res: Response) => {
 
     res.status(200).json({
       success: true,
-      data: result,
+      data: { ...result, result_details_visible: access.canViewDetails },
     });
   } catch (error) {
     console.error("Error fetching quiz result:", error);
@@ -2299,10 +2314,18 @@ export const getQuizReview = async (req: Request, res: Response) => {
       });
       return;
     }
-    if (!(await canViewerSeeResult(result, Number(userId)))) {
+    const access = await resolveResultAccess(result, Number(userId));
+    if (!access.canView) {
       res.status(403).json({
         success: false,
         message: "Answer review will be available 1 hour after the quiz ends",
+      });
+      return;
+    }
+    if (!access.canViewDetails) {
+      res.status(403).json({
+        success: false,
+        message: "The detailed question-wise result for this attempt has not been shared.",
       });
       return;
     }

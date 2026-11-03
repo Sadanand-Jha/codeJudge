@@ -355,6 +355,7 @@ export interface PlatformQuizAttemptSummary {
   createdAt: string | null;
   updatedAt: string | null;
   attemptNumber: number;
+  resultDetailsVisible: boolean;
 }
 
 export interface PlatformQuizAttemptDetail {
@@ -376,6 +377,7 @@ export interface PlatformQuizAttemptDetail {
     completedAt: string | null;
     createdAt: string | null;
     updatedAt: string | null;
+    resultDetailsVisible: boolean;
     quizName: string;
     quizCode: string;
     passingMarks: number | null;
@@ -674,6 +676,14 @@ export const platformApi = {
     get<PlatformQuizAttemptDetail>(
       `/quizzes/${encodeURIComponent(String(quizId))}/attempts/${encodeURIComponent(String(attemptId))}`
     ),
+  updateAttemptResultVisibility: (quizId: number, attemptId: number, visible: boolean) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.patch<{ resultDetailsVisible: boolean }>(
+        `/v1/platform/quizzes/${encodeURIComponent(String(quizId))}/attempts/${encodeURIComponent(String(attemptId))}/result-visibility`,
+        { visible }
+      );
+      return response.data;
+    }),
   updateAttemptResponses: (quizId: number, attemptId: number, responses: AttemptResponseUpdate[]) =>
     schedulePlatformRequest(async () => {
       const response = await platformClient.put<{

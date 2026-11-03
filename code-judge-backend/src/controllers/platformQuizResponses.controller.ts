@@ -3,6 +3,7 @@ import {
   getQuizAttemptDetail,
   listQuizAttempts,
   listQuizOptions,
+  setAttemptResultDetailsVisibility,
   updateQuizAttemptResponses,
 } from "../services/platformQuizResponses.service.ts";
 import { recalculateQuizAttempt } from "../services/quizSubmission.service.ts";
@@ -59,6 +60,26 @@ export async function getAttemptResponses(req: Request, res: Response) {
     return res.json({ success: true, data });
   } catch (error) {
     return handleError(res, error, "Unable to load student responses.");
+  }
+}
+
+export async function updateAttemptResultVisibility(req: Request, res: Response) {
+  try {
+    const quizId = positiveInt(req.params.quizId);
+    const attemptId = positiveInt(req.params.attemptId);
+    if (!quizId || !attemptId) {
+      return res.status(400).json({ success: false, message: "Valid quiz and attempt ids are required." });
+    }
+
+    const visible = (req.body ?? {}).visible;
+    if (typeof visible !== "boolean") {
+      return res.status(400).json({ success: false, message: "A boolean 'visible' value is required." });
+    }
+
+    const data = await setAttemptResultDetailsVisibility(quizId, attemptId, visible);
+    return res.json({ success: true, data });
+  } catch (error) {
+    return handleError(res, error, "Unable to update result visibility.");
   }
 }
 

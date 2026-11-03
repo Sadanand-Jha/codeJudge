@@ -11,9 +11,10 @@ import {
  * Owner-only guard for the private /platform control center.
  *
  * Accepts ONLY the dedicated platform token (`platform_session` cookie or
- * Bearer), minted exclusively by POST /api/auth/owner/verify-otp after OTP
- * verification. Regular user sessions (`session_token`, password login) are
- * rejected here — even for admins — so OTP is mandatory for platform access.
+ * Bearer), minted exclusively by POST /api/auth/owner/verify-otp after the
+ * owner password + OTP have both been verified. Regular user sessions
+ * (`session_token`, password login) are rejected here — even for admins — so
+ * the platform gate cannot be opened by a password or OTP alone.
  *
  * Ownership is then re-checked against the database on every request:
  * users.role_id = 2 (admin), or email in PLATFORM_OWNER_EMAILS.

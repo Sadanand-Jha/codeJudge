@@ -14,6 +14,7 @@ import {
   ChevronRight,
   CircleDashed,
   Clock3,
+  EyeOff,
   LayoutGrid,
   Medal,
   PieChart,
@@ -369,6 +370,7 @@ export default function AttemptReviewExperience({
   const [pending, setPending] = useState(false);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [detailsHidden, setDetailsHidden] = useState(false);
   const [ratingState, setRatingState] = useState<QuizRatingState | null>(null);
   const [selectedRatings, setSelectedRatings] = useState<RatingSelection>(EMPTY_RATINGS);
   const [ratingFeedback, setRatingFeedback] = useState("");
@@ -389,17 +391,41 @@ export default function AttemptReviewExperience({
       setPending(false);
       setPendingMessage(null);
       setError(null);
+      setDetailsHidden(false);
       try {
-        const [result, review] = await Promise.all([
-          getQuizResult(attemptId),
-          getQuizReview(attemptId),
-        ]);
+        const result = await getQuizResult(attemptId);
+        if (cancelled) return;
+
+        // The URL uses the public quiz code, while rating endpoints require
+        // the numeric database id. The owned attempt result is the trusted
+        // source that connects those two identifiers.
+        setResolvedRatingQuizId(String(result.quiz_id));
+
+        if (result.result_details_visible === false) {
+          setData(buildAttemptReviewData(result, []));
+          setDetailsHidden(true);
+          playQuizSound("success");
+          return;
+        }
+
+        let review: QuestionReview[] = [];
+        try {
+          review = await getQuizReview(attemptId);
+        } catch (reviewError: unknown) {
+          const reviewStatus = (reviewError as { response?: { status?: number } })?.response?.status;
+          if (reviewStatus === 403) {
+            if (!cancelled) {
+              setData(buildAttemptReviewData(result, []));
+              setDetailsHidden(true);
+              playQuizSound("success");
+            }
+            return;
+          }
+          throw reviewError;
+        }
+
         if (!cancelled) {
           setData(buildAttemptReviewData(result, review));
-          // The URL uses the public quiz code, while rating endpoints require
-          // the numeric database id. The owned attempt result is the trusted
-          // source that connects those two identifiers.
-          setResolvedRatingQuizId(String(result.quiz_id));
           setSelectedQuestion(0);
           playQuizSound("success");
         }
@@ -507,6 +533,91 @@ export default function AttemptReviewExperience({
           </Link>
         }
       />
+    );
+  }
+
+  if (detailsHidden) {
+    return (
+      <div className="qs-ui relative min-h-[calc(100dvh-3.5rem)] overflow-x-hidden bg-[var(--qs-bg)] pb-[max(1.5rem,env(safe-area-inset-bottom))] text-[var(--qs-ink)]">
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[320px] overflow-hidden">
+          <div className="absolute -top-24 left-[-80px] h-[280px] w-[380px] rounded-full border-2 border-[var(--qs-line)]" />
+          <div className="absolute -top-24 right-[-80px] h-[280px] w-[380px] rounded-full border-2 border-[var(--qs-line)]" />
+        </div>
+
+        <div className="relative mx-auto box-border w-full max-w-[1240px] px-4 py-4 sm:px-6 sm:py-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <Link href="/quiz" className="b b-ghost sm gap-2">
+              <ArrowLeft className="h-4 w-4" /> Back
+            </Link>
+            <span className="inline-flex items-center gap-1.5 rounded-xl border-2 border-[var(--qs-brand)]/30 bg-[var(--qs-brand)]/10 px-3 py-2 text-[13px] font-bold text-[var(--qs-brand)]">
+              <Trophy className="h-4 w-4" />
+              Result
+            </span>
+          </div>
+
+          <div className="grid gap-4 md:gap-5 xl:grid-cols-[1fr_320px]">
+            <div className="min-w-0 space-y-4 md:space-y-5">
+              <section className="box-border w-full max-w-full rounded-3xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 sm:p-5">
+                <span className="inline-flex items-center rounded-lg bg-[var(--qs-brand)]/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--qs-brand)]">
+                  Attempt scorecard
+                </span>
+                <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-[32px] sm:leading-[1.15]">
+                  {data.quizName}
+                </h1>
+                <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[13px] text-[var(--qs-muted)] sm:text-sm">
+                  <span>Attempted on {data.attemptDate}</span>
+                  <span aria-hidden className="text-[var(--qs-line)]">•</span>
+                  <span>Submitted at {data.submittedAt}</span>
+                </p>
+
+                <div className="mt-4 flex flex-col items-stretch gap-4 min-[540px]:flex-row sm:gap-5">
+                  <div className="flex items-center">
+                    <ScoreRing percentage={data.percentage} />
+                  </div>
+                  <div aria-hidden className="h-px shrink-0 bg-[var(--qs-line)] min-[540px]:h-auto min-[540px]:w-px" />
+                  <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:gap-2.5">
+                    <MetricCard label="Score" value={data.score} icon={Target} iconColor="var(--qs-brand)" />
+                    <MetricCard label="Percentage" value={`${Math.round(data.percentage)}%`} icon={PieChart} iconColor="var(--qs-brand)" />
+                    <MetricCard label="Duration" value={data.duration} icon={Clock3} iconColor="var(--qs-ok)" />
+                    <MetricCard
+                      label="Submitted"
+                      value={data.submittedAtShort}
+                      titleValue={data.submittedAt}
+                      icon={Upload}
+                      iconColor="var(--qs-muted)"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4 flex items-start gap-2.5 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 sm:p-3.5">
+                  <EyeOff className="mt-0.5 h-4 w-4 shrink-0 text-[var(--qs-muted)]" />
+                  <div>
+                    <p className="text-[13px] font-bold text-[var(--qs-ink)]">Detailed result not shared</p>
+                    <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--qs-muted)]">
+                      Your marks are available above. The question-by-question response breakdown for this attempt has not been shared.
+                    </p>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div className="min-w-0 space-y-4 md:space-y-5">
+              <QuizRatingPanel
+                state={ratingState}
+                loading={ratingLoading}
+                error={ratingError}
+                selected={selectedRatings}
+                feedback={ratingFeedback}
+                submitting={ratingSubmitting}
+                isMobile={isMobile}
+                onSelect={(category, rating) => setSelectedRatings((current) => ({ ...current, [category]: rating }))}
+                onFeedback={setRatingFeedback}
+                onSubmit={handleRatingSubmit}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 
