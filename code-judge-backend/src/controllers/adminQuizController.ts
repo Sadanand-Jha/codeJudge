@@ -971,7 +971,7 @@ export const generateQuizResults = async (req: Request, res: Response) => {
     }
 
     const { quizId } = req.params;
-    const { force = false, sendEmail = true } = req.body;
+    const { force = false, sendEmail = true, timeZone } = req.body ?? {};
 
     const access = await assertQuizOwnership(quizId, userId);
     if (!access.ok) {
@@ -979,7 +979,7 @@ export const generateQuizResults = async (req: Request, res: Response) => {
       return;
     }
 
-    const result = await resultGenerationService.generateResults(Number(quizId), { force, sendEmail });
+    const result = await resultGenerationService.generateResults(Number(quizId), { force, sendEmail, timeZone });
 
     res.status(200).json({
       success: true,
@@ -1033,7 +1033,7 @@ export const retryQuizResultsEmail = async (req: Request, res: Response) => {
       return;
     }
 
-    const result = await resultGenerationService.retryEmail(Number(quizId));
+    const result = await resultGenerationService.retryEmail(Number(quizId), req.body?.timeZone);
     res.status(200).json({
       success: true,
       message: result.emailSent ? "Email sent successfully" : "Email delivery failed",

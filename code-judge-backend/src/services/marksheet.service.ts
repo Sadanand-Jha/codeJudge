@@ -3,6 +3,7 @@
 // statistics sheet.
 import ExcelJS from "exceljs";
 import { pool } from "../config/database.ts";
+import { DEFAULT_REPORT_TIME_ZONE, resolveTimeZone } from "../utils/timezone.ts";
 
 export interface MarksheetStats {
   totalParticipants: number;
@@ -24,7 +25,11 @@ export interface MarksheetResult {
  * Generate marksheet Excel file for a quiz
  * Sorted by roll number ascending
  */
-export async function generateMarksheet(quizId: number): Promise<MarksheetResult> {
+export async function generateMarksheet(
+  quizId: number,
+  timeZone = DEFAULT_REPORT_TIME_ZONE
+): Promise<MarksheetResult> {
+  const reportTimeZone = resolveTimeZone(timeZone);
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Marksheet");
 
@@ -107,7 +112,7 @@ export async function generateMarksheet(quizId: number): Promise<MarksheetResult
       college: attempt.college_name || "",
       quizName: quiz.name,
       quizCode: quiz.code,
-      attemptDate: formatDate(attempt.completed_at),
+      attemptDate: formatDate(attempt.completed_at, reportTimeZone),
       quizDuration: formatDuration(quiz.duration || 0),
       timeTaken: formatDuration(attempt.time_taken || 0),
       totalQuestions: attempt.total_questions,
@@ -181,11 +186,11 @@ function calculateQuizStats(quiz: any, attempts: any[]): MarksheetStats {
 /**
  * Format date for Excel
  */
-function formatDate(date: string | Date | null, timeZone = "UTC"): string {
+function formatDate(date: string | Date | null, timeZone = DEFAULT_REPORT_TIME_ZONE): string {
   if (!date) return "";
   const d = new Date(date);
   return d.toLocaleString("en-IN", {
-    timeZone,
+    timeZone: resolveTimeZone(timeZone),
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

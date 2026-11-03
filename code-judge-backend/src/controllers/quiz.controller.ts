@@ -2333,7 +2333,7 @@ export const generateQuizResults = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
     const { quizId } = req.params;
-    const { force = false, sendEmail = true } = req.body;
+    const { force = false, sendEmail = true, timeZone } = req.body ?? {};
 
     if (!userId) {
       res.status(401).json({
@@ -2360,7 +2360,7 @@ export const generateQuizResults = async (req: Request, res: Response) => {
       return;
     }
 
-    const result = await resultGenerationService.generateResults(Number(quizId), { force, sendEmail });
+    const result = await resultGenerationService.generateResults(Number(quizId), { force, sendEmail, timeZone });
 
     res.status(200).json({
       success: true,
@@ -2436,7 +2436,7 @@ export const retryQuizResultsEmail = async (req: Request, res: Response) => {
       return;
     }
 
-    const result = await resultGenerationService.retryEmail(Number(quizId));
+    const result = await resultGenerationService.retryEmail(Number(quizId), req.body?.timeZone);
 
     res.status(200).json({
       success: true,
@@ -3187,7 +3187,7 @@ export const sendQuizResponsesEmail = async (req: Request, res: Response) => {
     }
 
     try {
-      const { buffer, stats, registrationFields } = await generateResponsesReport(numericQuizId);
+      const { buffer, stats, registrationFields } = await generateResponsesReport(numericQuizId, req.body?.timeZone);
       await sendResponsesReportEmail({
         to: email,
         quizName: quiz.name,

@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import ExcelJS from "exceljs";
 import { pool } from "../config/database.ts";
+import { DEFAULT_REPORT_TIME_ZONE, resolveTimeZone } from "../utils/timezone.ts";
 
 export interface ResponsesReportStats {
   totalParticipants: number;
@@ -40,12 +41,12 @@ function statusLabel(status: string | null): string {
   return "Not Started";
 }
 
-function formatDate(value: string | Date | null, timeZone = "UTC"): string {
+function formatDate(value: string | Date | null, timeZone = DEFAULT_REPORT_TIME_ZONE): string {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleString("en-IN", {
-    timeZone,
+    timeZone: resolveTimeZone(timeZone),
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -95,7 +96,11 @@ export async function countQuizResponses(quizId: number): Promise<number> {
   return Number(result.rows[0]?.count ?? 0);
 }
 
-export async function generateResponsesReport(quizId: number): Promise<ResponsesReportResult> {
+export async function generateResponsesReport(
+  quizId: number,
+  timeZone = DEFAULT_REPORT_TIME_ZONE
+): Promise<ResponsesReportResult> {
+  const reportTimeZone = resolveTimeZone(timeZone);
   const quizResult = await pool.query(
     `SELECT q.id, q.name, q.code, q.registration_fields, u.username AS creator_username
        FROM quiz q
@@ -297,7 +302,7 @@ export async function generateResponsesReport(quizId: number): Promise<Responses
 
   worksheet.mergeCells(3, 1, 3, lastColumn);
   const metaCell = worksheet.getCell(3, 1);
-  metaCell.value = `Code ${quiz.code}   |   ${stats.totalParticipants} participants   |   ${stats.submitted} submitted   |   Generated ${formatDate(new Date())}`;
+  metaCell.value = `Code ${quiz.code}   |   ${stats.totalParticipants} participants   |   ${stats.submitted} submitted   |   Generated ${formatDate(new Date(), reportTimeZone)}`;
   metaCell.font = { size: 10, color: { argb: MUTED } };
   metaCell.alignment = { vertical: "middle", horizontal: "left" };
   worksheet.getRow(3).height = 18;
@@ -377,7 +382,7 @@ export async function generateResponsesReport(quizId: number): Promise<Responses
       status: statusLabel(row.attempt_status),
       flags,
       flagReason: reason,
-      submittedAt: formatDate(row.completed_at),
+      submittedAt: formatDate(row.completed_at, reportTimeZone),
       timeTaken: formatMinutes(row.time_taken),
       totalQuestions: totalQuestionsValue,
       correct,

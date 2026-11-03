@@ -1,5 +1,6 @@
 import axios from "axios";
 import apiClient from "@/lib/axios";
+import { getUserTimeZone } from "@/lib/timezone";
 import { isValidQuizCode } from "@/utils/quizCode";
 import { QuizLeaderboardSettings } from "@/types/quiz";
 
@@ -1189,6 +1190,7 @@ export async function generateQuizResults(quizId: string, options?: { force?: bo
   const response = await apiClient.post<GenerateResultsResponse>(`/v1/user/quiz/${quizId}/generate-results`, {
     force: options?.force ?? false,
     sendEmail: options?.sendEmail ?? true,
+    timeZone: getUserTimeZone(),
   });
   return response.data;
 }
@@ -1198,7 +1200,9 @@ export async function generateQuizResults(quizId: string, options?: { force?: bo
  * POST /api/v1/user/quiz/:quizId/retry-email
  */
 export async function retryQuizResultsEmail(quizId: string): Promise<{ emailSent: boolean; emailError?: string }> {
-  const response = await apiClient.post<{ emailSent: boolean; emailError?: string }>(`/v1/user/quiz/${quizId}/retry-email`);
+  const response = await apiClient.post<{ emailSent: boolean; emailError?: string }>(`/v1/user/quiz/${quizId}/retry-email`, {
+    timeZone: getUserTimeZone(),
+  });
   return response.data;
 }
 
@@ -1441,7 +1445,9 @@ export interface SendQuizResponsesEmailResult {
  * POST /api/v1/user/quiz/:quizId/responses/email
  */
 export async function sendQuizResponsesEmail(quizId: string): Promise<SendQuizResponsesEmailResult> {
-  const response = await apiClient.post<SendQuizResponsesEmailResult>(`/v1/user/quiz/${quizId}/responses/email`);
+  const response = await apiClient.post<SendQuizResponsesEmailResult>(`/v1/user/quiz/${quizId}/responses/email`, {
+    timeZone: getUserTimeZone(),
+  });
   return response.data;
 }
 

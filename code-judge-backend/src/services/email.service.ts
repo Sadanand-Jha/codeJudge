@@ -3,6 +3,7 @@
 // Sends via Nodemailer/SMTP first, Resend API fallback (see ./smtp.ts and
 // ./resend.ts for env configuration).
 import logger from "../utils/logger.ts";
+import { resolveTimeZone } from "../utils/timezone.ts";
 import { getTransporter, getFromAddress } from "./smtp.ts";
 import { isResendConfigured, sendViaResend } from "./resend.ts";
 
@@ -28,6 +29,7 @@ export interface MarksheetEmailPayload {
   quizCode: string;
   endTime: Date;
   marksheetBuffer: Buffer;
+  timeZone?: string;
   stats: {
     totalParticipants: number;
     totalSubmissions: number;
@@ -53,7 +55,7 @@ function requireTransport() {
  * Send marksheet email to quiz creator via SMTP
  */
 export async function sendMarksheetEmail(payload: MarksheetEmailPayload): Promise<void> {
-  const { to, quizName, quizCode, endTime, marksheetBuffer, stats } = payload;
+  const { to, quizName, quizCode, endTime, marksheetBuffer, stats, timeZone } = payload;
 
   // Email subject
   const subject = `Quiz Report - ${quizName}`;
@@ -84,7 +86,7 @@ export async function sendMarksheetEmail(payload: MarksheetEmailPayload): Promis
           </tr>
           <tr style="border-bottom: 1px solid #dee2e6;">
             <td style="padding: 8px 0; font-weight: bold;">Quiz End Time</td>
-            <td style="padding: 8px 0;">${new Date(endTime).toLocaleString("en-IN", { timeZone: "UTC" })}</td>
+            <td style="padding: 8px 0;">${new Date(endTime).toLocaleString("en-IN", { timeZone: resolveTimeZone(timeZone) })}</td>
           </tr>
         </table>
       </div>

@@ -5,6 +5,7 @@ import { pool } from "../config/database.ts";
 import { generateMarksheet } from "./marksheet.service.ts";
 import { enqueueResultEmail } from "../queues/email.queue.ts";
 import logger from "../utils/logger.ts";
+import { DEFAULT_REPORT_TIME_ZONE, resolveTimeZone } from "../utils/timezone.ts";
 import {
   enqueueQuizResultCalculation,
   processQuizRecalculation,
@@ -13,6 +14,7 @@ import {
 export interface GenerateResultsOptions {
   force?: boolean;
   sendEmail?: boolean;
+  timeZone?: string;
 }
 
 export interface GenerateResultsResponse {
@@ -35,7 +37,8 @@ export class ResultGenerationService {
   }
 
   async generateResults(quizId: number, opts: GenerateResultsOptions = {}): Promise<GenerateResultsResponse> {
-    const { force = false, sendEmail = true } = opts;
+    const { force = false, sendEmail = true, timeZone = DEFAULT_REPORT_TIME_ZONE } = opts;
+    const reportTimeZone = resolveTimeZone(timeZone);
 
     const alreadyGenerated = await this.hasGeneratedResults(quizId);
     if (alreadyGenerated && !force) {
@@ -90,7 +93,7 @@ export class ResultGenerationService {
 
     if (sendEmail) {
       try {
-        const { buffer, stats } = await generateMarksheet(quizId);
+        const { buffer, stats } = await generateMarksheet(quizId, reportTimeZone);
         await enqueueResultEmail({
           to: quiz.creator_email,
           quizName: quiz.name,
@@ -98,6 +101,7 @@ export class ResultGenerationService {
           endTime: quiz.endtime,
           marksheetBuffer: buffer,
           stats,
+          timeZone: reportTimeZone,
         });
         emailSent = true;
       } catch (error) {
@@ -117,7 +121,11 @@ export class ResultGenerationService {
     };
   }
 
-  async retryEmail(quizId: number): Promise<{ emailSent: boolean; emailError?: string }> {
+  async retryEmail(
+    quizId: number,
+    timeZone = DEFAULT_REPORT_TIME_ZONE
+  ): Promise<{ emailSent: boolean; emailError?: string }> {
+    const reportTimeZone = resolveTimeZone(timeZone);
     const quizResult = await pool.query(
       `SELECT q.*, u.email AS creator_email
        FROM quiz q
@@ -131,7 +139,7 @@ export class ResultGenerationService {
     }
 
     try {
-      const { buffer, stats } = await generateMarksheet(quizId);
+      const { buffer, stats } = await generateMarksheet(quizId, reportTimeZone);
       await enqueueResultEmail({
         to: quiz.creator_email,
         quizName: quiz.name,
@@ -139,6 +147,7 @@ export class ResultGenerationService {
         endTime: quiz.endtime,
         marksheetBuffer: buffer,
         stats,
+        timeZone: reportTimeZone,
       });
       return { emailSent: true };
     } catch (error) {
