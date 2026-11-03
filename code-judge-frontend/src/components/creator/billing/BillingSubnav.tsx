@@ -2,22 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Wallet, ArrowLeftRight, CalendarClock, Sparkles } from "lucide-react";
 import { cn } from "@/lib/helpers";
 
 const BILLING_TABS = [
-  { label: "Overview", href: "/creator/billing", icon: Wallet, exact: true },
-  { label: "Monthly plans", href: "/creator/billing/plans", icon: CalendarClock },
-  { label: "AI credits", href: "/creator/billing/credits", icon: Sparkles },
+  { label: "Overview", href: "/creator/billing", exact: true },
+  { label: "Monthly plans", href: "/creator/billing/plans" },
+  { label: "AI credits", href: "/creator/billing/credits" },
   // Selling tabs disabled for now (routes commented out, components kept):
-  // { label: "Earnings", href: "/creator/billing/earnings", icon: TrendingUp },
-  { label: "Transactions", href: "/creator/billing/transactions", icon: ArrowLeftRight },
-  // { label: "Payouts", href: "/creator/billing/payouts", icon: Banknote },
-  // { label: "Products", href: "/creator/billing/products", icon: ShoppingBag },
-  // { label: "Refunds", href: "/creator/billing/refunds", icon: RotateCcw },
-  // { label: "Tax", href: "/creator/billing/tax", icon: Scale },
-  // { label: "Documents", href: "/creator/billing/documents", icon: FolderOpen },
-  // { label: "Payment settings", href: "/creator/billing/settings", icon: CreditCard },
+  // { label: "Earnings", href: "/creator/billing/earnings" },
+  { label: "Transactions", href: "/creator/billing/transactions" },
+  // { label: "Payouts", href: "/creator/billing/payouts" },
+  // { label: "Products", href: "/creator/billing/products" },
+  // { label: "Refunds", href: "/creator/billing/refunds" },
+  // { label: "Tax", href: "/creator/billing/tax" },
+  // { label: "Documents", href: "/creator/billing/documents" },
+  // { label: "Payment settings", href: "/creator/billing/settings" },
 ];
 
 export function BillingSubnav() {
@@ -25,7 +24,7 @@ export function BillingSubnav() {
 
   return (
     <div className="relative z-10 -mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-6 sm:px-6">
-      <div className="flex w-fit items-center gap-1 rounded-[16px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-1 shadow-[3px_3px_0_var(--qs-sun)]">
+      <div className="flex w-fit items-center gap-1 rounded-[16px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-[5px] shadow-[4px_4px_0_var(--qs-sun)]">
         {BILLING_TABS.map((tab) => {
           const isActive = tab.exact
             ? pathname === tab.href
@@ -35,13 +34,12 @@ export function BillingSubnav() {
               key={tab.href}
               href={tab.href}
               className={cn(
-                "flex shrink-0 items-center gap-2 rounded-[11px] px-4 py-2.5 text-[12px] font-bold transition-colors",
+                "flex shrink-0 items-center rounded-[11px] px-3.5 py-2.5 text-[13.5px] font-extrabold transition-colors",
                 isActive
-                  ? "bg-[var(--qs-ink)] text-[var(--qs-bg)]"
-                  : "text-[var(--qs-muted)] hover:bg-[var(--qs-bg)] hover:text-[var(--qs-ink)]"
+                  ? "bg-[#1d1840] text-[var(--qs-sun)] dark:bg-[var(--qs-brand)] dark:text-white"
+                  : "text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"
               )}
             >
-              <tab.icon className="h-3.5 w-3.5" />
               {tab.label}
             </Link>
           );

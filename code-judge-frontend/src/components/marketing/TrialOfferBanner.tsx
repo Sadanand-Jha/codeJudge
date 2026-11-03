@@ -38,12 +38,15 @@ export function TrialOfferBanner({
   const basicPlan = catalog.plans.find((plan) => plan.slug === "basic");
   const trialPlan = catalog.plans.find((plan) => plan.trialDays > 0);
   const basicDiscount = basicPlan ? getPlanDiscount(basicPlan) : 0;
-  const { status: trialStatus } = useTrialStatus();
+  const { status: trialStatus, isLoading: trialLoading } = useTrialStatus();
   const trialDays = trialPlan?.trialDays ?? 0;
   const planName = trialPlan?.name ?? "Basic";
   const trialCredits = BASIC_TRIAL_CREDITS;
 
-  if (trialStatus && !trialStatus.eligible) return null;
+  // Wait for the backend check before deciding to show the offer. Rendering
+  // while status is still unknown causes the banner to flash for users who
+  // are already subscribed or have already used the trial.
+  if (trialLoading || !trialStatus || !trialStatus.eligible) return null;
 
   return (
     <section

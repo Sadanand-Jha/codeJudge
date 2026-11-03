@@ -1,13 +1,14 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { createPortal } from "react-dom";
 import { getUserTimeZone } from "@/lib/timezone";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
   ArrowRight,
   Check,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Coins,
@@ -36,7 +37,8 @@ import { cn } from "@/lib/helpers";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { InvoiceV2Dialog } from "./InvoiceV2Dialog";
 import { useBillingData } from "./hooks";
-import { BillButton, EmptyState, ErrorState, PageHeader, StatCard, StatusBadge, formatINR, type StatusTone } from "./ui";
+import { BillButton, ErrorState, formatINR } from "./ui";
+import { QsSelect } from "@/components/creator/problems/QsSelect";
 
 /* ============================================
    Data — recorded credit purchases.
@@ -102,16 +104,27 @@ function txnExpiry(txn: CreditTransaction, getValidity: CreditValidityLookup): n
    Small pieces
    ============================================ */
 
-const STATUS_META: Record<CreditTxnStatus, { label: string; tone: StatusTone }> = {
-  completed: { label: "Completed", tone: "emerald" },
-  pending: { label: "Pending", tone: "amber" },
-  failed: { label: "Failed", tone: "rose" },
-  refunded: { label: "Refunded", tone: "slate" },
+const STATUS_META: Record<CreditTxnStatus, { label: string }> = {
+  completed: { label: "Completed" },
+  pending: { label: "Pending" },
+  failed: { label: "Failed" },
+  refunded: { label: "Refunded" },
+};
+
+const STATUS_CHIP: Record<CreditTxnStatus, string> = {
+  completed: "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]",
+  pending: "border-[var(--qs-sun)] bg-[var(--qs-sun)]/25 text-[var(--qs-ink)]",
+  failed: "border-[var(--qs-bad)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]",
+  refunded: "border-[var(--qs-line)] bg-[var(--qs-line)]/30 text-[var(--qs-muted)]",
 };
 
 function StatusChip({ status }: { status: CreditTxnStatus }) {
-  const meta = STATUS_META[status];
-  return <StatusBadge label={meta.label} tone={meta.tone} dot />;
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border-2 px-3 py-1 text-[12.5px] font-extrabold", STATUS_CHIP[status])}>
+      <span className="h-[7px] w-[7px] rounded-full bg-current" aria-hidden="true" />
+      {STATUS_META[status].label}
+    </span>
+  );
 }
 
 const METHOD_LABEL: Record<PayMethodKind, string> = {
@@ -188,38 +201,51 @@ function ExpiryLine({ txn, now }: { txn: CreditTransaction; now: number }) {
   const getValidity = useCreditValidity();
   if (txn.status !== "completed") return null;
   const exp = txnExpiry(txn, getValidity);
-  if (exp === null) return <p className="mt-0.5 text-xs text-[var(--qs-muted)]">Validity unavailable</p>;
+  if (exp === null) return <p className="mt-0.5 text-[12.5px] font-medium text-[var(--qs-muted)]">Validity unavailable</p>;
   const left = daysLeft(exp, now);
-  if (left < 0) return <p className="mt-0.5 text-xs font-semibold text-[var(--qs-bad)]">Expired</p>;
+  if (left < 0) return <p className="mt-0.5 text-[12.5px] font-extrabold text-[var(--qs-bad)]">Expired</p>;
   if (left <= 14) {
     return (
       <p className="mt-0.5">
-        <span className="inline-flex rounded-full bg-[var(--qs-sun)]/30 px-2 py-0.5 text-[11px] font-semibold text-[var(--qs-ink)]">
+        <span className="inline-flex rounded-full bg-[var(--qs-sun)]/30 px-2 py-0.5 text-[11.5px] font-semibold text-[var(--qs-ink)]">
           Expires {fmtDate(exp)}
         </span>
       </p>
     );
   }
-  return <p className="mt-0.5 text-xs text-[var(--qs-muted)]">Expires {fmtDate(exp)}</p>;
+  return <p className="mt-0.5 text-[12.5px] font-medium text-[var(--qs-muted)]">Expires {fmtDate(exp)}</p>;
 }
 
-function SelectWrap({ id, label, value, onChange, options }: {
-  id: string; label: string; value: string; onChange: (v: string) => void; options: Array<{ id: string; label: string }>;
+function SummaryTile({
+  label,
+  value,
+  hint,
+  highlight = false,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  highlight?: boolean;
+  icon: LucideIcon;
 }) {
   return (
-    <div className="relative shrink-0">
-      <label htmlFor={id} className="sr-only">{label}</label>
-      <select
-        id={id}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-10 cursor-pointer appearance-none rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-3.5 pr-9 text-[13px] font-semibold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)]/40 focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
-      >
-        {options.map((o) => (
-          <option key={o.id} value={o.id}>{o.label}</option>
-        ))}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" aria-hidden="true" />
+    <div
+      className={cn(
+        "min-w-0 rounded-[18px] border-2 border-[#1d1840] p-3.5 text-[#1d1840] shadow-[4px_4px_0_#1d1840] sm:px-4",
+        highlight ? "bg-[var(--qs-sun)]" : "bg-white"
+      )}
+    >
+      <small className={cn("flex items-center gap-1.5 text-[13px] font-extrabold", highlight ? "text-[#5b4a10]" : "text-[#5b5680]")}>
+        <Icon className={cn("h-[15px] w-[15px] shrink-0", highlight ? "text-[#1d1840]" : "text-[var(--qs-brand)]")} aria-hidden="true" />
+        {label}
+      </small>
+      <b className="mt-1.5 block break-words text-[24px] font-extrabold leading-[1.1] tracking-[-0.025em] sm:text-[28px]">{value}</b>
+      {hint && (
+        <em className={cn("mt-1 block text-[12.5px] font-semibold not-italic", highlight ? "text-[#5b4a10]" : "text-[#5b5680]")}>
+          {hint}
+        </em>
+      )}
     </div>
   );
 }
@@ -358,7 +384,7 @@ function DrawerShell({ txn, onClose, panelRef, onReceipt, onInvoice }: {
             data-autofocus
             onClick={onClose}
             aria-label="Close transaction details"
-            className="grid h-8 w-8 place-items-center rounded-lg text-[var(--qs-muted)] outline-none transition-colors hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
+            className="grid h-9 w-9 place-items-center rounded-[11px] border-2 border-transparent text-[var(--qs-muted)] outline-none transition-colors hover:border-[var(--qs-ink)] hover:text-[var(--qs-ink)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
           >
             <X className="h-4 w-4" />
           </button>
@@ -561,7 +587,9 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
     setPage(1);
   };
 
-  const buyProps = onBuyCredits ? { onClick: onBuyCredits } : { href: "/creator/billing/credits" };
+  const filterTriggerClass = "h-[42px] min-w-[150px] rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-3.5 pr-3 text-[14px] font-extrabold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)]/40 focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40";
+  const buyHref = onBuyCredits ? undefined : "/creator/billing/credits";
+  const buyClass = "inline-flex items-center gap-2 rounded-[14px] border-2 border-[#1d1840] bg-[var(--qs-sun)] px-[22px] py-[13px] text-[15px] font-extrabold text-[#1d1840] shadow-[0_4px_0_#1d1840] transition-transform duration-100 active:translate-y-0.5 active:shadow-[0_2px_0_#1d1840] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80";
 
   const handleReceipt = (txn: CreditTransaction) => {
     if (onDownloadReceipt) return onDownloadReceipt(txn);
@@ -628,146 +656,249 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
 
   return (
     <CreditValidityContext.Provider value={getValidity}>
-      <div className="space-y-6">
-        {/* Header */}
-      <PageHeader
-        title="Transactions"
-        subtitle="Credit-pack and monthly plan payments on your account."
-        actions={
-          <BillButton variant="primary" className="shrink-0" {...buyProps}>
-            Buy Credits
-          </BillButton>
-        }
-      />
-
-      {state === "loading" && (
-        <div className="flex min-h-[50vh] items-center justify-center" role="status" aria-label="Loading transactions">
-          <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
-        </div>
-      )}
-
-      {state === "error" && (
-        <ErrorState onRetry={retry} message="Transactions could not be loaded." />
-      )}
-
-      {(state === "empty" || (state === "ready" && allTxns.length === 0)) && (
-        <EmptyState
-          title="No payments yet"
-          description="Buy a credit pack or choose a monthly plan to get started."
-          icon={<ShoppingCart className="h-6 w-6" />}
-          action={
-            <BillButton variant="primary" {...buyProps}>
-              Buy Credits
-            </BillButton>
-          }
-        />
-      )}
-
-      {state === "ready" && allTxns.length > 0 && (
-        <>
-          {/* Stat cards */}
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <StatCard label="Total purchases" value={stats.count} display={String(stats.count)} accent="primary" icon={<ShoppingCart className="h-[18px] w-[18px]" />} />
-            <StatCard label="Credits purchased" value={stats.credits} display={`+${stats.credits}`} accent="warning" icon={<Coins className="h-[18px] w-[18px]" />} />
-            <StatCard label="Total spent" value={stats.spent} accent="success" icon={<ReceiptIndianRupee className="h-[18px] w-[18px]" />} />
-            <StatCard
-              label="Credits left"
-              value={balance.totalRemaining}
-              display={String(balance.totalRemaining)}
-              accent="info"
-              icon={<Wallet className="h-[18px] w-[18px]" />}
-              hint={nextExpiry ? `Next expiry: ${fmtDate(nextExpiry.exp)}` : "No active credits"}
-            />
+      <div className="mx-auto w-full max-w-[1040px] space-y-[22px]">
+        {state === "loading" && (
+          <div className="flex min-h-[50vh] items-center justify-center" role="status" aria-label="Loading transactions">
+            <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
           </div>
+        )}
 
-          {/* Expiry warning */}
-          {expiringSoon && (
-            <div className="flex flex-col gap-2 rounded-[18px] border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between" role="status">
-              <p className="flex items-start gap-2 text-[13px] font-semibold text-[var(--qs-ink)]">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                {expiringSoon.t.credits} credits expire on {fmtDate(expiringSoon.exp)}. Use them before then.
-              </p>
-              <a
-                href="/creator/tests/create"
-                className="inline-flex shrink-0 items-center gap-1 text-[13px] font-bold text-[var(--qs-brand)] underline underline-offset-2 outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
-              >
-                Create paper <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-              </a>
-            </div>
-          )}
+        {state === "error" && (
+          <ErrorState onRetry={retry} message="Transactions could not be loaded." />
+        )}
 
-          {/* Table card */}
-          <div className="overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
-            {/* Toolbar */}
-            <div className="flex flex-col gap-3 border-b-2 border-[var(--qs-line)] p-4 sm:p-5">
-              <div className="relative flex-1">
-                <label htmlFor="txn-search" className="sr-only">Search transactions</label>
-                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" aria-hidden="true" />
-                <input
-                  id="txn-search"
-                  value={query}
-                  onChange={(e) => { setQuery(e.target.value); setPage(1); }}
-                  placeholder="Search by pack name or order ID"
-                  className="h-10 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-10 pr-3.5 text-[13px] text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] hover:border-[var(--qs-brand)]/40 focus:border-[var(--qs-brand)] focus:ring-2 focus:ring-[var(--qs-brand)]/25"
+        {state !== "loading" && state !== "error" && (
+          <>
+            <section
+              aria-label="Transactions summary"
+              className="relative overflow-hidden rounded-[28px] border-2 border-[#1d1840] bg-[var(--qs-brand)] p-[22px] text-white shadow-[8px_8px_0_var(--qs-sun)] sm:p-[34px]"
+            >
+              <div aria-hidden className="pointer-events-none absolute -right-[70px] -top-[90px] h-[280px] w-[280px] rounded-full bg-white/[0.08]" />
+              <div className="relative flex flex-wrap items-end justify-between gap-5">
+                <div>
+                  <h1 className="qs-display text-[36px] font-extrabold leading-[1.02] tracking-[-0.035em] sm:text-[50px]">
+                    Transactions
+                  </h1>
+                  <p className="mt-2 text-[15px] font-semibold text-white/85 sm:text-base">
+                    Credit-pack and monthly plan payments on your account.
+                  </p>
+                </div>
+                {buyHref ? (
+                  <Link href={buyHref} className={buyClass}>Buy credits</Link>
+                ) : (
+                  <button type="button" onClick={onBuyCredits} className={buyClass}>Buy credits</button>
+                )}
+              </div>
+              <div className="relative mt-7 grid grid-cols-2 gap-3.5 min-[900px]:grid-cols-4">
+                <SummaryTile label="Total purchases" value={String(stats.count)} icon={ShoppingCart} />
+                <SummaryTile label="Credits purchased" value={`+${stats.credits}`} icon={Coins} />
+                <SummaryTile label="Total spent" value={formatINR(stats.spent)} icon={ReceiptIndianRupee} />
+                <SummaryTile
+                  label="Credits left"
+                  value={String(balance.totalRemaining)}
+                  hint={nextExpiry ? `Next expiry: ${fmtDate(nextExpiry.exp)}` : "No active credits"}
+                  highlight
+                  icon={Wallet}
                 />
               </div>
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] lg:pb-0 [&::-webkit-scrollbar]:hidden">
-                <SelectWrap id="txn-status" label="Filter by status" value={status} onChange={setFilter(setStatus)}
-                  options={[
-                    { id: "all", label: "All statuses" }, { id: "completed", label: "Completed" },
-                    { id: "pending", label: "Pending" }, { id: "failed", label: "Failed" }, { id: "refunded", label: "Refunded" },
-                  ]} />
-                <SelectWrap id="txn-range" label="Filter by date range" value={range} onChange={setFilter(setRange)}
-                  options={[
-                    { id: "all", label: "All time" }, { id: "30d", label: "Last 30 days" },
-                    { id: "3m", label: "Last 3 months" }, { id: "year", label: "This year" },
-                  ]} />
-                <SelectWrap id="txn-sort" label="Sort transactions" value={sort} onChange={setFilter(setSort)}
-                  options={[
-                    { id: "newest", label: "Newest first" }, { id: "oldest", label: "Oldest first" }, { id: "amount", label: "Amount high to low" },
-                  ]} />
-                <BillButton variant="ghost" icon={<Download className="h-4 w-4" />} onClick={exportCsv} className="ml-auto shrink-0">
-                  Export CSV
-                </BillButton>
-              </div>
-            </div>
+            </section>
 
-            {filtered.length === 0 ? (
-              <div className="flex flex-col items-center px-6 py-14 text-center">
-                <span className="grid h-14 w-14 place-items-center rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)]" aria-hidden="true">
-                  <Search className="h-6 w-6" />
-                </span>
-                <p className="mt-4 text-sm font-bold text-[var(--qs-ink)]">No transactions match your filters.</p>
-                <button
-                  type="button"
-                  onClick={() => { setQuery(""); setStatus("all"); setRange("all"); setSort("newest"); setPage(1); }}
-                  className="mt-2 text-[13px] font-bold text-[var(--qs-brand)] underline underline-offset-2 outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
+            {expiringSoon && (
+              <div className="flex flex-col gap-2 rounded-[18px] border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between" role="status">
+                <p className="flex items-start gap-2 text-[13px] font-semibold text-[var(--qs-ink)]">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  {expiringSoon.t.credits} credits expire on {fmtDate(expiringSoon.exp)}. Use them before then.
+                </p>
+                <a
+                  href="/creator/tests/create"
+                  className="inline-flex shrink-0 items-center gap-1 text-[13px] font-bold text-[var(--qs-brand)] underline underline-offset-2 outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
                 >
-                  Clear filters
-                </button>
+                  Create paper <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                </a>
               </div>
-            ) : (
-              <>
-                {/* Desktop + tablet table */}
-                <div className="hidden overflow-x-auto sm:block">
-                  <table className="w-full table-fixed border-collapse">
-                    <caption className="sr-only">Billing transactions</caption>
-                    <thead>
-                      <tr className="border-b-2 border-[var(--qs-ink)]">
-                        <th scope="col" className="w-[30%] px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[var(--qs-muted)]">Transaction</th>
-                        <th scope="col" className="hidden w-[14%] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[var(--qs-muted)] lg:table-cell">Payment method</th>
-                        <th scope="col" className="w-[15%] px-3 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-[var(--qs-muted)]">Credits</th>
-                        <th scope="col" className="w-[12%] px-3 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-[var(--qs-muted)]">Amount</th>
-                        <th scope="col" className="w-[13%] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[var(--qs-muted)]">Status</th>
-                        <th scope="col" className="w-[16%] px-5 py-3 text-right"><span className="sr-only">Actions</span></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[var(--qs-line)]">
-                      {pageItems.map((txn) => {
-                        const MethodIcon = METHOD_ICON[txn.methodKind];
-                        return (
-                          <tr
-                            key={txn.id}
+            )}
+
+            <section
+              aria-label="Transaction list"
+              className="overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]"
+            >
+              <div className="grid gap-3 p-5">
+                <label htmlFor="txn-search" className="sr-only">Search transactions</label>
+                <div className="flex h-[46px] items-center gap-2.5 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3.5 text-[var(--qs-muted)] transition-colors focus-within:border-[var(--qs-brand)]">
+                  <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <input
+                    id="txn-search"
+                    value={query}
+                    onChange={(e) => { setQuery(e.target.value); setPage(1); }}
+                    placeholder="Search by pack name or order ID"
+                    aria-label="Search transactions"
+                    className="min-w-0 flex-1 border-0 bg-transparent text-[14.5px] font-semibold text-[var(--qs-ink)] outline-none placeholder:text-[var(--qs-muted)] placeholder:font-medium"
+                  />
+                </div>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <QsSelect
+                    id="txn-status"
+                    value={status}
+                    onChange={setFilter(setStatus)}
+                    ariaLabel="Filter by status"
+                    triggerClassName={filterTriggerClass}
+                    options={[
+                      { value: "all", label: "All statuses" }, { value: "completed", label: "Completed" },
+                      { value: "pending", label: "Pending" }, { value: "failed", label: "Failed" }, { value: "refunded", label: "Refunded" },
+                    ]}
+                  />
+                  <QsSelect
+                    id="txn-range"
+                    value={range}
+                    onChange={setFilter(setRange)}
+                    ariaLabel="Filter by date range"
+                    triggerClassName={filterTriggerClass}
+                    options={[
+                      { value: "all", label: "All time" }, { value: "30d", label: "Last 30 days" },
+                      { value: "3m", label: "Last 3 months" }, { value: "year", label: "This year" },
+                    ]}
+                  />
+                  <QsSelect
+                    id="txn-sort"
+                    value={sort}
+                    onChange={setFilter(setSort)}
+                    ariaLabel="Sort transactions"
+                    triggerClassName={filterTriggerClass}
+                    options={[
+                      { value: "newest", label: "Newest first" }, { value: "oldest", label: "Oldest first" }, { value: "amount", label: "Amount high to low" },
+                    ]}
+                  />
+                  <button
+                    type="button"
+                    onClick={exportCsv}
+                    className="ml-auto inline-flex h-[42px] shrink-0 items-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-3.5 text-[14px] font-extrabold text-[var(--qs-ink)] shadow-[0_3px_0_var(--qs-ink)] transition-transform duration-100 active:translate-y-0.5 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
+                  >
+                    <Download className="h-4 w-4" aria-hidden="true" /> Export CSV
+                  </button>
+                </div>
+              </div>
+
+              {filtered.length === 0 ? (
+                <div className="border-t-2 border-[var(--qs-line)] px-5 py-11 text-center">
+                  <b className="block text-[18px] font-extrabold text-[var(--qs-ink)]">
+                    {allTxns.length === 0 ? "No transactions yet" : "No transactions match these filters"}
+                  </b>
+                  <p className="mt-1 text-[14px] font-medium text-[var(--qs-muted)]">
+                    {allTxns.length === 0
+                      ? "Buy a credit pack or choose a monthly plan to get started."
+                      : "Try a different search, status or time range."}
+                  </p>
+                  {allTxns.length === 0 ? (
+                    buyHref ? (
+                      <Link href={buyHref} className={`${buyClass} mt-3.5`}>Buy credits</Link>
+                    ) : (
+                      <button type="button" onClick={onBuyCredits} className={`${buyClass} mt-3.5`}>Buy credits</button>
+                    )
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => { setQuery(""); setStatus("all"); setRange("all"); setSort("newest"); setPage(1); }}
+                      className="mt-3.5 inline-flex h-10 items-center rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-4 text-[14px] font-extrabold text-[#1d1840] shadow-[0_3px_0_#1d1840] transition-transform duration-100 active:translate-y-0.5 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
+                    >
+                      Clear filters
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div className="hidden overflow-x-auto sm:block">
+                    <table className="w-full border-collapse">
+                      <caption className="sr-only">Billing transactions</caption>
+                      <thead>
+                        <tr className="border-y-2 border-t-[var(--qs-line)] border-b-[var(--qs-ink)] bg-[var(--qs-brand)]/[0.06]">
+                          <th scope="col" className="w-[33%] px-5 py-3.5 text-left text-[13px] font-extrabold text-[var(--qs-muted)]">Transaction</th>
+                          <th scope="col" className="hidden w-[13%] px-3 py-3.5 text-left text-[13px] font-extrabold text-[var(--qs-muted)] lg:table-cell">Payment method</th>
+                          <th scope="col" className="w-[15%] px-3 py-3.5 text-right text-[13px] font-extrabold text-[var(--qs-muted)]">Credits</th>
+                          <th scope="col" className="w-[14%] px-3 py-3.5 text-right text-[13px] font-extrabold text-[var(--qs-muted)]">Amount</th>
+                          <th scope="col" className="w-[14%] px-3 py-3.5 text-left text-[13px] font-extrabold text-[var(--qs-muted)]">Status</th>
+                          <th scope="col" className="px-5 py-3.5 text-right"><span className="sr-only">Actions</span></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--qs-line)]">
+                        {pageItems.map((txn) => {
+                          const MethodIcon = METHOD_ICON[txn.methodKind];
+                          return (
+                            <tr
+                              key={txn.id}
+                              tabIndex={0}
+                              onClick={() => openDrawer(txn)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  if ((e.target as HTMLElement).closest("button")) return;
+                                  e.preventDefault();
+                                  openDrawer(txn);
+                                }
+                              }}
+                              aria-label={`Open details for ${txn.packName}, order ${txn.id}`}
+                              className="cursor-pointer outline-none transition-colors hover:bg-[var(--qs-brand)]/[0.04] focus-visible:bg-[var(--qs-brand)]/[0.04] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--qs-brand)]/40"
+                            >
+                              <td className="px-5 py-4">
+                                <div className="flex min-w-0 items-center gap-3.5">
+                                  <span className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-[13px] border-2 border-[var(--qs-line)] bg-[var(--qs-brand)]/[0.06] text-[var(--qs-brand)]" aria-hidden="true">
+                                    <Coins className="h-5 w-5" />
+                                  </span>
+                                  <div className="min-w-0">
+                                    <p className="truncate text-[16px] font-extrabold tracking-[-0.01em] text-[var(--qs-ink)]">{txn.packName}</p>
+                                    <p className="mt-0.5 text-[12.5px] font-medium leading-[1.45] text-[var(--qs-muted)] [overflow-wrap:anywhere]">
+                                      {fmtDateTime(txn.timestamp)}
+                                      <br />Order #{txn.id}
+                                    </p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="hidden px-3 py-4 lg:table-cell">
+                                <p className="flex items-center gap-2 truncate text-[14px] font-bold text-[var(--qs-ink)]">
+                                  <MethodIcon className="h-4 w-4 shrink-0 text-[var(--qs-muted)]" aria-hidden="true" />
+                                  <span className="truncate">{txn.methodLabel}</span>
+                                </p>
+                              </td>
+                              <td className="px-3 py-4 text-right">
+                                <p className="text-[16px] font-extrabold tabular-nums text-[var(--qs-brand)]">+{txn.credits}</p>
+                                <ExpiryLine txn={txn} now={now} />
+                              </td>
+                              <td className="px-3 py-4 text-right">
+                                <p className="text-[16px] font-extrabold tabular-nums text-[var(--qs-ink)]">{formatINR(txn.price)}</p>
+                                <p className="mt-0.5 text-[12.5px] font-medium text-[var(--qs-muted)]">incl. GST</p>
+                              </td>
+                              <td className="px-3 py-4">
+                                <StatusChip status={txn.status} />
+                              </td>
+                              <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                                <RowActions
+                                  txn={txn}
+                                  openMenuId={openMenuId}
+                                  setOpenMenuId={setOpenMenuId}
+                                  menuRef={menuRef}
+                                  onReceipt={() => handleReceipt(txn)}
+                                  onRetry={() => handleRetry(txn)}
+                                  onInvoice={() => handleInvoice(txn)}
+                                  onCopy={() => copyOrderId(txn)}
+                                  onSupport={() => {
+                                    setOpenMenuId(null);
+                                    toast.info({ title: "Contact support", description: "Send a message through the Contact page feedback form with your order ID." });
+                                  }}
+                                  onCheck={() => toast.info({ title: "Payment pending", description: `Order ${txn.id} is still being confirmed.` })}
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <ul className="divide-y divide-[var(--qs-line)] sm:hidden">
+                    {pageItems.map((txn) => {
+                      const MethodIcon = METHOD_ICON[txn.methodKind];
+                      return (
+                        <li key={txn.id}>
+                          <div
+                            role="button"
                             tabIndex={0}
                             onClick={() => openDrawer(txn)}
                             onKeyDown={(e) => {
@@ -778,184 +909,136 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
                               }
                             }}
                             aria-label={`Open details for ${txn.packName}, order ${txn.id}`}
-                            className="cursor-pointer outline-none transition-colors hover:bg-[var(--qs-sun)]/[0.12] focus-visible:bg-[var(--qs-sun)]/[0.12] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--qs-brand)]/40"
+                            className="cursor-pointer p-4 outline-none transition-colors hover:bg-[var(--qs-brand)]/[0.04] focus-visible:bg-[var(--qs-brand)]/[0.04] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--qs-brand)]/40"
                           >
-                            <td className="px-5 py-3.5">
-                              <div className="flex min-w-0 items-center gap-3">
-                                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[var(--qs-brand)]/[0.08] text-[var(--qs-brand)]" aria-hidden="true">
-                                  <Coins className="h-4 w-4" />
-                                </span>
-                                <div className="min-w-0">
-                                  <p className="truncate text-[13px] font-semibold text-[var(--qs-ink)]">{txn.packName}</p>
-                                  <p className="mt-0.5 truncate text-[11px] tabular-nums text-[var(--qs-muted)]">
-                                    {fmtDateTime(txn.timestamp)}
-                                  </p>
-                                  <p className="truncate text-[11px] tabular-nums text-[var(--qs-muted)]">Order #{txn.id}</p>
-                                </div>
+                            <div className="flex items-start gap-3.5">
+                              <span className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-[13px] border-2 border-[var(--qs-line)] bg-[var(--qs-brand)]/[0.06] text-[var(--qs-brand)]" aria-hidden="true">
+                                <Coins className="h-5 w-5" />
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-[16px] font-extrabold tracking-[-0.01em] text-[var(--qs-ink)]">{txn.packName}</p>
+                                <p className="mt-0.5 text-[12.5px] font-medium leading-[1.45] text-[var(--qs-muted)] [overflow-wrap:anywhere]">
+                                  {fmtDateTime(txn.timestamp)}
+                                  <br />Order #{txn.id}
+                                </p>
                               </div>
-                            </td>
-                            <td className="hidden px-3 py-3.5 lg:table-cell">
-                              <p className="flex items-center gap-1.5 truncate text-xs font-semibold text-[var(--qs-ink)]">
-                                <MethodIcon className="h-3.5 w-3.5 shrink-0 text-[var(--qs-muted)]" aria-hidden="true" />
-                                <span className="truncate">{txn.methodLabel}</span>
-                              </p>
-                            </td>
-                            <td className="px-3 py-3.5 text-right">
-                              <p className="text-[13px] font-bold tabular-nums text-[var(--qs-brand)]">+{txn.credits}</p>
-                              <ExpiryLine txn={txn} now={now} />
-                            </td>
-                            <td className="px-3 py-3.5 text-right">
-                              <p className="text-[13px] font-bold tabular-nums text-[var(--qs-ink)]">{formatINR(txn.price)}</p>
-                              <p className="mt-0.5 text-[11px] text-[var(--qs-muted)]">incl. GST</p>
-                            </td>
-                            <td className="px-3 py-3.5">
-                              <StatusChip status={txn.status} />
-                            </td>
-                            <td className="px-5 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
-                              <RowActions
-                                txn={txn}
-                                openMenuId={openMenuId}
-                                setOpenMenuId={setOpenMenuId}
-                                menuRef={menuRef}
-                                onReceipt={() => handleReceipt(txn)}
-                                onRetry={() => handleRetry(txn)}
-                                onInvoice={() => handleInvoice(txn)}
-                                onCopy={() => copyOrderId(txn)}
-                                onSupport={() => {
-                                  setOpenMenuId(null);
-                                  toast.info({ title: "Contact support", description: "Send a message through the Contact page feedback form with your order ID." });
-                                }}
-                                onCheck={() => toast.info({ title: "Payment pending", description: `Order ${txn.id} is still being confirmed.` })}
-                              />
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                            </div>
 
-                {/* Mobile stacked cards */}
-                <ul className="divide-y divide-[var(--qs-line)] sm:hidden">
-                  {pageItems.map((txn) => (
-                    <li key={txn.id}>
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => openDrawer(txn)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            if ((e.target as HTMLElement).closest("button")) return;
-                            e.preventDefault();
-                            openDrawer(txn);
-                          }
-                        }}
-                        aria-label={`Open details for ${txn.packName}, order ${txn.id}`}
-                        className="cursor-pointer space-y-2 px-4 py-4 outline-none transition-colors hover:bg-[var(--qs-brand)]/[0.05] focus-visible:bg-[var(--qs-brand)]/[0.05] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--qs-brand)]/40"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="truncate text-sm font-bold text-[var(--qs-ink)]">{txn.packName}</p>
-                          <p className="shrink-0 text-sm font-extrabold tabular-nums text-[var(--qs-ink)]">{formatINR(txn.price)}</p>
-                        </div>
-                        <p className="truncate text-xs tabular-nums text-[var(--qs-muted)]">
-                          {fmtDateTime(txn.timestamp)} · Order #{txn.id}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center rounded-full bg-[var(--qs-brand)]/[0.08] px-2.5 py-1 text-xs font-bold tabular-nums text-[var(--qs-brand)]">
-                            +{txn.credits} credits
-                          </span>
-                          <StatusChip status={txn.status} />
-                        </div>
-                        <div className="flex items-center justify-between gap-2 pt-1">
-                          <div className="text-xs text-[var(--qs-muted)]">
-                            <ExpiryLine txn={txn} now={now} />
-                            {txn.status !== "completed" && <span>{txn.methodLabel}</span>}
+                            <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
+                              <div>
+                                <p className="text-[12px] font-extrabold text-[var(--qs-muted)]">Payment method</p>
+                                <p className="mt-1 flex items-center gap-1.5 text-[13.5px] font-bold text-[var(--qs-ink)]">
+                                  <MethodIcon className="h-4 w-4 text-[var(--qs-muted)]" aria-hidden="true" />
+                                  {txn.methodLabel}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[12px] font-extrabold text-[var(--qs-muted)]">Credits</p>
+                                <p className="mt-1 text-[15px] font-extrabold tabular-nums text-[var(--qs-brand)]">+{txn.credits}</p>
+                                <ExpiryLine txn={txn} now={now} />
+                              </div>
+                              <div>
+                                <p className="text-[12px] font-extrabold text-[var(--qs-muted)]">Amount</p>
+                                <p className="mt-1 text-[15px] font-extrabold tabular-nums text-[var(--qs-ink)]">{formatINR(txn.price)}</p>
+                                <p className="mt-0.5 text-[12px] font-medium text-[var(--qs-muted)]">incl. GST</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[12px] font-extrabold text-[var(--qs-muted)]">Status</p>
+                                <div className="mt-1 flex justify-end"><StatusChip status={txn.status} /></div>
+                              </div>
+                            </div>
+
+                            <div className="mt-4 flex items-center gap-2">
+                              {txn.status === "failed" ? (
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleRetry(txn); }}
+                                  aria-label={`Retry payment for ${txn.packName}`}
+                                  className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[11px] border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)] text-[13px] font-extrabold text-[var(--qs-on-brand)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
+                                >
+                                  <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" /> Retry payment
+                                </button>
+                              ) : txn.status === "pending" ? (
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); toast.info({ title: "Payment pending", description: `Order ${txn.id} is still being confirmed.` }); }}
+                                  aria-label={`Check status for ${txn.packName}`}
+                                  className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[11px] border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/25 text-[13px] font-extrabold text-[var(--qs-ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
+                                >
+                                  <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Check status
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleReceipt(txn); }}
+                                  aria-label={`Download receipt for ${txn.packName}`}
+                                  className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[11px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[13px] font-extrabold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-ink)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
+                                >
+                                  <Download className="h-3.5 w-3.5" aria-hidden="true" /> Receipt
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); openDrawer(txn); }}
+                                aria-label={`More actions for ${txn.packName}`}
+                                className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] border-2 border-transparent text-[var(--qs-muted)] outline-none transition-colors hover:border-[var(--qs-ink)] hover:text-[var(--qs-ink)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
+                              >
+                                <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                              </button>
+                            </div>
                           </div>
-                          {txn.status === "failed" ? (
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handleRetry(txn); }}
-                              aria-label={`Retry payment for ${txn.packName}`}
-                              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-[var(--qs-brand)] px-3.5 py-2 text-xs font-bold text-[var(--qs-on-brand)] outline-none transition-all hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
-                            >
-                              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-                              Retry payment
-                            </button>
-                          ) : txn.status === "pending" ? (
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); toast.info({ title: "Payment pending", description: `Order ${txn.id} is still being confirmed.` }); }}
-                              aria-label={`Check status for ${txn.packName}`}
-                              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[var(--qs-sun)]/60 bg-[var(--qs-sun)]/25 px-3.5 py-2 text-xs font-bold text-[var(--qs-ink)] outline-none transition-colors hover:bg-[var(--qs-sun)]/35 focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
-                            >
-                              <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
-                              Check status
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handleReceipt(txn); }}
-                              aria-label={`Download receipt for ${txn.packName}`}
-                              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-2 text-xs font-bold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
-                            >
-                              <Download className="h-3.5 w-3.5" aria-hidden="true" />
-                              Receipt
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                        </li>
+                      );
+                    })}
+                  </ul>
 
-                {/* Pagination */}
-                <div className="flex flex-col gap-3 border-t-2 border-[var(--qs-line)] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                  <p className="text-xs tabular-nums text-[var(--qs-muted)]" aria-live="polite">
-                    Showing {from}–{to} of {filtered.length}
-                  </p>
-                  <nav className="flex items-center gap-1.5" aria-label="Transactions pagination">
-                    <button
-                      type="button"
-                      disabled={safePage <= 1}
-                      onClick={() => setPage(safePage - 1)}
-                      aria-label="Previous page"
-                      className="grid h-8 w-8 place-items-center rounded-lg border-2 border-[var(--qs-line)] text-[var(--qs-muted)] outline-none transition-colors hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                    {pageNumbers.map((n) => (
+                  <div className="flex flex-col gap-3 border-t-2 border-[var(--qs-line)] px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-[13.5px] font-bold tabular-nums text-[var(--qs-muted)]" aria-live="polite">
+                      Showing {from}–{to} of {filtered.length}
+                    </p>
+                    <nav className="flex items-center gap-2" aria-label="Transactions pagination">
                       <button
-                        key={n}
                         type="button"
-                        onClick={() => setPage(n)}
-                        aria-label={`Page ${n}`}
-                        aria-current={n === safePage ? "page" : undefined}
-                        className={cn(
-                          "h-8 min-w-8 rounded-lg px-2 text-xs font-bold tabular-nums outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40",
-                          n === safePage
-                            ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
-                            : "border-2 border-[var(--qs-line)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)]"
-                        )}
+                        disabled={safePage <= 1}
+                        onClick={() => setPage(safePage - 1)}
+                        aria-label="Previous page"
+                        className="grid h-[34px] w-[34px] place-items-center rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[14px] font-extrabold text-[var(--qs-muted)] outline-none transition-colors hover:border-[var(--qs-ink)] hover:text-[var(--qs-ink)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40 disabled:cursor-not-allowed disabled:opacity-45"
                       >
-                        {n}
+                        <ChevronLeft className="h-4 w-4" aria-hidden="true" />
                       </button>
-                    ))}
-                    <button
-                      type="button"
-                      disabled={safePage >= totalPages}
-                      onClick={() => setPage(safePage + 1)}
-                      aria-label="Next page"
-                      className="grid h-8 w-8 place-items-center rounded-lg border-2 border-[var(--qs-line)] text-[var(--qs-muted)] outline-none transition-colors hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                  </nav>
-                </div>
-              </>
-            )}
-          </div>
-        </>
-      )}
+                      {pageNumbers.map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setPage(n)}
+                          aria-label={`Page ${n}`}
+                          aria-current={n === safePage ? "page" : undefined}
+                          className={cn(
+                            "h-[34px] min-w-[34px] rounded-[10px] px-2 text-[14px] font-extrabold tabular-nums outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40",
+                            n === safePage
+                              ? "border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-white shadow-[0_3px_0_var(--qs-ink)]"
+                              : "border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-ink)] hover:text-[var(--qs-ink)]"
+                          )}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        disabled={safePage >= totalPages}
+                        onClick={() => setPage(safePage + 1)}
+                        aria-label="Next page"
+                        className="grid h-[34px] w-[34px] place-items-center rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[14px] font-extrabold text-[var(--qs-muted)] outline-none transition-colors hover:border-[var(--qs-ink)] hover:text-[var(--qs-ink)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40 disabled:cursor-not-allowed disabled:opacity-45"
+                      >
+                        <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    </nav>
+                  </div>
+                </>
+              )}
+            </section>
+          </>
+        )}
 
         <TxnDrawer
           txn={activeTxn}
@@ -977,6 +1060,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
   );
 }
 
+
 /* Row actions cell (desktop): receipt / retry / check + kebab menu */
 function RowActions({ txn, openMenuId, setOpenMenuId, menuRef, onReceipt, onRetry, onInvoice, onCopy, onSupport, onCheck }: {
   txn: CreditTransaction;
@@ -991,31 +1075,58 @@ function RowActions({ txn, openMenuId, setOpenMenuId, menuRef, onReceipt, onRetr
   onCheck: () => void;
 }) {
   const menuOpen = openMenuId === txn.id;
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top?: number; bottom?: number; left: number } | null>(null);
+
+  const measureMenu = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    const width = 208;
+    const gap = 8;
+    const margin = 8;
+    const left = Math.max(margin, Math.min(rect.right - width, window.innerWidth - width - margin));
+    const spaceBelow = window.innerHeight - rect.bottom - gap - margin;
+    const openUp = spaceBelow < 170 && rect.top > 170;
+    setMenuPosition(
+      openUp
+        ? { bottom: window.innerHeight - rect.top + gap, left }
+        : { top: rect.bottom + gap, left }
+    );
+  }, []);
 
   useEffect(() => {
     if (!menuOpen) return;
+    measureMenu();
     const onDown = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpenMenuId(null);
+      const target = e.target as Node;
+      if (menuRef.current?.contains(target) || triggerRef.current?.contains(target)) return;
+      setOpenMenuId(null);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpenMenuId(null);
     };
+    const onViewport = () => measureMenu();
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
+    window.addEventListener("resize", onViewport);
+    window.addEventListener("scroll", onViewport, true);
     return () => {
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", onViewport);
+      window.removeEventListener("scroll", onViewport, true);
     };
-  }, [menuOpen, menuRef, setOpenMenuId]);
+  }, [menuOpen, menuRef, setOpenMenuId, measureMenu]);
 
   return (
-    <div className="flex items-center justify-end gap-1.5">
+    <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
       {txn.status === "failed" ? (
         <button
           type="button"
           onClick={onRetry}
           aria-label={`Retry payment for ${txn.packName}`}
-          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-[var(--qs-brand)] px-3 py-2 text-xs font-bold text-[var(--qs-on-brand)] outline-none transition-all hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[11px] border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)] px-3 text-[13px] font-extrabold text-[var(--qs-on-brand)] outline-none transition-all hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
         >
           <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
           Retry
@@ -1025,7 +1136,7 @@ function RowActions({ txn, openMenuId, setOpenMenuId, menuRef, onReceipt, onRetr
           type="button"
           onClick={onCheck}
           aria-label={`Check status for ${txn.packName}`}
-          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-[var(--qs-sun)]/60 bg-[var(--qs-sun)]/25 px-3 py-2 text-xs font-bold text-[var(--qs-ink)] outline-none transition-colors hover:bg-[var(--qs-sun)]/35 focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[11px] border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/25 px-3 text-[13px] font-extrabold text-[var(--qs-ink)] outline-none transition-colors hover:bg-[var(--qs-sun)]/35 focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
         >
           <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
           Check status
@@ -1035,38 +1146,48 @@ function RowActions({ txn, openMenuId, setOpenMenuId, menuRef, onReceipt, onRetr
           type="button"
           onClick={onReceipt}
           aria-label={`Download receipt for ${txn.packName}`}
-          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2 text-xs font-bold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[11px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-[13px] font-extrabold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-ink)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
         >
           <Download className="h-3.5 w-3.5" aria-hidden="true" />
           Receipt
         </button>
       )}
-      <div className="relative" ref={menuOpen ? menuRef : undefined}>
+      <div className="relative">
         <button
           type="button"
+          ref={triggerRef}
           onClick={() => setOpenMenuId(menuOpen ? null : txn.id)}
           aria-label={`More actions for ${txn.packName}`}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
-          className="grid h-8 w-8 place-items-center rounded-lg text-[var(--qs-muted)] outline-none transition-colors hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
+          className="grid h-9 w-9 place-items-center rounded-[11px] border-2 border-transparent text-[var(--qs-muted)] outline-none transition-colors hover:border-[var(--qs-ink)] hover:text-[var(--qs-ink)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
         >
           <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
         </button>
-        {menuOpen && (
-          <div role="menu" aria-label={`Actions for order ${txn.id}`} className="absolute right-0 z-30 mt-1 w-52 overflow-hidden rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] py-1 shadow-[4px_4px_0_var(--qs-sun)]">
-            <button type="button" role="menuitem" onClick={() => { setOpenMenuId(null); onInvoice(); }}
-              className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-xs font-semibold text-[var(--qs-ink)] outline-none transition-colors hover:bg-[var(--qs-brand)]/[0.06] hover:text-[var(--qs-brand)] focus-visible:bg-[var(--qs-brand)]/[0.06]">
-              <FileText className="h-3.5 w-3.5" aria-hidden="true" /> Download GST invoice
-            </button>
-            <button type="button" role="menuitem" onClick={onCopy}
-              className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-xs font-semibold text-[var(--qs-ink)] outline-none transition-colors hover:bg-[var(--qs-brand)]/[0.06] hover:text-[var(--qs-brand)] focus-visible:bg-[var(--qs-brand)]/[0.06]">
-              <Copy className="h-3.5 w-3.5" aria-hidden="true" /> Copy order ID
-            </button>
-            <button type="button" role="menuitem" onClick={onSupport}
-              className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-xs font-semibold text-[var(--qs-ink)] outline-none transition-colors hover:bg-[var(--qs-brand)]/[0.06] hover:text-[var(--qs-brand)] focus-visible:bg-[var(--qs-brand)]/[0.06]">
-              <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" /> Contact support
-            </button>
-          </div>
+        {menuOpen && menuPosition && createPortal(
+          <div className="qs-ui contents">
+            <div
+              ref={menuRef}
+              role="menu"
+              aria-label={`Actions for order ${txn.id}`}
+              style={{ top: menuPosition.top, bottom: menuPosition.bottom, left: menuPosition.left }}
+              className="fixed z-[80] w-52 overflow-hidden rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] py-1 shadow-[4px_4px_0_var(--qs-sun)]"
+            >
+              <button type="button" role="menuitem" onClick={() => { setOpenMenuId(null); onInvoice(); }}
+                className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-xs font-semibold text-[var(--qs-ink)] outline-none transition-colors hover:bg-[var(--qs-brand)]/[0.06] hover:text-[var(--qs-brand)] focus-visible:bg-[var(--qs-brand)]/[0.06]">
+                <FileText className="h-3.5 w-3.5" aria-hidden="true" /> Download GST invoice
+              </button>
+              <button type="button" role="menuitem" onClick={onCopy}
+                className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-xs font-semibold text-[var(--qs-ink)] outline-none transition-colors hover:bg-[var(--qs-brand)]/[0.06] hover:text-[var(--qs-brand)] focus-visible:bg-[var(--qs-brand)]/[0.06]">
+                <Copy className="h-3.5 w-3.5" aria-hidden="true" /> Copy order ID
+              </button>
+              <button type="button" role="menuitem" onClick={onSupport}
+                className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-xs font-semibold text-[var(--qs-ink)] outline-none transition-colors hover:bg-[var(--qs-brand)]/[0.06] hover:text-[var(--qs-brand)] focus-visible:bg-[var(--qs-brand)]/[0.06]">
+                <LifeBuoy className="h-3.5 w-3.5" aria-hidden="true" /> Contact support
+              </button>
+            </div>
+          </div>,
+          document.body
         )}
       </div>
     </div>
