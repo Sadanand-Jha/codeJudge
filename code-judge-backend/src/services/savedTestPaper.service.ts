@@ -2,6 +2,7 @@ import { pool } from "../config/database.js";
 
 const MAX_PAPER_BYTES = 5 * 1024 * 1024;
 const MAX_META_BYTES = 100 * 1024;
+const MAX_PREVIEW_DATA_URL_LENGTH = 1024 * 1024;
 
 export interface SavedTestPaperInput {
   draftId: string;
@@ -14,6 +15,7 @@ export interface SavedTestPaperInput {
   totalMarks?: number;
   meta?: unknown;
   paper: unknown;
+  previewDataUrl?: unknown;
 }
 
 const asObject = (value: unknown, message: string): Record<string, unknown> => {
@@ -39,6 +41,18 @@ const normalizeSubjects = (value: unknown): string[] => {
     .slice(0, 20);
 };
 
+const normalizePreviewDataUrl = (value: unknown): string | null => {
+  if (value == null || value === "") return null;
+  if (
+    typeof value !== "string" ||
+    value.length > MAX_PREVIEW_DATA_URL_LENGTH ||
+    !/^data:image\/(?:jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(value)
+  ) {
+    throw new Error("Paper preview image is invalid or too large.");
+  }
+  return value;
+};
+
 const validateInput = (input: SavedTestPaperInput) => {
   const draftId = String(input.draftId ?? "").trim();
   if (!/^[A-Za-z0-9._:-]{1,120}$/.test(draftId)) throw new Error("A valid draft id is required.");
@@ -50,6 +64,7 @@ const validateInput = (input: SavedTestPaperInput) => {
   const subjects = normalizeSubjects(input.subjects);
   const meta = input.meta == null ? {} : asObject(input.meta, "Paper header details are invalid.");
   if (jsonBytes(meta) > MAX_META_BYTES) throw new Error("Paper header details are too large.");
+  const previewDataUrl = normalizePreviewDataUrl(input.previewDataUrl);
 
   const paper = asObject(input.paper, "A generated question paper is required.");
   if (!Array.isArray(paper.sections) || paper.sections.length === 0) {
@@ -78,6 +93,7 @@ const validateInput = (input: SavedTestPaperInput) => {
     totalMarks,
     meta,
     paper,
+    previewDataUrl,
   };
 };
 
@@ -92,6 +108,7 @@ const toSummary = (row: Record<string, unknown>) => ({
   totalQuestions: Number(row.total_questions),
   totalMarks: Number(row.total_marks),
   meta: row.meta_json ?? {},
+  previewDataUrl: typeof row.preview_data_url === "string" ? row.preview_data_url : null,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -102,7 +119,7 @@ const toSavedPaper = (row: Record<string, unknown>) => ({
 });
 
 const SUMMARY_COLUMNS = `id, draft_id, title, creation_type, duration_minutes, subjects,
-  sections_count, total_questions, total_marks, meta_json, created_at, updated_at`;
+  sections_count, total_questions, total_marks, meta_json, preview_data_url, created_at, updated_at`;
 
 export async function listSavedTestPapers(userId: number) {
   const { rows } = await pool.query(
@@ -132,8 +149,8 @@ export async function saveTestPaper(userId: number, input: SavedTestPaperInput) 
   const { rows } = await pool.query(
     `INSERT INTO saved_test_papers (
        user_id, draft_id, title, creation_type, duration_minutes, subjects,
-       sections_count, total_questions, total_marks, meta_json, paper_json
-     ) VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,$10::jsonb,$11::jsonb)
+       sections_count, total_questions, total_marks, meta_json, paper_json, preview_data_url
+     ) VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,$10::jsonb,$11::jsonb,$12)
      ON CONFLICT (user_id, draft_id) DO UPDATE SET
        title = EXCLUDED.title,
        creation_type = EXCLUDED.creation_type,
@@ -144,6 +161,7 @@ export async function saveTestPaper(userId: number, input: SavedTestPaperInput) 
        total_marks = EXCLUDED.total_marks,
        meta_json = EXCLUDED.meta_json,
        paper_json = EXCLUDED.paper_json,
+       preview_data_url = EXCLUDED.preview_data_url,
        updated_at = NOW()
      RETURNING ${SUMMARY_COLUMNS}, paper_json`,
     [
@@ -158,6 +176,7 @@ export async function saveTestPaper(userId: number, input: SavedTestPaperInput) 
       value.totalMarks,
       JSON.stringify(value.meta),
       JSON.stringify(value.paper),
+      value.previewDataUrl,
     ]
   );
   return toSavedPaper(rows[0]);
@@ -178,10 +197,30 @@ export async function updateSavedTestPaper(
     `UPDATE saved_test_papers
         SET title = $3,
             meta_json = COALESCE($4::jsonb, meta_json),
+            preview_data_url = NULL,
             updated_at = NOW()
       WHERE id = $1 AND user_id = $2
       RETURNING ${SUMMARY_COLUMNS}`,
     [paperId, userId, title, meta ? JSON.stringify(meta) : null]
+  );
+  if (!rows[0]) throw new Error("Saved test was not found.");
+  return toSummary(rows[0]);
+}
+
+export async function saveSavedTestPaperPreview(
+  userId: number,
+  paperId: number,
+  previewDataUrl: unknown
+) {
+  const preview = normalizePreviewDataUrl(previewDataUrl);
+  if (!preview) throw new Error("A paper preview image is required.");
+  const { rows } = await pool.query(
+    `UPDATE saved_test_papers
+        SET preview_data_url = $3,
+            updated_at = NOW()
+      WHERE id = $1 AND user_id = $2
+      RETURNING ${SUMMARY_COLUMNS}`,
+    [paperId, userId, preview]
   );
   if (!rows[0]) throw new Error("Saved test was not found.");
   return toSummary(rows[0]);

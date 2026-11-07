@@ -36,7 +36,7 @@ export class AdminQuizService {
     duration?: number; totalMarks?: number; passingMarks?: number;
     shuffleQuestions?: boolean; shuffleOptions?: boolean;
     showResultsImmediately?: boolean; negativeMarking?: boolean;
-    leaderboard?: boolean; status?: string; registrationFields?: string[];
+    leaderboard?: boolean; antiCheatEnabled?: boolean; status?: string; registrationFields?: string[];
   }): Promise<any> {
     await assertQuizCreationAllowed(data.createdby);
     return this.repository.createQuiz(data);
@@ -119,8 +119,8 @@ export class AdminQuizService {
 
   // ==================== LOOKUPS ====================
 
-  async getAllSubjects(search?: string): Promise<any[]> {
-    return this.repository.getAllSubjects(search);
+  async getAllSubjects(search?: string, userId?: number | null): Promise<any[]> {
+    return this.repository.getAllSubjects(search, userId);
   }
 
   async getAllExamCategories(search?: string): Promise<any[]> {

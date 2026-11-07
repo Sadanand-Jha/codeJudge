@@ -223,10 +223,10 @@ export function ResourceMarketplacePage() {
         </span>
         <span className="relative inline-flex items-center gap-1.5 rounded-full bg-[var(--qs-ink)] px-3 py-[5px] text-[12px] font-extrabold uppercase tracking-[0.05em] text-[var(--qs-sun)]">
           <Sparkles className="h-3 w-3 fill-current" />
-          Community resources
+          Teacher community
         </span>
         <h1 className="qs-display relative mt-3.5 mb-2 text-[34px] font-extrabold leading-[1.02] tracking-[-0.035em] sm:text-[46px]">
-          Pull a quiz, <em className="not-italic text-[var(--qs-sun)]">save hours</em>
+          Community
         </h1>
         <p className="relative max-w-[520px] text-[15.5px] font-medium leading-[1.5] text-white/[0.88]">
           Free quizzes shared by teachers. Pick the ones you like and pull them into your

@@ -239,6 +239,7 @@ export const createPlanOrderHandler = async (
     const body = req.body as {
       plan_id?: number;
       plan_slug?: string;
+      price_id?: number;
       coupon?: string | null;
       coupon_code?: string | null;
       currency?: string | null;
@@ -246,8 +247,10 @@ export const createPlanOrderHandler = async (
     const data = await billingService.createPlanOrder(userIdFrom(req), {
       planId: body.plan_id ?? null,
       planSlug: body.plan_slug ?? null,
+      priceId: body.price_id ?? null,
       couponCode: body.coupon ?? body.coupon_code ?? null,
       currency: body.currency ?? null,
+      request: req,
     });
     res.status(201).json({ success: true, data });
   } catch (error) {

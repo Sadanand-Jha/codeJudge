@@ -69,6 +69,7 @@ export interface CreateQuizPayload {
   timeZone?: string;
   randomizeQuestions?: boolean;
   randomizeOptions?: boolean;
+  antiCheatEnabled?: boolean;
   showResultImmediately?: boolean;
   showCorrectAnswersAfterSubmission?: boolean;
   negativeMarking?: boolean;
@@ -241,6 +242,7 @@ export interface QuizBasic {
   show_results_immediately: boolean | null;
   negative_marking: boolean | null;
   leaderboard: boolean | null;
+  anti_cheat_enabled?: boolean | null;
   /** Creator-defined registration field names (JSON array of strings). */
   registration_fields?: string[] | null;
   status: string | null;
@@ -534,6 +536,7 @@ export async function updateQuiz(quizId: string, data: Partial<{
   showResultsImmediately: boolean;
   negativeMarking: boolean;
   leaderboard: boolean;
+  antiCheatEnabled: boolean;
   registrationFields: string[];
 }>): Promise<void> {
   await apiClient.put(`/v1/admin/quiz/${quizId}`, data);

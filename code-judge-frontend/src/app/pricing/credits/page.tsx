@@ -15,9 +15,11 @@ import { ScrollThemeSection } from "@/components/pricing/ScrollThemeSection";
 import { PublicPackCta } from "@/components/pricing/PublicCheckoutCta";
 import {
   formatPricingAmount,
+} from "@/services/pricing";
+import {
   getPricingCatalogServer,
   getPricingContentServer,
-} from "@/services/pricing";
+} from "@/services/pricingServer";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
 
 export async function generateMetadata() {

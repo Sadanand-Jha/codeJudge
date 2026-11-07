@@ -3,10 +3,10 @@
 import type { Request, Response } from "express";
 import { pricingService } from "../services/pricing.service.ts";
 
-export const getPublicPricingHandler = async (_req: Request, res: Response): Promise<void> => {
+export const getPublicPricingHandler = async (req: Request, res: Response): Promise<void> => {
   try {
-    const catalog = await pricingService.getPublicCatalog();
-    res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
+    const catalog = await pricingService.getPublicCatalog(req.user?.userId ?? null, req);
+    res.setHeader("Cache-Control", "private, no-store");
     res.status(200).json({ success: true, data: catalog });
   } catch (error) {
     console.error("Public pricing: failed to load catalog", error);

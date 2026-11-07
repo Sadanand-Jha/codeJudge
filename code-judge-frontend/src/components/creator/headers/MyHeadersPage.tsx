@@ -7,6 +7,7 @@ import {
   FileImage,
   Loader2,
   Lock,
+  Layers3,
   RefreshCw,
   X,
 } from "lucide-react";
@@ -237,40 +238,44 @@ export function MyHeadersPage() {
   };
 
   return (
-    <div className="w-full min-w-0 space-y-5 pb-10">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-3xl">
-              My Headers
-            </h1>
-            <span className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.08em] text-[#1a1240]">
-              <Crown className="h-3 w-3" />
-              Pro
-            </span>
+    <div className="qs-ui w-full min-w-0 space-y-6 pb-10">
+      <header className="relative overflow-hidden rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-5 py-6 text-[var(--qs-on-brand)] shadow-[6px_6px_0_var(--qs-sun)] sm:px-8 sm:py-8">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full border-[24px] border-[var(--qs-sun)]/15" />
+        <div className="relative flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
+          <div className="max-w-2xl">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-3 py-1.5 text-xs font-extrabold text-[#1a1240]">
+              <Layers3 className="h-3.5 w-3.5" />
+              Creator Studio · Paper branding
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Paper Headers</h1>
+              <span className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-brand)]">
+                <Crown className="h-3 w-3" />
+                Pro
+              </span>
+            </div>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--qs-on-brand)]/85 sm:text-base">
+              Save your institute&apos;s letterhead and place it above the questions on every question paper PDF.
+            </p>
           </div>
-          <p className="mt-1 max-w-2xl text-sm text-[var(--qs-muted)]">
-            Save your institute&apos;s letterhead and place it above the questions on every
-            question paper PDF.
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            {usage && (
+              <span className="rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-3.5 py-2.5 text-sm font-extrabold text-[var(--qs-ink)]">
+                {usage.count}/{usage.max} headers used
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={openUpload}
+              disabled={planLoading}
+              className="b b-pri gap-1.5 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <CloudUpload className="h-4 w-4" />
+              Upload header
+            </button>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {usage && (
-            <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-1.5 text-[11px] font-extrabold text-[var(--qs-muted)]">
-              {usage.count}/{usage.max} used
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={openUpload}
-            disabled={planLoading}
-            className="b b-pri gap-1.5 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <CloudUpload className="h-4 w-4" />
-            Upload header
-          </button>
-        </div>
-      </div>
+      </header>
 
       {!planLoading && !isPro && (
         <div className="flex flex-col justify-between gap-3 rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] p-4 text-[#1a1240] sm:flex-row sm:items-center">
@@ -288,7 +293,7 @@ export function MyHeadersPage() {
           <button
             type="button"
             onClick={() => showCustomHeaderUpgrade()}
-            className="b sm shrink-0 gap-1.5 border-[#1a1240] bg-[#fccf0a] text-white"
+            className="b sm shrink-0 gap-1.5 border-[#1a1240] bg-[#fccf0a] text-[#1a1240]"
           >
             <Crown className="h-4 w-4" />
             Upgrade to Pro

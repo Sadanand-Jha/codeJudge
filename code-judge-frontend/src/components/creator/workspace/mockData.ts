@@ -242,7 +242,7 @@ export const CREATOR_ACTIVITY: CreatorActivityEvent[] = [
 ];
 
 export const QUICK_ACTIONS: QuickAction[] = [
-  { id: "qa_1", label: "Create Test", description: "Build a new mock test", href: "/creator/tests/create" },
+  { id: "qa_1", label: "Create Paper", description: "Build a new question paper", href: "/creator/tests/create" },
   { id: "qa_2", label: "Create Quiz", description: "Quick interactive assessment", href: "/creator/quizzes/create" },
   { id: "qa_3", label: "Create Test Series", description: "Bundle tests together", href: "/creator/series/create" },
   { id: "qa_4", label: "Create Problem", description: "Add to your question bank", href: "/creator/problems/create" },

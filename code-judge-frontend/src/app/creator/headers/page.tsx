@@ -1,7 +1,7 @@
 import { MyHeadersPage } from "@/components/creator/headers/MyHeadersPage";
 
 export const metadata = {
-  title: "My Headers",
+  title: "Paper Headers",
   description: "Manage custom college letterheads for your question paper PDFs.",
 };
 

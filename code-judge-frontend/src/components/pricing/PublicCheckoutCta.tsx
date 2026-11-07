@@ -67,14 +67,22 @@ function PublicCheckoutCta({
   kind,
   productId,
   planSlug,
+  priceId,
+  skipSuggestion = false,
   label,
   className,
+  isFree = false,
+  disabled = false,
 }: {
   kind: "plan" | "pack";
   productId: string;
   planSlug?: string;
+  priceId?: number;
+  skipSuggestion?: boolean;
   label: string;
   className?: string;
+  isFree?: boolean;
+  disabled?: boolean;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -82,7 +90,9 @@ function PublicCheckoutCta({
 
   const destinationFor = (next: CheckoutSuggestion | null) => {
     if (kind === "plan") {
-      const nextPath = `/creator/billing/plans?plan=${encodeURIComponent(planSlug ?? "")}`;
+      const params = new URLSearchParams({ plan: planSlug ?? "" });
+      if (priceId) params.set("price_id", String(priceId));
+      const nextPath = `/creator/billing/plans?${params.toString()}`;
       return `/register?next=${encodeURIComponent(nextPath)}`;
     }
     const packId =
@@ -99,7 +109,15 @@ function PublicCheckoutCta({
   };
 
   const handleClick = async () => {
-    if (loading) return;
+    if (loading || disabled) return;
+    if (isFree) {
+      router.push(`/register?next=${encodeURIComponent("/creator/billing/plans")}`);
+      return;
+    }
+    if (skipSuggestion) {
+      continueToCheckout(null);
+      return;
+    }
     setLoading(true);
     try {
       const response =
@@ -153,7 +171,7 @@ function PublicCheckoutCta({
 
   return (
     <>
-      <button type="button" onClick={handleClick} disabled={loading} className={className}>
+      <button type="button" onClick={handleClick} disabled={loading || disabled} className={className}>
         {loading ? (
           <span className="inline-flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -179,20 +197,32 @@ function PublicCheckoutCta({
 
 export function PublicPlanCta({
   planSlug,
+  priceId,
+  skipSuggestion,
   label,
   className,
+  isFree = false,
+  disabled = false,
 }: {
   planSlug: string;
+  priceId?: number;
+  skipSuggestion?: boolean;
   label: string;
   className?: string;
+  isFree?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <PublicCheckoutCta
       kind="plan"
       productId={`plan:${planSlug}`}
       planSlug={planSlug}
+      priceId={priceId}
+      skipSuggestion={skipSuggestion}
       label={label}
       className={className}
+      isFree={isFree}
+      disabled={disabled}
     />
   );
 }

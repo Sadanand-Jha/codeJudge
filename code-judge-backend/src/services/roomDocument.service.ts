@@ -8,6 +8,11 @@ import {
   getCloudinaryCredentials,
 } from "../config/cloudinary.ts";
 import { RoomRepository } from "../repositories/room.repository.ts";
+import {
+  assertStorageCapacity,
+  lockTeacherStorage,
+  StorageLimitExceededError,
+} from "./storageQuota.service.ts";
 
 export const ROOM_DOCUMENT_MAX_BYTES = 25 * 1024 * 1024;
 
@@ -49,12 +54,14 @@ const roomRepo = new RoomRepository();
 export class RoomDocumentError extends Error {
   statusCode: number;
   code: string;
+  upgradeUrl?: string;
 
-  constructor(statusCode: number, code: string, message: string) {
+  constructor(statusCode: number, code: string, message: string, upgradeUrl?: string) {
     super(message);
     this.name = "RoomDocumentError";
     this.statusCode = statusCode;
     this.code = code;
+    this.upgradeUrl = upgradeUrl;
   }
 }
 
@@ -181,6 +188,7 @@ export async function buildRoomDocumentUploadSignature(
 ) {
   const roomId = positiveRoomId(roomIdInput);
   await assertRoomOwner(roomId, userId);
+  await assertStorageCapacity(Number(userId), 0);
   const credentials = getCloudinaryCredentials();
   const params = buildSignatureParams(roomId);
   return {
@@ -382,8 +390,12 @@ export async function createRoomDocument(
   const name = displayNameFor(input.originalFilename, resource, publicId, format);
   const mimeType = MIME_TYPES[format] ?? "application/octet-stream";
 
+  const client = await pool.connect();
   try {
-    const inserted = await pool.query<RoomDocumentRow>(
+    await client.query("BEGIN");
+    await lockTeacherStorage(client, Number(userId));
+    await assertStorageCapacity(Number(userId), bytes, client);
+    const inserted = await client.query<RoomDocumentRow>(
       `INSERT INTO room_documents (
          room_id, uploaded_by, name, format, mime_type, bytes,
          cloudinary_public_id, cloudinary_version, secure_url
@@ -391,8 +403,22 @@ export async function createRoomDocument(
        RETURNING *`,
       [roomId, Number(userId), name, format, mimeType, bytes, publicId, version, secureUrl]
     );
+    await client.query("COMMIT");
     return serializeDocument(inserted.rows[0]);
   } catch (error) {
+    try {
+      await client.query("ROLLBACK");
+    } catch (rollbackError) {
+      console.error("Room document transaction rollback failed:", rollbackError);
+    }
+    if (error instanceof StorageLimitExceededError) {
+      try {
+        await cloudinary.uploader.destroy(publicId, { resource_type: "raw", invalidate: true });
+      } catch (cleanupError) {
+        console.error("Rejected over-quota room document cleanup failed:", cleanupError);
+      }
+      throw new RoomDocumentError(403, "STORAGE_LIMIT_REACHED", error.message, error.upgradeUrl);
+    }
     if ((error as { code?: string }).code === "23505") {
       throw new RoomDocumentError(
         409,
@@ -401,6 +427,8 @@ export async function createRoomDocument(
       );
     }
     throw error;
+  } finally {
+    client.release();
   }
 }
 

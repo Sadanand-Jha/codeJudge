@@ -10,7 +10,8 @@ const rawBase =
 // the host-only session cookie remains first-party. An absolute API host is
 // honored, but auth cookies set on the frontend host are NOT sent to another
 // host (even a sibling subdomain), so protected requests will look signed out.
-const API_BASE = rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "") || "/api";
+export const API_BASE =
+  rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "") || "/api";
 
 const apiClient = axios.create({
   baseURL: API_BASE,

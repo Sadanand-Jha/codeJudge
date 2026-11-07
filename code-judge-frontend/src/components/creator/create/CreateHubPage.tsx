@@ -173,7 +173,7 @@ export function CreateHubPage() {
         href="/creator/problems/create"
         icon={NotebookPen}
         eyebrow="Practice"
-        title="Problems"
+        title="Assignment Builder"
         sub="Create standalone coding or MCQ problems — set difficulty levels and reuse them anywhere."
         cta="Create problem"
         delay={0.15}

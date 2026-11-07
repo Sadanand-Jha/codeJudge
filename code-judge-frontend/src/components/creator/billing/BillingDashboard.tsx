@@ -495,7 +495,7 @@ function PlanSummaryStrip({
           <CalendarClock className="h-5 w-5" />
         </span>
         <div className="min-w-0">
-          <span className={cn(PILL, "text-[var(--qs-brand)]")}>Monthly plan</span>
+          <span className={cn(PILL, "text-[var(--qs-brand)]")}>Current plan</span>
           <p className="mt-1.5 truncate text-[15px] font-extrabold text-[var(--qs-ink)]">
             {isTrialActive
               ? `${trialPlanName} trial`
@@ -506,16 +506,7 @@ function PlanSummaryStrip({
               <span className="ml-1.5 font-semibold text-[var(--qs-muted)]">
                 · ends {trialEndsOn}
               </span>
-            ) : (
-              !isTrial &&
-              !isTrialExpired &&
-              plan &&
-              plan.price > 0 && (
-                <span className="ml-1.5 font-semibold text-[var(--qs-muted)]">
-                  · {formatINR(plan.price)} / month
-                </span>
-              )
-            )}
+            ) : null}
           </p>
         </div>
       </div>
@@ -584,7 +575,7 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
         <div className="min-w-0">
           <span className={cn(PILL, "text-[#2457d6]")}>Billing</span>
           <h1 className="qs-display mt-2 text-[28px] font-extrabold leading-[1.08] tracking-[-0.025em] text-[var(--qs-ink)] sm:text-[34px] lg:text-[38px]">
-            Billing overview
+            Billing Overview
           </h1>
           <p className="mt-1.5 text-[14px] text-[var(--qs-muted)] sm:text-[15px]">
             Track your monthly plan, AI credit balance, usage and top-ups in one place.
@@ -593,7 +584,7 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
         <div className="flex flex-wrap items-center gap-2">
           <Link href="/creator/billing/plans" className={BTN}>
             <CalendarClock className="h-4 w-4" />
-            Monthly plans
+            Plans
           </Link>
           <Link href="/creator/billing/transactions" className={BTN}>
             <History className="h-4 w-4" />

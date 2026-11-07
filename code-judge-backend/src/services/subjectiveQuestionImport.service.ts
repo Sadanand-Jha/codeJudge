@@ -125,7 +125,7 @@ async function resolveScope(scope: ImportScope) {
      FROM subjects s
      LEFT JOIN subject_chapters sc ON sc.id = $2 AND sc.subject_id = s.id
      LEFT JOIN chapter_topics ct ON ct.id = $3 AND ct.chapter_id = sc.id
-     WHERE s.id = $1`,
+     WHERE s.id = $1 AND s.owned_by = 0 AND s.deleted_at IS NULL`,
     [scope.subjectId, scope.chapterId, scope.topicId]
   );
   const row = rows[0];
@@ -153,9 +153,26 @@ async function getAiClassificationCatalog(subjectId: number) {
 
 export async function getSubjectiveImportCatalog() {
   const [subjects, chapters, topics, difficulties, categories] = await Promise.all([
-    pool.query(`SELECT id, subject_name AS name FROM subjects ORDER BY subject_name`).then((r) => r.rows),
-    pool.query(`SELECT id, subject_id, chapter_name AS name FROM subject_chapters ORDER BY chapter_name`).then((r) => r.rows),
-    pool.query(`SELECT id, chapter_id, topic_name AS name FROM chapter_topics ORDER BY topic_name`).then((r) => r.rows),
+    pool.query(
+      `SELECT id, subject_name AS name FROM subjects
+       WHERE owned_by = 0 AND deleted_at IS NULL
+       ORDER BY subject_name`
+    ).then((r) => r.rows),
+    pool.query(
+      `SELECT c.id, c.subject_id, c.chapter_name AS name
+       FROM subject_chapters c
+       JOIN subjects s ON s.id = c.subject_id
+       WHERE s.owned_by = 0 AND s.deleted_at IS NULL
+       ORDER BY c.chapter_name`
+    ).then((r) => r.rows),
+    pool.query(
+      `SELECT t.id, t.chapter_id, t.topic_name AS name
+       FROM chapter_topics t
+       JOIN subject_chapters c ON c.id = t.chapter_id
+       JOIN subjects s ON s.id = c.subject_id
+       WHERE s.owned_by = 0 AND s.deleted_at IS NULL
+       ORDER BY t.topic_name`
+    ).then((r) => r.rows),
     pool.query(`SELECT id, name FROM question_difficulty ORDER BY id`).then((r) => r.rows),
     pool.query(`SELECT id, name FROM question_category ORDER BY id`).then((r) => r.rows),
   ]);
@@ -344,7 +361,8 @@ export async function createSubjectiveJsonImportPreview(input: {
 
   const subjectId = subjectIds[0];
   const subjectResult = await pool.query(
-    `SELECT id AS subject_id, subject_name FROM subjects WHERE id = $1`,
+    `SELECT id AS subject_id, subject_name FROM subjects
+      WHERE id = $1 AND owned_by = 0 AND deleted_at IS NULL`,
     [subjectId]
   );
   const subject = subjectResult.rows[0] as { subject_id: number; subject_name: string } | undefined;
@@ -483,7 +501,7 @@ export async function commitSubjectiveImport(input: {
     for (const index of requested) {
       const question = questions[index];
       const scopeValid = await client.query(
-        `SELECT EXISTS(SELECT 1 FROM subjects WHERE id = $1) AS subject_ok,
+        `SELECT EXISTS(SELECT 1 FROM subjects WHERE id = $1 AND owned_by = 0 AND deleted_at IS NULL) AS subject_ok,
                 ($2::int IS NULL OR EXISTS(SELECT 1 FROM subject_chapters WHERE id = $2 AND subject_id = $1)) AS chapter_ok,
                 ($3::int IS NULL OR EXISTS(SELECT 1 FROM chapter_topics WHERE id = $3 AND chapter_id = $2)) AS topic_ok,
                 EXISTS(SELECT 1 FROM question_difficulty WHERE id = $4) AS difficulty_ok,

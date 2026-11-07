@@ -30,6 +30,9 @@ interface ExamModeShellProps {
   maxViolations?: number;
   /** Live exam-cell mode: entry/termination copy refers to a real attempt. */
   isLive?: boolean;
+  /** When false, the quiz runs without proctoring (no fullscreen, tab-switch
+   * detection or copy violations). */
+  antiCheatEnabled?: boolean;
   /** Attempt id — when provided, every violation is reported to the backend. */
   attemptId?: string | null;
   /** Called (after user gesture) when exam mode is entered. Receives the
@@ -68,6 +71,7 @@ export default function ExamModeShell({
   timeLeft,
   maxViolations = MAX_EXAM_VIOLATIONS,
   isLive = false,
+  antiCheatEnabled = true,
   attemptId = null,
   onEnterExam,
   onExitPreview,
@@ -207,7 +211,7 @@ export default function ExamModeShell({
     try {
       // Request fullscreen before any await so the browser still sees the
       // "Enter Exam Mode" / "Start Exam" click as the required user gesture.
-      enteredFullscreen = await requestExamFullscreen();
+      enteredFullscreen = antiCheatEnabled ? await requestExamFullscreen() : false;
 
       // Access and attempt-limit checks must finish before the protected exam
       // UI is activated. Returning false keeps the student on this screen.
@@ -238,7 +242,7 @@ export default function ExamModeShell({
     } finally {
       setEntering(false);
     }
-  }, [entering, onEnterExam, acquireThemeLock, releaseThemeLock, requestExamFullscreen, leaveFullscreenIfRequested]);
+  }, [entering, onEnterExam, acquireThemeLock, releaseThemeLock, requestExamFullscreen, leaveFullscreenIfRequested, antiCheatEnabled]);
 
   const submitRegistration = useCallback(async () => {
     if (!registrationComplete) return;
@@ -280,16 +284,16 @@ export default function ExamModeShell({
     setActiveViolation(null);
     // re-enter fullscreen
     const el = containerRef.current;
-    if (el && !document.fullscreenElement && document.visibilityState === "visible") {
+    if (antiCheatEnabled && el && !document.fullscreenElement && document.visibilityState === "visible") {
       try {
         await el.requestFullscreen();
       } catch {}
     }
-  }, []);
+  }, [antiCheatEnabled]);
 
   // Fullscreen change -> violation if user pressed Esc
   useEffect(() => {
-    if (!examActive || terminated) return;
+    if (!antiCheatEnabled || !examActive || terminated) return;
     const onFsChange = () => {
       if (!document.fullscreenElement && examActive && !activeViolation && !terminated) {
         recordViolation("fullscreen_exit", "Fullscreen exited", "You left fullscreen. This has been recorded as a violation.");
@@ -297,11 +301,11 @@ export default function ExamModeShell({
     };
     document.addEventListener("fullscreenchange", onFsChange);
     return () => document.removeEventListener("fullscreenchange", onFsChange);
-  }, [examActive, activeViolation, terminated, recordViolation]);
+  }, [antiCheatEnabled, examActive, activeViolation, terminated, recordViolation]);
 
   // visibilitychange + blur -> tab/window switch
   useEffect(() => {
-    if (!examActive || terminated) return;
+    if (!antiCheatEnabled || !examActive || terminated) return;
     const onVisibility = () => {
       if (document.hidden) {
         recordViolation("tab_switch", "Tab switching detected", "You moved away from the exam. Your quiz content has been hidden.");
@@ -324,11 +328,11 @@ export default function ExamModeShell({
       window.removeEventListener("blur", onBlur);
       window.removeEventListener("focus", onFocus);
     };
-  }, [examActive, terminated, recordViolation]);
+  }, [antiCheatEnabled, examActive, terminated, recordViolation]);
 
   // beforeunload + popstate protection
   useEffect(() => {
-    if (!examActive || terminated) return;
+    if (!antiCheatEnabled || !examActive || terminated) return;
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = "";
@@ -347,13 +351,13 @@ export default function ExamModeShell({
       window.removeEventListener("beforeunload", onBeforeUnload);
       window.removeEventListener("popstate", onPopState);
     };
-  }, [examActive, terminated, recordViolation]);
+  }, [antiCheatEnabled, examActive, terminated, recordViolation]);
 
   // Block copy / cut / paste and right-click inside the exam. Copy & paste
   // attempts are cheating vectors, so each blocked attempt counts as a
   // violation; right-click is blocked silently to avoid false positives.
   useEffect(() => {
-    if (!examActive || terminated) return;
+    if (!antiCheatEnabled || !examActive || terminated) return;
     const onCopy = (e: ClipboardEvent) => {
       e.preventDefault();
       recordViolation("copy_attempt", "Copying blocked", "Copying exam content is not allowed and has been recorded.");
@@ -391,7 +395,7 @@ export default function ExamModeShell({
       document.removeEventListener("contextmenu", onContextMenu);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [examActive, terminated, recordViolation]);
+  }, [antiCheatEnabled, examActive, terminated, recordViolation]);
 
   // Cleanup warning timer on unmount
   useEffect(() => {
@@ -508,33 +512,38 @@ export default function ExamModeShell({
               />
               <ShieldCheck className="absolute -bottom-1.5 -right-1.5 h-6 w-6 rounded-full border-2 border-[var(--qs-surface)] bg-[var(--qs-ok)] p-1 text-[var(--qs-on-brand)]" />
             </div>
-            <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--qs-brand)]">Secure launch sequence</p>
-            <h1 className="mt-1 text-xl font-black tracking-tight text-[var(--qs-ink)] sm:text-2xl">You&apos;re entering Exam Mode</h1>
+            <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--qs-brand)]">{antiCheatEnabled ? "Secure launch sequence" : "Ready when you are"}</p>
+            <h1 className="mt-1 text-xl font-black tracking-tight text-[var(--qs-ink)] sm:text-2xl">{antiCheatEnabled ? "You&apos;re entering Exam Mode" : "Ready to start?"}</h1>
             <p className="mt-1 truncate text-xs font-semibold text-[var(--qs-muted)]">{quizName}</p>
-            <p className="mt-1.5 text-xs text-[var(--qs-muted)] sm:mt-2 sm:text-sm">{isLive ? "Your attempt will be monitored to keep the exam fair. Stay in fullscreen until you submit." : "This preview simulates the student exam experience. Your current quiz will open in a distraction-free exam environment."}</p>
+            <p className="mt-1.5 text-xs text-[var(--qs-muted)] sm:mt-2 sm:text-sm">{antiCheatEnabled ? (isLive ? "Your attempt will be monitored to keep the exam fair. Stay in fullscreen until you submit." : "This preview simulates the student exam experience. Your current quiz will open in a distraction-free exam environment.") : "This quiz runs without proctoring. You can switch tabs or windows while attempting."}</p>
 
-            <div className="mt-4 space-y-1.5 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 text-left sm:mt-6 sm:space-y-2 sm:p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--qs-muted)] sm:text-xs">Before you continue</p>
-              <ul className="space-y-1.5 text-xs text-[var(--qs-muted)] sm:space-y-2 sm:text-sm">
-                <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Fullscreen starts automatically as soon as you enter the exam.</li>
-                <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Switching tabs/windows may be recorded as a violation.</li>
-                <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Copying, cutting or pasting is blocked and recorded as a violation.</li>
-                <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Answers from AI tools or other outside help during a quiz may be unreliable or deliberately misleading.</li>
-                <li className="flex gap-2 rounded-lg border-2 border-[var(--qs-bad)]/40 bg-[var(--qs-badbg)] p-2.5 text-[var(--qs-bad)]">
-                  <PhoneOff className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  <span>
-                    <span className="font-extrabold">Silence your phone before starting.</span>{" "}
-                    Turn off call volume and notifications (silent / Do Not Disturb).
-                    Volume buttons are monitored, so you may not be able to silence
-                    an incoming call during the test.
-                  </span>
-                </li>
-                <li className="hidden gap-2 sm:flex"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)]" /> Leaving fullscreen (Esc) may be recorded as a violation.</li>
-                <li className="hidden gap-2 sm:flex"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)]" /> Your progress will be preserved during temporary warnings.</li>
-                <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> After {maxViolations} violations {isLive ? "your attempt will be submitted automatically and flagged for review" : "the session will be terminated"}.</li>
-              </ul>
-              {/* <p className="hidden pt-2 text-[11px] text-[var(--qs-muted)] sm:block">A real exam cannot fully block OS shortcuts like Ctrl+T / Alt+Tab. We detect and record their effects instead.</p> */}
-            </div>
+            {antiCheatEnabled ? (
+              <div className="mt-4 space-y-1.5 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 text-left sm:mt-6 sm:space-y-2 sm:p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--qs-muted)] sm:text-xs">Before you continue</p>
+                <ul className="space-y-1.5 text-xs text-[var(--qs-muted)] sm:space-y-2 sm:text-sm">
+                  <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Fullscreen starts automatically as soon as you enter the exam.</li>
+                  <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Switching tabs/windows may be recorded as a violation.</li>
+                  <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Copying, cutting or pasting is blocked and recorded as a violation.</li>
+                  <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Answers from AI tools or other outside help during a quiz may be unreliable or deliberately misleading.</li>
+                  <li className="flex gap-2 rounded-lg border-2 border-[var(--qs-bad)]/40 bg-[var(--qs-badbg)] p-2.5 text-[var(--qs-bad)]">
+                    <PhoneOff className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>
+                      <span className="font-extrabold">Silence your phone before starting.</span>{" "}
+                      Turn off call volume and notifications (silent / Do Not Disturb).
+                      Volume buttons are monitored, so you may not be able to silence
+                      an incoming call during the test.
+                    </span>
+                  </li>
+                  <li className="hidden gap-2 sm:flex"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)]" /> Leaving fullscreen (Esc) may be recorded as a violation.</li>
+                  <li className="hidden gap-2 sm:flex"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)]" /> Your progress will be preserved during temporary warnings.</li>
+                  <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> After {maxViolations} violations {isLive ? "your attempt will be submitted automatically and flagged for review" : "the session will be terminated"}.</li>
+                </ul>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 text-left text-xs text-[var(--qs-muted)] sm:mt-6 sm:text-sm">
+                Your answers are saved as you go. The timer starts when you begin.
+              </div>
+            )}
 
             <div className="mt-4 flex flex-col gap-2 sm:mt-6 sm:flex-row sm:justify-center">
               <button
@@ -550,7 +559,7 @@ export default function ExamModeShell({
                 className="b b-pri w-full gap-2 sm:w-auto sm:px-6"
               >
                 {entering ? <QuizLoader size={16} /> : <Maximize2 className="h-4 w-4" />}
-                {entering ? "Checking eligibility…" : "Enter Exam Mode"}
+                {entering ? "Checking eligibility…" : antiCheatEnabled ? "Enter Exam Mode" : "Start Quiz"}
               </button>
               <button onClick={onExitPreview} className="b b-ghost w-full sm:w-auto sm:px-6">
                 Cancel
@@ -590,9 +599,9 @@ a1d3·8c40·2fe9·b76a·19d5</pre>
         <div className="relative flex min-w-0 items-center gap-2 sm:gap-3">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1C1840]"><ShieldCheck className="h-4 w-4" /></span>
           <span className="min-w-0">
-            <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.17em] text-[var(--qs-sun)]"><Radio className="h-3 w-3" /> {isLive ? "Secure attempt" : "Preview mode"}</span>
+            <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.17em] text-[var(--qs-sun)]"><Radio className="h-3 w-3" /> {antiCheatEnabled ? (isLive ? "Secure attempt" : "Preview mode") : (isLive ? "Quiz attempt" : "Preview")}</span>
             <span className="mt-0.5 block truncate text-xs font-bold text-white sm:text-sm">{quizName}</span>
-            {overlapHeader && (
+            {overlapHeader && antiCheatEnabled && (
               <span className="mt-1 flex items-center gap-1 text-[9px] font-semibold text-white/60">
                 <ShieldCheck className="h-3 w-3 shrink-0" /> Tab switching &amp; window changes are monitored
               </span>
@@ -606,11 +615,13 @@ a1d3·8c40·2fe9·b76a·19d5</pre>
             <span className={cn("grid h-7 w-7 place-items-center rounded-xl", timeCritical ? "bg-[var(--qs-bad)] text-[var(--qs-on-brand)]" : "bg-[var(--qs-sun)] text-[#1C1840]")}><Clock className="h-3.5 w-3.5" /></span>
             <span className="text-left"><span className="hidden text-[8px] font-bold uppercase tracking-[0.13em] opacity-65 sm:block">Time remaining</span><span className="block font-mono text-sm font-black leading-none tabular-nums sm:text-base">{formatTime(timeLeft)}</span></span>
           </span>
-          <span className="hidden items-center gap-2 rounded-full border-2 border-white/20 bg-white/5 px-3 py-2 text-[10px] font-semibold text-white/70 md:inline-flex">
-            <ShieldAlert className="h-3.5 w-3.5 text-[var(--qs-bad)]" />
-            <span>Warnings</span>
-            <span className="font-black text-white">{violations}/{maxViolations}</span>
-          </span>
+          {antiCheatEnabled && (
+            <span className="hidden items-center gap-2 rounded-full border-2 border-white/20 bg-white/5 px-3 py-2 text-[10px] font-semibold text-white/70 md:inline-flex">
+              <ShieldAlert className="h-3.5 w-3.5 text-[var(--qs-bad)]" />
+              <span>Warnings</span>
+              <span className="font-black text-white">{violations}/{maxViolations}</span>
+            </span>
+          )}
           <button onClick={handleCrossPress} className="grid h-10 w-10 place-items-center rounded-xl border-2 border-white/25 bg-white/5 text-white/70 transition hover:border-[var(--qs-bad)] hover:bg-[var(--qs-badbg)] hover:text-[var(--qs-bad)]" aria-label="Quit quiz" title="Quit quiz">
             <X className="h-4 w-4" />
           </button>
@@ -638,7 +649,7 @@ a1d3·8c40·2fe9·b76a·19d5</pre>
       </AnimatePresence>
 
       {/* Always-on monitoring notice. */}
-      {!hideChrome && !overlapHeader && (
+      {!hideChrome && !overlapHeader && antiCheatEnabled && (
         <div className="flex shrink-0 items-center justify-center gap-1 border-b-2 border-[var(--qs-line)] bg-[var(--qs-sun)]/25 px-2 py-1 text-[9px] font-bold text-[var(--qs-ink)]">
           <ShieldCheck className="h-3 w-3" /> Tab switching &amp; window changes are monitored
         </div>

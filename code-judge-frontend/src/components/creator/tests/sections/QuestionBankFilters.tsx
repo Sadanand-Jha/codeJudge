@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, ListTree, Search, X } from "lucide-react";
 import { getQuestionGeneratorCatalog } from "@/services/aiGenerate";
+import { ImportSyllabusNotice } from "@/components/creator/syllabus/ImportSyllabusNotice";
 import type { QuestionGeneratorCatalog } from "@/services/aiGenerate";
 import { cn } from "@/lib/helpers";
 
@@ -549,7 +550,7 @@ export function QuestionBankFilters(props: Props) {
 
       {error && <p className="text-xs font-semibold text-rose-500">{error}</p>}
       {catalog && catalog.subjects.length === 0 && (
-        <p className="text-xs text-text-muted">No subjects currently have chapters, topics, and question-bank entries.</p>
+        <ImportSyllabusNotice compact />
       )}
     </div>
   );

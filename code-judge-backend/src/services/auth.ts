@@ -536,8 +536,7 @@ export async function register(
 
 // --- Owner Login OTP Cache Operations ---
 // Isolated `ownerlogin:` namespace so owner sign-in attempts never interfere
-// with registration or password-reset attempts. Only users with role_id = 2
-// (admin/owner) may receive and redeem an owner login OTP.
+// with registration or password-reset attempts.
 
 async function cacheOwnerLoginOtp(email: string, otp: string): Promise<void> {
   const key = `ownerlogin_otp:${email.toLowerCase()}`;
@@ -567,15 +566,15 @@ async function deleteCachedOwnerLoginOtp(email: string): Promise<void> {
   await redisClient.del(key);
 }
 
-function isOwnerRole(user: any): boolean {
-  return user != null && isPlatformOwner(user.role_id, user.email);
+function isPlatformOwnerUser(user: any): boolean {
+  return user != null && isPlatformOwner(user.email);
 }
 
 /**
  * POST /api/auth/owner/send-otp
- * Sends a login OTP only if the email + password belong to a role_id = 2
- * account. Invalid credentials always receive the same response so the
- * endpoint cannot be used to enumerate which emails hold owner access.
+ * Sends a login OTP only if the email is the configured platform owner and
+ * the password matches. Invalid credentials always receive the same response
+ * so the endpoint cannot be used to enumerate owner access.
  */
 export async function requestOwnerLoginOtp(
   email: string,
@@ -651,7 +650,7 @@ export async function requestOwnerLoginOtp(
     // intentionally generic so it does not reveal which factor failed.
     const user = await withTransientDatabaseRetry(() => userService.getUserByEmail(normalizedEmail));
     const passwordMatches =
-      isOwnerRole(user) &&
+      isPlatformOwnerUser(user) &&
       typeof user?.password === 'string' &&
       (await bcrypt.compare(password, user.password));
 
@@ -690,8 +689,8 @@ export async function requestOwnerLoginOtp(
 /**
  * POST /api/auth/owner/verify-otp
  * Redeems an owner login OTP after re-checking the owner password. Only
- * succeeds for role_id = 2 accounts. Returns the user id + email so the
- * controller can mint a session.
+ * succeeds for the configured platform owner email. Returns the user id +
+ * email so the controller can mint a session.
  */
 export async function verifyOwnerLoginOtp(
   email: string,
@@ -735,7 +734,7 @@ export async function verifyOwnerLoginOtp(
 
     const user = await withTransientDatabaseRetry(() => userService.getUserByEmail(normalizedEmail));
     const passwordMatches =
-      isOwnerRole(user) &&
+      isPlatformOwnerUser(user) &&
       typeof user?.password === 'string' &&
       (await bcrypt.compare(password, user.password));
 

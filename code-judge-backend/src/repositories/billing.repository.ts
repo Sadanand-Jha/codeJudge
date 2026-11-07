@@ -83,6 +83,10 @@ export interface OrderRow {
   mrpPaise: number;
   discountPaise: number;
   currency: string;
+  pricingCountry: string | null;
+  pricingAmountMinor: number | null;
+  pricingConfigId: number | null;
+  pricingVersion: number | null;
   status: OrderStatus;
   paymentMethod: string | null;
   gateway: string | null;
@@ -177,6 +181,14 @@ function mapOrder(row: Record<string, unknown>): OrderRow {
     mrpPaise: toNumber(row.mrp_inr),
     discountPaise: toNumber(row.discount_inr),
     currency: String(row.currency ?? "INR"),
+    pricingCountry:
+      row.pricing_country == null ? null : String(row.pricing_country).trim(),
+    pricingAmountMinor:
+      row.pricing_amount_minor == null ? null : toNumber(row.pricing_amount_minor),
+    pricingConfigId:
+      row.pricing_config_id == null ? null : toNumber(row.pricing_config_id),
+    pricingVersion:
+      row.pricing_version == null ? null : toNumber(row.pricing_version),
     status: row.status as OrderStatus,
     paymentMethod: row.payment_method == null ? null : String(row.payment_method),
     gateway: row.gateway == null ? null : String(row.gateway),
@@ -220,7 +232,7 @@ function mapOrder(row: Record<string, unknown>): OrderRow {
  * Loads an active, public, non-free plan with its latest monthly price and AI-credit entitlement. The query accepts either a numeric id or a slug and never returns draft or archived plans.
  */
 export async function findPurchasablePlan(
-  input: { planId?: number | null; planSlug?: string | null },
+  input: { planId?: number | null; planSlug?: string | null; priceId?: number | null },
   db: Db = pool
 ): Promise<PurchasablePlan | null> {
   const result = await db.query(
@@ -245,8 +257,11 @@ export async function findPurchasablePlan(
               tax_inclusive
        FROM plan_prices
        WHERE plan_id = p.id
-         AND billing_period = 'monthly'
          AND is_active = TRUE
+         AND (
+           ($3::int IS NOT NULL AND id = $3)
+           OR ($3::int IS NULL AND billing_period = 'monthly')
+         )
        ORDER BY id DESC
        LIMIT 1
      ) pp ON TRUE
@@ -257,7 +272,7 @@ export async function findPurchasablePlan(
        AND ($2::text IS NULL OR p.slug = $2)
      ORDER BY p.id ASC
      LIMIT 1`,
-    [input.planId ?? null, input.planSlug ?? null]
+    [input.planId ?? null, input.planSlug ?? null, input.priceId ?? null]
   );
 
   const row = result.rows[0];
@@ -636,7 +651,8 @@ export async function releaseCouponReservation(
 
 const ORDER_COLUMNS = `o.id, o.order_no, o.user_id, o.order_type, o.plan_id,
   o.catalog_plan_id, o.catalog_price_id, o.pack_id, o.amount_inr, o.mrp_inr, o.discount_inr,
-  o.currency, o.status, o.payment_method, o.gateway, o.gateway_order_id,
+  o.currency, o.pricing_country, o.pricing_amount_minor, o.pricing_config_id,
+  o.pricing_version, o.status, o.payment_method, o.gateway, o.gateway_order_id,
   o.gateway_payment_id, o.paid_at, o.validity_days, o.starts_at, o.expires_at,
   o.credits_total, o.credits_used, o.credits_remaining, o.is_active,
   o.coupon_id, o.coupon_code, o.subscription_id, o.parent_order_id,
@@ -785,6 +801,10 @@ export interface InsertOrderInput {
   mrpPaise: number;
   discountPaise: number;
   currency: string;
+  pricingCountry?: string | null;
+  pricingAmountMinor?: number | null;
+  pricingConfigId?: number | null;
+  pricingVersion?: number | null;
   validityDays: number;
   creditsTotal: number;
   couponId: number | null;
@@ -808,12 +828,13 @@ export async function insertOrder(
     `INSERT INTO orders
        (order_no, user_id, order_type, plan_id, catalog_plan_id,
         catalog_price_id, pack_id, amount_inr, mrp_inr, discount_inr, currency,
-        status, gateway, validity_days, credits_total, coupon_id, coupon_code,
-        notes, parent_order_id, bundle_id, bundle_plan_credits,
-        bundle_pack_credits, bundle_pack_validity_days)
-     VALUES
-       ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending', 'razorpay',
-        $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+          pricing_country, pricing_amount_minor, pricing_config_id, pricing_version,
+          status, gateway, validity_days, credits_total, coupon_id, coupon_code,
+          notes, parent_order_id, bundle_id, bundle_plan_credits,
+          bundle_pack_credits, bundle_pack_validity_days)
+       VALUES
+         ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+          'pending', 'razorpay', $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
      RETURNING *`,
     [
       input.orderNo,
@@ -827,6 +848,10 @@ export async function insertOrder(
       input.mrpPaise,
       input.discountPaise,
       input.currency,
+      input.pricingCountry ?? null,
+      input.pricingAmountMinor ?? null,
+      input.pricingConfigId ?? null,
+      input.pricingVersion ?? null,
       input.validityDays,
       input.creditsTotal,
       input.couponId,
@@ -1159,6 +1184,11 @@ export async function updateSubscriptionPeriod(
     priceId: number;
     periodStart: Date;
     periodEnd: Date;
+    billingCountry: string | null;
+    billingCurrency: string;
+    billingPriceMinor: number | null;
+    pricingConfigId: number | null;
+    pricingVersion: number | null;
   },
   db: Db
 ): Promise<void> {
@@ -1172,13 +1202,23 @@ export async function updateSubscriptionPeriod(
          cancel_at_period_end = FALSE,
          canceled_at = NULL,
          cancel_reason = NULL,
-         source = 'self_serve'
+         source = 'self_serve',
+         billing_country = $5,
+         billing_currency = $6,
+         billing_price_minor = $7,
+         pricing_config_id = $8,
+         pricing_version = $9
      WHERE id = $1`,
     [
       input.subscriptionId,
       input.priceId,
       input.periodStart,
       input.periodEnd,
+      input.billingCountry,
+      input.billingCurrency,
+      input.billingPriceMinor,
+      input.pricingConfigId,
+      input.pricingVersion,
     ]
   );
 }
@@ -1212,14 +1252,20 @@ export async function insertSubscription(
     periodStart: Date;
     periodEnd: Date;
     notes: string | null;
+    billingCountry: string | null;
+    billingCurrency: string;
+    billingPriceMinor: number | null;
+    pricingConfigId: number | null;
+    pricingVersion: number | null;
   },
   db: Db
 ): Promise<number> {
   const result = await db.query(
     `INSERT INTO subscriptions
        (user_id, plan_id, price_id, status, started_at, current_period_start,
-        current_period_end, source, notes)
-     VALUES ($1, $2, $3, 'active', $4, $4, $5, 'self_serve', $6)
+        current_period_end, source, notes, billing_country, billing_currency,
+        billing_price_minor, pricing_config_id, pricing_version)
+     VALUES ($1, $2, $3, 'active', $4, $4, $5, 'self_serve', $6, $7, $8, $9, $10, $11)
      RETURNING id`,
     [
       input.userId,
@@ -1228,6 +1274,11 @@ export async function insertSubscription(
       input.periodStart,
       input.periodEnd,
       input.notes,
+      input.billingCountry,
+      input.billingCurrency,
+      input.billingPriceMinor,
+      input.pricingConfigId,
+      input.pricingVersion,
     ]
   );
   return toNumber(result.rows[0]?.id);

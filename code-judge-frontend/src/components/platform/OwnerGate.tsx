@@ -6,10 +6,11 @@ import { platformApi } from "@/services/platform";
 import { PLATFORM_SESSION_INVALID_EVENT, setPlatformSession, clearPlatformSession } from "@/lib/platformToken";
 
 export type GateState = "checking" | "otp" | "denied" | "unavailable" | "open";
+const PLATFORM_OWNER_EMAIL = "sadanandjha3341@gmail.com";
 
 /**
  * Single entry point for the private /platform control center.
- * - Only role_id = 2 (owner/admin) accounts may pass.
+ * - Only the configured platform owner email may pass (enforced by the API).
  * - Every sign-in here requires the owner password AND a one-time code, then
  *   mints a DEDICATED platform token kept fully separate from the regular user
  *   session (which is never read, written, or sent by this page). Neither the
@@ -58,7 +59,7 @@ function errMsg(e: unknown): string {
 
 export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavailable"; onOpen: () => void }) {
   const [step, setStep] = useState<"email" | "code">("email");
-  const [email, setEmail] = useState("");
+  const email = PLATFORM_OWNER_EMAIL;
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -164,7 +165,7 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
             ? "This platform session is not authorized for owner access. Sign in again with the owner email and password to continue."
             : mode === "unavailable"
               ? "The authorization service is temporarily unavailable. Retry when the API connection is restored."
-            : "Restricted area. Sign in with your owner password and a one-time code."}
+            : `Restricted area. Only ${PLATFORM_OWNER_EMAIL} is authorized. Sign in with the owner's password and a one-time code.`}
         </p>
         <div className="qs-pill sun mt-3">
           PRIVATE · OWNER
@@ -190,9 +191,9 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
               type="email"
               autoComplete="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              readOnly
               onKeyDown={(e) => { if (e.key === "Enter") send(); }}
-              placeholder="owner@example.com"
+              aria-label="Platform owner email"
               className="h-11 w-full rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-field)] px-3.5 text-[14px] font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)]"
             />
             <label className="block text-[14px] font-bold text-[var(--qs-ink)]" htmlFor="owner-password">Password</label>
@@ -252,9 +253,6 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
                 className="b b-ghost sm disabled:opacity-50"
               >
                 {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
-              </button>
-              <button onClick={() => { setStep("email"); setPassword(""); setCode(""); setInfo(null); setError(null); }} className="b b-ghost sm">
-                Change email
               </button>
             </div>
           </div>

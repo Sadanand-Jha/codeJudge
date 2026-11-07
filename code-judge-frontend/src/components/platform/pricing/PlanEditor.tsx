@@ -43,12 +43,36 @@ function draftOf(plan: PlatformPlan): PlanDraft | null {
   return plan.draft_payload as PlanDraft | null;
 }
 
-function monthlyPrice(plan: PlatformPlan, draft: PlanDraft | null): DraftPrice | undefined {
-  const prices = draft?.prices ?? plan.prices;
-  return (
-    prices.find((price) => price.billing_period === "monthly" && price.is_active) ??
-    prices.find((price) => price.billing_period === "monthly")
-  );
+function initialPrices(plan: PlatformPlan, draft: PlanDraft | null): DraftPrice[] {
+  const stored = draft?.prices ?? plan.prices;
+  const latest = new Map<string, DraftPrice>();
+  for (const row of stored) {
+    const key = `${row.billing_period}|${row.custom_days ?? 0}`;
+    const existing = latest.get(key);
+    const rowId = "id" in row ? Number(row.id) : 0;
+    const existingId = existing && "id" in existing ? Number(existing.id) : 0;
+    if (!existing || (row.is_active && !existing.is_active) || rowId > existingId) {
+      latest.set(key, { ...row });
+    }
+  }
+
+  const rows = [...latest.values()];
+  for (const period of ["monthly", "quarterly", "yearly", "lifetime"] as const) {
+    if (!rows.some((row) => row.billing_period === period)) {
+      rows.push({
+        billing_period: period,
+        custom_days: null,
+        amount: 0,
+        mrp_amount: null,
+        tax_inclusive: true,
+        gateway_price_id: null,
+        is_active: period === "monthly",
+      });
+    }
+  }
+  const monthly = rows.find((row) => row.billing_period === "monthly");
+  if (monthly) monthly.is_active = true;
+  return rows;
 }
 
 export function PlanEditor({
@@ -72,7 +96,8 @@ export function PlanEditor({
 }) {
   const toast = useToast();
   const draft = draftOf(plan);
-  const monthly = monthlyPrice(plan, draft);
+  const [prices, setPrices] = useState<DraftPrice[]>(() => initialPrices(plan, draft));
+  const monthly = prices.find((row) => row.billing_period === "monthly");
   const isPreview = previewMode;
   const [name, setName] = useState(draft?.name ?? plan.name);
   const [slug, setSlug] = useState(draft?.slug ?? plan.slug);
@@ -81,8 +106,6 @@ export function PlanEditor({
   const [offer, setOffer] = useState(draft?.offer ?? plan.offer ?? "");
   const [cta, setCta] = useState(draft?.cta ?? plan.cta ?? "");
   const [discountBadge, setDiscountBadge] = useState(draft?.discount_badge ?? plan.discount_badge ?? "");
-  const [price, setPrice] = useState(String(rupees(monthly?.amount ?? 0)));
-  const [mrp, setMrp] = useState(monthly?.mrp_amount ? String(rupees(monthly.mrp_amount)) : "");
   const [trialDays, setTrialDays] = useState(String(draft?.trial_days ?? plan.trial_days));
   const [sortOrder, setSortOrder] = useState(String(draft?.sort_order ?? plan.sort_order));
   const [isPublic, setIsPublic] = useState(draft?.is_public ?? plan.is_public);
@@ -111,16 +134,35 @@ export function PlanEditor({
   const [archiveTargetId, setArchiveTargetId] = useState("");
 
   const autoBadge = useMemo(() => {
-    const amount = Number(price) || 0;
-    const original = Number(mrp) || 0;
+    const amount = rupees(monthly?.amount ?? 0);
+    const original = monthly?.mrp_amount ? rupees(monthly.mrp_amount) : 0;
     if (original <= amount || original <= 0) return "";
     return `${Math.round((1 - amount / original) * 100)}% off`;
-  }, [price, mrp]);
+  }, [monthly]);
 
   const visibleFeatures = useMemo(
     () => features.filter((feature) => feature.enabled && feature.text.trim()).map((feature) => feature.text.trim()),
     [features]
   );
+
+  const updatePrice = (index: number, patch: Partial<DraftPrice>) => {
+    setPrices((current) => current.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  };
+
+  const addCustomPrice = () => {
+    setPrices((current) => [
+      ...current,
+      {
+        billing_period: "custom_days",
+        custom_days: 30,
+        amount: 0,
+        mrp_amount: null,
+        tax_inclusive: true,
+        gateway_price_id: null,
+        is_active: true,
+      },
+    ]);
+  };
 
   useEffect(() => {
     if (isPreview || plan.active_subscriber_count <= 0) return;
@@ -160,8 +202,8 @@ export function PlanEditor({
       cta,
       featured,
       trialDays: Number(trialDays) || 0,
-      price: Number(price) || 0,
-      originalPrice: Number(mrp) || null,
+      price: rupees(monthly?.amount ?? 0),
+      originalPrice: monthly?.mrp_amount ? rupees(monthly.mrp_amount) : null,
       credits: Number(entitlements.ai_credits_per_month) || 0,
       features: visibleFeatures,
       discountBadge: discountBadge.trim() || null,
@@ -175,27 +217,40 @@ export function PlanEditor({
     offer,
     onPreview,
     plan.slug,
-    price,
-    mrp,
+    monthly?.amount,
+    monthly?.mrp_amount,
     tagline,
     trialDays,
     visibleFeatures,
   ]);
 
   const buildPayload = useCallback((): SubscriptionPlanUpdate | null => {
-    const numericPrice = Number(price);
-    const numericMrp = mrp.trim() ? Number(mrp) : null;
     if (!name.trim()) {
       toast.error({ title: "Name is required", description: "Give the plan a clear name." });
       return null;
     }
-    if (!Number.isFinite(numericPrice) || numericPrice < 0) {
-      toast.error({ title: "Invalid price", description: "Price must be zero or more." });
-      return null;
-    }
-    if (numericMrp !== null && (!Number.isFinite(numericMrp) || numericMrp < numericPrice)) {
-      toast.error({ title: "Invalid strike-through price", description: "MRP must be at least the selling price." });
-      return null;
+    const activePrices = prices.filter((item) => item.is_active);
+    const customPeriods = new Set<number>();
+    for (const row of activePrices) {
+      if (row.billing_period === "custom_days") {
+        if (!Number.isInteger(row.custom_days) || !row.custom_days || row.custom_days < 1) {
+          toast.error({ title: "Invalid custom period", description: "Custom billing periods need a positive whole number of days." });
+          return null;
+        }
+        if (customPeriods.has(row.custom_days)) {
+          toast.error({ title: "Duplicate custom period", description: `Only one active price can use a ${row.custom_days}-day period.` });
+          return null;
+        }
+        customPeriods.add(row.custom_days);
+      }
+      if (!Number.isInteger(row.amount) || row.amount < 0) {
+        toast.error({ title: "Invalid price", description: "Prices must be zero or more." });
+        return null;
+      }
+      if (row.mrp_amount != null && (!Number.isInteger(row.mrp_amount) || row.mrp_amount < row.amount)) {
+        toast.error({ title: "Invalid strike-through price", description: "MRP must be at least the selling price." });
+        return null;
+      }
     }
     const numericEntitlements: Record<string, number | boolean> = {};
     for (const [key, value] of Object.entries(entitlements)) {
@@ -206,30 +261,15 @@ export function PlanEditor({
       numericEntitlements[key] = value;
     }
 
-    const otherPrices = (draft?.prices ?? plan.prices)
-      .filter((row) => row.billing_period !== "monthly" && row.is_active)
-      .map((row) => ({
-        billing_period: row.billing_period,
-        custom_days: row.custom_days,
-        amount: row.amount,
-        mrp_amount: row.mrp_amount,
-        tax_inclusive: row.tax_inclusive,
-        gateway_price_id: row.gateway_price_id,
-        is_active: true,
-      }));
-
-    const prices: NonNullable<SubscriptionPlanUpdate["prices"]> = [
-      ...otherPrices,
-      {
-        billing_period: "monthly",
-        custom_days: null,
-        amount: paise(numericPrice),
-        mrp_amount: numericMrp === null ? null : paise(numericMrp),
-        tax_inclusive: monthly?.tax_inclusive ?? true,
-        gateway_price_id: monthly?.gateway_price_id ?? null,
-        is_active: true,
-      },
-    ];
+    const pricesPayload = activePrices.map((row) => ({
+      billing_period: row.billing_period,
+      custom_days: row.custom_days,
+      amount: row.amount,
+      mrp_amount: row.mrp_amount,
+      tax_inclusive: row.tax_inclusive,
+      gateway_price_id: row.gateway_price_id,
+      is_active: true,
+    }));
 
     return {
       name: name.trim(),
@@ -244,23 +284,19 @@ export function PlanEditor({
       featured,
       sort_order: Number(sortOrder) || 0,
       trial_days: Number(trialDays) || 0,
-      prices,
+      prices: pricesPayload,
       entitlements: numericEntitlements,
     };
   }, [
     cta,
     description,
     discountBadge,
-    draft,
     entitlements,
     featured,
     isPublic,
-    monthly,
-    mrp,
+    prices,
     name,
     offer,
-    plan.prices,
-    price,
     slug,
     sortOrder,
     tagline,
@@ -552,12 +588,6 @@ export function PlanEditor({
         <Field label="Offer line">
           <input className={INPUT} value={offer} onChange={(event) => setOffer(event.target.value)} placeholder="Limited 2026 offer" />
         </Field>
-        <Field label="Price (₹ / month)">
-          <input className={INPUT} type="number" min={0} step={1} value={price} onChange={(event) => setPrice(event.target.value)} />
-        </Field>
-        <Field label="Strike-through MRP (₹)">
-          <input className={INPUT} type="number" min={0} step={1} value={mrp} onChange={(event) => setMrp(event.target.value)} placeholder="Optional" />
-        </Field>
         <Field label="Discount badge" hint={autoBadge ? `Leave blank to auto-calculate: ${autoBadge}` : "Leave blank to auto-calculate from price and MRP."}>
           <input className={INPUT} value={discountBadge} onChange={(event) => setDiscountBadge(event.target.value)} placeholder={autoBadge || "e.g. 25% off"} />
         </Field>
@@ -576,6 +606,86 @@ export function PlanEditor({
       <Field label="Description" hint="Internal/public plan description, separate from the short tagline.">
         <textarea className={`${INPUT} min-h-20`} value={description} onChange={(event) => setDescription(event.target.value)} />
       </Field>
+
+      <div className="rounded-[12px] border border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
+        <div className="mb-3">
+          <p className="text-[12px] font-extrabold text-[var(--qs-ink)]">Billing prices</p>
+          <p className="text-[11px] text-[var(--qs-muted)]">
+            Monthly pricing is required as the default. Enable other billing periods to offer them at checkout.
+          </p>
+        </div>
+        <div className="space-y-3">
+          {prices.map((row, index) => {
+            const label = row.billing_period === "custom_days"
+              ? "Custom period"
+              : row.billing_period.charAt(0).toUpperCase() + row.billing_period.slice(1);
+            return (
+              <div key={`${row.billing_period}-${row.custom_days ?? 0}-${index}`} className="grid gap-2 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] p-2 sm:grid-cols-[minmax(120px,0.7fr)_1fr_1fr_auto] sm:items-end">
+                <div className="flex items-center gap-2">
+                  {row.billing_period !== "monthly" && (
+                    <input
+                      type="checkbox"
+                      checked={row.is_active === true}
+                      onChange={(event) => updatePrice(index, { is_active: event.target.checked })}
+                      aria-label={`Offer ${label}`}
+                      className="h-4 w-4 accent-[var(--qs-brand)]"
+                    />
+                  )}
+                  <span className="text-[12px] font-extrabold text-[var(--qs-ink)]">{label}</span>
+                  {row.billing_period === "custom_days" && (
+                    <input
+                      className={`${INPUT} max-w-20`}
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={row.custom_days ?? ""}
+                      onChange={(event) => updatePrice(index, { custom_days: Number(event.target.value) || null })}
+                      aria-label="Custom billing period in days"
+                    />
+                  )}
+                </div>
+                <Field label="Price (₹)">
+                  <input
+                    className={INPUT}
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={rupees(row.amount)}
+                    disabled={!row.is_active}
+                    onChange={(event) => updatePrice(index, { amount: paise(Number(event.target.value) || 0) })}
+                  />
+                </Field>
+                <Field label="Strike-through MRP (₹)">
+                  <input
+                    className={INPUT}
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={row.mrp_amount == null ? "" : rupees(row.mrp_amount)}
+                    disabled={!row.is_active}
+                    placeholder="Optional"
+                    onChange={(event) => updatePrice(index, { mrp_amount: event.target.value === "" ? null : paise(Number(event.target.value) || 0) })}
+                  />
+                </Field>
+                {row.billing_period === "custom_days" && (
+                  <button
+                    type="button"
+                    className={BTN_DANGER}
+                    onClick={() => setPrices((current) => current.filter((_, i) => i !== index))}
+                    aria-label="Remove custom billing period"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <button type="button" className={`${BTN} mt-3`} onClick={addCustomPrice}>
+          <Plus size={14} />
+          Add custom days
+        </button>
+      </div>
 
       <div className="rounded-[12px] border border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
         <div className="mb-2 flex items-center justify-between gap-2">
@@ -653,18 +763,25 @@ export function PlanEditor({
                     onChange={(next) => setEntitlements((current) => ({ ...current, [definition.key]: next }))}
                   />
                 ) : (
-                  <input
-                    className={INPUT}
-                    type="number"
-                    step={1}
-                    value={String(value)}
-                    onChange={(event) =>
-                      setEntitlements((current) => ({
-                        ...current,
-                        [definition.key]: Number(event.target.value),
-                      }))
-                    }
-                  />
+                  <div className="relative">
+                    <input
+                      className={`${INPUT} ${definition.unit ? "pr-14" : ""}`}
+                      type="number"
+                      step={1}
+                      value={String(value)}
+                      onChange={(event) =>
+                        setEntitlements((current) => ({
+                          ...current,
+                          [definition.key]: Number(event.target.value),
+                        }))
+                      }
+                    />
+                    {definition.unit && (
+                      <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-[var(--qs-muted)]">
+                        {definition.unit}
+                      </span>
+                    )}
+                  </div>
                 )}
               </Field>
             );

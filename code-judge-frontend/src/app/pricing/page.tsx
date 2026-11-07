@@ -12,15 +12,16 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { PricingFooter, PricingNav } from "@/components/pricing/PricingChrome";
-import { PublicPlanCta } from "@/components/pricing/PublicCheckoutCta";
+import { PublicPlanBuyOption } from "@/components/pricing/PublicPlanBuyOption";
 import { BASIC_TRIAL_CREDITS } from "@/lib/constants";
 import {
-  formatPricingAmount,
-  getPricingCatalogServer,
-  getPricingContentServer,
   getPlanDiscount,
   type PricingCatalog,
 } from "@/services/pricing";
+import {
+  getPricingCatalogServer,
+  getPricingContentServer,
+} from "@/services/pricingServer";
 
 const PLAN_INCLUDES: Array<{ title: string; icon: LucideIcon }> = [
   { title: "Access codes", icon: LockKeyhole },
@@ -32,6 +33,7 @@ const PLAN_INCLUDES: Array<{ title: string; icon: LucideIcon }> = [
 ];
 
 function buildFaqs(catalog: PricingCatalog) {
+  const freePlan = catalog.plans.find((plan) => plan.price === 0);
   const paidPlans = catalog.plans.filter((plan) => plan.price > 0);
   const trialPlan = catalog.plans.find((plan) => plan.trialDays > 0);
   const creditAnswer = paidPlans.every((plan) => plan.credits > 0)
@@ -52,10 +54,18 @@ function buildFaqs(catalog: PricingCatalog) {
       a: creditAnswer,
     },
     {
+      q: "Is there a free plan?",
+      a: freePlan
+        ? `Yes. ${freePlan.name} is free forever and includes everything you need to get started.`
+        : "Free plan availability depends on the current plans shown above.",
+    },
+    {
       q: "Is there a free trial?",
       a: trialPlan
         ? `Yes. ${trialPlan.name} includes a ${trialPlan.trialDays}-day trial with ${BASIC_TRIAL_CREDITS} AI credits. Request it from billing; the owner approves each request. No card required.`
-        : "Trial availability depends on the current plans shown above.",
+        : freePlan
+          ? `${freePlan.name} is free forever, so you can start without a trial.`
+          : "Trial availability depends on the current plans shown above.",
     },
     {
       q: "Are prices inclusive of taxes?",
@@ -69,6 +79,7 @@ export default async function PricingPage() {
     getPricingCatalogServer(),
     getPricingContentServer(),
   ]);
+  const freePlan = catalog.plans.find((plan) => plan.price === 0);
   const trialPlan = catalog.plans.find((plan) => plan.trialDays > 0);
   const trialDays = trialPlan?.trialDays ?? 0;
   const offer = catalog.plans.find((plan) => plan.offer)?.offer ?? null;
@@ -84,18 +95,19 @@ export default async function PricingPage() {
 
       <main id="top">
         <header className="wrap qp-hero">
-          <p className="eb">{content.plans_banner || "Monthly plans"}</p>
+          <p className="eb">{content.plans_banner || "Plans"}</p>
           <h1>{content.plans_heading || "Plans that grow with your quiz load"}</h1>
           <p className="lead">
             {content.plans_subheading ||
-              "Move up when your quiz load grows. Every plan includes the full quiz builder, access codes and instant results. Paid plans also include monthly AI credits."}
+              "Essential is free forever. Elevate adds advanced tools, anti-cheat, analytics and monthly AI credits when you need more."}
           </p>
           <div className="qp-actions">
             <Link
               href={trialDays > 0 ? "/login?next=/creator/billing/plans" : "/register"}
               className="btn pri"
             >
-              {trialDays > 0 ? "Request Basic trial" : "Get started"} <ArrowRight size={16} />
+              {trialDays > 0 ? "Request Basic trial" : freePlan ? "Start free" : "Get started"}{" "}
+              <ArrowRight size={16} />
             </Link>
             <a href="#plans" className="btn">
               Compare plans
@@ -103,6 +115,7 @@ export default async function PricingPage() {
           </div>
           <div className="qp-meta" aria-label="Pricing highlights">
             <span>No card required</span>
+            {freePlan && <span>{freePlan.name} free forever</span>}
             {trialDays > 0 && <span>Basic trial · approval required</span>}
             {trialDays > 0 && <span>AI credits included</span>}
             {offer && <span>{offer}</span>}
@@ -145,14 +158,6 @@ export default async function PricingPage() {
                     {plan.offer && <p className="qp-offer">{plan.offer}</p>}
                     <p className="qp-plan-desc">{plan.tagline}</p>
 
-                    <div className="qp-price">
-                      <b>{formatPricingAmount(plan.price, plan.currency)}</b>
-                      {discount > 0 && plan.originalPrice ? (
-                        <s>{formatPricingAmount(plan.originalPrice, plan.currency)}</s>
-                      ) : null}
-                      <span>/ month</span>
-                    </div>
-
                     <p
                       className={`qp-plan-credits${plan.credits === 0 ? " is-muted" : ""}`}
                     >
@@ -173,10 +178,11 @@ export default async function PricingPage() {
                       ))}
                     </ul>
 
-                    <PublicPlanCta
-                      planSlug={plan.slug}
+                    <PublicPlanBuyOption
+                      plan={plan}
                       label={plan.cta || `Choose ${plan.name}`}
-                      className="btn qp-plan-cta"
+                      checkoutAvailable={catalog.countryPricing?.checkoutAvailable ?? true}
+                      countryName={catalog.countryPricing?.countryName}
                     />
                   </article>
                 );
@@ -186,7 +192,7 @@ export default async function PricingPage() {
             <p className="qp-after">
               <Sparkles size={15} />
               {content.plans_gst_note ||
-                "Every paid plan includes monthly AI credits. Need more? Top up with a one-time pack."}
+                "Essential is free forever. Elevate includes monthly AI credits; top up anytime with a one-time pack."}
             </p>
 
             <div className="qp-includes">
@@ -239,7 +245,13 @@ export default async function PricingPage() {
             <div className="cta">
               <div>
                 <p className="eb">Start today</p>
-                <h2>{trialDays > 0 ? `Request your ${trialDays}-day Basic trial today.` : "Start creating quizzes today."}</h2>
+                <h2>
+                  {trialDays > 0
+                    ? `Request your ${trialDays}-day Basic trial today.`
+                    : freePlan
+                      ? `Start free with ${freePlan.name} today.`
+                      : "Start creating quizzes today."}
+                </h2>
               </div>
               <div className="qp-cta-actions">
                 <Link href="/register" className="btn">

@@ -430,6 +430,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       progressLabel={questions.length ? `Q ${index + 1} / ${questions.length}` : ""}
       timeLeft={timeLeft}
       isLive
+      antiCheatEnabled={quiz.anti_cheat_enabled === true}
       attemptId={attemptId !== null ? String(attemptId) : null}
       onEnterExam={handleEnterExam}
       onExitPreview={() => router.replace("/quiz")}

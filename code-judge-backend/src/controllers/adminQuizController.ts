@@ -9,7 +9,7 @@ import { sendCollaboratorInviteEmail } from "../services/email.ts";
 import { isDatabaseUnavailableError, isQuizCodeConflictError } from "../utils/databaseError.ts";
 import { QuizCreationLimitError } from "../services/quizCreationLimits.ts";
 import { MAX_QUESTIONS_PER_QUIZ, QuizQuestionLimitError } from "../services/quizQuestionLimits.ts";
-import { sendEntitlementError } from "../services/entitlement.service.ts";
+import { assertLimit, sendEntitlementError } from "../services/entitlement.service.ts";
 import { enqueueQuizResultCalculation, scheduleQuizRecalculation } from "../services/quizSubmission.service.ts";
 
 const quizService = new AdminQuizService();
@@ -26,7 +26,7 @@ export const getAllSubjects = async (req: Request, res: Response) => {
     }
 
     const { search = "" } = req.query;
-    const subjects = await quizService.getAllSubjects(search as string);
+    const subjects = await quizService.getAllSubjects(search as string, userId);
     res.status(200).json({ success: true, data: subjects });
   } catch (error) {
     console.error("Error fetching subjects:", error);
@@ -347,6 +347,10 @@ export const createQuiz = async (req: Request, res: Response) => {
         ? Math.ceil((calculatedTotal * body.passingPercentage) / 100)
         : 0);
 
+    if (body.antiCheatEnabled === true) {
+      await assertLimit(userId, "anti_cheat", 0);
+    }
+
     const quiz = await quizService.createQuiz({
       name: body.name,
       code,
@@ -366,6 +370,7 @@ export const createQuiz = async (req: Request, res: Response) => {
       showResultsImmediately: body.showResultsImmediately,
       negativeMarking: body.negativeMarking,
       leaderboard: true,
+      antiCheatEnabled: body.antiCheatEnabled === true,
       status: body.status || "draft",
       registrationFields: Array.isArray(body.registrationFields) ? body.registrationFields : undefined,
     });
@@ -401,9 +406,14 @@ export const updateQuiz = async (req: Request, res: Response) => {
       return;
     }
 
+    if (req.body.antiCheatEnabled === true) {
+      await assertLimit(userId, "anti_cheat", 0);
+    }
+
     const updatedQuiz = await quizService.updateQuiz(Number(quizId), req.body);
     res.status(200).json({ success: true, message: "Quiz updated successfully", data: updatedQuiz });
   } catch (error) {
+    if (sendEntitlementError(error, res)) return;
     if (isQuizCodeConflictError(error)) {
       res.status(409).json({ success: false, code: "QUIZ_CODE_TAKEN", message: "This quiz code is already in use. Please generate a new code." });
       return;
@@ -461,6 +471,11 @@ export const cloneQuiz = async (req: Request, res: Response) => {
     if (!access.ok) {
       res.status(access.status).json({ success: false, message: access.message });
       return;
+    }
+
+    const sourceQuiz = await quizService.getQuizById(quizId);
+    if (sourceQuiz?.anti_cheat_enabled === true) {
+      await assertLimit(userId, "anti_cheat", 0);
     }
 
     const clonedQuiz = await quizService.cloneQuiz(Number(quizId), name, code, userId);

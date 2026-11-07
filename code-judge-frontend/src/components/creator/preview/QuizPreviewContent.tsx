@@ -255,6 +255,7 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
       quizName={quiz.name}
       progressLabel={`${current + 1} / ${questions.length}`}
       timeLeft={null}
+      antiCheatEnabled={quiz.anti_cheat_enabled === true}
       onExitPreview={onExitPreview}
       autoEnter
       fullWidth

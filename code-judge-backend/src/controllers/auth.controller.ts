@@ -474,8 +474,8 @@ export const loginController = async (req: Request, res: Response) => {
 /**
  * POST /api/auth/owner/send-otp
  * Body: { "email": "owner@example.com", "password": "OwnerPassword123" }
- * Sends a one-time login code only after the email + password match a
- * role_id = 2 (owner/admin) account. Invalid credentials receive the same
+ * Sends a one-time login code only after the email + password match the
+ * platform owner account. Invalid credentials receive the same
  * generic response so owner emails cannot be enumerated.
  * This is the ONLY login path for the private /platform control center;
  * a password-only login is never accepted there (see requireOwner + gate).

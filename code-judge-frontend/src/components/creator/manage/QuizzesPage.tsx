@@ -166,7 +166,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
           <h1 className="qs-display text-[22px] font-extrabold leading-[1.08] tracking-[-0.025em] text-[var(--qs-ink)] sm:text-[27px] lg:text-[30px]">
-            Your quizzes
+            My Quizzes
           </h1>
           <p className="mt-1.5 text-[11px] text-[var(--qs-muted)] sm:text-[12px]">
             Create, manage and track everything you publish.
@@ -175,7 +175,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
         <div className="flex flex-wrap items-center gap-2">
           <Link href="/creator/quizzes/create" className={BTN_PRI}>
             <Plus className="h-4 w-4" />
-            New quiz
+            Create quiz
           </Link>
         </div>
       </div>

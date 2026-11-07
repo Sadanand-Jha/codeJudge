@@ -54,6 +54,8 @@ export async function loadQuestionScope(params: {
   subjectId: number;
   chapterIds?: Array<number | null | undefined>;
   topicIds?: Array<number | null | undefined>;
+  /** Restricts syllabus lookups to the requesting teacher. */
+  userId?: number | string | null;
 }): Promise<QuestionScopeCatalog> {
   const subjectId = Number(params.subjectId);
   if (!Number.isInteger(subjectId) || subjectId <= 0) {
@@ -66,27 +68,43 @@ export async function loadQuestionScope(params: {
     throw new Error("Select at least one chapter before selecting topics.");
   }
 
+  const teacherId = Number(params.userId);
+  const scopedUserId = Number.isInteger(teacherId) && teacherId > 0 ? teacherId : null;
   const [subjectResult, chapterResult, topicResult] = await Promise.all([
-    pool.query(`SELECT subject_name FROM subjects WHERE id = $1`, [subjectId]),
     pool.query(
-      `SELECT id, chapter_name, subject_id
-         FROM subject_chapters
-        WHERE subject_id = $1
-        ORDER BY id`,
-      [subjectId]
+      `SELECT COALESCE(name, subject_name) AS name
+         FROM subjects
+        WHERE id = $1
+          AND deleted_at IS NULL
+          AND owned_by = $2
+        LIMIT 1`,
+      [subjectId, scopedUserId]
     ),
     pool.query(
-      `SELECT ct.id, ct.chapter_id, ct.topic_name
-         FROM chapter_topics ct
-         JOIN subject_chapters sc ON sc.id = ct.chapter_id
-        WHERE sc.subject_id = $1
-        ORDER BY ct.id`,
-      [subjectId]
+      `SELECT c.id, c.chapter_name
+         FROM subject_chapters c
+         JOIN subjects s ON s.id = c.subject_id
+        WHERE c.subject_id = $1
+          AND s.deleted_at IS NULL
+          AND s.owned_by = $2
+        ORDER BY c.position, c.id`,
+      [subjectId, scopedUserId]
+    ),
+    pool.query(
+      `SELECT t.id, t.chapter_id, t.topic_name
+         FROM chapter_topics t
+         JOIN subject_chapters c ON c.id = t.chapter_id
+         JOIN subjects s ON s.id = c.subject_id
+        WHERE c.subject_id = $1
+          AND s.deleted_at IS NULL
+          AND s.owned_by = $2
+        ORDER BY t.position, t.id`,
+      [subjectId, scopedUserId]
     ),
   ]);
 
-  const subjectName = subjectResult.rows[0]?.subject_name
-    ? String(subjectResult.rows[0].subject_name)
+  const subjectName = subjectResult.rows[0]?.name
+    ? String(subjectResult.rows[0].name)
     : "";
   if (!subjectName) throw new Error("Select a valid subject.");
 

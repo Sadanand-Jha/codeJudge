@@ -12,6 +12,7 @@ import { startQuizResultScheduler } from './queues/quizResult.scheduler.ts';
 import { startEmailWorker } from './queues/email.worker.ts';
 import { startPdfWorker } from './queues/pdf.worker.ts';
 import { closePaperPdfBrowser } from './services/paperPdf.service.ts';
+import { recoverInterruptedSyllabusImports } from './services/syllabusBreakdown.service.ts';
 
 const PORT = process.env.PORT || 8000;
 const isVercel = process.env.VERCEL === '1';
@@ -47,6 +48,10 @@ if (shouldStartWorkers) {
   } catch (err: any) {
     console.warn('⚠️ Background workers failed to start (durable recovery queue remains available):', err.message);
   }
+
+  void recoverInterruptedSyllabusImports().catch((err: Error) => {
+    console.error('⚠️ Custom syllabus import recovery failed:', err.message);
+  });
 }
 
 // Docker/systemd stop sends SIGTERM. Without this handler Node exits

@@ -117,6 +117,8 @@ export interface GeneratePaperRequest {
   /** Legacy per-question filters (used only when overallDifficulty is absent). */
   difficulty?: "any" | "easy" | "medium" | "hard";
   kind?: "any" | "theory" | "numerical";
+  /** Authenticated creator, used to scope teacher-owned syllabi. */
+  userId?: number | string | null;
 }
 
 export interface PaperQuestion {
@@ -193,6 +195,8 @@ export interface GenerateSubjectiveQuestionsRequest {
   topicId?: number | null;
   chapterIds?: number[];
   topicIds?: number[];
+  /** Authenticated creator, used to scope teacher-owned syllabi. */
+  userId?: number | string | null;
 }
 
 export interface SubjectiveQuestion {
@@ -297,6 +301,7 @@ export const generateSubjectiveQuestions = async (
     subjectId,
     chapterIds,
     topicIds,
+    userId: request.userId ?? null,
   });
   const scopeFallback: QuestionScopeFallback = {
     chapterId: chapterIds.length === 1 ? chapterIds[0] : null,
@@ -426,41 +431,58 @@ ${avoidQuestions ? `DO NOT REPEAT OR NEAR-DUPLICATE THESE EXISTING QUESTIONS:\n$
   return { questions: numbered, usage };
 };
 
-export async function getQuestionGeneratorCatalog(subjectId?: number) {
-  const subjectFilter = subjectId != null ? "AND s.id = $1" : "";
-  const chapterFilter = subjectId != null ? "AND sc.subject_id = $1" : "";
-  const params = subjectId != null ? [subjectId] : [];
+export async function getQuestionGeneratorCatalog(
+  subjectId?: number,
+  userId?: number | string | null
+) {
+  const numericUser = Number(userId);
+  const teacherId = Number.isInteger(numericUser) && numericUser > 0 ? numericUser : null;
+  const subjectFilter = subjectId != null ? "AND s.id = $2" : "";
+  const chapterSubjectFilter = subjectId != null ? "AND c.subject_id = $2" : "";
+  const params = subjectId != null ? [teacherId, subjectId] : [teacherId];
   const [subjects, chapters, topics, difficulties, categories] = await Promise.all([
     db.query(
-      `SELECT DISTINCT s.id, s.subject_name AS name
+      `SELECT DISTINCT s.id, COALESCE(s.name, s.subject_name) AS name
        FROM subjects s
-       WHERE EXISTS (SELECT 1 FROM subject_chapters sc WHERE sc.subject_id = s.id)
+       WHERE s.deleted_at IS NULL
+         AND s.owned_by = $1
+         AND EXISTS (SELECT 1 FROM subject_chapters c WHERE c.subject_id = s.id)
          AND EXISTS (
-           SELECT 1 FROM chapter_topics ct
-           JOIN subject_chapters sc ON sc.id = ct.chapter_id
-           WHERE sc.subject_id = s.id
+           SELECT 1 FROM chapter_topics t
+           JOIN subject_chapters c ON c.id = t.chapter_id
+           WHERE c.subject_id = s.id
          )
          ${subjectFilter}
        ORDER BY name`,
       params
     ).then((r) => r.rows),
     db.query(
-      `SELECT DISTINCT sc.id, sc.subject_id AS "subjectId", sc.chapter_name AS name
-       FROM subject_chapters sc
-       WHERE EXISTS (SELECT 1 FROM chapter_topics ct WHERE ct.chapter_id = sc.id)
-         ${chapterFilter}
+      `SELECT DISTINCT c.id, c.subject_id AS "subjectId", c.chapter_name AS name
+       FROM subject_chapters c
+       JOIN subjects s ON s.id = c.subject_id
+       WHERE s.deleted_at IS NULL
+         AND s.owned_by = $1
+         AND EXISTS (SELECT 1 FROM chapter_topics t WHERE t.chapter_id = c.id)
+         ${chapterSubjectFilter}
        ORDER BY name`,
       params
     ).then((r) => r.rows),
     db.query(
       subjectId != null
-        ? `SELECT DISTINCT ct.id, ct.chapter_id AS "chapterId", ct.topic_name AS name
-           FROM chapter_topics ct
-           JOIN subject_chapters sc ON sc.id = ct.chapter_id
-           WHERE sc.subject_id = $1
+        ? `SELECT DISTINCT t.id, t.chapter_id AS "chapterId", t.topic_name AS name
+           FROM chapter_topics t
+           JOIN subject_chapters c ON c.id = t.chapter_id
+           JOIN subjects s ON s.id = c.subject_id
+           WHERE c.subject_id = $2
+             AND s.deleted_at IS NULL
+             AND s.owned_by = $1
            ORDER BY name`
-        : `SELECT DISTINCT ct.id, ct.chapter_id AS "chapterId", ct.topic_name AS name
-           FROM chapter_topics ct
+        : `SELECT DISTINCT t.id, t.chapter_id AS "chapterId", t.topic_name AS name
+           FROM chapter_topics t
+           JOIN subject_chapters c ON c.id = t.chapter_id
+           JOIN subjects s ON s.id = c.subject_id
+           WHERE s.deleted_at IS NULL
+             AND s.owned_by = $1
            ORDER BY name`,
       params
     ).then((r) => r.rows),
@@ -779,6 +801,7 @@ export const generateQuestionPaper = async (
     subjectId,
     chapterIds,
     topicIds,
+    userId: request.userId ?? null,
   });
   const scopeFallback: QuestionScopeFallback = {
     chapterId: chapterIds.length === 1 ? chapterIds[0] : null,

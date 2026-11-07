@@ -120,6 +120,10 @@ export interface DirectDocumentJsonRequest {
   systemPrompt?: string;
   /** Observability label for this document AI call. */
   operation?: string;
+  /** Upper bound for generated tokens in this call. */
+  maxTokens?: number;
+  /** Echo streamed output deltas to the backend terminal. */
+  streamToTerminal?: boolean;
 }
 
 /**
@@ -287,6 +291,7 @@ const generateJsonFromDocumentRemote = async (
               strict: true,
             },
           },
+          ...(request.maxTokens ? { max_output_tokens: request.maxTokens } : {}),
           store: false,
         });
         streamedText = "";
@@ -294,6 +299,7 @@ const generateJsonFromDocumentRemote = async (
         for await (const event of stream) {
           if (event.type === "response.output_text.delta") {
             streamedText += event.delta;
+            if (request.streamToTerminal) process.stdout.write(event.delta);
             onProgress?.(streamedText.length, streamedText.slice(-160), event.delta);
             const now = Date.now();
             if (now - lastProgressLog > 5000) {
@@ -387,7 +393,7 @@ const DEFAULT_DOCUMENT_SYSTEM_PROMPT =
 type DocumentResponseMode = "schema" | "json" | "plain";
 
 /** Best-effort local text extraction (no provider needed): docx/txt/md/pdf. */
-const extractDocumentTextLocally = async (
+export const extractDocumentTextLocally = async (
   filename: string,
   mimeType: string,
   buffer: Buffer
@@ -508,6 +514,12 @@ const generateJsonFromDocumentText = async (
         ? { type: "json_object" as const }
         : undefined;
     console.log(`[ai-document] opening ${docProvider} chat stream …`, { responseMode });
+    const schemaInstruction =
+      responseMode === "schema"
+        ? ""
+        : `\n\nOUTPUT JSON SCHEMA (return exactly this shape, with no extra keys):\n${JSON.stringify(
+            request.schema
+          )}`;
     const stream = await textClient.chat.completions.create({
       model,
       temperature: 0.2,
@@ -516,10 +528,11 @@ const generateJsonFromDocumentText = async (
       // Constrained decoding emits the requested shape. Zod still validates
       // the completed result before a preview batch is created.
       ...(responseFormat ? { response_format: responseFormat } : {}),
+      ...(request.maxTokens ? { max_tokens: request.maxTokens } : {}),
       messages: [
         {
           role: "system",
-          content: request.systemPrompt ?? DEFAULT_DOCUMENT_SYSTEM_PROMPT,
+          content: `${request.systemPrompt ?? DEFAULT_DOCUMENT_SYSTEM_PROMPT}${schemaInstruction}`,
         },
         {
           role: "user",
@@ -538,6 +551,7 @@ const generateJsonFromDocumentText = async (
       const delta = choice?.delta?.content;
       if (!delta) continue;
       content += delta;
+      if (request.streamToTerminal) process.stdout.write(delta);
       onProgress?.(content.length, content.slice(-160), delta);
     }
     console.log(`[ai-document] ${docProvider} stream completed`, {

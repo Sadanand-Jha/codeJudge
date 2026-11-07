@@ -937,7 +937,7 @@ async function renderPaperPdf({
   hasChoice: boolean;
   customInstructions?: string;
   letterhead?: HeaderPlacement | null;
-}): Promise<void> {
+}): Promise<Blob> {
   const [logo, fontFiles] = await Promise.all([loadBrandLogo(), loadPdfFontFiles()]);
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   if (fontFiles) registerPdfFonts(doc, fontFiles);
@@ -990,8 +990,17 @@ async function renderPaperPdf({
 
   drawEnd(state);
   drawFooters(state);
-  doc.save(`${paperFileName(header)}.pdf`);
+  return doc.output("blob");
 }
+
+const downloadPdfBlob = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
+};
 
 export async function downloadQuestionsPdf({
   questions,
@@ -1018,7 +1027,7 @@ export async function downloadQuestionsPdf({
   );
   const totalMarks = marks.reduce((total, value) => total + value, 0);
 
-  await renderPaperPdf({
+  const blob = await renderPaperPdf({
     header: resolved,
     sections: [
       {
@@ -1039,9 +1048,10 @@ export async function downloadQuestionsPdf({
     customInstructions: resolved.instructions,
     letterhead,
   });
+  downloadPdfBlob(blob, `${paperFileName(resolved)}.pdf`);
 }
 
-export async function downloadPaperPdf({
+export async function createPaperPdfBlob({
   paper,
   header,
   letterhead,
@@ -1049,8 +1059,8 @@ export async function downloadPaperPdf({
   paper: QuestionPaper;
   header?: Partial<PaperHeaderMeta>;
   letterhead?: HeaderPlacement | null;
-}): Promise<void> {
-  if (!paper.sections.length) return;
+}): Promise<Blob | null> {
+  if (!paper.sections.length) return null;
 
   const resolved = withPaperHeaderDefaults({
     ...header,
@@ -1111,7 +1121,7 @@ export async function downloadPaperPdf({
     0
   );
 
-  await renderPaperPdf({
+  return renderPaperPdf({
     header: resolved,
     sections,
     totalQuestions: allQuestions.length,
@@ -1120,6 +1130,56 @@ export async function downloadPaperPdf({
     customInstructions: resolved.instructions.trim() || paper.instructions,
     letterhead,
   });
+}
+
+export async function createPaperPreviewDataUrl({
+  paper,
+  header,
+}: {
+  paper: QuestionPaper;
+  header?: Partial<PaperHeaderMeta>;
+}): Promise<string> {
+  const pdfBlob = await createPaperPdfBlob({ paper, header });
+  if (!pdfBlob) throw new Error("The question paper has no pages to preview.");
+
+  const pdfjs = await import("pdfjs-dist");
+  pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+  const loadingTask = pdfjs.getDocument({ data: await pdfBlob.arrayBuffer() });
+  const pdf = await loadingTask.promise;
+  try {
+    const page = await pdf.getPage(1);
+    const viewport = page.getViewport({ scale: 0.6 });
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Canvas is unavailable in this browser.");
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    await page.render({ canvas, viewport }).promise;
+    return canvas.toDataURL("image/jpeg", 0.9);
+  } finally {
+    await loadingTask.destroy();
+  }
+}
+
+export async function downloadPaperPdf({
+  paper,
+  header,
+  letterhead,
+}: {
+  paper: QuestionPaper;
+  header?: Partial<PaperHeaderMeta>;
+  letterhead?: HeaderPlacement | null;
+}): Promise<void> {
+  const blob = await createPaperPdfBlob({ paper, header, letterhead });
+  if (!blob) return;
+  const resolved = withPaperHeaderDefaults({
+    ...header,
+    heading: header?.heading?.trim() || paper.title || DEFAULT_PAPER_HEADER.heading,
+    subject: header?.subject?.trim() || "",
+  });
+  downloadPdfBlob(blob, `${paperFileName(resolved)}.pdf`);
 }
 
 /** Word export uses the backend's DOCX renderer, which understands HTML tables. */

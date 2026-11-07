@@ -25,6 +25,7 @@ import { getMySubscription } from "../../../controllers/subscription.controller.
 import { getMyReferrals } from "../../../controllers/referral.controller.ts";
 import letterheadRoutes from "../../letterhead.routes.ts";
 import uploadRoutes from "../../upload.routes.ts";
+import syllabusRoutes from "./syllabus.routes.ts";
 
 
 const router = Router();
@@ -41,6 +42,7 @@ router.use("/rooms", roomRoutes);
 router.use("/follow", followRoutes);
 router.use("/letterheads", letterheadRoutes);
 router.use("/uploads", uploadRoutes);
+router.use("/syllabus", syllabusRoutes);
 
 
 

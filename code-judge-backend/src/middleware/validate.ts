@@ -196,6 +196,7 @@ export const quizSchema = z.object({
   showResultsImmediately: z.boolean().optional(),
   negativeMarking: z.boolean().optional(),
   leaderboard: z.boolean().optional(),
+  antiCheatEnabled: z.boolean().optional(),
   status: z.enum(["draft", "scheduled", "live", "ended"]).optional(),
   registrationFields: z
     .array(z.string().trim().min(1, "Registration field name cannot be empty").max(200, "Registration field name must be at most 200 characters"))

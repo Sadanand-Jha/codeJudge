@@ -3,6 +3,12 @@
 // server-side admin-gated.
 import { Router } from "express";
 import { validate } from "../../middleware/validate.ts";
+import { countryPricingBodySchema } from "../../middleware/countryPricing.validate.ts";
+import {
+  listCountryPricingHandler,
+  updateCountryPricingHandler,
+  updateFallbackPricingHandler,
+} from "../../controllers/countryPricing.controller.ts";
 import {
   archivePlanBodySchema,
   contentDraftBodySchema,
@@ -72,6 +78,18 @@ import {
 } from "../../controllers/trialRequest.controller.ts";
 
 const router = Router();
+
+router.get("/country-pricing", listCountryPricingHandler);
+router.put(
+  "/country-pricing/fallback",
+  validate(countryPricingBodySchema),
+  updateFallbackPricingHandler
+);
+router.put(
+  "/country-pricing/:countryCode",
+  validate(countryPricingBodySchema),
+  updateCountryPricingHandler
+);
 
 router.get("/registry", getEntitlementRegistryHandler);
 

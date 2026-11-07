@@ -3,6 +3,7 @@
 
 import { createHash } from "node:crypto";
 import type { PoolClient } from "pg";
+import type { Request } from "express";
 import {
   getRazorpayConfig,
   getRazorpayWebhookSecret,
@@ -49,6 +50,10 @@ import {
 } from "./billing/signatures.ts";
 import { invalidateEntitlements } from "./entitlement.service.ts";
 import { qualifyReferralForFirstPlanTx } from "./referral.service.ts";
+import {
+  isRazorpayCurrencySupported,
+  resolveCountryPricing,
+} from "./countryPricing.service.ts";
 import { writeSubscriptionAudit } from "./subscriptionAudit.service.ts";
 import * as invoiceService from "./invoice.service.ts";
 
@@ -326,6 +331,7 @@ async function resolveCouponForCheckout(
     userId: string;
     planId: number | null;
     amountPaise: number;
+    currency?: string;
   }
 ): Promise<CouponResolution> {
   const coupon = await billingRepository.lockCouponByCode(input.code, client);
@@ -334,6 +340,13 @@ async function resolveCouponForCheckout(
   }
   if (coupon.status !== "active") {
     throw new BillingError(400, "COUPON_INVALID", "This coupon is no longer available.");
+  }
+  if (input.currency && input.currency !== "INR" && coupon.type === "flat") {
+    throw new BillingError(
+      400,
+      "COUPON_CURRENCY_UNSUPPORTED",
+      "Flat-value coupons are only available for INR checkouts."
+    );
   }
 
   const now = new Date();
@@ -384,6 +397,10 @@ async function createPendingOrder(
     currency: string;
     listPricePaise: number;
     sellingPricePaise: number;
+    pricingCountry?: string | null;
+    pricingAmountMinor?: number | null;
+    pricingConfigId?: number | null;
+    pricingVersion?: number | null;
     baseValidityDays: number;
     creditsTotal: number;
     couponCode: string | null;
@@ -402,6 +419,7 @@ async function createPendingOrder(
         userId: input.userId,
         planId: input.catalogPlanId,
         amountPaise: input.sellingPricePaise,
+        currency: input.currency,
       })
     : null;
 
@@ -426,6 +444,10 @@ async function createPendingOrder(
       mrpPaise: input.listPricePaise,
       discountPaise: totalDiscount,
       currency: input.currency,
+      pricingCountry: input.pricingCountry ?? null,
+      pricingAmountMinor: input.pricingAmountMinor ?? null,
+      pricingConfigId: input.pricingConfigId ?? null,
+      pricingVersion: input.pricingVersion ?? null,
       validityDays,
       creditsTotal: Math.max(0, input.creditsTotal),
       couponId: coupon?.coupon.id ?? null,
@@ -459,16 +481,34 @@ async function reusableOrderIsCurrent(
   input: {
     userId: string;
     catalogPlanId: number | null;
+    catalogPriceId?: number | null;
+    validityDays?: number;
     currency: string;
     listPricePaise: number;
     sellingPricePaise: number;
     couponCode: string | null;
+    pricingCountry?: string | null;
+    pricingAmountMinor?: number | null;
+    pricingConfigId?: number | null;
+    pricingVersion?: number | null;
   },
   client: PoolClient
 ): Promise<boolean> {
   if (
+    (input.catalogPriceId !== undefined &&
+      order.catalogPriceId !== input.catalogPriceId) ||
+    (input.validityDays !== undefined &&
+      order.validityDays !== input.validityDays) ||
     order.currency !== input.currency ||
-    order.mrpPaise !== input.listPricePaise
+    order.mrpPaise !== input.listPricePaise ||
+    (input.pricingCountry !== undefined &&
+      order.pricingCountry !== input.pricingCountry) ||
+    (input.pricingAmountMinor !== undefined &&
+      order.pricingAmountMinor !== input.pricingAmountMinor) ||
+    (input.pricingConfigId !== undefined &&
+      order.pricingConfigId !== input.pricingConfigId) ||
+    (input.pricingVersion !== undefined &&
+      order.pricingVersion !== input.pricingVersion)
   ) {
     return false;
   }
@@ -480,6 +520,7 @@ async function reusableOrderIsCurrent(
     userId: input.userId,
     planId: input.catalogPlanId,
     amountPaise: input.sellingPricePaise,
+    currency: input.currency,
   });
   return (
     order.amountPaise ===
@@ -666,6 +707,11 @@ async function activatePlanSubscription(
         priceId,
         periodStart: placement.startsAt,
         periodEnd: placement.expiresAt,
+        billingCountry: order.pricingCountry,
+        billingCurrency: order.currency,
+        billingPriceMinor: order.pricingAmountMinor,
+        pricingConfigId: order.pricingConfigId,
+        pricingVersion: order.pricingVersion,
       },
       client
     );
@@ -691,6 +737,11 @@ async function activatePlanSubscription(
       periodStart: placement.startsAt,
       periodEnd: placement.expiresAt,
       notes: `Order ${order.orderNo}`,
+      billingCountry: order.pricingCountry,
+      billingCurrency: order.currency,
+      billingPriceMinor: order.pricingAmountMinor,
+      pricingConfigId: order.pricingConfigId,
+      pricingVersion: order.pricingVersion,
     },
     client
   );
@@ -1361,27 +1412,51 @@ export class BillingService {
   }
 
   /**
-   * Creates or reuses a pending plan order, reserves its coupon, and starts Razorpay checkout. The plan's latest monthly price and credits are snapshotted.
+   * Creates or reuses a pending plan order, reserves its coupon, and starts Razorpay checkout. The selected active catalog price and credits are snapshotted.
    */
   async createPlanOrder(
     userId: string,
     input: {
       planId?: number | null;
       planSlug?: string | null;
+      priceId?: number | null;
       couponCode: string | null;
       currency?: string | null;
+      request?: Request;
     }
   ): Promise<PlanOrderResponse> {
     const config = requireGatewayConfig();
-    const plan = await billingRepository.findPurchasablePlan({
+    const catalogPlan = await billingRepository.findPurchasablePlan({
       planId: input.planId ?? null,
       planSlug: input.planSlug ?? null,
+      priceId: input.priceId ?? null,
     });
-    if (!plan) {
+    if (!catalogPlan) {
       throw new BillingError(404, "PLAN_NOT_FOUND", "This plan is not available.");
     }
+    if (catalogPlan.billingPeriod !== "monthly") {
+      throw new BillingError(
+        400,
+        "UNSUPPORTED_BILLING_PERIOD",
+        "Only monthly Elevate subscriptions are available."
+      );
+    }
 
-    const currency = resolveCurrency(plan.currency, input.currency);
+    const countryPricing = await resolveCountryPricing(userId, input.request);
+    if (!isRazorpayCurrencySupported(countryPricing.currency)) {
+      throw new BillingError(
+        503,
+        "CURRENCY_NOT_ENABLED",
+        `Checkout in ${countryPricing.currency} is not enabled for this payment account yet.`
+      );
+    }
+    const plan: PurchasablePlan = {
+      ...catalogPlan,
+      amountPaise: countryPricing.amountMinor,
+      mrpAmountPaise: countryPricing.amountMinor,
+      currency: countryPricing.currency,
+    };
+    const currency = countryPricing.currency;
     const couponCode = normalizeCouponCode(input.couponCode);
 
     const legacyPlanId = await billingRepository.findLegacyMonthlyPlanId(plan.slug);
@@ -1408,10 +1483,16 @@ export class BillingService {
             {
               userId,
               catalogPlanId: plan.planId,
+              catalogPriceId: plan.priceId,
+              validityDays,
               currency,
               listPricePaise: plan.mrpAmountPaise ?? plan.amountPaise,
               sellingPricePaise: plan.amountPaise,
               couponCode,
+              pricingCountry: countryPricing.countryCode,
+              pricingAmountMinor: countryPricing.amountMinor,
+              pricingConfigId: countryPricing.configId,
+              pricingVersion: countryPricing.version,
             },
             client
           ))
@@ -1431,6 +1512,10 @@ export class BillingService {
             currency,
             listPricePaise: plan.mrpAmountPaise ?? plan.amountPaise,
             sellingPricePaise: plan.amountPaise,
+            pricingCountry: countryPricing.countryCode,
+            pricingAmountMinor: countryPricing.amountMinor,
+            pricingConfigId: countryPricing.configId,
+            pricingVersion: countryPricing.version,
             baseValidityDays: validityDays,
             creditsTotal: Math.max(0, plan.credits),
             couponCode,

@@ -4,9 +4,9 @@ import { PricingFooter, PricingNav } from "@/components/pricing/PricingChrome";
 import { BASIC_TRIAL_CREDITS } from "@/lib/constants";
 import {
   formatPricingAmount,
-  getPricingCatalogServer,
   getPlanDiscount,
 } from "@/services/pricing";
+import { getPricingCatalogServer } from "@/services/pricingServer";
 
 export const metadata = {
   title: "Request your 7-day Basic trial · QuizSupport",

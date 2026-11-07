@@ -16,7 +16,7 @@ export class AdminQuizRepository {
         q.id, q.name, q.code, q.createdby, q.starttime, q.endtime,
         q.subject_id, q.duration, q.total_marks, q.passing_marks, q.audience_mode,
         q.shuffle_questions, q.shuffle_options, q.show_results_immediately,
-        q.negative_marking, q.leaderboard, q.registration_fields,
+        q.negative_marking, q.leaderboard, q.anti_cheat_enabled, q.registration_fields,
         qs.name AS status, q.created_at,
         qd.heading AS difficulty_name
       FROM quiz q
@@ -34,7 +34,7 @@ export class AdminQuizRepository {
         q.id, q.name, q.code, q.createdby, q.starttime, q.endtime,
         q.subject_id, q.duration, q.total_marks, q.passing_marks, q.audience_mode,
         q.shuffle_questions, q.shuffle_options, q.show_results_immediately,
-        q.negative_marking, q.leaderboard, q.registration_fields,
+        q.negative_marking, q.leaderboard, q.anti_cheat_enabled, q.registration_fields,
         qs.name AS status, q.created_at,
         qd.heading AS difficulty_name
       FROM quiz q
@@ -163,7 +163,7 @@ export class AdminQuizRepository {
     duration?: number; totalMarks?: number; passingMarks?: number;
     shuffleQuestions?: boolean; shuffleOptions?: boolean;
     showResultsImmediately?: boolean; negativeMarking?: boolean;
-    leaderboard?: boolean; status?: string; registrationFields?: string[];
+    leaderboard?: boolean; antiCheatEnabled?: boolean; status?: string; registrationFields?: string[];
   }): Promise<any> {
     let statusId: number | null = null;
     if (data.status) {
@@ -178,9 +178,9 @@ export class AdminQuizRepository {
         name, code, createdby, starttime, visibility, audience_mode, difficulty,
         subject_id, exam_cat, duration, total_marks, passing_marks,
         shuffle_questions, shuffle_options, show_results_immediately,
-        negative_marking, leaderboard, quiz_status, registration_fields,
+        negative_marking, leaderboard, anti_cheat_enabled, quiz_status, registration_fields,
         created_at, updated_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
       RETURNING *
     `;
     const result = await pool.query(query, [
@@ -189,7 +189,7 @@ export class AdminQuizRepository {
       data.examId || null, data.duration || null, data.totalMarks || 0,
       data.passingMarks || 0, data.shuffleQuestions ?? true, data.shuffleOptions ?? true,
       data.showResultsImmediately || false, data.negativeMarking || false,
-      data.leaderboard !== false, statusId,
+      data.leaderboard !== false, data.antiCheatEnabled === true, statusId,
       data.registrationFields ? JSON.stringify(data.registrationFields) : null,
     ]);
     return result.rows[0];
@@ -214,13 +214,14 @@ export class AdminQuizRepository {
       "name", "code", "starttime", "endtime", "visibility", "audience_mode", "difficulty",
       "subject_id", "exam_cat", "duration", "total_marks", "passing_marks",
       "shuffle_questions", "shuffle_options", "show_results_immediately",
-      "negative_marking", "leaderboard", "quiz_status", "registration_fields"
+      "negative_marking", "leaderboard", "anti_cheat_enabled", "quiz_status", "registration_fields"
     ];
     const fieldKeyMap: Record<string, string> = {
       status: "quiz_status", subjectId: "subject_id", examId: "exam_cat",
       timeLimit: "duration", totalQuestions: "total_marks",
       shuffleQuestions: "shuffle_questions", shuffleOptions: "shuffle_options",
       showResultsImmediately: "show_results_immediately", negativeMarking: "negative_marking",
+      antiCheatEnabled: "anti_cheat_enabled",
       passingMarks: "passing_marks", passingPercentage: "passing_marks",
       audienceMode: "audience_mode", registrationFields: "registration_fields",
     };
@@ -272,12 +273,12 @@ export class AdminQuizRepository {
       const newQuiz = await client.query(
         `INSERT INTO quiz (name, code, createdby, starttime, endtime, visibility, difficulty,
          total_marks, passing_marks, shuffle_questions, shuffle_options, show_results_immediately,
-         negative_marking, leaderboard, quiz_status, registration_fields, created_at, updated_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) RETURNING *`,
+         negative_marking, leaderboard, anti_cheat_enabled, quiz_status, registration_fields, created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) RETURNING *`,
         [newName, newCode, createdBy, original.starttime, original.endtime,
          original.visibility, original.difficulty, original.total_marks, original.passing_marks,
          original.shuffle_questions, original.shuffle_options, original.show_results_immediately,
-         original.negative_marking, original.leaderboard, draftStatusId,
+         original.negative_marking, original.leaderboard, original.anti_cheat_enabled === true, draftStatusId,
          original.registration_fields ? JSON.stringify(original.registration_fields) : null]
       );
       const newQuizId = newQuiz.rows[0].id;
@@ -600,12 +601,26 @@ export class AdminQuizRepository {
 
   // ==================== LOOKUPS ====================
 
-  async getAllSubjects(search?: string): Promise<any[]> {
+  async getAllSubjects(search?: string, userId?: number | null): Promise<any[]> {
+    const ownerId = userId ?? null;
     if (search) {
-      const result = await pool.query("SELECT * FROM subjects WHERE subject_name ILIKE $1", [`%${search}%`]);
+      const result = await pool.query(
+        `SELECT * FROM subjects
+          WHERE deleted_at IS NULL
+            AND owned_by = $2
+            AND subject_name ILIKE $1
+          ORDER BY subject_name`,
+        [`%${search}%`, ownerId]
+      );
       return result.rows;
     }
-    const result = await pool.query("SELECT * FROM subjects ORDER BY subject_name");
+    const result = await pool.query(
+      `SELECT * FROM subjects
+        WHERE deleted_at IS NULL
+          AND owned_by = $1
+        ORDER BY subject_name`,
+      [ownerId]
+    );
     return result.rows;
   }
 

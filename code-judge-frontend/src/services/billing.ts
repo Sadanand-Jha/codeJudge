@@ -217,6 +217,7 @@ export async function getBillingConfig(): Promise<BillingConfig> {
 export async function createPlanOrder(input: {
   planId?: number;
   planSlug?: string;
+  priceId?: number;
   coupon?: string;
 }): Promise<PlanCheckoutOrder> {
   const response = await apiClient.post<PlanCheckoutOrder>(
@@ -224,6 +225,7 @@ export async function createPlanOrder(input: {
     {
       ...(input.planId ? { plan_id: input.planId } : {}),
       ...(input.planSlug ? { plan_slug: input.planSlug } : {}),
+      ...(input.priceId ? { price_id: input.priceId } : {}),
       ...(input.coupon ? { coupon: input.coupon } : {}),
     }
   );
