@@ -8,6 +8,7 @@ import {
   getSavedTests,
   removeSavedTest,
   saveTest,
+  saveTestPreview,
   updateSavedTest,
 } from "../../../controllers/savedTestPaper.controller.ts";
 
@@ -17,6 +18,7 @@ router.use(authenticate);
 
 router.get("/", getSavedTests);
 router.post("/", saveTest);
+router.patch("/:paperId/preview", saveTestPreview);
 router.get("/:paperId", getSavedTest);
 router.patch("/:paperId", updateSavedTest);
 router.delete("/:paperId", removeSavedTest);

@@ -159,6 +159,7 @@ export class QuizRepository {
         q.show_results_immediately,
         q.negative_marking,
         q.leaderboard,
+        q.anti_cheat_enabled,
         qs.name AS status,
         q.created_at,
         q.updated_at,
@@ -226,6 +227,7 @@ export class QuizRepository {
         q.show_results_immediately,
         q.negative_marking,
         q.leaderboard,
+        q.anti_cheat_enabled,
         q.registration_fields,
         qs.name AS status,
         q.created_at,
@@ -293,6 +295,7 @@ export class QuizRepository {
         q.show_results_immediately,
         q.negative_marking,
         q.leaderboard,
+        q.anti_cheat_enabled,
         q.registration_fields,
         qs.name AS status,
         q.created_at,
@@ -518,6 +521,7 @@ export class QuizRepository {
     showResultsImmediately?: boolean;
     negativeMarking?: boolean;
     leaderboard?: boolean;
+    antiCheatEnabled?: boolean;
     status?: string;
     registrationFields?: string[];
   }): Promise<any> {
@@ -535,10 +539,10 @@ export class QuizRepository {
         name, code, createdby, starttime, endtime, visibility, audience_mode, difficulty,
         subject_id, exam_cat, duration, total_marks, passing_marks,
         shuffle_questions, shuffle_options, show_results_immediately,
-        negative_marking, leaderboard, quiz_status, registration_fields,
+        negative_marking, leaderboard, anti_cheat_enabled, quiz_status, registration_fields,
         created_at, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING *
     `;
     const result = await pool.query(query, [
@@ -560,6 +564,7 @@ export class QuizRepository {
       data.showResultsImmediately || false,
       data.negativeMarking || false,
       data.leaderboard !== false,
+      data.antiCheatEnabled === true,
       statusId,
       data.registrationFields ? JSON.stringify(data.registrationFields) : null,
     ]);
@@ -655,7 +660,7 @@ export class QuizRepository {
     const updateableFields = [
       "name", "code", "starttime", "endtime", "visibility", "audience_mode", "difficulty",
       "subject_id", "exam_cat", "duration", "total_marks", "passing_marks", "shuffle_questions", "shuffle_options",
-      "show_results_immediately", "negative_marking", "leaderboard", "quiz_status", "registration_fields"
+      "show_results_immediately", "negative_marking", "leaderboard", "anti_cheat_enabled", "quiz_status", "registration_fields"
     ];
 
     const fieldKeyMap: Record<string, string> = {
@@ -668,6 +673,7 @@ export class QuizRepository {
       shuffleOptions: "shuffle_options",
       showResultsImmediately: "show_results_immediately",
       negativeMarking: "negative_marking",
+      antiCheatEnabled: "anti_cheat_enabled",
       audienceMode: "audience_mode",
       passingMarks: "passing_marks",
       passingPercentage: "passing_marks",
@@ -727,14 +733,14 @@ export class QuizRepository {
       const newQuiz = await client.query(
         `INSERT INTO quiz (name, code, createdby, starttime, endtime, visibility, difficulty,
          total_marks, passing_marks, shuffle_questions, shuffle_options, show_results_immediately,
-         negative_marking, leaderboard, quiz_status, registration_fields, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+         negative_marking, leaderboard, anti_cheat_enabled, quiz_status, registration_fields, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
          RETURNING *`,
         [
           newName, newCode, createdBy, original.starttime, original.endtime,
           original.visibility, original.difficulty, original.total_marks, original.passing_marks,
           original.shuffle_questions, original.shuffle_options, original.show_results_immediately,
-          original.negative_marking, original.leaderboard, draftStatusId,
+          original.negative_marking, original.leaderboard, original.anti_cheat_enabled === true, draftStatusId,
           original.registration_fields ? JSON.stringify(original.registration_fields) : null,
         ]
       );
@@ -2032,17 +2038,28 @@ export class QuizRepository {
     return result.rows;
   }
 
-  async getAllSubjects(search?: string): Promise<any[]> {
-    // Only Operating System has a curated question bank at present. Do not
-    // expose placeholder subjects until their banks are ready.
+  async getAllSubjects(search?: string, userId?: number | null): Promise<any[]> {
+    const ownerId = userId ?? null;
+    if (search) {
+      const query = `
+        SELECT *
+        FROM subjects
+        WHERE deleted_at IS NULL
+          AND owned_by = $2
+          AND subject_name ILIKE $1
+        ORDER BY subject_name
+      `;
+      const result = await pool.query(query, [`%${search}%`, ownerId]);
+      return result.rows;
+    }
     const query = `
       SELECT *
       FROM subjects
-      WHERE subject_name ILIKE '%operating system%'
-      ORDER BY CASE WHEN LOWER(subject_name) = 'operating system' THEN 0 ELSE 1 END, subject_name
-      LIMIT 1
+      WHERE deleted_at IS NULL
+        AND owned_by = $1
+      ORDER BY subject_name
     `;
-    const result = await pool.query(query);
+    const result = await pool.query(query, [ownerId]);
     return result.rows;
   }
 

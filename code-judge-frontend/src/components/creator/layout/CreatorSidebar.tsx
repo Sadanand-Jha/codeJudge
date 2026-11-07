@@ -4,32 +4,18 @@ import Link from "next/link";
 import {
   ClipboardList,
   Database,
-  Users,
-  Settings,
   Wallet,
-  Coins,
   CalendarClock,
-  ArrowLeftRight,
   ArrowLeft,
   BookOpen,
   UserRound,
-  Globe,
-  Building2,
-  ShieldCheck,
   NotebookPen,
   FolderKanban,
-  GraduationCap,
   LayoutDashboard,
   ListChecks,
-  Boxes,
   BadgeCheck,
-  Sparkles,
-  MessageSquare,
-  MailPlus,
   FileImage,
   Lock,
-  Megaphone,
-  Plus,
   Share2,
   X,
   type LucideIcon,
@@ -39,174 +25,61 @@ import { useAuthStore } from "@/store/authStore";
 import { FOCUS_MODE_ENABLED } from "@/config/focusMode";
 import { verificationLabel, verificationState } from "@/lib/verification";
 import { useMySubscription } from "@/hooks/useMySubscription";
-import { useCreditState } from "@/hooks/useCreditState";
 import { canUseCustomHeader } from "@/lib/planAccess";
 
 export interface CreatorNavItem {
   label: string;
   href: string;
   icon: LucideIcon;
+  section: CreatorNavSection;
+  badge?: string;
   exact?: boolean;
   match?: (pathname: string) => boolean;
-  color?: "pink" | "purple";
-  premium?: boolean;
 }
 
-const _FULL_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
-  {
-    label: "Overview",
-    items: [
-      { label: "Dashboard", href: "/creator", icon: LayoutDashboard, exact: true },
-    ],
-  },
-  {
-    label: "Quizzes",
-    items: [
-      { label: "All Quizzes", href: "/creator/quizzes", icon: ListChecks, match: (p) => p === "/creator/quizzes" || p.startsWith("/creator/quizzes/") },
-      { label: "Tests", href: "/creator/tests", icon: ClipboardList, match: (p) => p === "/creator/tests" || (p.startsWith("/creator/tests/") && !p.startsWith("/creator/tests/create")), color: "purple" },
-      { label: "My Headers", href: "/creator/headers", icon: FileImage, premium: true },
-      { label: "Create Test", href: "/creator/tests/create", icon: NotebookPen, match: (p) => p === "/creator/tests/create", color: "purple" },
-    ],
-  },
-  {
-    label: "Question Bank",
-    items: [
-      { label: "Question Bank", href: "/creator/question-bank", icon: Database },
-      { label: "Problems", href: "/creator/problems", icon: NotebookPen },
-      { label: "Resources", href: "/creator/resources", icon: FolderKanban },
-    ],
-  },
-  {
-    label: "Participants",
-    items: [
-      { label: "Students", href: "/creator/students", icon: Users },
-      { label: "Classes", href: "/creator/classes", icon: GraduationCap },
-      { label: "Batches", href: "/creator/batches", icon: Boxes },
-      { label: "Organizations", href: "/creator/organizations", icon: Building2 },
-      { label: "Invitations", href: "/creator/invitations", icon: MailPlus },
-      { label: "My Rooms", href: "/creator/rooms", icon: UserRound },
-    ],
-  },
-  {
-    label: "AI Studio",
-    items: [
-      { label: "AI Studio", href: "/creator/ai-studio", icon: Sparkles },
-      { label: "AI Chat", href: "/ai/chat", icon: MessageSquare },
-    ],
-  },
-  {
-    label: "Advertise",
-    items: [
-      {
-        label: "Advertise",
-        href: "/creator/advertise",
-        icon: Megaphone,
-        match: (p) => p === "/creator/advertise" || (p.startsWith("/creator/advertise/") && !p.startsWith("/creator/advertise/create")),
-      },
-      { label: "Create Campaign", href: "/creator/advertise/create", icon: Plus, match: (p) => p === "/creator/advertise/create" },
-    ],
-  },
-  {
-    label: "Payments",
-    items: [
-      { label: "Billing overview", href: "/creator/billing", icon: Wallet, exact: true },
-      { label: "Monthly plans", href: "/creator/billing/plans", icon: CalendarClock },
-      { label: "AI credits", href: "/creator/billing/credits", icon: Coins },
-      { label: "Transactions", href: "/creator/billing/transactions", icon: ArrowLeftRight },
-      // Selling pages disabled for now (routes commented out, components kept):
-      // { label: "Earnings", href: "/creator/billing/earnings", icon: TrendingUp },
-      // { label: "Payouts", href: "/creator/billing/payouts", icon: Banknote },
-      // { label: "Refunds", href: "/creator/billing/refunds", icon: RotateCcw },
-      // { label: "Tax & Compliance", href: "/creator/billing/tax", icon: Scale },
-      // { label: "Documents", href: "/creator/billing/documents", icon: FileText },
-    ],
-  },
-  {
-    label: "Refer & Earn",
-    items: [
-      { label: "Refer & Earn", href: "/creator/refer-and-earn", icon: Share2, exact: true },
-    ],
-  },
-  {
-    label: "Settings",
-    items: [
-      { label: "Creator Profile", href: "/creator/profile", icon: UserRound, exact: true },
-      { label: "Public Profile", href: "/creator/profile/public", icon: Globe },
-      { label: "Company / Org", href: "/creator/company", icon: Building2, exact: true },
-      { label: "Verification", href: "/creator/verification", icon: ShieldCheck },
-      { label: "Settings", href: "/creator/settings", icon: Settings },
-    ],
-  },
+export type CreatorNavSection =
+  | "Overview"
+  | "Quizzes"
+  | "Question Papers"
+  | "Library"
+  | "Classroom"
+  | "Billing";
+
+export const CREATOR_NAV: CreatorNavItem[] = [
+  { label: "Dashboard", href: "/creator", icon: LayoutDashboard, section: "Overview", exact: true },
+  { label: "My Quizzes", href: "/creator/quizzes", icon: ListChecks, section: "Quizzes", match: (p) => p === "/creator/quizzes" || p.startsWith("/creator/quizzes/") },
+  { label: "Question Papers", href: "/creator/tests", icon: ClipboardList, section: "Question Papers", match: (p) => p === "/creator/tests" || (p.startsWith("/creator/tests/") && !p.startsWith("/creator/tests/create")) },
+  { label: "Create Paper", href: "/creator/tests/create", icon: NotebookPen, section: "Question Papers", match: (p) => p === "/creator/tests/create" || p.startsWith("/creator/tests/create/") },
+  { label: "Assignment Builder", href: "/creator/problems", icon: NotebookPen, section: "Question Papers" },
+  { label: "Paper Headers", href: "/creator/headers", icon: FileImage, section: "Question Papers", badge: "PRO" },
+  { label: "My Syllabus", href: "/creator/syllabus", icon: BookOpen, section: "Library" },
+  { label: "Question Bank", href: "/creator/question-bank", icon: Database, section: "Library" },
+  { label: "Community", href: "/creator/resources", icon: FolderKanban, section: "Library" },
+  { label: "My Classrooms", href: "/creator/rooms", icon: UserRound, section: "Classroom" },
+  { label: "Billing Overview", href: "/creator/billing", icon: Wallet, section: "Billing", exact: true },
+  { label: "Plans", href: "/creator/billing/plans", icon: CalendarClock, section: "Billing" },
+  { label: "Refer & Earn", href: "/creator/refer-and-earn", icon: Share2, section: "Billing", exact: true },
 ];
 
-// Focus mode: only Problems / Quizzes / Tests (& related question bank) remain visible.
-// Payments, analytics, participants, advertise, AI studio, settings etc. are hidden.
-const FOCUS_CREATOR_ALLOWED = new Set([
-  // Quizzes / Tests
-  "/creator/quizzes",
-  "/creator/quizzes/create",
-  "/creator/quizzes/ai-generate",
-  "/creator/tests",
-  "/creator/tests/create",
-  "/creator/headers",
-  // Problems & question bank
-  "/creator/question-bank",
-  "/creator/questions",
-  "/creator/problems",
-  "/creator/resources",
-  "/creator/create",
-  // Rooms
-  "/creator/rooms",
-  // Billing (plans, credits + history; selling pages stay hidden)
-  "/creator/billing/plans",
-  "/creator/billing/credits",
-  "/creator/billing/transactions",
-  // Refer & Earn
-  "/creator/refer-and-earn",
-]);
-
-// Exact-only routes: prefix matching on "/creator" would unlock every studio
-// page, and "/creator/billing" would unlock the hidden selling pages.
-const FOCUS_CREATOR_EXACT = new Set([
-  "/creator",
-  "/creator/billing",
-]);
-
-function isFocusAllowedHref(href: string): boolean {
-  if (FOCUS_CREATOR_EXACT.has(href)) return true;
-  for (const allowed of FOCUS_CREATOR_ALLOWED) {
-    if (href === allowed || href.startsWith(allowed + "/")) return true;
-  }
-  return false;
-}
-
-const _FOCUS_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = _FULL_CREATOR_NAV
-  .map((group) => ({
-    ...group,
-    items: group.items.filter((item) => isFocusAllowedHref(item.href)),
-  }))
-  .filter((group) => group.items.length > 0);
-
-export const CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = FOCUS_MODE_ENABLED ? _FOCUS_CREATOR_NAV : _FULL_CREATOR_NAV;
-
-const _FULL_BOTTOM_NAV: Array<{ label: string; href: string; icon: LucideIcon }> = [
-  { label: "Upgrade", href: "/pricing", icon: Sparkles },
-  { label: "Help Center", href: "/docs", icon: BookOpen },
+export const CREATOR_NAV_SECTIONS: CreatorNavSection[] = [
+  "Overview",
+  "Quizzes",
+  "Question Papers",
+  "Library",
+  "Classroom",
+  "Billing",
 ];
-const BOTTOM_NAV: Array<{ label: string; href: string; icon: LucideIcon }> = FOCUS_MODE_ENABLED ? [] : _FULL_BOTTOM_NAV;
 
 function NavRow({
   item,
   pathname,
   onNavigate,
   premiumLocked = false,
-  badge,
 }: {
   item: CreatorNavItem;
   pathname: string;
   onNavigate?: () => void;
   premiumLocked?: boolean;
-  badge?: string | null;
 }) {
   const isActive = item.match
     ? item.match(pathname)
@@ -219,7 +92,7 @@ function NavRow({
     <Link
       href={item.href}
       onClick={onNavigate}
-      aria-label={badge ? `${item.label} — ${badge}` : undefined}
+      aria-label={item.badge ? `${item.label} — ${item.badge}` : undefined}
       className={cn(
         "group flex w-full items-center gap-2.5 rounded-xl border-2 px-3 py-2 text-[13px] font-bold outline-none transition-all duration-150 focus-visible:ring-3 focus-visible:ring-[var(--qs-brand)]/40",
         isActive
@@ -238,7 +111,7 @@ function NavRow({
       <span className={cn("min-w-0 flex-1 truncate", isActive && "font-extrabold text-[var(--qs-on-brand)]")}>
         {item.label}
       </span>
-      {item.premium && (
+      {item.badge && (
         premiumLocked ? (
           <Lock className="h-3 w-3 shrink-0 text-[var(--qs-muted)]" aria-label="Pro plan required" />
         ) : (
@@ -250,14 +123,9 @@ function NavRow({
                 : "border-current opacity-75"
             )}
           >
-            Pro
+            {item.badge}
           </span>
         )
-      )}
-      {badge && (
-        <span className="ml-auto shrink-0 rounded-full border-2 border-[var(--qs-credit-chip-border)] bg-[var(--qs-credit-chip-bg)] px-1.5 py-0.5 text-[9px] font-black tracking-[0.08em] text-[var(--qs-credit-chip-text)]">
-          {badge}
-        </span>
       )}
     </Link>
   );
@@ -275,7 +143,6 @@ export function CreatorSidebar({
   const user = useAuthStore((s) => s.user);
   const { subscription } = useMySubscription();
   const premiumLocked = !canUseCustomHeader(subscription);
-  const { state: creditState } = useCreditState();
   const displayName = user?.displayName || user?.username || "Creator";
   const avatarInitial = displayName.charAt(0).toUpperCase();
   const verification = verificationState(user?.isVerified);
@@ -337,25 +204,20 @@ export function CreatorSidebar({
 
       {/* Nav */}
       <nav className="hide-scrollbar flex-1 overflow-y-auto px-2.5 py-3">
-        {CREATOR_NAV.map((group, gi) => (
-          <div key={group.label}>
+        {CREATOR_NAV_SECTIONS.filter((section) => CREATOR_NAV.some((item) => item.section === section)).map((section, gi) => (
+          <div key={section}>
             {gi > 0 && <div className="my-2 h-0.5 rounded-full bg-[var(--qs-line)]" />}
             <p className="px-3 pb-1 pt-1 text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--qs-brand)]">
-              {group.label}
+              {section}
             </p>
             <div className="space-y-1">
-              {group.items.map((item) => (
+              {CREATOR_NAV.filter((item) => item.section === section).map((item) => (
                 <NavRow
                   key={item.href}
                   item={item}
                   pathname={pathname}
                   onNavigate={onNavigate}
                   premiumLocked={premiumLocked}
-                  badge={
-                    creditState === "empty" && item.href === "/creator/billing/credits"
-                      ? "EMPTY"
-                      : null
-                  }
                 />
               ))}
             </div>
@@ -365,17 +227,6 @@ export function CreatorSidebar({
 
       {/* Bottom */}
       <div className="shrink-0 space-y-1 border-t-2 border-[var(--qs-line)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        {BOTTOM_NAV.map((item) => (
-          <Link
-            key={item.label}
-            href={item.href}
-            onClick={onNavigate}
-            className="group flex items-center gap-2.5 rounded-xl border-2 border-transparent px-3 py-2 text-[13px] font-bold text-[var(--qs-muted)] transition-all duration-150 hover:border-[var(--qs-line)] hover:bg-[var(--qs-bg)] hover:text-[var(--qs-ink)]"
-          >
-            <item.icon className="h-4 w-4 text-[var(--qs-muted)] transition-colors group-hover:text-[var(--qs-ink)]" />
-            {item.label}
-          </Link>
-        ))}
         {mobile && (
           <div className="border-t-2 border-[var(--qs-line)] pt-3">
             <Link href="/quiz" onClick={onNavigate} className="b b-pri w-full justify-start gap-2">

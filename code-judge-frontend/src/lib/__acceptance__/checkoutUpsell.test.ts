@@ -2,7 +2,7 @@
  * Checkout-upsell acceptance checks:
  *  - plan/pack deep links survive auth without becoming open redirects;
  *  - both checkout dialogs render server-driven suggestions;
- *  - public pricing pages use the suggestion-aware CTAs.
+ *  - public pricing pages use period-aware, suggestion-aware CTAs.
  *
  * Run: npx tsx src/lib/__acceptance__/checkoutUpsell.test.ts
  */
@@ -41,7 +41,10 @@ assert.match(packDialog, /getCheckoutSuggestion/);
 assert.match(packDialog, /onSwitchPack/);
 
 const publicPricing = read("app/pricing/page.tsx");
-assert.match(publicPricing, /PublicPlanCta/);
+assert.match(publicPricing, /PublicPlanBuyOption/);
+const publicPlanOption = read("components/pricing/PublicPlanBuyOption.tsx");
+assert.match(publicPlanOption, /priceId=\{selectedPrice\?\.id\}/);
+assert.match(publicPlanOption, /skipSuggestion=\{selectedPrice\?\.billingPeriod !== "monthly"\}/);
 const publicCredits = read("app/pricing/credits/page.tsx");
 assert.match(publicCredits, /PublicPackCta/);
 

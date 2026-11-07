@@ -1,7 +1,11 @@
 // Public pricing catalog. Reads the same plan/price/entitlement rows edited in
-// /platform, but exposes only active, public, paid plans (no ₹0 plan) and
-// active one-time credit packs.
+// /platform and exposes active, public plans plus active one-time credit packs.
 import { pool } from "../config/database.ts";
+import type { Request } from "express";
+import {
+  getCurrencyMinorUnitExponent,
+  resolveCountryPricing,
+} from "./countryPricing.service.ts";
 
 export interface PublicPlan {
   id: number;
@@ -17,6 +21,14 @@ export interface PublicPlan {
   price: number;
   originalPrice: number | null;
   currency: string;
+  prices: Array<{
+    id: number;
+    billingPeriod: "monthly" | "quarterly" | "yearly" | "lifetime" | "custom_days";
+    customDays: number | null;
+    amount: number;
+    originalPrice: number | null;
+    currency: string;
+  }>;
   quizzes: number;
   rooms: number;
   credits: number;
@@ -40,6 +52,7 @@ export interface PublicPricingCatalog {
   plans: PublicPlan[];
   creditPacks: PublicCreditPack[];
   updatedAt: string | null;
+  countryPricing: Awaited<ReturnType<typeof resolveCountryPricing>>;
 }
 
 function numberValue(value: unknown, fallback = 0): number {
@@ -69,12 +82,16 @@ function discountBadge(override: unknown, amount: number, mrp: unknown): string 
 }
 
 export class PricingService {
-  async getPublicCatalog(): Promise<PublicPricingCatalog> {
-    const [planResult, packResult] = await Promise.all([
+  async getPublicCatalog(
+    userId: string | null = null,
+    request?: Request
+  ): Promise<PublicPricingCatalog> {
+    const [planResult, packResult, countryPricing] = await Promise.all([
       pool.query(
         `SELECT p.id, p.slug, p.name, p.description, p.tagline, p.cta, p.offer,
                 p.featured, p.discount_badge, p.features, p.trial_days, p.sort_order, p.updated_at,
                 pp.amount, pp.mrp_amount, pp.currency,
+                COALESCE(active_prices.prices, '[]'::jsonb) AS prices,
                 COALESCE(e.entitlements, '{}'::jsonb) AS entitlements
          FROM plans p
          JOIN LATERAL (
@@ -87,14 +104,33 @@ export class PricingService {
            LIMIT 1
          ) pp ON TRUE
          LEFT JOIN LATERAL (
+           SELECT jsonb_agg(
+             jsonb_build_object(
+               'id', id,
+               'billing_period', billing_period,
+               'custom_days', custom_days,
+               'amount', amount,
+               'mrp_amount', mrp_amount,
+               'currency', currency
+             )
+             ORDER BY CASE billing_period
+               WHEN 'monthly' THEN 0
+               WHEN 'quarterly' THEN 1
+               WHEN 'yearly' THEN 2
+               WHEN 'lifetime' THEN 3
+               ELSE 4
+             END, custom_days
+           ) AS prices
+           FROM plan_prices
+           WHERE plan_id = p.id AND is_active = TRUE
+         ) active_prices ON TRUE
+         LEFT JOIN LATERAL (
            SELECT jsonb_object_agg(key, value) AS entitlements
            FROM plan_entitlements
            WHERE plan_id = p.id
          ) e ON TRUE
          WHERE p.status = 'active'
            AND p.is_public = TRUE
-           AND p.is_default_free = FALSE
-           AND pp.amount > 0
          ORDER BY p.sort_order ASC, p.id ASC`
       ),
       pool.query(
@@ -104,11 +140,48 @@ export class PricingService {
          WHERE is_active = TRUE
          ORDER BY sort_order ASC, id ASC`
       ),
+      resolveCountryPricing(userId, request),
     ]);
 
     const plans: PublicPlan[] = planResult.rows.map((row) => {
       const entitlements = (row.entitlements ?? {}) as Record<string, unknown>;
-      const isBasic = row.slug === "basic";
+      const prices: PublicPlan["prices"] = (Array.isArray(row.prices) ? row.prices : []).map((price: {
+        id: unknown;
+        billing_period: PublicPlan["prices"][number]["billingPeriod"];
+        custom_days: unknown;
+        amount: unknown;
+        mrp_amount: unknown;
+        currency: unknown;
+      }) => {
+        const currency = String(price.currency ?? row.currency ?? "INR");
+        return {
+          id: numberValue(price.id),
+          billingPeriod: price.billing_period,
+          customDays: price.custom_days == null ? null : numberValue(price.custom_days),
+          amount:
+            numberValue(price.amount) /
+            10 ** getCurrencyMinorUnitExponent(currency),
+          originalPrice:
+            price.mrp_amount == null
+              ? null
+              : numberValue(price.mrp_amount) /
+                10 ** getCurrencyMinorUnitExponent(currency),
+          currency,
+        };
+      });
+      const monthlyPrices = prices.filter((price) => price.billingPeriod === "monthly");
+      const regionalElevate = String(row.slug) === "pro";
+      if (regionalElevate && monthlyPrices.length > 0) {
+        monthlyPrices[0] = {
+          ...monthlyPrices[0],
+          amount: countryPricing.amount,
+          originalPrice: null,
+          currency: countryPricing.currency,
+        };
+      }
+      const primaryPrice = regionalElevate
+        ? monthlyPrices[0]
+        : prices.find((price) => price.billingPeriod === "monthly") ?? prices[0];
       return {
         id: numberValue(row.id),
         slug: String(row.slug),
@@ -118,12 +191,20 @@ export class PricingService {
         cta: row.cta == null ? null : String(row.cta),
         offer: row.offer == null ? null : String(row.offer),
         featured: row.featured === true,
-        discountBadge: discountBadge(row.discount_badge, numberValue(row.amount), row.mrp_amount),
-        trialDays: isBasic ? numberValue(row.trial_days) : 0,
-        price: numberValue(row.amount) / 100,
+        discountBadge: regionalElevate
+          ? null
+          : discountBadge(row.discount_badge, numberValue(row.amount), row.mrp_amount),
+        trialDays: numberValue(row.trial_days),
+        price:
+          primaryPrice?.amount ??
+          numberValue(row.amount) /
+            10 ** getCurrencyMinorUnitExponent(String(row.currency ?? "INR")),
         originalPrice:
-          row.mrp_amount == null ? null : numberValue(row.mrp_amount) / 100,
-        currency: String(row.currency ?? "INR"),
+          regionalElevate
+            ? null
+            : primaryPrice?.originalPrice ?? null,
+        currency: primaryPrice?.currency ?? String(row.currency ?? "INR"),
+        prices: regionalElevate ? monthlyPrices : prices,
         quizzes: entitlementNumber(entitlements, "max_quizzes"),
         rooms: entitlementNumber(entitlements, "max_rooms", 1),
         credits: entitlementNumber(entitlements, "ai_credits_per_month"),
@@ -154,6 +235,7 @@ export class PricingService {
     return {
       plans,
       creditPacks,
+      countryPricing,
       updatedAt:
         updatedCandidates.length > 0
           ? new Date(Math.max(...updatedCandidates)).toISOString()

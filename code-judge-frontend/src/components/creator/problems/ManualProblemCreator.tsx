@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { AlertCircle, Check, PenLine, Plus, X } from "lucide-react";
+import { useState } from "react";
+import { Check, PenLine, Plus, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { toast } from "@/lib/toast";
-import { getAllSubjects } from "@/services/quiz";
-import { QsSelect, type QsSelectOption } from "@/components/creator/problems/QsSelect";
+import { SyllabusSearchSelect } from "@/components/creator/syllabus/SyllabusSearchSelect";
 
 interface ManualOption {
   id: string;
@@ -35,49 +34,18 @@ export function ManualProblemCreator() {
   const [title, setTitle] = useState("");
   const [statement, setStatement] = useState("");
   const [subjectId, setSubjectId] = useState<number | null>(null);
-  const [subjectOptions, setSubjectOptions] = useState<QsSelectOption<number>[]>([]);
-  const [subjectsLoading, setSubjectsLoading] = useState(true);
-  const [subjectsError, setSubjectsError] = useState<string | null>(null);
-  const [subjectsReloadKey, setSubjectsReloadKey] = useState(0);
   const [difficulty, setDifficulty] = useState("Medium");
   const [marks, setMarks] = useState(1);
   const [options, setOptions] = useState<ManualOption[]>([newOption(), newOption()]);
   const [explanation, setExplanation] = useState("");
 
-  useEffect(() => {
-    let active = true;
-    const controller = new AbortController();
-    getAllSubjects(undefined, controller.signal)
-      .then((results) => {
-        if (!active) return;
-        setSubjectOptions(results.map((s) => ({ value: s.id, label: s.subject_name })));
-      })
-      .catch((err: unknown) => {
-        if (!active || (err instanceof Error && err.name === "AbortError")) return;
-        setSubjectsError(err instanceof Error ? err.message : "Unable to load subjects.");
-      })
-      .finally(() => {
-        if (active) setSubjectsLoading(false);
-      });
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [subjectsReloadKey]);
-
-  const retrySubjects = () => {
-    setSubjectsLoading(true);
-    setSubjectsError(null);
-    setSubjectsReloadKey((key) => key + 1);
-  };
-
   const handleSave = () => {
     if (!title.trim()) {
-      toast.error({ title: "Title required", description: "Give your problem a short title first." });
+      toast.error({ title: "Title required", description: "Give your question a short title first." });
       return;
     }
     if (!statement.trim()) {
-      toast.error({ title: "Statement required", description: "Write the problem statement first." });
+      toast.error({ title: "Statement required", description: "Write the question statement first." });
       return;
     }
     const filled = options.map((o) => ({ ...o, text: o.text.trim() })).filter((o) => o.text);
@@ -96,7 +64,7 @@ export function ManualProblemCreator() {
     setMarks(1);
     setOptions([newOption(), newOption()]);
     setExplanation("");
-    toast.success({ title: "Problem saved", description: "Your problem has been saved to your draft bank." });
+    toast.success({ title: "Question saved", description: "Your question has been saved to your draft bank." });
   };
 
   return (
@@ -120,7 +88,7 @@ export function ManualProblemCreator() {
           <div className="px-5 py-5 sm:px-6 sm:py-6">
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div className="space-y-2">
-                <label className={LABEL_CLASS}>Problem Title</label>
+                <label className={LABEL_CLASS}>Question Title</label>
                 <input
                   value={title}
                   onChange={(e) => setTitle(e.target.value.slice(0, 120))}
@@ -131,37 +99,17 @@ export function ManualProblemCreator() {
               </div>
               <div className="space-y-2">
                 <label className={LABEL_CLASS}>Subject</label>
-                <QsSelect
+                <SyllabusSearchSelect
+                  type="syllabus"
+                  placeholder="Search syllabi..."
                   value={subjectId}
-                  options={subjectOptions}
-                  onChange={setSubjectId}
-                  placeholder={subjectsLoading ? "Loading subjects…" : "Select subject"}
-                  disabled={subjectsLoading}
-                  ariaLabel="Subject"
-                  searchable
-                  triggerClassName={cn(FIELD_CLASS, "flex items-center justify-between gap-2")}
-                  menuClassName="w-full min-w-[240px]"
+                  onChange={(item) => setSubjectId(item?.id ?? null)}
                 />
-                {subjectsError && (
-                  <div className="flex items-start gap-1.5 text-[12px] font-semibold text-[var(--qs-bad)]">
-                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    <span>
-                      {subjectsError}{" "}
-                      <button
-                        type="button"
-                        onClick={retrySubjects}
-                        className="underline"
-                      >
-                        Retry
-                      </button>
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
 
             <div className="mt-4 space-y-2">
-              <label className={LABEL_CLASS}>Problem Statement</label>
+              <label className={LABEL_CLASS}>Question Statement</label>
               <textarea
                 value={statement}
                 onChange={(e) => setStatement(e.target.value.slice(0, 2000))}
@@ -288,7 +236,7 @@ export function ManualProblemCreator() {
               onClick={handleSave}
               className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-6 py-3 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition hover:brightness-105 sm:w-auto"
             >
-              <Check className="h-4 w-4" /> Save Problem
+              <Check className="h-4 w-4" /> Save Question
             </button>
           </div>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -19,30 +19,14 @@ import {
   Check,
   X,
   Sparkles,
-  ChevronDown,
-  Search,
 } from "lucide-react";
+import { SyllabusSearchSelect } from "@/components/creator/syllabus/SyllabusSearchSelect";
 import { QuizDetails, DEFAULT_QUIZ_DETAILS, VISIBILITY_OPTIONS, DIFFICULTY_OPTIONS } from "./types";
 
 interface QuizDetailsFormProps {
   onContinue: (details: QuizDetails) => void;
   initialDetails?: QuizDetails;
 }
-
-const SUBJECTS = [
-  "Mathematics",
-  "Physics",
-  "Chemistry",
-  "Biology",
-  "Computer Science",
-  "English",
-  "History",
-  "Geography",
-  "Economics",
-  "General Knowledge",
-  "Aptitude",
-  "Programming",
-];
 
 const DIFFICULTY_COLORS: Record<string, string> = {
   Easy: "#22C55E",
@@ -86,28 +70,6 @@ function FieldLabel({ children, icon }: { children: React.ReactNode; icon?: Reac
 export default function QuizDetailsForm({ onContinue, initialDetails }: QuizDetailsFormProps) {
   const [details, setDetails] = useState<QuizDetails>(initialDetails || DEFAULT_QUIZ_DETAILS);
   const [tagInput, setTagInput] = useState("");
-  const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
-  const [subjectQuery, setSubjectQuery] = useState("");
-  const subjectDropdownRef = useRef<HTMLDivElement>(null);
-  const filteredSubjects = SUBJECTS.filter((subject) =>
-    subject.toLowerCase().includes(subjectQuery.trim().toLowerCase())
-  );
-
-  useEffect(() => {
-    if (!showSubjectDropdown) return;
-    const onPointerDown = (event: MouseEvent) => {
-      if (!subjectDropdownRef.current?.contains(event.target as Node)) setShowSubjectDropdown(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setShowSubjectDropdown(false);
-    };
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [showSubjectDropdown]);
 
   const update = (patch: Partial<QuizDetails>) => setDetails((d) => ({ ...d, ...patch }));
 
@@ -201,62 +163,18 @@ export default function QuizDetailsForm({ onContinue, initialDetails }: QuizDeta
 
               {/* Subject + Topic */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div ref={subjectDropdownRef} className="relative">
+                <div>
                   <FieldLabel icon={<GraduationCap className="w-3 h-3" />}>Subject</FieldLabel>
-                  <button
-                    onClick={() => {
-                      setShowSubjectDropdown((open) => !open);
-                      setSubjectQuery("");
-                    }}
-                    className={`${inputClass} flex items-center justify-between text-left`}
-                  >
-                    <span className={details.subject ? "text-white" : "text-[#6B7280]"}>
-                      {details.subject || "Select subject..."}
-                    </span>
-                    <ChevronDown className={`w-4 h-4 text-[#6B7280] transition-transform ${showSubjectDropdown ? "rotate-180" : ""}`} />
-                  </button>
-                  {showSubjectDropdown && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="absolute z-20 mt-2 w-full rounded-xl border border-border-hover bg-[#171923] shadow-2xl shadow-black/50 overflow-hidden"
-                    >
-                      <div className="border-b border-border-hover p-1.5">
-                        <div className="relative">
-                          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#6B7280]" />
-                          <input
-                            autoFocus
-                            value={subjectQuery}
-                            onChange={(event) => setSubjectQuery(event.target.value)}
-                            placeholder="Search subjects..."
-                            aria-label="Search subjects"
-                            className="h-9 w-full rounded-lg border border-border-hover bg-[#111217] pl-8 pr-2.5 text-sm text-white outline-none placeholder:text-[#6B7280] focus:border-[#EC4899]/40"
-                          />
-                        </div>
-                      </div>
-                      <div className="max-h-56 overflow-y-auto p-1.5">
-                        {filteredSubjects.length === 0 ? (
-                          <p className="px-3 py-4 text-center text-sm text-muted-foreground">No matches</p>
-                        ) : (
-                          filteredSubjects.map((s) => (
-                            <button
-                              key={s}
-                              onClick={() => {
-                                update({ subject: s });
-                                setShowSubjectDropdown(false);
-                                setSubjectQuery("");
-                              }}
-                              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                                details.subject === s ? "bg-[#EC4899]/10 text-[#EC4899]" : "text-muted-foreground hover:text-white hover:bg-white/[0.04]"
-                              }`}
-                            >
-                              {s}
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
+                  <SyllabusSearchSelect
+                    type="syllabus"
+                    theme="dark"
+                    placeholder="Search syllabi..."
+                    value={details.subjectId ? Number(details.subjectId) || null : null}
+                    selectedLabel={details.subject || null}
+                    onChange={(item) =>
+                      update({ subject: item?.name ?? "", subjectId: item?.id ?? "" })
+                    }
+                  />
                 </div>
                 <div>
                   <FieldLabel icon={<Hash className="w-3 h-3" />}>Topic</FieldLabel>

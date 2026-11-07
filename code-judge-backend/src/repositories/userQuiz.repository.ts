@@ -49,7 +49,7 @@ export class UserQuizRepository {
       SELECT q.id, q.name, q.code, q.createdby, q.starttime, q.visibility, q.difficulty,
         q.subject_id, q.exam_cat, q.duration, q.total_marks, q.passing_marks,
         q.shuffle_questions, q.shuffle_options, q.show_results_immediately,
-        q.negative_marking, q.leaderboard, qs.name AS status, q.created_at, q.updated_at,
+        q.negative_marking, q.leaderboard, q.anti_cheat_enabled, qs.name AS status, q.created_at, q.updated_at,
         u.username AS creator_name, qv.heading AS visibility_name, qd.heading AS difficulty_name,
         COUNT(DISTINCT qr.id) AS participants, COUNT(DISTINCT qp.id) AS total_questions,
         COALESCE(AVG(CASE WHEN qsr.answer IS NOT NULL THEN 1 ELSE 0 END), 0) AS completion_rate
@@ -76,7 +76,7 @@ export class UserQuizRepository {
       SELECT q.id, q.name, q.code, q.createdby, q.starttime, q.endtime,
         q.visibility, q.difficulty, q.subject_id, q.exam_cat, q.duration,
         q.total_marks, q.passing_marks, q.shuffle_questions, q.shuffle_options,
-        q.show_results_immediately, q.negative_marking, q.leaderboard,
+        q.show_results_immediately, q.negative_marking, q.leaderboard, q.anti_cheat_enabled,
         qs.name AS status, q.created_at, q.updated_at,
         u.username AS creator_name, qv.heading AS visibility_name, qd.heading AS difficulty_name
       FROM quiz q
@@ -94,7 +94,7 @@ export class UserQuizRepository {
       SELECT q.id, q.name, q.code, q.createdby, q.starttime, q.endtime,
         q.visibility, q.difficulty, q.subject_id, q.exam_cat, q.duration,
         q.total_marks, q.passing_marks, q.shuffle_questions, q.shuffle_options,
-        q.show_results_immediately, q.negative_marking, q.leaderboard,
+        q.show_results_immediately, q.negative_marking, q.leaderboard, q.anti_cheat_enabled,
         qs.name AS status, q.created_at, q.updated_at,
         u.username AS creator_name, qv.heading AS visibility_name, qd.heading AS difficulty_name
       FROM quiz q
@@ -436,12 +436,26 @@ export class UserQuizRepository {
 
   // ==================== LOOKUPS ====================
 
-  async getAllSubjects(search?: string): Promise<any[]> {
+  async getAllSubjects(search?: string, userId?: number | null): Promise<any[]> {
+    const ownerId = userId ?? null;
     if (search) {
-      const result = await pool.query("SELECT * FROM subjects WHERE subject_name ILIKE $1", [`%${search}%`]);
+      const result = await pool.query(
+        `SELECT * FROM subjects
+          WHERE deleted_at IS NULL
+            AND owned_by = $2
+            AND subject_name ILIKE $1
+          ORDER BY subject_name`,
+        [`%${search}%`, ownerId]
+      );
       return result.rows;
     }
-    const result = await pool.query("SELECT * FROM subjects ORDER BY subject_name");
+    const result = await pool.query(
+      `SELECT * FROM subjects
+        WHERE deleted_at IS NULL
+          AND owned_by = $1
+        ORDER BY subject_name`,
+      [ownerId]
+    );
     return result.rows;
   }
 

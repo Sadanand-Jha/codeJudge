@@ -278,6 +278,7 @@ export const generatePaper = async (req: Request, res: Response) => {
         : undefined,
       difficulty: typeof difficulty === "string" ? difficulty as "any" | "easy" | "medium" | "hard" : "any",
       kind: typeof kind === "string" ? kind as "any" | "theory" | "numerical" : "any",
+      userId,
     });
 
     // Keep every generated paper question in the creator's bank so the teacher
@@ -457,6 +458,7 @@ export const generateQuestions = async (req: Request, res: Response) => {
       topicId: topicId != null && topicId !== "" ? Number(topicId) : null,
       chapterIds: Array.isArray(chapterIds) ? chapterIds.map(Number) : undefined,
       topicIds: Array.isArray(topicIds) ? topicIds.map(Number) : undefined,
+      userId,
     });
 
     if (saveToBank === true) {
@@ -514,7 +516,7 @@ export const questionGeneratorCatalog = async (req: Request, res: Response) => {
     }
     res.status(200).json({
       success: true,
-      data: await getQuestionGeneratorCatalog(subjectId),
+      data: await getQuestionGeneratorCatalog(subjectId, req.user?.userId),
     });
   } catch (error) {
     console.error("Question generator catalog error:", error);

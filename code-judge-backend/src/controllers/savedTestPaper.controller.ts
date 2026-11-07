@@ -4,6 +4,7 @@ import {
   getSavedTestPaper,
   listSavedTestPapers,
   saveTestPaper,
+  saveSavedTestPaperPreview,
   updateSavedTestPaper,
 } from "../services/savedTestPaper.service.js";
 
@@ -53,12 +54,30 @@ export const saveTest = async (req: Request, res: Response) => {
       totalMarks: body.totalMarks as number | undefined,
       meta: body.meta,
       paper: body.paper,
+      previewDataUrl: body.previewDataUrl,
     });
     res.status(201).json({ success: true, data: { test } });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to save the test.";
     const isValidation = /required|invalid|must|too large|not found|at least one/i.test(message);
     res.status(message === "Unauthorized" ? 401 : isValidation ? 400 : 500).json({ success: false, message });
+  }
+};
+
+export const saveTestPreview = async (req: Request, res: Response) => {
+  try {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const test = await saveSavedTestPaperPreview(
+      authenticatedUserId(req),
+      paperId(req),
+      body.previewDataUrl
+    );
+    res.status(200).json({ success: true, data: { test } });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to save the paper preview.";
+    const isValidation = /required|invalid|too large/i.test(message);
+    res.status(message === "Unauthorized" ? 401 : /not found/i.test(message) ? 404 : isValidation ? 400 : 500)
+      .json({ success: false, message });
   }
 };
 

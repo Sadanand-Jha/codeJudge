@@ -306,26 +306,30 @@ export function SwitchField({
   description,
   checked,
   onChange,
+  disabled = false,
 }: {
   label: string;
   description?: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex items-start justify-between gap-3 py-2.5">
       <div className="flex-1">
-        <p className="text-sm font-extrabold text-[var(--qs-ink)]">{label}</p>
+        <p className={cn("text-sm font-extrabold", disabled ? "text-[var(--qs-muted)]" : "text-[var(--qs-ink)]")}>{label}</p>
         {description && <p className="mt-0.5 text-xs font-medium text-[var(--qs-muted)]">{description}</p>}
       </div>
       <button
         type="button"
-        onClick={() => onChange(!checked)}
-        className="b b-switch"
+        onClick={() => { if (!disabled) onChange(!checked); }}
+        className={cn("b b-switch", disabled && "cursor-not-allowed opacity-50")}
         aria-checked={checked}
+        aria-disabled={disabled}
+        disabled={disabled}
         role="switch"
         aria-label={label}
-        title={label}
+        title={disabled ? "Available on paid plans" : label}
       >
         <span className="sr-only">{label}</span>
       </button>

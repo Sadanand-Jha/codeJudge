@@ -53,6 +53,7 @@ export const createPlanOrderSchema = z
   .object({
     plan_id: planIdField.optional(),
     plan_slug: z.string().trim().min(1).max(120).optional(),
+    price_id: planIdField.optional(),
     coupon: couponField,
     coupon_code: couponField,
     currency: currencyField,

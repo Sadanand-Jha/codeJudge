@@ -2,17 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 
 const LINKS = [
-  { label: "Tools", href: "#tools" },
   { label: "Features", href: "#features" },
-  { label: "Rooms", href: "#rooms" },
   { label: "How it works", href: "#how" },
-  { label: "Who it is for", href: "#who" },
   { label: "Pricing", href: "#pricing" },
+  { label: "FAQ", href: "#faq" },
 ];
 
 export default function LpHeader() {
@@ -29,9 +27,9 @@ export default function LpHeader() {
     <header className="lpx-header">
       <div className="lpx-wrap lpx-nav">
         <Link href="/" className="lpx-logo" aria-label="QuizSupport home">
-          <SecureLogo size={42} variant="full" rounded={false} />
+          <SecureLogo size={38} variant="full" rounded={false} />
         </Link>
-        <nav className="lpx-links" aria-label="Primary">
+        <nav className="lpx-links landing-nav-pill" aria-label="Primary">
           {LINKS.map((link) => (
             <a key={link.href} href={link.href}>
               {link.label}
@@ -40,17 +38,19 @@ export default function LpHeader() {
         </nav>
         <div className="lpx-nav-actions">
           <ThemeToggle variant="icon" />
-          <Link href="/login" className="lpx-btn lpx-btn-outline lpx-btn-sm">
+          <Link href="/login" className="landing-nav-login">
             Log in
           </Link>
-          <Link href="/creator/quizzes/create" className="lpx-btn lpx-btn-sm">
-            Create a paper
+          <Link href="/creator/quizzes/create" className="landing-nav-create">
+            <span>Create your first paper</span>
+            <ArrowRight size={15} aria-hidden />
           </Link>
           <button
             type="button"
             className="lpx-burger"
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
+            aria-controls="landing-mobile-menu"
             onClick={() => setOpen((value) => !value)}
           >
             {open ? <X size={20} aria-hidden /> : <Menu size={20} aria-hidden />}
@@ -58,7 +58,7 @@ export default function LpHeader() {
         </div>
       </div>
       {open && (
-        <div className="lpx-mobile">
+        <div className="lpx-mobile" id="landing-mobile-menu">
           {LINKS.map((link) => (
             <a key={link.href} href={link.href} onClick={() => setOpen(false)}>
               {link.label}
@@ -66,9 +66,6 @@ export default function LpHeader() {
           ))}
           <Link href="/login" onClick={() => setOpen(false)}>
             Log in
-          </Link>
-          <Link href="/creator/quizzes/create" onClick={() => setOpen(false)}>
-            Create a paper
           </Link>
         </div>
       )}

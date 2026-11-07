@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Check, ChevronDown, Copy, Eye, KeyRound, RefreshCw, ShieldCheck, Shuffle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
+import { useMySubscription } from "@/hooks/useMySubscription";
 import { regenerateQuizCode } from "@/services/quiz";
 import { useStudio } from "../StudioProvider";
 import { StudioStepHeader, StudioStepLayout, SwitchField } from "../primitives";
@@ -33,11 +35,13 @@ const GROUPS: Array<{ id: string; label: string; icon: LucideIcon; fields: Setti
     id: "security",
     label: "Security",
     icon: ShieldCheck,
-    alwaysOn: true,
     fields: [
-      { key: "fullscreenMode", label: "Full-screen mode" },
-      { key: "tabSwitchDetection", label: "Tab-switch detection" },
-      { key: "copyProtection", label: "Disable copy / text selection" },
+      {
+        key: "antiCheatEnabled",
+        label: "Anti-cheat mode",
+        description: "Fullscreen, tab-switch detection and copy protection. Available on paid plans.",
+        requiresPaid: true,
+      },
     ],
   },
 ];
@@ -48,9 +52,13 @@ interface SettingField {
   type?: "number" | "select";
   options?: string[];
   description?: string;
+  requiresPaid?: boolean;
 }
 
 export function SettingsStep() {
+  const { subscription } = useMySubscription();
+  const antiCheatAvailable = subscription?.antiCheatAvailable === true;
+
   return (
     <StudioStepLayout width="wide">
       <StudioStepHeader title="Rules" />
@@ -75,6 +83,7 @@ export function SettingsStep() {
               fields={g.fields}
               comingSoon={g.comingSoon}
               alwaysOn={g.alwaysOn}
+              antiCheatAvailable={antiCheatAvailable}
             />
           </motion.div>
         ))}
@@ -209,6 +218,7 @@ function SettingGroup({
   fields,
   comingSoon,
   alwaysOn,
+  antiCheatAvailable,
 }: {
   id: string;
   label: string;
@@ -216,6 +226,7 @@ function SettingGroup({
   fields: SettingField[];
   comingSoon?: boolean;
   alwaysOn?: boolean;
+  antiCheatAvailable: boolean;
 }) {
   const [open, setOpen] = useState(true);
   return (
@@ -261,7 +272,7 @@ function SettingGroup({
                 </span>
               </div>
             ) : (
-              <Field key={f.key} field={f} />
+              <Field key={f.key} field={f} antiCheatAvailable={antiCheatAvailable} />
             )
           )}
         </div>
@@ -270,9 +281,11 @@ function SettingGroup({
   );
 }
 
-function Field({ field }: { field: SettingField }) {
+function Field({ field, antiCheatAvailable }: { field: SettingField; antiCheatAvailable: boolean }) {
   const { state, updateSettings } = useStudio();
   const value = (state.settings as unknown as Record<string, unknown>)[field.key];
+  const locked = field.requiresPaid === true && !antiCheatAvailable;
+  const disabled = locked && !value;
 
   if (field.type === "select") {
     return (
@@ -309,11 +322,22 @@ function Field({ field }: { field: SettingField }) {
   }
 
   return (
-    <SwitchField
-      label={field.label}
-      description={field.description}
-      checked={!!value}
-      onChange={(v) => updateSettings({ [field.key]: v })}
-    />
+    <div>
+      <SwitchField
+        label={field.label}
+        description={disabled ? `${field.description ?? ""} Upgrade to a paid plan to enable it.` : field.description}
+        checked={!!value}
+        onChange={(v) => updateSettings({ [field.key]: v })}
+        disabled={disabled}
+      />
+      {disabled && (
+        <Link
+          href="/pricing"
+          className="mb-2 inline-flex items-center rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2 py-1 text-[11px] font-extrabold text-[var(--qs-brand)] transition-colors hover:border-[var(--qs-brand)]"
+        >
+          View paid plans
+        </Link>
+      )}
+    </div>
   );
 }

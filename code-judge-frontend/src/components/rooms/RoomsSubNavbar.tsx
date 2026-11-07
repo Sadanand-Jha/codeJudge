@@ -20,6 +20,7 @@ export interface RoomsSubNavItem {
 interface RoomsSubNavbarProps {
   items: RoomsSubNavItem[];
   homeHref: string;
+  homeLabel?: string;
   homeActive?: boolean;
   loading?: boolean;
   error?: string | null;
@@ -37,6 +38,7 @@ interface RoomsSubNavbarProps {
 export default function RoomsSubNavbar({
   items,
   homeHref,
+  homeLabel = "My Rooms",
   homeActive = false,
   loading = false,
   error = null,
@@ -64,7 +66,7 @@ export default function RoomsSubNavbar({
 
   return (
     <nav
-      aria-label="My rooms"
+      aria-label={homeLabel}
       className={cn(
         "border-b-2 border-[var(--qs-line)] bg-[var(--qs-surface)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--qs-surface)]/85",
         className
@@ -82,7 +84,7 @@ export default function RoomsSubNavbar({
           )}
         >
           <LayoutGrid className="h-[15px] w-[15px]" strokeWidth={2.5} />
-          <span>My Rooms</span>
+          <span>{homeLabel}</span>
         </Link>
 
         <div

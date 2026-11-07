@@ -41,6 +41,7 @@ interface SampleQuizDemoProps {
   questions?: SampleQuizQuestion[];
   label?: string;
   timerSeconds?: number;
+  disableMotion?: boolean;
 }
 
 const ROTATE_MS = 6000;
@@ -50,6 +51,7 @@ export default function SampleQuizDemo({
   questions = SAMPLE_QUESTIONS,
   label = "Sample quiz",
   timerSeconds,
+  disableMotion = false,
 }: SampleQuizDemoProps) {
   const quizSets = useMemo<SampleQuizSet[]>(
     () => (sets && sets.length > 0 ? sets : [{ subject: "", questions }]),
@@ -137,10 +139,10 @@ export default function SampleQuizDemo({
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={`${setIndex}-${index}-${finished ? "done" : "play"}`}
-            initial={{ opacity: 0, y: 8 }}
+            initial={disableMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
+            exit={disableMotion ? undefined : { opacity: 0, y: -8 }}
+            transition={disableMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
           >
             {finished ? (
               <div className="px-1 py-3 text-center">

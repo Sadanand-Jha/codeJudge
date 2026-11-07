@@ -3,9 +3,9 @@
 //   npm run seed:plans
 //
 // Idempotent: existing plans/prices/entitlements are never overwritten, so it
-// is safe to run in any environment. The Free plan itself is also seeded by
-// migration 34 — this script covers the paid sample plans (Pro, Institute)
-// used by the /platform console and the pricing page.
+// is safe to run in any environment. The Essential plan itself is also seeded
+// by migration 34 — this script covers the public plans used by the /platform
+// console and the pricing page.
 import "dotenv/config";
 import { pool } from "../config/database.ts";
 
@@ -35,81 +35,57 @@ interface SeedPlan {
 
 const PLANS: SeedPlan[] = [
   {
-    name: "Free",
+    name: "Essential",
     slug: "free",
-    description: "Everything you need to get started with quizzes.",
+    description: "Free forever. Everything teachers need to get started.",
     status: "active",
     is_public: true,
     is_default_free: true,
     sort_order: 0,
     trial_days: 0,
-    prices: [],
+    prices: [{ billing_period: "monthly", amount: 0 }],
     entitlements: [
       { key: "max_quizzes", value: 10 },
       { key: "max_questions_per_quiz", value: 30 },
       { key: "max_participants_per_quiz", value: -1 },
       { key: "max_monthly_attempts", value: -1 },
+      { key: "max_rooms", value: 1 },
+      { key: "ai_credits_per_month", value: 0 },
       { key: "pdf_download", value: true },
       { key: "answer_key_pdf", value: true },
       { key: "custom_pdf_header", value: true },
       { key: "remove_branding", value: false },
       { key: "ai_features", value: true },
-      { key: "storage_mb", value: -1 },
+      { key: "storage_mb", value: 200 },
       { key: "team_members", value: 0 },
+      { key: "anti_cheat", value: false },
     ],
   },
   {
-    name: "Pro",
+    name: "Elevate",
     slug: "pro",
-    description: "For active teachers and creators running regular assessments.",
+    description: "Everything teachers need to teach, assess and grow.",
     status: "active",
     is_public: true,
     is_default_free: false,
     sort_order: 10,
-    trial_days: 7,
-    prices: [
-      { billing_period: "monthly", amount: 49900 },
-      { billing_period: "yearly", amount: 499900 },
-    ],
+    trial_days: 0,
+    prices: [{ billing_period: "monthly", amount: 19900 }],
     entitlements: [
-      { key: "max_quizzes", value: 100 },
+      { key: "max_quizzes", value: 50 },
       { key: "max_questions_per_quiz", value: 100 },
-      { key: "max_participants_per_quiz", value: 500 },
+      { key: "max_participants_per_quiz", value: 200 },
       { key: "max_monthly_attempts", value: 10000 },
+      { key: "max_rooms", value: 5 },
+      { key: "ai_credits_per_month", value: 100 },
       { key: "pdf_download", value: true },
       { key: "answer_key_pdf", value: true },
       { key: "custom_pdf_header", value: true },
       { key: "remove_branding", value: true },
       { key: "ai_features", value: true },
-      { key: "storage_mb", value: 10240 },
-      { key: "team_members", value: 5 },
-    ],
-  },
-  {
-    name: "Institute",
-    slug: "institute",
-    description: "Unlimited assessments, branding and team collaboration for institutes.",
-    status: "active",
-    is_public: true,
-    is_default_free: false,
-    sort_order: 20,
-    trial_days: 14,
-    prices: [
-      { billing_period: "monthly", amount: 199900 },
-      { billing_period: "yearly", amount: 1999000 },
-    ],
-    entitlements: [
-      { key: "max_quizzes", value: -1 },
-      { key: "max_questions_per_quiz", value: -1 },
-      { key: "max_participants_per_quiz", value: -1 },
-      { key: "max_monthly_attempts", value: -1 },
-      { key: "pdf_download", value: true },
-      { key: "answer_key_pdf", value: true },
-      { key: "custom_pdf_header", value: true },
-      { key: "remove_branding", value: true },
-      { key: "ai_features", value: true },
-      { key: "storage_mb", value: -1 },
-      { key: "team_members", value: 25 },
+      { key: "storage_mb", value: 5120 },
+      { key: "team_members", value: 2 },
+      { key: "anti_cheat", value: true },
     ],
   },
 ];

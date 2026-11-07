@@ -1,8 +1,9 @@
 import { buildPublicPageMetadata } from "@/lib/seo/site";
-import { getPricingCatalogServer } from "@/services/pricing";
+import { getPricingCatalogServer } from "@/services/pricingServer";
 
 export async function generateMetadata() {
   const catalog = await getPricingCatalogServer();
+  const freePlan = catalog.plans.find((plan) => plan.price === 0);
   const paidPlans = catalog.plans.filter((plan) => plan.price > 0);
   const trialPlan = catalog.plans.find((plan) => plan.trialDays > 0);
   const planNames = paidPlans.map((plan) => plan.name).join(" and ");
@@ -14,9 +15,11 @@ export async function generateMetadata() {
     ? ` ${planNames} include monthly AI credits${offer ? ` at the ${offer.toLowerCase()}` : ""}.`
     : "";
 
+  const freeCopy = freePlan ? ` ${freePlan.name} is free forever.` : "";
+
   return buildPublicPageMetadata({
     title: "Pricing",
-    description: `Compare QuizSupport monthly plans for creating, hosting and organising online quizzes.${trialCopy}${planCopy}`,
+    description: `Compare QuizSupport monthly plans for creating, hosting and organising online quizzes.${freeCopy}${trialCopy}${planCopy}`,
     path: "/pricing",
   });
 }

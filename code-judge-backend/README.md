@@ -23,6 +23,7 @@ Related documentation:
 - [QUIZ_STUDENT_FLOW.md](./QUIZ_STUDENT_FLOW.md) - student attempt flow
 - [QUIZ_CREATION_FLOW.md](./QUIZ_CREATION_FLOW.md) - creator flow
 - [QUIZ_STUDENT_CALL_MAP.md](./QUIZ_STUDENT_CALL_MAP.md) - frontend/backend call map
+- [CUSTOM_SYLLABUS_README.md](./CUSTOM_SYLLABUS_README.md) - teacher-owned custom syllabus, multi-subject import splitting, AI streaming, and recovery flow
 
 ## Tech Stack
 
@@ -226,13 +227,35 @@ configuration normalization, and PDF header placement math.
 | `JWT_EXPIRY` | JWT expiry time |
 | `PLATFORM_JWT_SECRET` | Optional separate 256-bit secret for owner-only platform sessions. When omitted, a domain-separated key is derived from `JWT_SECRET` |
 | `PLATFORM_JWT_EXPIRY` | Platform session lifetime (defaults to `12h`) |
-| `PLATFORM_OWNER_EMAILS` | Optional comma-separated owner email allowlist |
+| Platform console owner | Access is restricted to `sadanandjha3341@gmail.com`; role IDs and environment allowlists do not grant access |
 | `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` | Nodemailer SMTP delivery configuration |
 | `AI_API_KEY` | AI service API key |
 | `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name for direct letterhead uploads |
 | `CLOUDINARY_API_KEY` | Cloudinary API key used to sign browser uploads |
 | `CLOUDINARY_API_SECRET` | Cloudinary API secret; server-only, never sent to the browser |
 | `LETTERHEAD_MAX_PER_USER` | Optional saved-header limit per user (defaults to `4`) |
+| `RAZORPAY_SUPPORTED_CURRENCIES` | Comma-separated currencies explicitly enabled for this Razorpay account; defaults to `INR` and must not be expanded until account support is confirmed |
+| `GEO_TRUSTED_PROXY_IPS` | Exact ingress peer IPs allowed to supply `CF-IPCountry` or `X-Vercel-IP-Country`; leave empty unless the API is behind a configured trusted proxy |
+| `PRICING_GEO_SHARED_SECRET` | Server-only HMAC key shared with the frontend for signed SSR country hints; use at least 32 random bytes |
+
+Country-specific Elevate pricing is stored in the versioned
+`country_pricing_configs` table and managed from **Platform → Pricing →
+Countries**. Apply its additive schema and initial regional prices with:
+
+```bash
+npm run migrate -- --only=78_country_wise_pricing.sql
+```
+
+The public pricing response is personalized and sent with `private, no-store`.
+For SSR regional display, set `PRICING_GEO_SHARED_SECRET` on both applications
+and set `PRICING_FRONTEND_TRUSTED_GEO_HEADER` to `cf-ipcountry` or
+`x-vercel-ip-country` only when that ingress proxy overwrites the header and
+direct unproxied access is blocked. Configure the API's exact ingress IP in
+`GEO_TRUSTED_PROXY_IPS` for direct server-side Cloudflare/Vercel geo headers.
+The backend defaults to INR-only Razorpay checkout; enable other currencies in
+`RAZORPAY_SUPPORTED_CURRENCIES` only after confirming the merchant account is
+approved for them. Unsupported checkout currencies fail closed without
+conversion or substitution.
 
 ### VPS Redis
 

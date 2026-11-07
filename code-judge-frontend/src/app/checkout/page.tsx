@@ -1,5 +1,5 @@
 import { buildPublicPageMetadata } from "@/lib/seo/site";
-import { getPricingCatalogServer } from "@/services/pricing";
+import { getPricingCatalogServer } from "@/services/pricingServer";
 import { CheckoutView } from "@/components/pricing/CheckoutView";
 
 export const metadata = buildPublicPageMetadata({

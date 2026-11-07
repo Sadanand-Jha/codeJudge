@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, Search } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { getQuestionGeneratorCatalog } from "@/services/aiGenerate";
+import { ImportSyllabusNotice } from "@/components/creator/syllabus/ImportSyllabusNotice";
 import type { QuestionGeneratorCatalog } from "@/services/aiGenerate";
 
 interface PaperScopeProps {
@@ -533,6 +534,9 @@ export function PaperScopeFilters(props: PaperScopeProps) {
 
   return (
     <div>
+      {catalog && catalog.subjects.length === 0 && (
+        <ImportSyllabusNotice className="mb-3" compact />
+      )}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[25fr_35fr_40fr]">
         <SubjectSelect
           catalog={catalog}

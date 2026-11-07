@@ -21,6 +21,7 @@ export interface SavedTestSummary {
   totalQuestions: number;
   totalMarks: number;
   meta: PaperHeaderMeta;
+  previewDataUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -40,6 +41,7 @@ export interface SaveTestRecordInput {
   totalMarks: number;
   meta: PaperHeaderMeta;
   paper: QuestionPaper;
+  previewDataUrl?: string | null;
 }
 
 async function savedTestsRequest(path = "", init?: RequestInit) {
@@ -72,6 +74,14 @@ export async function getSavedTest(id: number): Promise<SavedTestRecord> {
 
 export async function saveTestRecord(record: SaveTestRecordInput): Promise<SavedTestRecord> {
   const data = await savedTestsRequest("", { method: "POST", body: JSON.stringify(record) });
+  return data.test;
+}
+
+export async function cacheSavedTestPreview(id: number, previewDataUrl: string): Promise<SavedTestSummary> {
+  const data = await savedTestsRequest(`/${id}/preview`, {
+    method: "PATCH",
+    body: JSON.stringify({ previewDataUrl }),
+  });
   return data.test;
 }
 

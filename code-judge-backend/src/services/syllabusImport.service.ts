@@ -425,9 +425,26 @@ const formatViolations = (violations: string[]): string => {
 };
 
 async function readExistingCurriculum(db: Queryable): Promise<ExistingCurriculum> {
-  const subjectResult = await db.query(`SELECT id, subject_name FROM subjects ORDER BY id`);
-  const chapterResult = await db.query(`SELECT id, subject_id, chapter_name FROM subject_chapters ORDER BY id`);
-  const topicResult = await db.query(`SELECT id, chapter_id, topic_name FROM chapter_topics ORDER BY id`);
+  const subjectResult = await db.query(
+    `SELECT id, subject_name FROM subjects
+     WHERE owned_by = 0 AND deleted_at IS NULL
+     ORDER BY id`
+  );
+  const chapterResult = await db.query(
+    `SELECT c.id, c.subject_id, c.chapter_name
+       FROM subject_chapters c
+       JOIN subjects s ON s.id = c.subject_id
+      WHERE s.owned_by = 0 AND s.deleted_at IS NULL
+      ORDER BY c.id`
+  );
+  const topicResult = await db.query(
+    `SELECT t.id, t.chapter_id, t.topic_name
+       FROM chapter_topics t
+       JOIN subject_chapters c ON c.id = t.chapter_id
+       JOIN subjects s ON s.id = c.subject_id
+      WHERE s.owned_by = 0 AND s.deleted_at IS NULL
+      ORDER BY t.id`
+  );
 
   const subjects = new Map<string, ExistingNode>();
   for (const row of subjectResult.rows as { id: number; subject_name: string }[]) {
@@ -468,6 +485,7 @@ async function readPopulatedSubjectNames(db: Queryable): Promise<string[]> {
     FROM subjects s
     JOIN subject_chapters c ON c.subject_id = s.id
     JOIN chapter_topics t ON t.chapter_id = c.id
+    WHERE s.owned_by = 0 AND s.deleted_at IS NULL
     ORDER BY s.subject_name
   `);
   return (result.rows as { subject_name: string }[]).map((row) => row.subject_name);
@@ -707,8 +725,8 @@ async function insertOrReuseSubject(
 
   const inserted = await insertIgnoringUniqueViolation(
     client,
-    `INSERT INTO subjects (subject_name) VALUES ($1)
-     ON CONFLICT (subject_name) DO NOTHING
+    `INSERT INTO subjects (subject_name, name, owned_by) VALUES ($1, $1, 0)
+     ON CONFLICT DO NOTHING
      RETURNING id`,
     [name]
   );
@@ -721,6 +739,8 @@ async function insertOrReuseSubject(
   const fallback = await client.query(
     `SELECT id, subject_name FROM subjects
      WHERE lower(btrim(subject_name)) = lower(btrim($1))
+       AND owned_by = 0
+       AND deleted_at IS NULL
      ORDER BY id LIMIT 1`,
     [name]
   );
@@ -748,7 +768,10 @@ async function insertOrReuseChapter(
 
   const inserted = await insertIgnoringUniqueViolation(
     client,
-    `INSERT INTO subject_chapters (subject_id, chapter_name) VALUES ($1,$2)
+    `INSERT INTO subject_chapters (subject_id, chapter_name, position, owned_by)
+     SELECT $1, $2,
+            COALESCE((SELECT MAX(position) + 1 FROM subject_chapters WHERE subject_id = $1), 0),
+            0
      ON CONFLICT (subject_id, chapter_name) DO NOTHING
      RETURNING id`,
     [subject.id, name]
@@ -761,7 +784,9 @@ async function insertOrReuseChapter(
 
   const fallback = await client.query(
     `SELECT id, chapter_name FROM subject_chapters
-     WHERE subject_id = $1 AND lower(btrim(chapter_name)) = lower(btrim($2))
+     WHERE subject_id = $1
+       AND owned_by = 0
+       AND lower(btrim(chapter_name)) = lower(btrim($2))
      ORDER BY id LIMIT 1`,
     [subject.id, name]
   );
@@ -789,7 +814,10 @@ async function insertOrReuseTopic(
 
   const inserted = await insertIgnoringUniqueViolation(
     client,
-    `INSERT INTO chapter_topics (chapter_id, topic_name) VALUES ($1,$2)
+    `INSERT INTO chapter_topics (chapter_id, topic_name, position, owned_by)
+     SELECT $1, $2,
+            COALESCE((SELECT MAX(position) + 1 FROM chapter_topics WHERE chapter_id = $1), 0),
+            0
      ON CONFLICT (chapter_id, topic_name) DO NOTHING
      RETURNING id`,
     [chapter.id, name]
@@ -802,7 +830,9 @@ async function insertOrReuseTopic(
 
   const fallback = await client.query(
     `SELECT id, topic_name FROM chapter_topics
-     WHERE chapter_id = $1 AND lower(btrim(topic_name)) = lower(btrim($2))
+     WHERE chapter_id = $1
+       AND owned_by = 0
+       AND lower(btrim(topic_name)) = lower(btrim($2))
      ORDER BY id LIMIT 1`,
     [chapter.id, name]
   );

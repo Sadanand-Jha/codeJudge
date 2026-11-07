@@ -243,15 +243,16 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
   // Full-page skeleton while rooms & students are fetched from the backend
   if (loadingRooms) {
     return (
-      <div className="min-h-full bg-[var(--qs-bg)]">
+      <div className="qs-ui min-h-full bg-[var(--qs-bg)]">
         <div className="mx-auto max-w-[1280px] px-4 py-4 pb-20 sm:px-6 sm:py-6">
-          <div className="mb-5 sm:mb-6">
-            <div className="app-skeleton h-9 w-44 rounded" />
-            <div className="app-skeleton mt-2 h-4 w-72 max-w-full rounded" />
+          <div className="mb-6 rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-6 sm:p-8">
+            <div className="app-skeleton h-4 w-36 rounded-full" />
+            <div className="app-skeleton mt-4 h-9 w-64 max-w-full rounded" />
+            <div className="app-skeleton mt-2 h-4 w-80 max-w-full rounded" />
           </div>
           <div className="mb-4 grid grid-cols-2 gap-2.5 sm:mb-5 sm:gap-3.5 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 px-3 sm:rounded-[18px] sm:p-4">
+              <div key={i} className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">
                 <div className="app-skeleton h-3 w-16 rounded sm:w-20" />
                 <div className="app-skeleton mt-3 h-6 w-12 rounded sm:h-7 sm:w-14" />
               </div>
@@ -268,26 +269,36 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
   }
 
   const statCards = [
-    { label: "Rooms", value: stats.rooms, sub: "total", color: "var(--qs-brand)", hi: true },
-    { label: "Students", value: stats.students, sub: "across rooms", color: "#2457d6" },
+    { label: "Rooms", value: stats.rooms, sub: "total", color: "var(--qs-brand)" },
+    { label: "Students", value: stats.students, sub: "across rooms", color: "var(--qs-blue)" },
     { label: "Active Rooms", value: stats.active, sub: "usable", color: "var(--qs-ok)" },
-    { label: "Archived", value: stats.archived, sub: "hidden", color: "#a85d00" },
+    { label: "Archived", value: stats.archived, sub: "hidden", color: "var(--qs-warn)" },
   ];
 
   return (
-    <div className="min-h-full bg-[var(--qs-bg)]">
+    <div className="qs-ui min-h-full bg-[var(--qs-bg)]">
       <div className="mx-auto max-w-[1280px] px-4 py-4 pb-20 sm:px-6 sm:py-6">
-
-        {/* Top */}
-        <div className="mb-5 flex flex-col items-start gap-3.5 sm:mb-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
-          <div className="min-w-0">
-            <h1 className="text-[30px] font-extrabold leading-none tracking-[-0.02em] text-[var(--qs-ink)] sm:text-[34px]">My Rooms</h1>
-            <p className="mt-1 text-sm leading-[1.4] text-[var(--qs-muted)] sm:mt-0.5 sm:text-[15px]">
-              Create and manage student groups that you can reuse across your quizzes.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+        <header className="relative mb-6 overflow-hidden rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-5 py-6 text-[var(--qs-on-brand)] shadow-[6px_6px_0_var(--qs-sun)] sm:px-8 sm:py-8">
+          <div aria-hidden className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full border-[24px] border-[var(--qs-sun)]/15" />
+          <div className="relative flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+            <div className="min-w-0 max-w-2xl">
+              <span className="mb-3 inline-flex items-center gap-2 rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-3 py-1.5 text-xs font-extrabold text-[#1a1240]">
+                <Users className="h-3.5 w-3.5" />
+                Creator Studio · Student groups
+              </span>
+              <h1 className="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
+                {basePath === "/creator/rooms" ? "My Classrooms" : "My Rooms"}
+              </h1>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--qs-on-brand)]/85 sm:text-base">
+                Organize students into reusable groups and manage quiz access from one place.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-3.5 py-2.5 text-sm font-extrabold text-[var(--qs-ink)]">
+                {stats.rooms}/{MAX_ROOMS_PER_CREATOR} rooms
+              </span>
             <button
+              type="button"
               onClick={() => {
                 setCreateTab("manual");
                 setCreateOpen(true);
@@ -303,8 +314,9 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
               <Plus className="h-4 w-4" strokeWidth={3} />
               Create Room
             </button>
+            </div>
           </div>
-        </div>
+        </header>
 
         {/* Room limit hint */}
         {ownedRooms.length >= MAX_ROOMS_PER_CREATOR && (
@@ -315,27 +327,21 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
         )}
 
         {/* Stats */}
-        <div className="mb-4 grid grid-cols-2 gap-2.5 sm:mb-5 sm:gap-3.5 lg:grid-cols-4">
+        <div className="mb-5 grid grid-cols-2 gap-2.5 sm:gap-3.5 lg:grid-cols-4">
           {statCards.map((kpi) => (
             <div
               key={kpi.label}
               className={cn(
-                "rounded-[14px] border-2 p-2.5 px-3 sm:rounded-[18px] sm:p-4 sm:px-[18px]",
-                kpi.hi
-                  ? "border-[var(--qs-ink)] bg-[var(--qs-sun)] shadow-[3px_3px_0_var(--qs-ink)]"
-                  : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
+                "rounded-[16px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3 shadow-[3px_3px_0_var(--qs-sun)] sm:rounded-[18px] sm:p-4 sm:px-[18px]"
               )}
             >
-              <small className={cn(
-                "flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.06em] sm:gap-2 sm:text-xs sm:tracking-[0.08em]",
-                kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-muted)]"
-              )}>
-                <span className="h-[7px] w-[7px] shrink-0 rounded-full sm:h-2.5 sm:w-2.5" style={{ background: kpi.color }} />
+              <small className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-muted)] sm:gap-2 sm:text-xs sm:tracking-[0.08em]">
+                <span className="h-2 w-2 shrink-0 rounded-full sm:h-2.5 sm:w-2.5" style={{ background: kpi.color }} />
                 {kpi.label}
               </small>
-              <b className={cn("mt-1.5 block text-[24px] font-extrabold leading-[1.1] sm:mt-2 sm:text-[32px] lg:text-[36px]", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-ink)]")}>
+              <b className="mt-1.5 block text-[24px] font-extrabold leading-[1.1] text-[var(--qs-ink)] sm:mt-2 sm:text-[32px] lg:text-[36px]">
                 {kpi.value}
-                <span className={cn("ml-1 text-xs font-medium sm:text-sm", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-muted)]")}>{kpi.sub}</span>
+                <span className="ml-1 text-xs font-medium text-[var(--qs-muted)] sm:text-sm">{kpi.sub}</span>
               </b>
             </div>
           ))}
@@ -397,7 +403,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
         <div className="relative mb-4 mr-1 sm:mr-4">
           <div aria-hidden className="absolute left-1 top-1 -bottom-1 -right-1 rounded-[18px] bg-[var(--qs-sun)] sm:left-4 sm:top-4 sm:-bottom-4 sm:-right-4 sm:rounded-[30px]" />
           <div className="relative overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] sm:rounded-[26px]">
-            <header className="flex flex-col gap-2 px-4 pb-3 pt-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-3 sm:px-[26px] sm:pb-4 sm:pt-5">
+            <header className="flex flex-col gap-2 bg-[var(--qs-bg)] px-4 pb-3 pt-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-3 sm:px-[26px] sm:pb-4 sm:pt-5">
               <div>
                 <h2 className="text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-2xl">Rooms</h2>
                 <p className="mt-0.5 text-[13px] leading-[1.4] text-[var(--qs-muted)] sm:text-sm">Reusable student groups — open a room to manage its students.</p>

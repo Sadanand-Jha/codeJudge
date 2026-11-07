@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Check, AlertTriangle, Rocket } from "lucide-react";
-import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import { useStudio, useSaveStatus, isQuestionValidationError } from "./StudioProvider";
 import { toast } from "@/lib/toast";
@@ -71,9 +70,7 @@ export function StudioHeader() {
       </div>
 
       <div className="absolute left-4 top-1/2 hidden -translate-y-1/2 items-center gap-1.5 text-xs text-[var(--qs-ok)] lg:flex">
-        {status === "saving" ? (
-          <span className="flex items-center gap-1 text-[var(--qs-muted)]"><SecureLogo variant="mark" size={12} className="animate-pulse motion-reduce:animate-none" />Saving…</span>
-        ) : status === "saved" && lastSaved ? (
+        {status === "saved" && lastSaved ? (
           <>
             <Check className="h-3.5 w-3.5" />
             <span className="hidden font-bold lg:inline">Saved</span>

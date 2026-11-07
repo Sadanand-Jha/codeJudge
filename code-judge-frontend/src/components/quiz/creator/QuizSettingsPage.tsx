@@ -27,9 +27,9 @@ import {
 import { SecureLogo } from "@/components/common/SecureLogo";
 import { QuizDetails, DEFAULT_QUIZ_DETAILS, VISIBILITY_OPTIONS, QuizVisibility } from "./types";
 import { saveQuizDetails, clearQuizState } from "@/utils/quizStorage";
-import { getAllSubjects, getQuizVisibilityOptions, createQuiz, updateQuizStatus } from "@/services/quiz";
+import { getQuizVisibilityOptions, createQuiz, updateQuizStatus } from "@/services/quiz";
 import { generateQuizCode } from "@/utils/quizCode";
-import { SearchableDropdown } from "@/components/ui";
+import { SyllabusSearchSelect } from "@/components/creator/syllabus/SyllabusSearchSelect";
 import { SettingsCard, SettingsInput, Toggle, SettingsRow } from "@/components/ui/settings";
 import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/helpers";
@@ -737,21 +737,16 @@ export default function QuizSettingsPage({
 
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div>
-                    <SearchableDropdown
+                    <SyllabusSearchSelect
+                      type="syllabus"
                       label="Subject"
-                      placeholder="Search subjects..."
+                      placeholder="Search syllabi..."
                       required
-                      value={details.subject}
-                      selectedId={details.subjectId}
-                      onSelect={(option) => update({ subject: option.label, subjectId: option.id })}
-                      onClear={() => update({ subject: "", subjectId: "" })}
-                      searchFn={async (query, signal) => {
-                        const results = await getAllSubjects(query, signal);
-                        return results.map((s) => ({ id: s.id, label: s.subject_name }));
-                      }}
-                      minChars={1}
-                      debounceMs={300}
-                      maxVisible={8}
+                      value={details.subjectId ? Number(details.subjectId) || null : null}
+                      selectedLabel={details.subject || null}
+                      onChange={(item) =>
+                        update({ subject: item?.name ?? "", subjectId: item?.id ?? "" })
+                      }
                     />
                     {attempted && errors.subject && <FieldError message={errors.subject} />}
                   </div>

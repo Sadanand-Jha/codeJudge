@@ -6,7 +6,7 @@ import { cn } from "@/lib/helpers";
 
 const BILLING_TABS = [
   { label: "Overview", href: "/creator/billing", exact: true },
-  { label: "Monthly plans", href: "/creator/billing/plans" },
+  { label: "Plans", href: "/creator/billing/plans" },
   { label: "AI credits", href: "/creator/billing/credits" },
   // Selling tabs disabled for now (routes commented out, components kept):
   // { label: "Earnings", href: "/creator/billing/earnings" },

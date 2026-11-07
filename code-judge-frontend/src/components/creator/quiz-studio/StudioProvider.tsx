@@ -295,9 +295,10 @@ function mapQuizToStudioSettings(quiz: QuizBasic): StudioState["settings"] {
     negativeMarking: quiz.negative_marking ?? false,
     negativeMarkValue: 1,
     showResultsImmediately: quiz.show_results_immediately ?? true,
-    fullscreenMode: true,
-    tabSwitchDetection: true,
-    copyProtection: true,
+    fullscreenMode: quiz.anti_cheat_enabled === true,
+    tabSwitchDetection: quiz.anti_cheat_enabled === true,
+    copyProtection: quiz.anti_cheat_enabled === true,
+    antiCheatEnabled: quiz.anti_cheat_enabled === true,
   };
 }
 
@@ -457,6 +458,7 @@ function buildQuizMetaSnapshot(state: QuizMetaSnapshotInput): string {
       showResultsImmediately: state.settings.showResultsImmediately,
       negativeMarking: state.settings.negativeMarking,
       negativeMarkValue: state.settings.negativeMarkValue,
+      antiCheatEnabled: state.settings.antiCheatEnabled,
     },
     registrationFields: state.registration.fields.map((f) => f.name.trim()).filter(Boolean),
   });
@@ -1204,6 +1206,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         showResultsImmediately: state.settings.showResultsImmediately,
         negativeMarking: state.settings.negativeMarking,
         negativeMarkValue: state.settings.negativeMarkValue,
+        antiCheatEnabled: state.settings.antiCheatEnabled,
         totalQuestions: summary.questionCount,
         totalMarks: summary.totalMarks,
         passingMarks: state.info.passingMarks || Math.ceil(summary.totalMarks * 0.4),
@@ -1230,6 +1233,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
             shuffleOptions: payload.randomizeOptions,
             showResultsImmediately: payload.showResultsImmediately,
             negativeMarking: payload.negativeMarking,
+            antiCheatEnabled: payload.antiCheatEnabled,
             totalMarks: payload.totalMarks,
             passingMarks: payload.passingMarks,
             registrationFields: payload.registrationFields,

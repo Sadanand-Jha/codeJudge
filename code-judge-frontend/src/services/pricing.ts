@@ -1,41 +1,12 @@
 import apiClient from "@/lib/axios";
 import type {
   PricingCatalog,
+  PricingBillingPeriod,
   PricingCreditPack,
   PricingPlan,
 } from "@/types/pricing";
 
-export type { PricingCatalog, PricingCreditPack, PricingPlan };
-
-const BACKEND_URL =
-  process.env.BACKEND_URL ||
-  (process.env.NODE_ENV === "development"
-    ? "http://localhost:8000"
-    : "https://api.quizsupport.com");
-
-const PUBLIC_BACKEND_URL = "https://api.quizsupport.com";
-
-function pricingUrls(path: string): string[] {
-  const urls = new Set<string>();
-  if (process.env.PRICING_API_URL) {
-    urls.add(`${process.env.PRICING_API_URL.replace(/\/$/, "")}/api/v1${path}`);
-  }
-  urls.add(`${BACKEND_URL.replace(/\/$/, "")}/api/v1${path}`);
-  urls.add(`${PUBLIC_BACKEND_URL}/api/v1${path}`);
-  return [...urls];
-}
-
-async function fetchPricing(path: string): Promise<Response | null> {
-  for (const url of pricingUrls(path)) {
-    try {
-      const response = await fetch(url, { next: { revalidate: 60 } });
-      if (response.ok) return response;
-    } catch {
-      // Try the next backend origin.
-    }
-  }
-  return null;
-}
+export type { PricingBillingPeriod, PricingCatalog, PricingCreditPack, PricingPlan };
 
 /** Neutral placeholder used while loading and when the catalog is unavailable. */
 export const EMPTY_PRICING: PricingCatalog = {
@@ -63,18 +34,6 @@ export async function getPricingCatalog(): Promise<PricingCatalog> {
   return readCatalog(response.data);
 }
 
-/** Server-side catalog fetch for marketing pages. */
-export async function getPricingCatalogServer(): Promise<PricingCatalog> {
-  try {
-    const response = await fetchPricing("/pricing");
-    if (!response) return EMPTY_PRICING;
-    const payload = (await response.json()) as { data?: unknown };
-    return readCatalog(payload.data);
-  } catch {
-    return EMPTY_PRICING;
-  }
-}
-
 export function getPlanBySlug(
   catalog: PricingCatalog,
   slug: string
@@ -96,29 +55,32 @@ export function getPlanDiscount(plan: PricingPlan): number {
 
 export function formatPricingAmount(value: number, currency = "INR"): string {
   try {
+    const digits = new Intl.NumberFormat("en", {
+      style: "currency",
+      currency,
+    }).resolvedOptions().maximumFractionDigits;
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: digits,
     }).format(value);
   } catch {
     return `${currency} ${value.toLocaleString("en-IN")}`;
   }
 }
 
-export async function getPricingContentServer(): Promise<Record<string, string>> {
-  try {
-    const response = await fetchPricing("/pricing/content");
-    if (!response) return {};
-    const payload = (await response.json()) as { data?: { content?: unknown } };
-    const content = payload.data?.content;
-    if (!content || typeof content !== "object") return {};
-    return Object.fromEntries(
-      Object.entries(content as Record<string, unknown>).filter(
-        (entry): entry is [string, string] => typeof entry[1] === "string"
-      )
-    );
-  } catch {
-    return {};
+export function formatBillingPeriod(period: PricingBillingPeriod, customDays?: number | null): string {
+  switch (period) {
+    case "monthly":
+      return "Monthly";
+    case "quarterly":
+      return "Quarterly";
+    case "yearly":
+      return "Yearly";
+    case "lifetime":
+      return "Lifetime";
+    case "custom_days":
+      return `${customDays ?? 30} days`;
   }
 }

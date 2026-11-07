@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Coins, CreditCard, GripVertical, LayoutTemplate, Plus, Sparkles, Ticket, WifiOff } from "lucide-react";
+import { Coins, CreditCard, Globe2, GripVertical, LayoutTemplate, Plus, Sparkles, Ticket, WifiOff } from "lucide-react";
 import { SectionCard, SectionSkeleton, ErrorState } from "@/components/platform/ui";
 import { useToast } from "@/hooks/useToast";
 import { getApiErrorMessage } from "@/lib/apiError";
@@ -18,6 +18,7 @@ import { PlanEditor } from "./PlanEditor";
 import { PackEditor } from "./PackEditor";
 import { CouponEditor } from "./CouponEditor";
 import { ContentEditor } from "./ContentEditor";
+import { CountryPricingAdmin } from "./CountryPricingAdmin";
 import { PricingPreview, type PreviewPack, type PreviewPlan, type PreviewTab } from "./PricingPreview";
 import {
   LOCAL_CONTENT,
@@ -28,8 +29,9 @@ import {
   PRICING_BACKEND_ENABLED,
 } from "./localCatalog";
 
-const TABS: { id: PreviewTab; label: string; icon: typeof CreditCard }[] = [
-  { id: "plans", label: "Monthly plans", icon: CreditCard },
+const TABS: { id: PreviewTab | "countries"; label: string; icon: typeof CreditCard }[] = [
+  { id: "plans", label: "Plans", icon: CreditCard },
+  { id: "countries", label: "Countries", icon: Globe2 },
   { id: "packs", label: "Credit packs", icon: Coins },
   { id: "coupons", label: "Coupons", icon: Ticket },
   { id: "content", label: "Page content", icon: LayoutTemplate },
@@ -106,7 +108,7 @@ export function PricingAdmin() {
   const [registry, setRegistry] = useState<EntitlementDefinition[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<PreviewTab>("plans");
+  const [tab, setTab] = useState<PreviewTab | "countries">("plans");
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   const [selectedPackId, setSelectedPackId] = useState<number | null>(null);
   const [selectedCouponId, setSelectedCouponId] = useState<number | null>(null);
@@ -871,6 +873,8 @@ export function PricingAdmin() {
           </div>
         </div>
       )}
+
+      {tab === "countries" && <CountryPricingAdmin />}
     </div>
   );
 }

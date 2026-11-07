@@ -96,6 +96,7 @@ export default function CreatorRoomsNavbar() {
     <RoomsSubNavbar
       items={items}
       homeHref="/creator/rooms"
+      homeLabel="My Classrooms"
       homeActive={pathname === "/creator/rooms"}
       loading={loading}
       error={error}

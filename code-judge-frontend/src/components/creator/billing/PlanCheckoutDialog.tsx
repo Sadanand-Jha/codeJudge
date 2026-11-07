@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { formatTrialEnd } from "@/hooks/useMySubscription";
-import { formatPricingAmount, type PricingPlan } from "@/services/pricing";
+import { formatBillingPeriod, formatPricingAmount, type PricingPlan } from "@/services/pricing";
 import { consumePlanBundleIntent } from "@/lib/checkoutIntent";
 import {
   getCheckoutSuggestion,
@@ -87,6 +87,7 @@ export function PlanCheckoutDialog({
   const [selection, setSelection] = useState<"plan" | "bundle">("plan");
 
   useEffect(() => {
+    if (plan.billingPeriod && plan.billingPeriod !== "monthly") return;
     let active = true;
     consumePlanBundleIntent(plan.slug);
     getCheckoutSuggestion({ planSlug: plan.slug })
@@ -107,7 +108,7 @@ export function PlanCheckoutDialog({
     return () => {
       active = false;
     };
-  }, [plan.slug]);
+  }, [plan.billingPeriod, plan.slug]);
 
   const activeBundle = selection === "bundle" ? suggestion : null;
   const validTill = receipt ? formatTrialEnd(receipt.expiresAt) : null;
@@ -218,7 +219,7 @@ export function PlanCheckoutDialog({
                         {plan.name}
                       </h3>
                       <span className="whitespace-nowrap rounded-full bg-[var(--qs-bg)] px-2.5 py-1 text-[11px] font-extrabold text-[var(--qs-muted)]">
-                        Monthly
+                        {formatBillingPeriod(plan.billingPeriod ?? "monthly", plan.customDays)}
                       </span>
                     </div>
                     {(plan.description ?? plan.tagline) && (
@@ -236,7 +237,7 @@ export function PlanCheckoutDialog({
                         {formatPricingAmount(plan.price, plan.currency)}
                       </span>
                       <span className="text-[13px] font-bold text-[var(--qs-muted)]">
-                        / month
+                        / {formatBillingPeriod(plan.billingPeriod ?? "monthly", plan.customDays).toLowerCase()}
                       </span>
                     </div>
                     <div className="mt-3">
@@ -383,7 +384,9 @@ export function PlanCheckoutDialog({
                 <div className={cn(QS_ROW, "border-t-2 border-[var(--qs-line)]")}>
                   <div>
                     <b className="block text-[15px] font-extrabold">{plan.name}</b>
-                    <small className="text-sm text-[var(--qs-muted)]">Monthly plan</small>
+                    <small className="text-sm text-[var(--qs-muted)]">
+                      {formatBillingPeriod(plan.billingPeriod ?? "monthly", plan.customDays)} plan
+                    </small>
                   </div>
                   <strong className="text-[24px] font-black tabular-nums">
                     {formatPricingAmount(plan.price, plan.currency)}

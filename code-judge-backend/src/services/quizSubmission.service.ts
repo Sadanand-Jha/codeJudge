@@ -203,10 +203,13 @@ export async function processQuizSubmission(data: QuizSubmissionJobData): Promis
   }
 
   const startedAt = attempt.started_at ?? attempt.created_at;
+  const antiCheatEnabled = quizRow?.anti_cheat_enabled === true;
   const storedViolations = Number(attempt.violations) || 0;
-  const violations = Math.max(storedViolations, Number(data.violations) || 0);
-  const flagged = attempt.flagged === true || data.flagged === true;
-  const flagReason = [attempt.flag_reason, data.flagReason].filter(Boolean).join("; ").slice(0, 500) || undefined;
+  const violations = antiCheatEnabled ? Math.max(storedViolations, Number(data.violations) || 0) : storedViolations;
+  const flagged = antiCheatEnabled && (attempt.flagged === true || data.flagged === true);
+  const flagReason = antiCheatEnabled
+    ? [attempt.flag_reason, data.flagReason].filter(Boolean).join("; ").slice(0, 500) || undefined
+    : undefined;
   const effectiveCompletionMs = Number.isFinite(attemptSubmittedAtMs)
     ? attemptSubmittedAtMs
     : isLate && attemptDeadlineMs !== null

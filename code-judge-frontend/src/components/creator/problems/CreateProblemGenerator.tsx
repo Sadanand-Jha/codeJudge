@@ -2,12 +2,11 @@
 
 import { showUpgradeModal } from "@/lib/upgradePrompt";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
   ArrowLeft,
-  BookOpen,
   Check,
   CheckCircle2,
   Copy,
@@ -16,9 +15,7 @@ import {
   PencilLine,
   Plus,
   RotateCcw,
-  SlidersHorizontal,
   Sparkles,
-  Target,
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
@@ -33,6 +30,7 @@ import {
 } from "@/services/aiGenerate";
 import type { SubjectiveQuestion } from "@/components/creator/tests/sections/paperTypes";
 import { QsSelect } from "@/components/creator/problems/QsSelect";
+import { ImportSyllabusNotice } from "@/components/creator/syllabus/ImportSyllabusNotice";
 import { QuestionHtml, htmlToEditableText } from "@/components/creator/questions/QuestionHtml";
 import { defaultPaperInstructionLines, downloadQuestionsPdf } from "@/utils/questionSetExport";
 import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
@@ -65,8 +63,6 @@ const TONE_TEXT: Record<string, string> = {
   numerical: "text-[#0b7a8f]",
 };
 
-const SKELETON_WIDTHS = ["w-[30%]", "w-[92%]", "w-[68%]"];
-
 const QUESTION_PLAIN = (item: QuestionItem) =>
   item.questionHtml?.trim() ? htmlToEditableText(item.questionHtml) : item.question;
 
@@ -90,13 +86,11 @@ function CountStepper({
   onIncrease: () => void;
 }) {
   const buttonClass =
-    "grid h-6 w-6 shrink-0 place-items-center rounded-[7px] border-2 border-[var(--qs-line)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:pointer-events-none disabled:opacity-30";
+    "grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] hover:bg-[var(--qs-poly-1)] disabled:pointer-events-none disabled:opacity-30";
   return (
-    <div className="rounded-[11px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-1.5 text-center">
-      <p className={cn("truncate text-[9px] font-extrabold uppercase tracking-[0.05em]", labelClass)}>
-        {label}
-      </p>
-      <div className="mt-1 flex items-center justify-center gap-1">
+    <div className="min-w-[110px] flex-1 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 text-center">
+      <p className={cn("text-[12px] font-bold uppercase tracking-[0.1em]", labelClass)}>{label}</p>
+      <div className="mt-2 flex items-center justify-center gap-2.5">
         <button
           type="button"
           onClick={onDecrease}
@@ -104,9 +98,11 @@ function CountStepper({
           aria-label={`Decrease ${label}`}
           className={buttonClass}
         >
-          <Minus className="h-3 w-3" />
+          <Minus className="h-5 w-5" />
         </button>
-        <output className="w-6 text-sm font-extrabold tabular-nums text-[var(--qs-ink)]">{value}</output>
+        <output className="min-w-7 text-[26px] font-bold tabular-nums text-[var(--qs-ink)]">
+          {value}
+        </output>
         <button
           type="button"
           onClick={onIncrease}
@@ -114,9 +110,40 @@ function CountStepper({
           aria-label={`Increase ${label}`}
           className={buttonClass}
         >
-          <Plus className="h-3 w-3" />
+          <Plus className="h-5 w-5" />
         </button>
       </div>
+    </div>
+  );
+}
+
+function CardHeading({
+  step,
+  title,
+  aside,
+}: {
+  step?: number;
+  title: string;
+  aside?: ReactNode;
+}) {
+  return (
+    <h2 className="mb-4 flex items-center gap-2.5 border-b-2 border-[var(--qs-line)] pb-3 text-[14px] font-extrabold tracking-tight text-[var(--qs-ink)]">
+      {step !== undefined && (
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-[9px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[12px] font-extrabold text-[#1a1240]">
+          {step}
+        </span>
+      )}
+      <span className="min-w-0">{title}</span>
+      {aside ? <span className="ml-auto shrink-0">{aside}</span> : null}
+    </h2>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-3 border-t border-[var(--qs-line)] py-2.5 text-sm">
+      <span className="text-[var(--qs-muted)]">{label}</span>
+      <b className="text-right font-semibold text-[var(--qs-ink)]">{value}</b>
     </div>
   );
 }
@@ -275,7 +302,7 @@ export function CreateProblemGenerator() {
   }, [items]);
 
   const coverageText = useMemo(() => {
-    if (!subjectId || !subjectName) return "Select a subject to see your coverage here.";
+    if (!subjectId || !subjectName) return "Select a subject to see how much of your syllabus is covered.";
     if (selectedTopicCount === 0)
       return `${subjectName} · nothing selected, so AI will use the whole subject`;
     const topicPart = `${selectedTopicCount} topic${selectedTopicCount > 1 ? "s" : ""}`;
@@ -616,514 +643,449 @@ export function CreateProblemGenerator() {
   }, [items, downloading, subjectName, paperHeader, toast, chooseHeader]);
 
   return (
-    <div className="mx-auto w-full max-w-[1180px]">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+    <div className="qs-ui mx-auto w-full max-w-[1160px] pb-10">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <Link
           href="/creator/problems"
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-xs font-extrabold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+          className="inline-flex min-h-10 items-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-sm font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
         >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to Problems
+          <ArrowLeft className="h-4 w-4" />
+          Back to Assignment Builder
         </Link>
-        <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1 text-[9px] font-extrabold uppercase tracking-[0.12em] text-[var(--qs-muted)]">
-          Problem bank · AI
+        <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+          <Sparkles className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
+          AI-assisted builder
         </span>
       </div>
 
-      <section className="overflow-hidden rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[6px_6px_0_var(--qs-sun)]">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-3.5 sm:px-5">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1a1240]">
-              <Sparkles className="h-5 w-5" />
+      <header className="relative mb-6 overflow-hidden rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-5 py-6 text-[var(--qs-on-brand)] shadow-[6px_6px_0_var(--qs-sun)] sm:px-8 sm:py-7">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full border-[24px] border-[var(--qs-sun)]/15" />
+        <div aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-[26%] h-36 w-36 rounded-full bg-[var(--qs-sun)]/10" />
+        <div className="relative flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+          <div className="flex min-w-0 items-start gap-4">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1a1240]">
+              <Sparkles className="h-6 w-6" />
             </span>
             <div className="min-w-0">
-              <h1 className="text-[19px] font-extrabold leading-6 tracking-tight text-[var(--qs-ink)]">
+              <span className="inline-flex items-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#1a1240]">
+                Assignment Builder
+              </span>
+              <h1 className="mt-2 text-[28px] font-extrabold leading-tight tracking-tight sm:text-[34px]">
                 AI Question Generator
               </h1>
-              <p className="mt-0.5 text-[11px] font-medium leading-4 text-[var(--qs-muted)]">
-                Generate subjective questions, review every one, then save the best to your problem bank.
+              <p className="mt-1.5 max-w-[660px] text-sm leading-6 text-[var(--qs-on-brand)]/85 sm:text-[15px]">
+                Set the scope and question mix, then review and save the questions you want to keep.
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
-            Effort
-            <QsSelect<string>
-              value="plus"
-              options={[
-                { value: "plus", label: "Plus" },
-                { value: "pro", label: "Pro (coming soon)", disabled: true },
-                { value: "max", label: "Max (coming soon)", disabled: true },
-              ]}
-              onChange={() => {}}
-              disabled={status === "generating"}
-              ariaLabel="Reasoning effort"
-              triggerClassName="min-h-9 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-[11px] font-extrabold text-[var(--qs-ink)]"
-              menuClassName="w-56"
-              align="right"
-            />
+          <div className="flex w-fit items-center gap-2 rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-3.5 py-2.5 text-sm font-extrabold text-[var(--qs-ink)]">
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-[var(--qs-sun)] text-xs text-[#1a1240]">
+              3
+            </span>
+            Simple 3-step workflow
           </div>
-        </header>
+        </div>
+      </header>
 
-        <div className="grid gap-3 px-4 py-4 sm:px-5 lg:grid-cols-[1.05fr_1fr_0.9fr]">
-          <div className="flex min-w-0 flex-col gap-3">
-            <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
-              <p className="mb-2 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
-                <Target className="h-3.5 w-3.5 text-[var(--qs-brand)]" /> Question scope
-              </p>
-              <div className="space-y-2.5">
-                <div className="min-w-0">
-                  <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
-                    Subject
-                  </span>
-                  <QsSelect<number>
-                    value={subjectId}
-                    options={(catalog?.subjects ?? []).map((s) => ({ value: s.id, label: s.name }))}
-                    onChange={handleSubjectChange}
-                    placeholder={catalogLoading ? "Loading curriculum…" : "Select subject"}
-                    disabled={status === "generating" || catalogLoading}
-                    ariaLabel="Subject"
-                    searchable
-                    triggerClassName="min-h-10 w-full rounded-[11px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-2.5 py-1.5 text-[11px] font-bold leading-4 text-[var(--qs-ink)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] disabled:opacity-50"
-                    menuClassName="w-full"
-                  />
-                  {catalogError && (
-                    <div className="mt-1.5 flex items-start gap-1.5 text-[10px] font-semibold text-[var(--qs-bad)]">
-                      <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
-                      <span>
-                        {catalogError}{" "}
-                        <button type="button" onClick={reloadCatalog} className="underline">
-                          Retry
-                        </button>
-                      </span>
-                    </div>
-                  )}
-                </div>
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="flex min-w-0 flex-col gap-5">
+          <section className="rounded-[20px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 shadow-[3px_3px_0_var(--qs-sun)] sm:p-5">
+            <CardHeading step={1} title="Question Scope" />
 
-                <div className="min-w-0">
-                  <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
-                    Chapter
-                  </span>
-                  <QsSelect<number>
-                    multiple
-                    values={chapterIds}
-                    onValuesChange={handleChapterValuesChange}
-                    options={chapterOptions}
-                    placeholder={catalogLoading ? "Loading…" : "All chapters"}
-                    disabled={!subjectId || status === "generating" || catalogLoading}
-                    ariaLabel="Chapters"
-                    searchable
-                    wrapLabels
-                    triggerClassName="min-h-10 w-full rounded-[11px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-2.5 py-1.5 text-[11px] font-bold leading-4 text-[var(--qs-ink)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] disabled:opacity-50"
-                    menuClassName="w-full"
-                  />
-                </div>
+            {catalog && catalog.subjects.length === 0 && (
+              <ImportSyllabusNotice className="mb-4" compact />
+            )}
 
-                <div className="min-w-0">
-                  <div className="mb-1 flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
-                      Topics
+            <div className="flex flex-wrap gap-4">
+              <div className="min-w-0 flex-[1_1_200px]">
+                <label
+                  htmlFor="ai-subject"
+                  className="mb-1.5 block text-[13px] font-semibold text-[var(--qs-ink)]"
+                >
+                  Subject
+                </label>
+                <QsSelect<number>
+                  id="ai-subject"
+                  value={subjectId}
+                  options={(catalog?.subjects ?? []).map((s) => ({ value: s.id, label: s.name }))}
+                  onChange={handleSubjectChange}
+                  placeholder={catalogLoading ? "Loading curriculum…" : "Select subject"}
+                  disabled={status === "generating" || catalogLoading}
+                  ariaLabel="Subject"
+                  searchable
+                  triggerClassName="min-h-[46px] w-full rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-3 py-2 text-[15px] font-semibold text-[var(--qs-ink)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] disabled:opacity-50"
+                  menuClassName="w-full"
+                />
+                {catalogError && (
+                  <div className="mt-1.5 flex items-start gap-1.5 text-xs font-semibold text-[var(--qs-bad)]">
+                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>
+                      {catalogError}{" "}
+                      <button type="button" onClick={reloadCatalog} className="underline">
+                        Retry
+                      </button>
                     </span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={selectAllTopics}
-                        disabled={!subjectId || subjectTopics.length === 0 || status === "generating"}
-                        className="text-[9px] font-extrabold uppercase tracking-[0.05em] text-[var(--qs-brand)] hover:underline disabled:pointer-events-none disabled:opacity-40"
-                      >
-                        All
-                      </button>
-                      <button
-                        type="button"
-                        onClick={clearTopics}
-                        disabled={!subjectId || selectedTopicCount === 0 || status === "generating"}
-                        className="text-[9px] font-extrabold uppercase tracking-[0.05em] text-[var(--qs-muted)] hover:underline disabled:pointer-events-none disabled:opacity-40"
-                      >
-                        Clear
-                      </button>
-                    </div>
                   </div>
-                  <QsSelect<number>
-                    multiple
-                    values={topicIds}
-                    onValuesChange={setTopicIds}
-                    options={topicOptions}
-                    placeholder={catalogLoading ? "Loading…" : "All topics"}
-                    disabled={!subjectId || status === "generating" || catalogLoading}
-                    ariaLabel="Topics"
-                    searchable
-                    wrapLabels
-                    triggerClassName="min-h-10 w-full rounded-[11px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-2.5 py-1.5 text-[11px] font-bold leading-4 text-[var(--qs-ink)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] disabled:opacity-50"
-                    menuClassName="w-full"
-                  />
-                </div>
+                )}
               </div>
 
-              <div className="mt-2.5 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 py-2">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="line-clamp-2 text-[10px] font-semibold leading-4 text-[var(--qs-muted)]">
-                    {coverageText}
-                  </span>
-                  <span className="shrink-0 text-[10px] font-extrabold tabular-nums text-[var(--qs-brand)]">
-                    {coveragePercent}%
-                  </span>
+              <div className="min-w-0 flex-[1_1_200px]">
+                <label
+                  htmlFor="ai-chapters"
+                  className="mb-1.5 block text-[13px] font-semibold text-[var(--qs-ink)]"
+                >
+                  Chapter
+                </label>
+                <QsSelect<number>
+                  id="ai-chapters"
+                  multiple
+                  values={chapterIds}
+                  onValuesChange={handleChapterValuesChange}
+                  options={chapterOptions}
+                  placeholder={catalogLoading ? "Loading…" : "All chapters"}
+                  disabled={!subjectId || status === "generating" || catalogLoading}
+                  ariaLabel="Chapters"
+                  searchable
+                  wrapLabels
+                  triggerClassName="min-h-[46px] w-full rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-3 py-2 text-[15px] font-semibold text-[var(--qs-ink)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] disabled:opacity-50"
+                  menuClassName="w-full"
+                />
+              </div>
+
+              <div className="min-w-0 flex-[1_1_200px]">
+                <div className="mb-1.5 flex items-center justify-between gap-2">
+                  <label htmlFor="ai-topics" className="text-[13px] font-semibold text-[var(--qs-ink)]">
+                    Topics
+                  </label>
+                  <div className="flex items-center gap-1.5 text-[12px] font-bold text-[var(--qs-brand)]">
+                    <button
+                      type="button"
+                      onClick={selectAllTopics}
+                      disabled={!subjectId || subjectTopics.length === 0 || status === "generating"}
+                      className="transition-colors hover:text-[var(--qs-ink)] disabled:pointer-events-none disabled:opacity-40"
+                    >
+                      All
+                    </button>
+                    <span aria-hidden="true">·</span>
+                    <button
+                      type="button"
+                      onClick={clearTopics}
+                      disabled={!subjectId || selectedTopicCount === 0 || status === "generating"}
+                      className="transition-colors hover:text-[var(--qs-ink)] disabled:pointer-events-none disabled:opacity-40"
+                    >
+                      Clear
+                    </button>
+                  </div>
                 </div>
-                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[var(--qs-line)]">
-                  <span
-                    className="block h-full rounded-full bg-[var(--qs-brand)] transition-[width] duration-300"
-                    style={{ width: `${coveragePercent}%` }}
-                  />
-                </div>
+                <QsSelect<number>
+                  id="ai-topics"
+                  multiple
+                  values={topicIds}
+                  onValuesChange={setTopicIds}
+                  options={topicOptions}
+                  placeholder={catalogLoading ? "Loading…" : "All topics"}
+                  disabled={!subjectId || status === "generating" || catalogLoading}
+                  ariaLabel="Topics"
+                  searchable
+                  wrapLabels
+                  triggerClassName="min-h-[46px] w-full rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-3 py-2 text-[15px] font-semibold text-[var(--qs-ink)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] disabled:opacity-50"
+                  menuClassName="w-full"
+                />
               </div>
             </div>
 
-            <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
-              <div className="flex items-center justify-between gap-3">
-                <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
-                  <Target className="h-3.5 w-3.5 text-[var(--qs-brand)]" /> Number of questions
-                </p>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    aria-label="Fewer questions"
-                    onClick={() => handleTotalChange(totalQuestions - 1)}
-                    disabled={status === "generating" || totalQuestions <= 1}
-                    className="grid h-7 w-7 place-items-center rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:opacity-40"
-                  >
-                    <Minus className="h-3.5 w-3.5" />
-                  </button>
-                  <span className="min-w-7 text-center text-sm font-extrabold tabular-nums text-[var(--qs-ink)]">
-                    {totalQuestions}
-                  </span>
-                  <button
-                    type="button"
-                    aria-label="More questions"
-                    onClick={() => handleTotalChange(totalQuestions + 1)}
-                    disabled={status === "generating" || totalQuestions >= MAX_QUESTIONS}
-                    className="grid h-7 w-7 place-items-center rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:opacity-40"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
+            <div className="mt-4 flex items-center gap-3 text-sm text-[var(--qs-muted)]">
+              <span className="flex-1 leading-5">{coverageText}</span>
+              <b className="shrink-0 text-[var(--qs-brand)]">{coveragePercent}%</b>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--qs-line)]">
+              <span
+                className="block h-full rounded-full bg-[var(--qs-brand)] transition-[width] duration-300"
+                style={{ width: `${coveragePercent}%` }}
+              />
+            </div>
+          </section>
+
+          <section className="rounded-[20px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 shadow-[3px_3px_0_var(--qs-sun)] sm:p-5">
+            <CardHeading
+              step={2}
+              title="Syllabus / Instructions"
+              aside={
+                <span className="rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-3 py-[3px] text-[11px] font-bold uppercase tracking-[0.05em] text-[#1a1240]">
+                  Recommended
+                </span>
+              }
+            />
+            <textarea
+              id="ai-syllabus"
+              value={syllabus}
+              onChange={(e) => setSyllabus(e.target.value)}
+              maxLength={MAX_SYLLABUS}
+              disabled={status === "generating"}
+              placeholder="Paste the topics you taught, units to cover, exclusions, and the kind of questions you want."
+              className="min-h-[120px] w-full resize-y rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3 text-[15px] leading-6 text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] disabled:opacity-60"
+            />
+            <div className="mt-2.5 flex items-start justify-between gap-3 text-[13px]">
+              <span className="flex-1 rounded-[8px] bg-[var(--qs-poly-5)] px-2.5 py-1.5 leading-5 text-[var(--qs-ink)]">
+                {syllabus.trim()
+                  ? "Questions will stay close to the material you covered."
+                  : "Add topics for precise questions. Without them AI uses the full subject scope."}
+              </span>
+              <span className="shrink-0 whitespace-nowrap pt-1 tabular-nums text-[var(--qs-muted)]">
+                {syllabus.length} / {MAX_SYLLABUS}
+              </span>
+            </div>
+          </section>
+
+          <section className="rounded-[20px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 shadow-[3px_3px_0_var(--qs-sun)] sm:p-5">
+            <CardHeading step={3} title="How Many, How Hard" />
+
+            <div className="flex items-center gap-3.5">
+              <span className="whitespace-nowrap text-sm font-semibold text-[var(--qs-ink)]">
+                Questions
+              </span>
               <input
-                id="cp-total"
+                id="ai-question-count"
                 type="range"
                 min={1}
                 max={MAX_QUESTIONS}
                 value={totalQuestions}
                 onChange={(e) => handleTotalChange(Number(e.target.value))}
                 disabled={status === "generating"}
-                className="mt-2 h-1.5 w-full cursor-pointer accent-[var(--qs-brand)] disabled:opacity-60"
+                aria-label="Number of questions"
+                className="h-11 flex-1 cursor-pointer accent-[var(--qs-brand)] disabled:opacity-60"
               />
-              <p className="mt-1 text-[9.5px] font-medium leading-4 text-[var(--qs-muted)]">
-                Choose between 1 and {MAX_QUESTIONS} subjective questions.
-              </p>
+              <span className="min-w-8 text-right text-[26px] font-bold tabular-nums text-[var(--qs-ink)]">
+                {totalQuestions}
+              </span>
             </div>
-          </div>
+            <p className="mb-4 text-[13px] leading-5 text-[var(--qs-muted)]">
+              Choose between 1 and {MAX_QUESTIONS} subjective questions.
+            </p>
 
-          <div className="flex min-w-0 flex-col gap-3">
-            <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
-              <div className="flex flex-wrap items-center justify-between gap-1.5">
-                <label
-                  htmlFor="cp-syllabus"
-                  className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]"
-                >
-                  <BookOpen className="h-3.5 w-3.5 text-[var(--qs-brand)]" /> Syllabus / instructions
-                </label>
-                <span className="rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2 py-0.5 text-[8px] font-extrabold uppercase tracking-[0.06em] text-[#1a1240]">
-                  Recommended
-                </span>
-              </div>
-              <textarea
-                id="cp-syllabus"
-                value={syllabus}
-                onChange={(e) => setSyllabus(e.target.value)}
-                maxLength={MAX_SYLLABUS}
-                rows={4}
-                disabled={status === "generating"}
-                placeholder="Paste the topics you taught, units to cover, exclusions, and the kind of questions you want."
-                className="mt-2 min-h-[92px] w-full resize-none rounded-[11px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-3 py-2 text-[11px] font-medium leading-5 text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] disabled:opacity-60"
-              />
-              <div className="mt-2 flex items-start justify-between gap-3 text-[9.5px] font-medium">
-                <span className={syllabus.trim() ? "text-[var(--qs-ok)]" : "text-[#a85d00]"}>
-                  {syllabus.trim()
-                    ? "Questions will stay close to the material you covered."
-                    : "Add topics for precise questions; otherwise AI uses the full subject scope."}
-                </span>
-                <span className="shrink-0 tabular-nums text-[var(--qs-muted)]">
-                  {syllabus.length}/{MAX_SYLLABUS}
-                </span>
-              </div>
-            </div>
-
-            <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
-              <div className="flex items-center justify-between gap-2">
-                <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
-                  <SlidersHorizontal className="h-3.5 w-3.5 text-[var(--qs-brand)]" /> Difficulty split
-                </p>
-                <span className="rounded-full bg-[var(--qs-poly-2)] px-2 py-0.5 text-[9px] font-extrabold tabular-nums text-[var(--qs-brand)]">
-                  {difficultySum}/{totalQuestions}
-                </span>
-              </div>
-              <div className="mt-1.5 grid grid-cols-3 gap-2">
-                <CountStepper
-                  label="Easy"
-                  labelClass="text-[var(--qs-ok)]"
-                  value={easy}
-                  disabled={status === "generating"}
-                  decreaseDisabled={easy <= 0}
-                  increaseDisabled={difficultySum >= totalQuestions}
-                  onDecrease={() => setEasy(Math.max(0, easy - 1))}
-                  onIncrease={() => setEasy(easy + 1)}
-                />
-                <CountStepper
-                  label="Medium"
-                  labelClass="text-[#a85d00]"
-                  value={medium}
-                  disabled={status === "generating"}
-                  decreaseDisabled={medium <= 0}
-                  increaseDisabled={difficultySum >= totalQuestions}
-                  onDecrease={() => setMedium(Math.max(0, medium - 1))}
-                  onIncrease={() => setMedium(medium + 1)}
-                />
-                <CountStepper
-                  label="Hard"
-                  labelClass="text-[var(--qs-bad)]"
-                  value={hard}
-                  disabled={status === "generating"}
-                  decreaseDisabled={hard <= 0}
-                  increaseDisabled={difficultySum >= totalQuestions}
-                  onDecrease={() => setHard(Math.max(0, hard - 1))}
-                  onIncrease={() => setHard(hard + 1)}
-                />
-              </div>
-              <div
-                className={cn(
-                  "mt-2 rounded-[9px] border-2 px-2 py-1 text-center text-[9.5px] font-extrabold tabular-nums",
-                  difficultyBalanced
-                    ? "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]"
-                    : "border-[var(--qs-bad)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]"
-                )}
-              >
-                {easy} + {medium} + {hard} = {difficultySum}{" "}
-                {difficultyBalanced ? "· Balanced" : `≠ ${totalQuestions} — adjust`}
-              </div>
-            </div>
-
-            <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
-              <div className="flex items-center justify-between gap-2">
-                <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
-                  <SlidersHorizontal className="h-3.5 w-3.5 text-[var(--qs-brand)]" /> Theory vs numerical
-                </p>
-                <span className="rounded-full bg-[var(--qs-poly-2)] px-2 py-0.5 text-[9px] font-extrabold tabular-nums text-[var(--qs-brand)]">
-                  {theory}T · {numerical}N
-                </span>
-              </div>
-              <div className="mt-1.5 grid grid-cols-2 gap-2">
-                <CountStepper
-                  label="Theory"
-                  labelClass="text-[var(--qs-brand)]"
-                  value={theory}
-                  disabled={status === "generating"}
-                  decreaseDisabled={theory <= 0}
-                  increaseDisabled={categorySum >= totalQuestions}
-                  onDecrease={() => setTheory(Math.max(0, theory - 1))}
-                  onIncrease={() => setTheory(theory + 1)}
-                />
-                <CountStepper
-                  label="Numerical"
-                  labelClass="text-[#0b7a8f]"
-                  value={numerical}
-                  disabled={status === "generating"}
-                  decreaseDisabled={numerical <= 0}
-                  increaseDisabled={categorySum >= totalQuestions}
-                  onDecrease={() => setNumerical(Math.max(0, numerical - 1))}
-                  onIncrease={() => setNumerical(numerical + 1)}
-                />
-              </div>
-              <div
-                className={cn(
-                  "mt-2 rounded-[9px] border-2 px-2 py-1 text-center text-[9.5px] font-extrabold tabular-nums",
-                  categoryBalanced
-                    ? "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]"
-                    : "border-[var(--qs-bad)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]"
-                )}
-              >
-                {theory} + {numerical} = {categorySum}{" "}
-                {categoryBalanced ? "· Balanced" : `≠ ${totalQuestions} — adjust`}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex min-w-0 flex-col gap-3">
-            <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
-              <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
-                What AI will create
-              </p>
-              <div className="mt-1.5 grid grid-cols-2 gap-1.5 text-[10px] font-semibold text-[var(--qs-muted)]">
-                <span className="rounded-[8px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 py-1">
-                  {totalQuestions} subjective
-                </span>
-                <span className="rounded-[8px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 py-1">
-                  {theory} theory · {numerical} numerical
-                </span>
-                <span className="rounded-[8px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 py-1">
-                  {easy} easy · {medium} medium · {hard} hard
-                </span>
-                <span className="rounded-[8px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 py-1">
-                  Review before saving
-                </span>
-              </div>
-            </div>
-
-            <div className="flex min-h-[250px] flex-1 flex-col overflow-hidden rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
-              <div className="flex shrink-0 items-center gap-2 border-b border-[var(--qs-line)] px-3 py-2">
-                <span
-                  className={cn(
-                    "h-2 w-2 shrink-0 rounded-full",
-                    status === "generating"
-                      ? "animate-pulse bg-[var(--qs-bad)]"
-                      : error
-                        ? "bg-[var(--qs-bad)]"
-                        : status === "done"
-                          ? "bg-[var(--qs-ok)]"
-                          : "bg-[var(--qs-muted)]/40"
-                  )}
-                />
-                <span aria-live="polite" className="min-w-0 truncate text-[11px] font-bold text-[var(--qs-ink)]">
-                  {error && status !== "generating"
-                    ? "Generation failed"
-                    : status === "generating"
-                      ? "AI is thinking…"
-                      : status === "done"
-                        ? "Questions ready"
-                        : "Ready to generate"}
-                </span>
-                {status === "generating" ? (
-                  <span className="ml-auto shrink-0 text-[9px] font-semibold tabular-nums text-[var(--qs-muted)]">
-                    {totalQuestions} questions
+            <div className="flex flex-wrap gap-5">
+              <div className="min-w-0 flex-[3_1_340px]">
+                <div className="mb-1.5 flex justify-between gap-3 text-[13px] font-semibold text-[var(--qs-ink)]">
+                  <span>Difficulty split</span>
+                  <span className="text-[var(--qs-brand)]">
+                    {difficultySum} / {totalQuestions}
                   </span>
-                ) : null}
+                </div>
+                <div className="flex flex-wrap gap-2.5">
+                  <CountStepper
+                    label="Easy"
+                    labelClass="text-[var(--qs-ok)]"
+                    value={easy}
+                    disabled={status === "generating"}
+                    decreaseDisabled={easy <= 0}
+                    increaseDisabled={difficultySum >= totalQuestions}
+                    onDecrease={() => setEasy(Math.max(0, easy - 1))}
+                    onIncrease={() => setEasy(easy + 1)}
+                  />
+                  <CountStepper
+                    label="Medium"
+                    labelClass="text-[#a85d00]"
+                    value={medium}
+                    disabled={status === "generating"}
+                    decreaseDisabled={medium <= 0}
+                    increaseDisabled={difficultySum >= totalQuestions}
+                    onDecrease={() => setMedium(Math.max(0, medium - 1))}
+                    onIncrease={() => setMedium(medium + 1)}
+                  />
+                  <CountStepper
+                    label="Hard"
+                    labelClass="text-[var(--qs-bad)]"
+                    value={hard}
+                    disabled={status === "generating"}
+                    decreaseDisabled={hard <= 0}
+                    increaseDisabled={difficultySum >= totalQuestions}
+                    onDecrease={() => setHard(Math.max(0, hard - 1))}
+                    onIncrease={() => setHard(hard + 1)}
+                  />
+                </div>
+                <div
+                  className={cn(
+                    "mt-3 rounded-[12px] border-2 px-2.5 py-2.5 text-center text-sm font-bold tabular-nums",
+                    difficultyBalanced
+                      ? "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]"
+                      : "border-[var(--qs-bad)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]"
+                  )}
+                >
+                  {easy} + {medium} + {hard} = {difficultySum}{" "}
+                  {difficultyBalanced ? "· Balanced" : `≠ ${totalQuestions} — adjust`}
+                </div>
               </div>
-              <div className="min-h-0 flex-1 p-4">
-                {error && status !== "generating" ? (
-                  <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-                    <AlertCircle className="h-6 w-6 text-[var(--qs-bad)]" />
-                    <p className="text-[11px] font-bold text-[var(--qs-ink)]">Generation failed</p>
-                    <p className="max-w-[240px] text-[10px] leading-4 text-[var(--qs-muted)]">{error}</p>
-                    <button
-                      type="button"
-                      onClick={() => void handleGenerate()}
-                      disabled={!canGenerate}
-                      className="mt-1 rounded-[8px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-2.5 py-1 text-[10px] font-extrabold text-[var(--qs-on-brand)] disabled:opacity-50"
-                    >
-                      Try again
-                    </button>
-                  </div>
-                ) : status === "generating" ? (
-                  <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-                    <span className="h-6 w-6 animate-spin rounded-full border-[3px] border-[var(--qs-line)] border-t-[var(--qs-brand)] motion-reduce:animate-none" />
-                    <p className="text-[11px] font-bold text-[var(--qs-brand)]">
-                      {thinkingMessages[thinkingIndex]}
-                    </p>
-                    <p className="text-[10px] leading-4 text-[var(--qs-muted)]">
-                      Drafting {totalQuestions} questions. This can take a moment.
-                    </p>
-                    <div className="mt-2 w-full space-y-1.5">
-                      <span className="block h-1.5 w-[92%] animate-pulse rounded bg-[var(--qs-line)]" />
-                      <span className="block h-1.5 w-[70%] animate-pulse rounded bg-[var(--qs-line)]" />
-                      <span className="block h-1.5 w-[84%] animate-pulse rounded bg-[var(--qs-line)]" />
-                    </div>
-                  </div>
-                ) : status === "done" ? (
-                  <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-                    <CheckCircle2 className="h-7 w-7 text-[var(--qs-ok)]" />
-                    <p className="text-[12px] font-bold text-[var(--qs-ink)]">
-                      {items.length} question{items.length === 1 ? "" : "s"} ready
-                    </p>
-                    <p className="max-w-[240px] text-[10px] leading-4 text-[var(--qs-muted)]">
-                      Review, edit, approve and download them below.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => document.getElementById("generated-questions")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                      className="mt-1 rounded-[8px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-2.5 py-1 text-[10px] font-extrabold text-[var(--qs-on-brand)]"
-                    >
-                      Review questions
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-                    <Sparkles className="h-6 w-6 text-[var(--qs-brand)]" />
-                    <p className="max-w-[230px] text-[11px] font-semibold leading-5 text-[var(--qs-muted)]">
-                      Hit <span className="font-extrabold text-[var(--qs-brand)]">Generate</span> and AI will draft{" "}
-                      {totalQuestions} subjective question{totalQuestions === 1 ? "" : "s"} from your selected scope.
-                    </p>
-                  </div>
-                )}
+
+              <div className="min-w-0 flex-[2_1_240px]">
+                <div className="mb-1.5 flex justify-between gap-3 text-[13px] font-semibold text-[var(--qs-ink)]">
+                  <span>Theory vs numerical</span>
+                  <span className="text-[var(--qs-brand)]">
+                    {theory}T · {numerical}N
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2.5">
+                  <CountStepper
+                    label="Theory"
+                    labelClass="text-[var(--qs-brand)]"
+                    value={theory}
+                    disabled={status === "generating"}
+                    decreaseDisabled={theory <= 0}
+                    increaseDisabled={categorySum >= totalQuestions}
+                    onDecrease={() => setTheory(Math.max(0, theory - 1))}
+                    onIncrease={() => setTheory(theory + 1)}
+                  />
+                  <CountStepper
+                    label="Numerical"
+                    labelClass="text-[#0b6577]"
+                    value={numerical}
+                    disabled={status === "generating"}
+                    decreaseDisabled={numerical <= 0}
+                    increaseDisabled={categorySum >= totalQuestions}
+                    onDecrease={() => setNumerical(Math.max(0, numerical - 1))}
+                    onIncrease={() => setNumerical(numerical + 1)}
+                  />
+                </div>
+                <div
+                  className={cn(
+                    "mt-3 rounded-[12px] border-2 px-2.5 py-2.5 text-center text-sm font-bold tabular-nums",
+                    categoryBalanced
+                      ? "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]"
+                      : "border-[var(--qs-bad)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]"
+                  )}
+                >
+                  {theory} + {numerical} = {categorySum}{" "}
+                  {categoryBalanced ? "· Balanced" : `≠ ${totalQuestions} — adjust`}
+                </div>
               </div>
             </div>
-          </div>
+          </section>
         </div>
 
-        <div className="border-t-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-3 sm:px-5">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="mr-auto hidden max-w-[480px] items-start gap-1.5 text-[9px] font-medium leading-4 text-[var(--qs-muted)] lg:flex">
-              <AlertCircle className="mt-px h-2.5 w-2.5 shrink-0" /> AI can make mistakes. Review every question before saving it to the bank.
-            </p>
-            <button
-              type="button"
-              onClick={resetCounts}
-              disabled={status === "generating"}
-              className="h-10 rounded-[10px] border-2 border-[var(--qs-line)] px-4 text-sm font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:opacity-50"
-            >
-              Reset counts
-            </button>
-            <AiGenerateButton
-              size="md"
-              label={
-                status === "generating"
+        <aside className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-6">
+          <div className="overflow-hidden rounded-[20px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[4px_4px_0_var(--qs-sun)]">
+            <div className="border-b-2 border-[var(--qs-ink)] bg-[var(--qs-poly-1)] px-5 py-4">
+              <h2 className="text-[12px] font-extrabold uppercase tracking-[0.12em] text-[var(--qs-muted)]">
+                Generation summary
+              </h2>
+              <p className="mt-1 text-[26px] font-extrabold leading-tight text-[var(--qs-ink)]">
+                {totalQuestions} question{totalQuestions === 1 ? "" : "s"}
+              </p>
+            </div>
+            <div className="p-5">
+              <SummaryRow label="Type" value={`${theory} theory · ${numerical} numerical`} />
+              <SummaryRow label="Difficulty" value={`${easy} easy · ${medium} medium · ${hard} hard`} />
+              <SummaryRow label="After generating" value="Review before saving" />
+
+              <div className="flex items-center justify-between gap-3 border-t-2 border-[var(--qs-line)] py-2.5 text-sm">
+                <label htmlFor="ai-effort" className="text-[var(--qs-muted)]">
+                  Effort
+                </label>
+                <QsSelect<string>
+                  id="ai-effort"
+                  value="plus"
+                  options={[
+                    { value: "plus", label: "Plus" },
+                    { value: "pro", label: "Pro (coming soon)", disabled: true },
+                    { value: "max", label: "Max (coming soon)", disabled: true },
+                  ]}
+                  onChange={() => {}}
+                  disabled={status === "generating"}
+                  ariaLabel="Reasoning effort"
+                  triggerClassName="h-10 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-3 text-sm font-semibold text-[var(--qs-ink)]"
+                  menuClassName="w-56"
+                  align="right"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => void handleGenerate()}
+                disabled={!canGenerate}
+                className="mt-2.5 min-h-[52px] w-full rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-4 text-base font-bold text-[#1a1240] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+              >
+                {status === "generating"
                   ? "Generating…"
                   : error
                     ? "Try again"
                     : status === "done"
                       ? "Generate again"
-                      : `Generate ${totalQuestions} question${totalQuestions === 1 ? "" : "s"}`
-              }
-              onClick={() => void handleGenerate()}
-              disabled={!canGenerate}
-              className="h-10 min-w-[190px] flex-1 px-4 text-sm disabled:opacity-60 sm:flex-none"
-            />
-          </div>
-          <p className="mt-1.5 flex items-start gap-1.5 text-[9px] font-medium leading-4 text-[var(--qs-muted)] lg:hidden">
-            <AlertCircle className="mt-px h-2.5 w-2.5 shrink-0" /> AI can make mistakes. Review every question before saving it to the bank.
-          </p>
-        </div>
-      </section>
-
-      {status === "generating" && (
-        <section aria-live="polite" className="mt-10">
-          <div className="flex items-center gap-3 font-bold text-[var(--qs-ink)]">
-            <span className="h-5 w-5 animate-spin rounded-full border-[3px] border-[var(--qs-line)] border-t-[var(--qs-brand)] motion-reduce:animate-none" />
-            {thinkingMessages[thinkingIndex]}
-          </div>
-          <div className="mt-4 grid gap-4">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="grid gap-3.5 rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-6"
+                      : `Generate ${totalQuestions} question${totalQuestions === 1 ? "" : "s"}`}
+              </button>
+              <button
+                type="button"
+                onClick={resetCounts}
+                disabled={status === "generating"}
+                className="mt-2.5 min-h-11 w-full rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-sm font-semibold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:opacity-50"
               >
-                {SKELETON_WIDTHS.map((width, j) => (
-                  <span
-                    key={j}
-                    className={cn("block h-3.5 animate-pulse rounded-full bg-[var(--qs-line)]", width)}
-                  />
-                ))}
-              </div>
-            ))}
+                Reset counts
+              </button>
+
+              <p className="mt-3.5 text-[13px] leading-5 text-[var(--qs-muted)]">
+                AI can make mistakes. Review every question before saving it to the bank.
+              </p>
+            </div>
           </div>
-        </section>
-      )}
+
+          <div
+            aria-live="polite"
+            className="rounded-[20px] border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)] p-6 text-center shadow-[3px_3px_0_var(--qs-sun)]"
+          >
+            {status === "generating" ? (
+              <div className="flex flex-col items-center gap-2.5">
+                <span className="h-6 w-6 animate-spin rounded-full border-[3px] border-[var(--qs-line)] border-t-[var(--qs-brand)] motion-reduce:animate-none" />
+                <p className="text-[15px] font-semibold text-[var(--qs-ink)]">AI is thinking…</p>
+                <p className="text-sm leading-5 text-[var(--qs-muted)]">
+                  {thinkingMessages[thinkingIndex]}
+                </p>
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center gap-2">
+                <AlertCircle className="h-6 w-6 text-[var(--qs-bad)]" />
+                <p className="text-[15px] font-semibold text-[var(--qs-ink)]">Generation failed</p>
+                <p className="max-w-[260px] text-sm leading-5 text-[var(--qs-muted)]">{error}</p>
+                <button
+                  type="button"
+                  onClick={() => void handleGenerate()}
+                  disabled={!canGenerate}
+                  className="mt-1.5 min-h-9 rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-3 text-xs font-bold text-[#1a1240] disabled:opacity-50"
+                >
+                  Try again
+                </button>
+              </div>
+            ) : status === "done" ? (
+              <div className="flex flex-col items-center gap-2">
+                <CheckCircle2 className="h-7 w-7 text-[var(--qs-ok)]" />
+                <p className="text-[15px] font-semibold text-[var(--qs-ink)]">
+                  {items.length} question{items.length === 1 ? "" : "s"} ready
+                </p>
+                <p className="text-sm leading-5 text-[var(--qs-muted)]">
+                  Review, edit and approve the ones you like below.
+                </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    document.getElementById("generated-questions")?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    })
+                  }
+                  className="mt-1.5 min-h-9 rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-3 text-xs font-bold text-[#1a1240]"
+                >
+                  Review questions
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-[15px] font-semibold text-[var(--qs-ink)]">Ready to generate</p>
+                <p className="mt-1.5 text-sm leading-5 text-[var(--qs-muted)]">
+                  Your {totalQuestions} question{totalQuestions === 1 ? "" : "s"} will appear here for
+                  review once you hit Generate.
+                </p>
+              </>
+            )}
+          </div>
+        </aside>
+      </div>
 
       {status === "done" && (
         <section id="generated-questions" aria-live="polite" className="mt-10 scroll-mt-24">

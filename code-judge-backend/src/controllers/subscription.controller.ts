@@ -23,6 +23,7 @@ export const getMySubscription = async (req: Request, res: Response) => {
         planName: entitlements.planName,
         status: entitlements.status,
         isPaid: entitlements.isPaid,
+        antiCheatAvailable: entitlements.isPaid && entitlements.values.anti_cheat === true,
         startedAt: entitlements.startedAt,
         currentPeriodStart: entitlements.currentPeriodStart,
         currentPeriodEnd: entitlements.currentPeriodEnd,

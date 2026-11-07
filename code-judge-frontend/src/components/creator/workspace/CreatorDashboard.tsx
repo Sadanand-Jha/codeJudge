@@ -159,7 +159,7 @@ const RANGE_OPTIONS = [
 
 const QUICK_CREATE_ITEMS = [
   { label: "Create Quiz", desc: "Quick interactive test", href: "/creator/quizzes/create", icon: ListChecks, gradient: "from-emerald-500 to-teal-600" },
-  { label: "Create Test", desc: "Full-length mock test", href: "/creator/tests/create", icon: ClipboardList, gradient: "from-pink-500 to-violet-600" },
+  { label: "Create Paper", desc: "Full-length question paper", href: "/creator/tests/create", icon: ClipboardList, gradient: "from-pink-500 to-violet-600" },
   { label: "Create Problem", desc: "Practice question", href: "/creator/problems/create", icon: NotebookPen, gradient: "from-amber-500 to-orange-600" },
 ] as const;
 

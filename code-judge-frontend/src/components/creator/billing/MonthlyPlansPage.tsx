@@ -28,7 +28,7 @@ import {
   verifyPlanPayment,
 } from "@/services/billing";
 import { trackCheckoutEvent } from "@/services/analytics";
-import { formatPricingAmount, getPlanDiscount, type PricingPlan } from "@/services/pricing";
+import { formatBillingPeriod, formatPricingAmount, type PricingPlan } from "@/services/pricing";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { PlanCheckoutDialog, type PlanPurchaseReceipt } from "./PlanCheckoutDialog";
 import { InvoiceV2Dialog } from "./InvoiceV2Dialog";
@@ -48,12 +48,22 @@ function PlanCard({
 }: {
   plan: PricingPlan;
   currentPlanId: string;
-  onSelect: (plan: PricingPlan) => void;
+  onSelect: (plan: PricingPlan, priceId: number) => void;
 }) {
+  const defaultPrice = plan.prices.find((price) => price.billingPeriod === "monthly") ?? plan.prices[0];
+  const [selectedPriceId, setSelectedPriceId] = useState(defaultPrice?.id ?? 0);
+  const selectedPrice = plan.prices.find((price) => price.id === selectedPriceId) ?? defaultPrice;
+  const amount = selectedPrice?.amount ?? plan.price;
+  const originalPrice = selectedPrice?.originalPrice ?? null;
+  const discount = originalPrice && originalPrice > amount
+    ? Math.round((1 - amount / originalPrice) * 100)
+    : 0;
+  const billingPeriod = selectedPrice
+    ? formatBillingPeriod(selectedPrice.billingPeriod, selectedPrice.customDays)
+    : "Monthly";
   const isCurrent = plan.slug === currentPlanId;
   const isHot = plan.featured && !isCurrent;
   const includedCredits = plan.credits > 0;
-  const discount = getPlanDiscount(plan);
   const features = plan.features.filter((feature) => !/trial/i.test(feature));
 
   return (
@@ -94,7 +104,7 @@ function PlanCard({
               : "bg-[var(--qs-bg)] text-[var(--qs-muted)]"
           )}
         >
-          {plan.discountBadge || (discount > 0 ? `${discount}% off` : "Monthly")}
+          {plan.discountBadge || (discount > 0 ? `${discount}% off` : billingPeriod)}
         </span>
       </div>
 
@@ -116,17 +126,33 @@ function PlanCard({
           {plan.offer}
         </p>
       )}
+      {plan.prices.length > 1 && (
+        <label className={cn("mt-3 block text-xs font-bold", isHot ? "text-[var(--qs-on-brand)]/85" : "text-[var(--qs-muted)]")}>
+          Billing period
+          <select
+            className="mt-1 w-full rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2 text-sm text-[var(--qs-ink)]"
+            value={selectedPrice?.id ?? ""}
+            onChange={(event) => setSelectedPriceId(Number(event.target.value))}
+          >
+            {plan.prices.map((price) => (
+              <option key={price.id} value={price.id}>
+                {formatBillingPeriod(price.billingPeriod, price.customDays)} · {formatPricingAmount(price.amount, price.currency)}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       <p className="mt-4 text-[44px] font-black leading-none tracking-tight">
-        {formatPricingAmount(plan.price, plan.currency)}
-        {discount > 0 && plan.originalPrice && (
+        {amount === 0 ? "Free" : formatPricingAmount(amount, selectedPrice?.currency ?? plan.currency)}
+        {discount > 0 && originalPrice && (
           <s
             className={cn(
               "ml-2 align-middle text-[16px] font-bold tracking-normal",
               isHot ? "text-[var(--qs-on-brand)]/70" : "text-[var(--qs-muted)]"
             )}
           >
-            {formatPricingAmount(plan.originalPrice, plan.currency)}
+            {formatPricingAmount(originalPrice, selectedPrice?.currency ?? plan.currency)}
           </s>
         )}
         <span
@@ -135,7 +161,7 @@ function PlanCard({
             isHot ? "text-[var(--qs-on-brand)]/80" : "text-[var(--qs-muted)]"
           )}
         >
-          / month
+          {amount === 0 ? "forever" : `/ ${billingPeriod.toLowerCase()}`}
         </span>
       </p>
 
@@ -191,7 +217,8 @@ function PlanCard({
       ) : (
         <button
           type="button"
-          onClick={() => onSelect(plan)}
+          onClick={() => selectedPrice && onSelect(plan, selectedPrice.id)}
+          disabled={!selectedPrice}
           className={cn(
             "flex w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] py-[13px] text-[14px] font-extrabold transition-all",
             isHot
@@ -209,9 +236,11 @@ function PlanCard({
 
 export function MonthlyPlansPage({
   initialPlanSlug = null,
+  initialPriceId = null,
 }: {
   /** Deep link from the upgrade modal — opens this plan's checkout. */
   initialPlanSlug?: string | null;
+  initialPriceId?: number | null;
 }) {
   const balance = useAICreditsStore((state) => state.balance);
   const refreshCredits = useAICreditsStore((state) => state.refresh);
@@ -219,6 +248,7 @@ export function MonthlyPlansPage({
   const { catalog, isLoading: catalogLoading, error: catalogError, refresh: refreshCatalog } = usePricingCatalog();
   const toast = useToast();
   const [checkoutPlan, setCheckoutPlan] = useState<PricingPlan | null>(null);
+  const [checkoutPriceId, setCheckoutPriceId] = useState<number | null>(null);
   const [phase, setPhase] = useState<PurchasePhase>("summary");
   const [phaseError, setPhaseError] = useState<string | null>(null);
   const [processingNote, setProcessingNote] = useState("Creating your order…");
@@ -238,6 +268,9 @@ export function MonthlyPlansPage({
   const trialPlan = catalog.plans.find((plan) => plan.trialDays > 0);
   const currentPlan = catalog.plans.find((plan) => plan.slug === activePlanId);
   const displayPlan = currentPlan;
+  const visiblePlans = catalog.plans.filter(
+    (plan) => plan.price > 0 || plan.slug === activePlanId
+  );
   const trialPlanName = currentPlan?.name ?? trialPlan?.name;
   const currentPlanName = isTrialActive
     ? trialPlanName
@@ -247,28 +280,51 @@ export function MonthlyPlansPage({
       ? trialPlanName
         ? `${trialPlanName} trial expired`
         : "Trial expired"
-      : displayPlan?.name ?? "Free plan";
+      : displayPlan?.name ?? subscription?.planName ?? "Free plan";
   const trialEndsOn = formatTrialEnd(subscription?.trialEnd ?? null);
-  const isFreePlan = !isLoading && !isTrialActive && !isTrialExpired && !displayPlan;
+  const isFreePlan =
+    !isLoading &&
+    !isTrialActive &&
+    !isTrialExpired &&
+    !subscription?.isPaid &&
+    !displayPlan;
 
   const deepLinkPlan =
     !dismissedInitialPlan && initialPlanSlug
-      ? catalog.plans.find((plan) => plan.slug === initialPlanSlug) ?? null
+      ? catalog.plans.find((plan) => plan.slug === initialPlanSlug && plan.price > 0) ?? null
       : null;
   const activeCheckoutPlan = checkoutPlan ?? deepLinkPlan;
+  const activeCheckoutPrice = activeCheckoutPlan
+    ? activeCheckoutPlan.prices.find((price) => price.id === (checkoutPriceId ?? initialPriceId)) ??
+      activeCheckoutPlan.prices.find((price) => price.billingPeriod === "monthly") ??
+      activeCheckoutPlan.prices[0]
+    : null;
+  const checkoutPlanDetails = activeCheckoutPlan && activeCheckoutPrice
+    ? {
+        ...activeCheckoutPlan,
+        price: activeCheckoutPrice.amount,
+        originalPrice: activeCheckoutPrice.originalPrice,
+        currency: activeCheckoutPrice.currency,
+        billingPeriod: activeCheckoutPrice.billingPeriod,
+        customDays: activeCheckoutPrice.customDays,
+      }
+    : activeCheckoutPlan;
 
   const closeCheckout = () => {
     if (phase === "processing") return;
     setDismissedInitialPlan(true);
     setCheckoutPlan(null);
+    setCheckoutPriceId(null);
     setPhase("summary");
     setPhaseError(null);
     setReceipt(null);
   };
 
-  const startCheckout = (plan: PricingPlan) => {
-    if (phase === "processing") return;
+  const startCheckout = (plan: PricingPlan, priceId: number) => {
+    const price = plan.prices.find((item) => item.id === priceId);
+    if (phase === "processing" || !price || price.amount <= 0) return;
     setCheckoutPlan(plan);
+    setCheckoutPriceId(priceId);
     setPhase("summary");
     setPhaseError(null);
     setReceipt(null);
@@ -335,12 +391,13 @@ export function MonthlyPlansPage({
         return;
       }
 
-      const order = await createPlanOrder({ planId: plan.id, planSlug: plan.slug });
+      if (!activeCheckoutPrice) throw new Error("Please choose an available billing period.");
+      const order = await createPlanOrder({ planId: plan.id, planSlug: plan.slug, priceId: activeCheckoutPrice.id });
       setProcessingNote("Waiting for payment…");
       const payment: RazorpayPaymentPayload | null = await openRazorpayCheckout({
         order,
-        itemName: `${plan.name} monthly plan`,
-        notes: { plan_id: String(plan.id) },
+        itemName: `${plan.name} ${formatBillingPeriod(activeCheckoutPrice.billingPeriod, activeCheckoutPrice.customDays).toLowerCase()} plan`,
+        notes: { plan_id: String(plan.id), price_id: String(activeCheckoutPrice.id) },
       }).catch((error: unknown) => {
         if (error instanceof RazorpayCheckoutDismissedError) return null;
         throw error;
@@ -384,7 +441,7 @@ export function MonthlyPlansPage({
   return (
     <div className="space-y-5 pb-2">
       <PageHeader
-        title="Monthly plans"
+        title="Plans"
         subtitle={
           isTrialActive && trialPlan
             ? `Your ${trialPlan.trialDays}-day ${trialPlan.name} trial is active with ${BASIC_TRIAL_CREDITS} AI credits. Paid plans include monthly credits.`
@@ -401,7 +458,7 @@ export function MonthlyPlansPage({
       />
 
       <section
-        aria-label="Current monthly plan"
+        aria-label="Current plan"
         className="flex flex-wrap items-center justify-between gap-4 rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-5 py-4"
       >
         <div className="flex min-w-0 items-center gap-3">
@@ -423,13 +480,7 @@ export function MonthlyPlansPage({
                   · ended {trialEndsOn}
                 </span>
               ) : (
-                !isTrial &&
-                displayPlan &&
-                displayPlan.price > 0 && (
-                  <span className="ml-1.5 font-semibold text-[var(--qs-muted)]">
-                    · {formatPricingAmount(displayPlan.price, displayPlan.currency)} / month
-                  </span>
-                )
+                null
               )}
             </p>
           </div>
@@ -493,7 +544,7 @@ export function MonthlyPlansPage({
             Try again
           </button>
         </div>
-      ) : catalog.plans.length === 0 ? (
+      ) : visiblePlans.length === 0 ? (
         <div className="mx-auto w-full max-w-4xl rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-8 text-center">
           <p className="text-lg font-extrabold text-[var(--qs-ink)]">No monthly plans available</p>
           <p className="mt-1 text-sm text-[var(--qs-muted)]">Plans are configured by the administrator. Please check back later.</p>
@@ -503,7 +554,7 @@ export function MonthlyPlansPage({
           id="studio-plans"
           className="mx-auto grid w-full max-w-4xl items-stretch gap-6 lg:grid-cols-2"
         >
-          {catalog.plans.map((plan) => (
+          {visiblePlans.map((plan) => (
             <PlanCard
               key={plan.slug}
               plan={plan}
@@ -542,10 +593,10 @@ export function MonthlyPlansPage({
       </section>
 
       <AnimatePresence>
-        {activeCheckoutPlan && (
+        {activeCheckoutPlan && checkoutPlanDetails && (
           <PlanCheckoutDialog
-            key={activeCheckoutPlan.slug}
-            plan={activeCheckoutPlan}
+            key={`${activeCheckoutPlan.slug}-${activeCheckoutPrice?.id ?? "default"}`}
+            plan={checkoutPlanDetails}
             balance={balance.totalRemaining}
             phase={phase}
             phaseError={phaseError}

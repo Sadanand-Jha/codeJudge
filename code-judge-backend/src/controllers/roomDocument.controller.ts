@@ -22,6 +22,7 @@ function sendError(res: Response, error: unknown) {
       success: false,
       code: error.code,
       message: error.message,
+      ...(error.upgradeUrl ? { upgradeUrl: error.upgradeUrl } : {}),
     });
     return;
   }

@@ -1,417 +1,141 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  ArrowRight,
-  BarChart3,
-  CalendarDays,
-  GraduationCap,
-  HelpCircle,
-  Mail,
-  Mic,
-  NotebookPen,
-  Radio,
-  ShieldCheck,
-  Smartphone,
-  Sparkles,
-  Trophy,
-  Zap,
-  type LucideIcon,
-} from "lucide-react";
-import AnimatedStat from "@/components/marketing/landing/AnimatedStat";
-import FeatureTabs from "@/components/marketing/landing/FeatureTabs";
-import HeroPolygons from "@/components/marketing/landing/HeroPolygons";
-import LandingReveal from "@/components/marketing/landing/LandingReveal";
-import LpHeader from "@/components/marketing/landing/LpHeader";
-import SampleQuizDemo from "@/components/marketing/SampleQuizDemo";
-import LpPricingTabs from "@/components/marketing/landing/LpPricingTabs";
-import StudioShowcase from "@/components/marketing/landing/StudioShowcase";
-import { SecureLandingImage } from "@/components/marketing/landing/SecureLandingImage";
+import { ArrowRight } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
-import { getPricingCatalogServer } from "@/services/pricing";
+import LandingHero from "@/components/marketing/landing/LandingHero";
+import LandingPricing from "@/components/marketing/landing/LandingPricing";
+import LandingProductShowcase from "@/components/marketing/landing/LandingProductShowcase";
+import LandingScrollStatement from "@/components/marketing/landing/LandingScrollStatement";
+import {
+  LandingAudienceSection,
+  LandingClosingCta,
+  LandingPaperSample,
+  LandingRoomsPromo,
+  LandingWorkflow,
+} from "@/components/marketing/landing/LandingSections";
+import LandingReveal from "@/components/marketing/landing/LandingReveal";
+import { LandingPageShell } from "@/components/marketing/landing/LandingPageShell";
+import LpHeader from "@/components/marketing/landing/LpHeader";
+import { getPricingCatalogServer } from "@/services/pricingServer";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
 
 export const metadata: Metadata = buildPublicPageMetadata({
-  title: "QuizSupport – Choose a topic. AI writes your paper.",
+  title: "QuizSupport – Create a paper. Share a code. See how your class did.",
   description:
-    "Pick a subject and chapters. AI writes the questions, composes the paper and gets it ready to share. One code for students, instant results for you.",
+    "Create classroom quizzes by hand or with AI, share one code with students, and review results together.",
   path: "/",
   absoluteTitle: true,
 });
 
-const STATS = [
-  { value: 1000, suffix: "+", label: "Learners every month" },
-  { value: 20, suffix: "+", label: "Teachers and creators" },
-  { value: 0, suffix: "", label: "Installs needed" },
-  { value: 1, suffix: "", label: "Code to join" },
-];
-
-const CAPABILITIES: { icon: LucideIcon; title: string; desc: string }[] = [
-  { icon: Radio, title: "Live quizzes", desc: "One code in. Attempts land as they happen." },
-  { icon: Trophy, title: "Responses & ranks", desc: "Marks, time and rank for every student." },
-  { icon: BarChart3, title: "Question analytics", desc: "Hardest, easiest and slowest questions." },
-  { icon: Zap, title: "Game mode", desc: "Lives, lifelines and a timer per question." },
-  { icon: ShieldCheck, title: "Secure exams", desc: "Focused, timed attempts with auto-submit." },
-  { icon: CalendarDays, title: "Scheduled quizzes", desc: "Open and close on your clock." },
-  { icon: HelpCircle, title: "Question bank", desc: "Save once. Reuse across every paper." },
-  { icon: Mail, title: "Email and export", desc: "CSV, PDF, Word and email in one click." },
-  { icon: Smartphone, title: "Works anywhere", desc: "Phone or laptop. Nothing to install." },
-];
-
-const STEPS = [
-  {
-    number: "1",
-    title: "Choose the topic",
-    desc: "Choose subject and chapters. AI drafts the paper.",
-  },
-  {
-    number: "2",
-    title: "Share the code",
-    desc: "Every quiz gets a code. Send it anywhere.",
-  },
-  {
-    number: "3",
-    title: "Watch results",
-    desc: "Scores, ranks and tricky questions, instantly.",
-  },
-];
-
-const AUDIENCES: {
-  icon: LucideIcon;
-  chip: string;
-  title: string;
-  desc: string;
-  points: string[];
-  cta: string;
-  href: string;
-  tone: string;
-}[] = [
-  {
-    icon: GraduationCap,
-    chip: "For students",
-    title: "Practice. Compete. Repeat.",
-    desc: "Join with a code and start answering.",
-    points: [
-      "Join quiz with one code",
-      "Attempt on your phone or laptop",
-      "Practise with ready-made sets",
-      "Climb ranks, with time as tiebreaker",
-    ],
-    cta: "Find practice sets",
-    href: "/quiz",
-    tone: "blue",
-  },
-  {
-    icon: NotebookPen,
-    chip: "For teachers",
-    title: "Papers in minutes",
-    desc: "Turn your syllabus into a ready paper.",
-    points: [
-      "AI writes questions from subject and chapters",
-      "Edit anything. Set marks and time",
-      "Export print-ready PDF or Word",
-      "See every result before students do",
-    ],
-    cta: "See AI credits",
-    href: "/pricing/credits",
-    tone: "green",
-  },
-  {
-    icon: Mic,
-    chip: "For creators",
-    title: "Host. Track. Repeat.",
-    desc: "Run quizzes for any batch or crowd.",
-    points: [
-      "Go live with one shareable code",
-      "Schedule when quizzes open and close",
-      "Add game mode and lifelines",
-      "Track performance over time in rooms",
-    ],
-    cta: "Explore features",
-    href: "#features",
-    tone: "amber",
-  },
-];
-
-function buildFaqs(trialDays: number) {
-  return [
-    {
-      q: "Do students need to install anything?",
-      a: "No. It runs in the browser on any phone or laptop.",
-    },
-    {
-      q: "When do students see results?",
-      a: "You see them instantly. Students see theirs an hour after the quiz ends.",
-    },
-    {
-      q: "What is exam mode?",
-      a: "A focused, timed exam view that keeps every attempt on the paper.",
-    },
-    {
-      q: "Can I export results or papers?",
-      a: "Yes. Results go to CSV or email. Papers go to PDF or Word.",
-    },
-    {
-      q: "Is there a subscription?",
-      a:
-        trialDays > 0
-          ? `Monthly plans include a ${trialDays}-day Basic trial with AI credits. Request it from billing; owner approval is required. AI credit packs are one-time, with no auto-renew.`
-          : "Monthly plans renew monthly. AI credit packs are one-time, with no auto-renew.",
-    },
-  ];
-}
-
 export default async function HomePage() {
   const catalog = await getPricingCatalogServer();
-  const plans = catalog.plans;
-  const creditPacks = catalog.creditPacks;
-  const trialDays = plans.find((plan) => plan.trialDays > 0)?.trialDays ?? 7;
-  const creditValidityMonths =
-    creditPacks.length > 0 ? Math.max(...creditPacks.map((pack) => pack.validityMonths)) : 0;
-  const faqs = buildFaqs(trialDays);
+  const freePlan = catalog.plans.find((plan) => plan.price === 0);
+  const trialDays = catalog.plans.find((plan) => plan.trialDays > 0)?.trialDays ?? 0;
+  const faqs = [
+    {
+      q: "Do students need to install anything?",
+      a: "No. Students can open a quiz in a browser on a phone or laptop.",
+    },
+    {
+      q: "Can I write a paper myself?",
+      a: "Yes. Create questions manually, use the AI generator for a first draft, or combine both.",
+    },
+    {
+      q: "How do students join?",
+      a: "Share the quiz code. Students use it to open the quiz in their browser.",
+    },
+    {
+      q: "Can I review results?",
+      a: "Yes. Review scores, ranks and question-level performance after students attempt the quiz.",
+    },
+    {
+      q: "What does it cost?",
+      a: trialDays > 0
+        ? `The available monthly plans include a ${trialDays}-day Basic trial. See pricing for the current plan details.`
+        : `${freePlan?.name ?? "Essential"} is free forever. Visit pricing for current plan details and AI credit options.`,
+    },
+    {
+      q: "Can I edit what the AI generates?",
+      a: "Yes. Generated questions are a draft that you can review and edit before publishing.",
+    },
+    {
+      q: "What question types are supported?",
+      a: "You can mix single choice, multiple select, true/false, fill-in-the-blank and other supported question types in a quiz.",
+    },
+    {
+      q: "How is student data handled?",
+      a: (
+        <>
+          QuizSupport uses quiz activity to provide results to students and creators. See
+          our <Link href="/privacy">Privacy Policy</Link> for details about data access,
+          use and storage.
+        </>
+      ),
+    },
+  ];
 
   return (
-    <div className="qs-ui qs-lp lpx">
+    <LandingPageShell>
       <LpHeader />
+      <main>
+        <div className="landing-page-wrap">
+          <LandingHero trialDays={trialDays} freePlanName={freePlan?.name ?? "Essential"} />
+          <LandingProductShowcase />
+          <LandingRoomsPromo />
+          <LandingWorkflow />
+          <LandingScrollStatement />
+          <LandingPaperSample />
+          <LandingAudienceSection />
 
-      <header id="top" className="lpx-hero-shell">
-        <div className="lpx-hero-movie" aria-hidden="true">
-          <span className="lpx-hero-beam" />
-          <span className="lpx-hero-orb lpx-hero-orb-a" />
-          <span className="lpx-hero-orb lpx-hero-orb-b" />
-          <span className="lpx-hero-grain" />
-        </div>
-        <HeroPolygons />
-        <div className="lpx-wrap">
-          <div className="lpx-trial">
-            <HeroPolygons />
-            <div className="lpx-trial-copy">
-              <span className="lpx-trial-tag">
-                <Sparkles size={13} aria-hidden />
-                Launch offer
-              </span>
-              <p>
-                <b>{trialDays}-day Basic trial.</b>
-              </p>
-            </div>
-            <Link href="/start-free-trial" className="lpx-btn lpx-btn-dark">
-              Request free trial
-              <ArrowRight size={16} aria-hidden />
-            </Link>
-          </div>
+          <LandingPricing plans={catalog.plans} />
 
-          <div className="lpx-hero">
-            <div>
-              <h1>Choose a topic. AI writes your paper.</h1>
-              <p className="lpx-lead">Pick subject and chapters. Share one code. Watch results land.</p>
-              <div className="lpx-ai-note">
-                <Sparkles size={15} aria-hidden />
-                <span>
-                  <b>Enterprise-grade AI models</b> — tuned for exam-quality questions
-                  and the best results.
-                </span>
+          <section className="landing-section landing-faq" id="faq" data-reveal>
+            <div className="landing-faq-intro">
+              <div className="landing-section-heading">
+                <span className="landing-eyebrow">Good to know</span>
+                <h2>Questions, answered.</h2>
+              </div>
+              <div className="landing-faq-contact">
+                <span>Still have questions?</span>
+                <Link href="/contact">Contact us</Link>
               </div>
             </div>
-            <div className="lpx-hero-demo">
-              <SampleQuizDemo timerSeconds={45} />
+            <div className="landing-faq-list">
+              {faqs.map((faq) => (
+                <details key={faq.q}>
+                  <summary>{faq.q}</summary>
+                  <p>{faq.a}</p>
+                </details>
+              ))}
             </div>
-          </div>
-        </div>
+          </section>
 
-        <div className="lpx-stats">
-          <div className="lpx-wrap">
-            {STATS.map((stat) => (
-              <div key={stat.label}>
-                <b>
-                  <AnimatedStat value={stat.value} suffix={stat.suffix} />
-                </b>
-                <span>{stat.label}</span>
-              </div>
-            ))}
-          </div>
+          <LandingClosingCta />
         </div>
-      </header>
+      </main>
 
-      <section className="lpx-section" id="studio" data-reveal>
-        <div className="lpx-wrap">
-          <StudioShowcase />
-        </div>
-      </section>
-
-      <section className="lpx-section" id="features" data-reveal>
-        <div className="lpx-wrap">
-          <h2>The paper is only the beginning.</h2>
-          <FeatureTabs />
-          <div className="lpx-g8">
-            {CAPABILITIES.map((item) => {
-              const Icon = item.icon;
-              return (
-                <div key={item.title}>
-                  <em>
-                    <Icon size={20} aria-hidden />
-                  </em>
-                  <h3>{item.title}</h3>
-                  <p>{item.desc}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section id="rooms" className="lpx-rooms" data-reveal>
-        <HeroPolygons />
-        <div className="lpx-wrap lpx-two">
-          <div>
-            <span className="lpx-tag lpx-tag-yellow">Rooms</span>
-            <h2>Your batch. Your quizzes. One room.</h2>
-            <p className="lpx-lead">Create once. Share one code. Run every quiz here.</p>
-            <ul className="lpx-checks lpx-checks-light">
-              <li>Students join in seconds with one code</li>
-              <li>Reuse the room across quizzes and terms</li>
-              <li>See who joined, attempted, needs a nudge</li>
-              <li>Made for batches, clubs, study groups</li>
-            </ul>
-            <div className="lpx-actions">
-              <Link href="/creator/rooms" className="lpx-btn lpx-btn-yellow">
-                Create a room
-              </Link>
-              <Link href="/rooms" className="lpx-btn lpx-btn-outline-light">
-                Explore rooms
-              </Link>
-            </div>
-          </div>
-          <div className="lpx-hand-shot">
-            <SecureLandingImage
-              name="hand-phone"
-              alt="The Rooms screen on a phone held in one hand, showing joined classrooms, member counts and activity"
-              width={700}
-              height={1057}
-            />
-          </div>
-        </div>
-      </section>
-
-      <section className="lpx-section" id="how" data-reveal>
-        <div className="lpx-wrap">
-          <h2>Three steps. One of them is just choosing.</h2>
-          <p className="lpx-lead">Choose, share, watch. That is the whole flow.</p>
-          <div className="lpx-steps">
-            {STEPS.map((step) => (
-              <div className="lpx-step" key={step.number}>
-                <div className="lpx-step-num">{step.number}</div>
-                <div className="lpx-step-stem" />
-                <div className="lpx-step-text">
-                  <h3>{step.title}</h3>
-                  <p>{step.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="lpx-section" id="who" data-reveal>
-        <div className="lpx-wrap">
-          <h2>Made for everyone in the room.</h2>
-          <p className="lpx-lead">See what you get, whichever side you are on.</p>
-          <div className="lpx-who">
-            {AUDIENCES.map((audience) => {
-              const Icon = audience.icon;
-              return (
-                <div className="lpx-wc" key={audience.chip}>
-                  <div className={`lpx-wh lpx-wh-${audience.tone}`}>
-                    <i>
-                      <Icon size={25} aria-hidden />
-                    </i>
-                    <small>{audience.chip}</small>
-                    <h3>{audience.title}</h3>
-                    <p>{audience.desc}</p>
-                  </div>
-                  <div className="lpx-wb">
-                    <h4>What you get</h4>
-                    <ul className="lpx-checks">
-                      {audience.points.map((point) => (
-                        <li key={point}>{point}</li>
-                      ))}
-                    </ul>
-                    {audience.href.startsWith("#") ? (
-                      <a href={audience.href} className="lpx-btn lpx-btn-outline lpx-btn-wide">
-                        {audience.cta}
-                      </a>
-                    ) : (
-                      <Link href={audience.href} className="lpx-btn lpx-btn-outline lpx-btn-wide">
-                        {audience.cta}
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section className="lpx-section lpx-price-section" id="pricing" data-reveal>
-        <div className="lpx-price-movie" aria-hidden="true">
-          <span className="lpx-hero-beam" />
-          <span className="lpx-hero-orb lpx-hero-orb-a" />
-          <span className="lpx-hero-orb lpx-hero-orb-b" />
-          <span className="lpx-hero-grain" />
-        </div>
-        <div className="lpx-wrap">
-          <h2 className="lpx-price-title">
-            Simple pricing. <span>Serious quizzing.</span>
-          </h2>
-          <p className="lpx-lead lpx-price-sub">
-            Everything a teacher needs to build quizzes, host rooms and see results the
-            moment students finish.
-          </p>
-          <LpPricingTabs
-            plans={plans}
-            creditPacks={creditPacks}
-            creditValidityMonths={creditValidityMonths}
-            trialDays={trialDays}
-          />
-        </div>
-      </section>
-
-      <section className="lpx-section" id="faq" data-reveal>
-        <div className="lpx-wrap lpx-faq">
-          <h2>Good to know</h2>
-          {faqs.map((faq) => (
-            <details key={faq.q}>
-              <summary>{faq.q}</summary>
-              <p>{faq.a}</p>
-            </details>
-          ))}
-        </div>
-      </section>
-
-      <section className="lpx-cta" data-reveal>
-        <HeroPolygons />
-        <h2>Your first paper is one topic away.</h2>
-        <div className="lpx-cta-actions">
-          <Link href="/creator/quizzes/create" className="lpx-btn lpx-btn-dark">
-            Start with a topic
+      <footer className="landing-footer">
+        <div className="landing-page-wrap landing-footer-inner">
+          <Link href="/" aria-label="QuizSupport home">
+            <SecureLogo size={34} variant="full" rounded={false} />
           </Link>
-        </div>
-      </section>
-
-      <footer className="lpx-footer">
-        <div className="lpx-wrap">
-          <b>
-            <SecureLogo size={36} variant="full" rounded={false} />
-          </b>
           <nav aria-label="Footer">
             <Link href="/about">About</Link>
             <Link href="/contact">Contact</Link>
-            <Link href="/privacy">Privacy Policy</Link>
-            <Link href="/quiz">Quizzes</Link>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/quiz">Student quizzes</Link>
             <Link href="/rooms">Rooms</Link>
           </nav>
+          <span>Thoughtful quizzes for every classroom.</span>
         </div>
       </footer>
+
+      <div className="landing-sticky-cta">
+        <Link href="/creator/quizzes/create">
+          Create your first paper <ArrowRight size={17} aria-hidden />
+        </Link>
+      </div>
       <LandingReveal />
-    </div>
+    </LandingPageShell>
   );
 }

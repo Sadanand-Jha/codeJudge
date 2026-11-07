@@ -85,6 +85,8 @@ export interface QuestionGenerationRequest {
   subjectId?: number | null;
   chapterId?: number | null;
   topicId?: number | null;
+  /** Authenticated creator, used to scope teacher-owned syllabi. */
+  userId?: number | string | null;
   /** Streaming callbacks — when provided, the model response is streamed
    *  chunk-by-chunk instead of returned as a single one-shot reply. */
   onReasoning?: (chunk: string) => void;
@@ -498,6 +500,7 @@ export const generateQuestionsFromFiles = async (
       subjectId: requestedSubjectId,
       chapterIds: request.chapterId != null ? [Number(request.chapterId)] : [],
       topicIds: request.topicId != null ? [Number(request.topicId)] : [],
+      userId: request.userId ?? null,
     });
   }
   const scopeBlock = scopeCatalog

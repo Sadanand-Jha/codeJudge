@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpen, Check, Clock, FileText, Search, ShieldCheck, Star, Target } from "lucide-react";
+import { ArrowRight, BookOpen, Check, Clock, FileText, ShieldCheck, Star, Target } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
-import { SearchableDropdown } from "@/components/ui";
-import { getAllSubjects, generateQuizCode as fetchQuizCode } from "@/services/quiz";
+import { SyllabusSearchSelect } from "@/components/creator/syllabus/SyllabusSearchSelect";
+import { generateQuizCode as fetchQuizCode } from "@/services/quiz";
 import { useQuizReferenceStore } from "@/store/quizReferenceStore";
 import { useAuthStore } from "@/store/authStore";
 
@@ -131,22 +131,16 @@ export function SetupStep() {
 
               {/* Subject */}
               <div className="flex flex-col gap-2">
-                <SearchableDropdown
+                <SyllabusSearchSelect
+                  type="syllabus"
                   label="Subject"
-                  placeholder="Search subjects (Physics, Chemistry, Maths…)"
+                  placeholder="Search syllabi (Physics, Chemistry, Maths…)"
                   required
-                  icon={<Search className="h-4 w-4" />}
-                  value={info.subject}
-                  selectedId={info.subjectId}
-                  onSelect={(option) => updateInfo({ subject: option.label, subjectId: option.id })}
-                  onClear={() => updateInfo({ subject: "", subjectId: "" })}
-                  searchFn={async (query, signal) => {
-                    const results = await getAllSubjects(query, signal);
-                    return results.map((s) => ({ id: s.id, label: s.subject_name }));
-                  }}
-                  minChars={1}
-                  debounceMs={300}
-                  maxVisible={8}
+                  value={info.subjectId ? Number(info.subjectId) || null : null}
+                  selectedLabel={info.subject || null}
+                  onChange={(item) =>
+                    updateInfo({ subject: item?.name ?? "", subjectId: item?.id ?? "" })
+                  }
                 />
               </div>
 

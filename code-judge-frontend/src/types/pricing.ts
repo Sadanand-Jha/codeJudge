@@ -1,3 +1,5 @@
+export type PricingBillingPeriod = "monthly" | "quarterly" | "yearly" | "lifetime" | "custom_days";
+
 export interface PricingPlan {
   id: number;
   slug: string;
@@ -12,6 +14,16 @@ export interface PricingPlan {
   price: number;
   originalPrice: number | null;
   currency: string;
+  prices: Array<{
+    id: number;
+    billingPeriod: PricingBillingPeriod;
+    customDays: number | null;
+    amount: number;
+    originalPrice: number | null;
+    currency: string;
+  }>;
+  billingPeriod?: PricingBillingPeriod;
+  customDays?: number | null;
   quizzes: number;
   rooms: number;
   credits: number;
@@ -35,6 +47,18 @@ export interface PricingCatalog {
   plans: PricingPlan[];
   creditPacks: PricingCreditPack[];
   updatedAt: string | null;
+  countryPricing?: {
+    countryCode: string | null;
+    countryName: string;
+    currency: string;
+    amount: number;
+    amountMinor: number;
+    minorUnitExponent: number;
+    version: number;
+    isFallback: boolean;
+    checkoutAvailable: boolean;
+    source: "subscription" | "payment" | "ip" | "mobile" | "fallback";
+  };
 }
 
 export interface PlatformCreditPack {

@@ -109,6 +109,7 @@ export interface StudioSettings {
   fullscreenMode: boolean;
   tabSwitchDetection: boolean;
   copyProtection: boolean;
+  antiCheatEnabled: boolean;
 }
 
 export interface StudioAudience {
@@ -195,9 +196,10 @@ export const DEFAULT_SETTINGS: StudioSettings = {
   negativeMarking: false,
   negativeMarkValue: 1,
   showResultsImmediately: true,
-  fullscreenMode: true,
-  tabSwitchDetection: true,
-  copyProtection: true,
+  fullscreenMode: false,
+  tabSwitchDetection: false,
+  copyProtection: false,
+  antiCheatEnabled: false,
 };
 
 export const DEFAULT_REGISTRATION: {

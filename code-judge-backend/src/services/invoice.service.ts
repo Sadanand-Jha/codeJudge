@@ -121,13 +121,17 @@ function formatRange(start: Date | null, end: Date | null): string {
   return `${formatDate(start)} – ${formatDate(end)}`;
 }
 
-function formatInr(paise: number): string {
-  return new Intl.NumberFormat("en-IN", {
+function formatMoney(minorUnits: number, currency: string): string {
+  const exponent = new Intl.NumberFormat("en", {
     style: "currency",
-    currency: "INR",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(paise / 100);
+    currency,
+  }).resolvedOptions().maximumFractionDigits ?? 2;
+  return new Intl.NumberFormat(currency === "INR" ? "en-IN" : "en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: exponent,
+  }).format(minorUnits / 10 ** exponent);
 }
 
 function escapeHtml(value: string): string {
@@ -242,7 +246,10 @@ export async function buildInvoiceData(
       : null;
 
   const company = getCompany();
-  const gstRegistered = Boolean(company.gstin);
+  const gstRegistered =
+    Boolean(company.gstin) &&
+    order.currency === "INR" &&
+    (order.pricingCountry === "IN" || order.pricingCountry === null);
   const factor = 1 + GST_RATE_PERCENT / 100;
   const totalPaise = Math.max(0, order.amountPaise);
   const subtotalPaise =
@@ -403,28 +410,28 @@ export async function renderInvoiceHtml(data: InvoiceData): Promise<string> {
   const itemRows = data.items
     .map(
       (item) => `<div class="row">
-        <div class="desc"><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.description)}</small><span class="mob">Qty ${item.quantity} × ${formatInr(item.unitPaise)}</span></div>
+        <div class="desc"><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.description)}</small><span class="mob">Qty ${item.quantity} × ${formatMoney(item.unitPaise, data.currency)}</span></div>
         <span class="q r">${item.quantity}</span>
-        <span class="rt r">${formatInr(item.unitPaise)}</span>
-        <span class="r"><b>${formatInr(item.amountPaise)}</b></span>
+        <span class="rt r">${formatMoney(item.unitPaise, data.currency)}</span>
+        <span class="r"><b>${formatMoney(item.amountPaise, data.currency)}</b></span>
       </div>`
     )
     .join("");
 
   const discountRow =
     data.discountPaise > 0
-      ? `<div class="row disc"><div class="desc"><b>${escapeHtml(data.discountLabel ?? "Discount")}</b><small>Applied to this order</small></div><span class="q r"></span><span class="rt r"></span><span class="r">−${formatInr(data.discountPaise)}</span></div>`
+      ? `<div class="row disc"><div class="desc"><b>${escapeHtml(data.discountLabel ?? "Discount")}</b><small>Applied to this order</small></div><span class="q r"></span><span class="rt r"></span><span class="r">−${formatMoney(data.discountPaise, data.currency)}</span></div>`
       : "";
 
   const taxRows = data.gstRegistered
-    ? `<div class="t"><span>Taxable value</span><span>${formatInr(data.taxablePaise)}</span></div>
-       <div class="t"><span>CGST (${data.gstRatePercent / 2}%)</span><span>${formatInr(data.cgstPaise)}</span></div>
-       <div class="t"><span>SGST (${data.gstRatePercent / 2}%)</span><span>${formatInr(data.sgstPaise)}</span></div>`
+    ? `<div class="t"><span>Taxable value</span><span>${formatMoney(data.taxablePaise, data.currency)}</span></div>
+       <div class="t"><span>CGST (${data.gstRatePercent / 2}%)</span><span>${formatMoney(data.cgstPaise, data.currency)}</span></div>
+       <div class="t"><span>SGST (${data.gstRatePercent / 2}%)</span><span>${formatMoney(data.sgstPaise, data.currency)}</span></div>`
     : `<div class="t"><span>GST</span><span>Not applicable</span></div>`;
 
   const discountTotal =
     data.discountPaise > 0
-      ? `<div class="t ok"><span>Discount</span><span>−${formatInr(data.discountPaise)}</span></div>`
+      ? `<div class="t ok"><span>Discount</span><span>−${formatMoney(data.discountPaise, data.currency)}</span></div>`
       : "";
 
   const metaRows = [
@@ -517,10 +524,10 @@ body{padding:22px}
   <div class="bottom">
     <div class="grant"><div class="gico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${GRANT_ICONS[data.kind]}</svg></div><div><h3>${escapeHtml(data.grant.title)}</h3><p>${escapeHtml(data.grant.description)}</p></div></div>
     <div class="tot">
-      <div class="t"><span>Subtotal</span><span>${formatInr(data.subtotalPaise)}</span></div>
+      <div class="t"><span>Subtotal</span><span>${formatMoney(data.subtotalPaise, data.currency)}</span></div>
       ${discountTotal}
       ${taxRows}
-      <div class="grand"><span>TOTAL PAID</span><span>${formatInr(data.totalPaise)}</span></div>
+      <div class="grand"><span>TOTAL PAID</span><span>${formatMoney(data.totalPaise, data.currency)}</span></div>
     </div>
   </div>
   <div class="foot">
@@ -537,7 +544,7 @@ function renderPurchaseEmail(
   variant: "success" | "invoice",
   hasLogo: boolean
 ): string {
-  const amount = formatInr(data.totalPaise);
+  const amount = formatMoney(data.totalPaise, data.currency);
   const brandMark = hasLogo
     ? `<img src="cid:${OTP_LOGO_CID}" alt="QuizSupport" width="170" style="display:block;width:170px;max-width:100%;height:auto;border:0;outline:none;" />`
     : `<div style="font-size:22px;font-weight:800;letter-spacing:-.02em;">Quiz<span style="color:#ffd23f;">Support</span></div>`;
@@ -587,7 +594,7 @@ function renderPurchaseEmail(
 }
 
 function textSummary(data: InvoiceData, variant: "success" | "invoice"): string {
-  const amount = formatInr(data.totalPaise);
+  const amount = formatMoney(data.totalPaise, data.currency);
   if (variant === "success") {
     return `Payment successful for order ${data.orderNo}. Amount paid: ${amount}. Your invoice ${data.invoiceNo} has been emailed to ${data.billedTo.email}.`;
   }

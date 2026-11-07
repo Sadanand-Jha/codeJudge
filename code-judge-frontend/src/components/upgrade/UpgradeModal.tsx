@@ -303,6 +303,7 @@ function UpgradeModalContent({
   const activePlan = catalog.plans.find(
     (plan) => plan.slug === subscription?.planSlug
   );
+  const upgradePlans = catalog.plans.filter((plan) => plan.price > 0);
   const planLabel = accessChecking
     ? "Checking access"
     : hasPaidPlan
@@ -451,7 +452,7 @@ function UpgradeModalContent({
   const activeOptions =
     effectiveTab === "credits"
       ? catalog.creditPacks.length
-      : catalog.plans.length;
+      : upgradePlans.length;
 
   return (
     <motion.div
@@ -657,7 +658,7 @@ function UpgradeModalContent({
                       onSelect={() => setPackId(pack.id)}
                     />
                   ))
-                : catalog.plans.map((plan) => (
+                : upgradePlans.map((plan) => (
                     <PlanCard
                       key={plan.slug}
                       plan={plan}

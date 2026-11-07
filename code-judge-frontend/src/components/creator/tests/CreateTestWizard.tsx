@@ -32,6 +32,7 @@ import { QuestionsStep } from "./sections/QuestionsStep";
 import { SectionBlueprintLibrary } from "./sections/SectionBlueprintLibrary";
 import type { QuestionPaper } from "./sections/paperTypes";
 import { saveTestRecord } from "@/utils/savedTests";
+import { createPaperPreviewDataUrl } from "@/utils/questionSetExport";
 import { DEFAULT_PAPER_HEADER, parseTimeAllowedMinutes, type PaperHeaderMeta } from "@/utils/paperHeader";
 import {
   type Section,
@@ -68,7 +69,7 @@ export type CreationType = "test" | "quiz" | "assessment";
 
 const CREATION_META: Record<CreationType, { title: string; subtitle: string }> = {
   test: {
-    title: "Create Test",
+    title: "Create Paper",
     subtitle: "Generate a print-ready question paper and save it to your account.",
   },
   quiz: {
@@ -318,6 +319,13 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
     setSaveState("saving");
     setSaveError(null);
     try {
+      const meta = { ...paperHeader, heading: title.trim() || paperHeader.heading.trim() || "Question Paper" };
+      let previewDataUrl: string | null = null;
+      try {
+        previewDataUrl = await createPaperPreviewDataUrl({ paper, header: meta });
+      } catch (error) {
+        console.error("Could not generate the saved paper thumbnail.", error);
+      }
       await saveTestRecord({
         draftId,
         title: title.trim() || paperHeader.heading.trim() || "Untitled test",
@@ -327,8 +335,9 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
         sectionsCount: paper.sections.length,
         totalQuestions: paper.totalQuestions,
         totalMarks: paper.totalMarks,
-        meta: { ...paperHeader, heading: title.trim() || paperHeader.heading.trim() || "Question Paper" },
+        meta,
         paper,
+        previewDataUrl,
       });
       setSaveState("saved");
       toast.success({ title: "Paper saved", description: "Find it under Tests in your account." });

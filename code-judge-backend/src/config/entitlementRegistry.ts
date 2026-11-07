@@ -18,7 +18,8 @@ export type EntitlementCategory =
   | "branding"
   | "ai"
   | "storage"
-  | "team";
+  | "team"
+  | "security";
 
 export interface EntitlementDefinition {
   key: string;
@@ -132,10 +133,10 @@ export const ENTITLEMENT_REGISTRY: EntitlementDefinition[] = [
   {
     key: "storage_mb",
     label: "Storage",
-    description: "Total media and file storage.",
+    description: "Total retained PDF, image and document uploads. Set -1 for unlimited storage.",
     type: "number",
     category: "storage",
-    default: UNLIMITED,
+    default: 200,
     unit: "MB",
   },
   {
@@ -146,6 +147,14 @@ export const ENTITLEMENT_REGISTRY: EntitlementDefinition[] = [
     category: "team",
     default: 0,
     unit: "members",
+  },
+  {
+    key: "anti_cheat",
+    label: "Anti-cheat",
+    description: "Enable exam-mode anti-cheat (fullscreen, tab-switch detection and copy protection) on quizzes.",
+    type: "boolean",
+    category: "security",
+    default: false,
   },
 ];
 

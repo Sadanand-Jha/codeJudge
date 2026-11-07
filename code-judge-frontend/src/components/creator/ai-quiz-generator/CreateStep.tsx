@@ -45,7 +45,7 @@ export function CreateStep({
             href="/creator/quizzes"
             className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-sm font-bold text-[var(--qs-ink)] transition hover:border-[var(--qs-brand)]"
           >
-            View All Quizzes
+            View My Quizzes
           </Link>
           <Link
             href="/creator/quizzes/create"

@@ -14,7 +14,7 @@ import { QuizCreationLimitError } from "../services/quizCreationLimits.ts";
 import { QuizQuestionLimitError } from "../services/quizQuestionLimits.ts";
 import { prepareAttemptDecoys, TRAP_STRENGTH_DEFAULT } from "../services/quizDecoy.service.ts";
 import { sanitizeAttemptForStudent } from "../services/quizDecoy.ts";
-import { getEntitlements, sendEntitlementError } from "../services/entitlement.service.ts";
+import { assertLimit, getEntitlements, sendEntitlementError } from "../services/entitlement.service.ts";
 import { isQuizCodeConflictError } from "../utils/databaseError.ts";
 import {
   getQuizAttemptDeadlineMs,
@@ -93,6 +93,7 @@ const toStudentQuiz = (quiz: Record<string, any>) => {
   scheduled: rawStatus === "scheduled",
   show_results_immediately: quiz.show_results_immediately === true,
   leaderboard: quiz.leaderboard === true,
+  anti_cheat_enabled: quiz.anti_cheat_enabled === true,
   registration_fields: Array.isArray(quiz.registration_fields) ? quiz.registration_fields : null,
   });
 };
@@ -409,6 +410,10 @@ export const createQuiz = async (req: Request, res: Response) => {
         ? Math.ceil((calculatedTotal * body.passingPercentage) / 100)
         : 0);
 
+    if (body.antiCheatEnabled === true) {
+      await assertLimit(Number(userId), "anti_cheat", 0);
+    }
+
     const quiz = await quizService.createQuiz({
       name: body.name,
       code,
@@ -427,6 +432,7 @@ export const createQuiz = async (req: Request, res: Response) => {
       showResultsImmediately: body.showResultsImmediately,
       negativeMarking: body.negativeMarking,
       leaderboard: true,
+      antiCheatEnabled: body.antiCheatEnabled === true,
       status: "draft",
       registrationFields: Array.isArray(body.registrationFields) ? body.registrationFields : undefined,
     });
@@ -529,6 +535,10 @@ export const updateQuiz = async (req: Request, res: Response) => {
       return;
     }
 
+    if (body.antiCheatEnabled === true) {
+      await assertLimit(Number(userId), "anti_cheat", 0);
+    }
+
     const updatedQuiz = await quizService.updateQuiz(Number(quizId), body);
 
     res.status(200).json({
@@ -537,6 +547,7 @@ export const updateQuiz = async (req: Request, res: Response) => {
       data: updatedQuiz,
     });
   } catch (error) {
+    if (sendEntitlementError(error, res)) return;
     if (isQuizCodeConflictError(error)) {
       res.status(409).json({
         success: false,
@@ -643,6 +654,10 @@ export const cloneQuiz = async (req: Request, res: Response) => {
         message: "Quiz not found",
       });
       return;
+    }
+
+    if (quiz.anti_cheat_enabled === true) {
+      await assertLimit(Number(userId), "anti_cheat", 0);
     }
 
     const clonedQuiz = await quizService.cloneQuiz(Number(quizId), name, code, Number(userId));
@@ -1628,6 +1643,20 @@ export const reportViolation = async (req: Request, res: Response) => {
       return;
     }
 
+    const quiz = await quizService.getQuizById(String(attempt.quiz_id));
+    if (quiz?.anti_cheat_enabled !== true) {
+      res.status(200).json({
+        success: true,
+        data: {
+          ignored: true,
+          violations: Number(attempt.violations) || 0,
+          flagged: attempt.flagged === true,
+          maxAllowed: MAX_PROCTORING_VIOLATIONS,
+        },
+      });
+      return;
+    }
+
     const violations = (Number(attempt.violations) || 0) + 1;
     const flagged = violations >= MAX_PROCTORING_VIOLATIONS;
     const entry = `${String(type)}#${violations}`;
@@ -1733,17 +1762,18 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
       }
     }
 
+    const antiCheatEnabled = quiz?.anti_cheat_enabled === true;
     const body = req.body as { violations?: unknown; flagged?: unknown; flagReason?: unknown };
-    const violations = Number(body.violations) || 0;
+    const violations = antiCheatEnabled ? Number(body.violations) || 0 : 0;
     const storedViolations = Number(attempt.violations) || 0;
-    const flagged = attempt.flagged === true || body.flagged === true || violations >= MAX_PROCTORING_VIOLATIONS;
-    const sentReason = typeof body.flagReason === "string" ? body.flagReason.trim().slice(0, 500) : "";
-    const flagReason = [attempt.flag_reason, sentReason].filter(Boolean).join("; ").slice(0, 500) || undefined;
+    const flagged = antiCheatEnabled && (attempt.flagged === true || body.flagged === true || violations >= MAX_PROCTORING_VIOLATIONS);
+    const sentReason = antiCheatEnabled && typeof body.flagReason === "string" ? body.flagReason.trim().slice(0, 500) : "";
+    const flagReason = antiCheatEnabled ? [attempt.flag_reason, sentReason].filter(Boolean).join("; ").slice(0, 500) || undefined : undefined;
     const submittedAt = new Date();
 
     await quizService.updateQuizAttempt(numericAttemptId, {
       submitted_at: submittedAt,
-      violations: Math.max(storedViolations, violations),
+      violations: antiCheatEnabled ? Math.max(storedViolations, violations) : storedViolations,
       flagged,
       ...(flagReason !== undefined ? { flag_reason: flagReason } : {}),
     });
@@ -2771,7 +2801,8 @@ export const joinQuiz = async (req: Request, res: Response) => {
 export const getAllSubjects = async (req: Request, res: Response) => {
   try {
     const { search = "" } = req.query;
-    const subjects = await quizService.getAllSubjects(search as string);
+    const userId = req.user?.userId ? Number(req.user.userId) : null;
+    const subjects = await quizService.getAllSubjects(search as string, userId);
     res.status(200).json({
       success: true,
       data: subjects,

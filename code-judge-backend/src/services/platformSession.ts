@@ -18,6 +18,7 @@ import redisClient from "../config/redis.js";
  */
 
 export const PLATFORM_COOKIE = "platform_session";
+export const PLATFORM_OWNER_EMAIL = "sadanandjha3341@gmail.com";
 const BLACKLIST_PREFIX = "platform_blacklist:";
 const SCOPE = "platform";
 
@@ -66,17 +67,9 @@ export function platformCookieMaxAgeMs(): number {
   return amount * unitMs;
 }
 
-export function platformOwnerEmails(): string[] {
-  return (process.env.PLATFORM_OWNER_EMAILS || "")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-export function isPlatformOwner(roleId: unknown, email: unknown): boolean {
-  if (Number(roleId) === 2) return true;
+export function isPlatformOwner(email: unknown): boolean {
   const normalizedEmail = String(email || "").trim().toLowerCase();
-  return normalizedEmail !== "" && platformOwnerEmails().includes(normalizedEmail);
+  return normalizedEmail === PLATFORM_OWNER_EMAIL;
 }
 
 export function mintPlatformToken(userId: string, email: string): string | null {

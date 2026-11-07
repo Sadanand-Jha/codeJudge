@@ -459,7 +459,7 @@ export async function listUserQuestionBank(userId: number): Promise<UserBankQues
   await releaseExpiredBankOwnership();
   const result = await pool.query(
     `SELECT b.id, b.quiz_id,
-            b.subject_id, s.subject_name AS subject,
+            b.subject_id, COALESCE(s.name, s.subject_name) AS subject,
             b.chapter_id, sc.chapter_name AS chapter,
             b.topic_id, ct.topic_name AS topic,
             b.question_type, b.question_text, b.question_html,
@@ -586,6 +586,7 @@ export const generateFromQuestionBank = async (
     subjectId,
     chapterIds,
     topicIds,
+    userId: request.createdBy ?? null,
   });
   const scopeFallback: QuestionScopeFallback = { chapterId, topicId };
   const subjectName = scopeCatalog.subjectName;

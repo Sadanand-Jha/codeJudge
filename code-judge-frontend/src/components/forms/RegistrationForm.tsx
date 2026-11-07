@@ -434,7 +434,11 @@ export default function RegistrationForm({
           setProfileStep(1);
           if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
           router.push(
-            nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : "/login"
+            nextPath
+              ? `/login?next=${encodeURIComponent(nextPath)}`
+              : accountType === "teacher"
+                ? "/creator/syllabus?onboarding=1"
+                : "/login"
           );
         } else {
           const message = res.message || "Registration failed";

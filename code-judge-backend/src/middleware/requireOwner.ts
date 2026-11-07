@@ -12,12 +12,12 @@ import {
  *
  * Accepts ONLY the dedicated platform token (`platform_session` cookie or
  * Bearer), minted exclusively by POST /api/auth/owner/verify-otp after the
- * owner password + OTP have both been verified. Regular user sessions
- * (`session_token`, password login) are rejected here — even for admins — so
+ * configured owner's password + OTP have both been verified. Regular user
+ * sessions (`session_token`, password login) are rejected here — even for admins — so
  * the platform gate cannot be opened by a password or OTP alone.
  *
  * Ownership is then re-checked against the database on every request:
- * users.role_id = 2 (admin), or email in PLATFORM_OWNER_EMAILS.
+ * only the configured owner email is authorized, regardless of role.
  * Never rely on client-side checks alone.
  */
 
@@ -46,27 +46,26 @@ export const requireOwner = async (req: Request, res: Response, next: NextFuncti
       return;
     }
 
+    if (!isPlatformOwner(claims.email)) {
+      res.status(403).json({ success: false, message: "Forbidden: owner access required", statusCode: 403 });
+      return;
+    }
+
     req.user = { userId: claims.userId, email: claims.email };
 
-    // Ownership check: role-based (role_id = 2) or explicit allowlist.
-    let roleId: number | null = null;
     let dbEmail: string | null = null;
     try {
       const r = await withTransientDatabaseRetry(() => pool.query(
-        `SELECT u.email AS email, u.role_id AS role_id
+        `SELECT u.email AS email
          FROM users u WHERE u.id = $1 LIMIT 1`,
         [claims.userId]
       ));
-      roleId = r.rows[0]?.role_id ?? null;
       dbEmail = r.rows[0]?.email ?? null;
     } catch (error) {
-      // The dedicated token can only be minted after OTP verification and a
-      // successful owner-role lookup. If Postgres is briefly saturated, trust
-      // that signed, scoped and non-revoked token for the remainder of this
-      // request instead of locking the owner out at the gate. Non-transient
-      // authorization failures still fail closed.
+      // The token email is already restricted to the configured owner. During
+      // a transient database outage, keep that verified owner session usable.
       if (isTransientDatabaseError(error)) {
-        console.warn("Owner role re-check temporarily unavailable; using verified platform session.");
+        console.warn("Owner email re-check temporarily unavailable; using verified platform session.");
         next();
         return;
       }
@@ -74,8 +73,7 @@ export const requireOwner = async (req: Request, res: Response, next: NextFuncti
       return;
     }
 
-    const email = (dbEmail || claims.email || "").toLowerCase();
-    if (!isPlatformOwner(roleId, email)) {
+    if (!isPlatformOwner(dbEmail)) {
       res.status(403).json({ success: false, message: "Forbidden: owner access required", statusCode: 403 });
       return;
     }

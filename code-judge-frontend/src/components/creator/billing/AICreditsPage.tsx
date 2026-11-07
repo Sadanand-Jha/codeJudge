@@ -180,7 +180,7 @@ export function AICreditsPage({
               className="inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
             >
               <CalendarClock className="h-4 w-4" />
-              Monthly plans
+              Plans
             </Link>
             <Link
               href="/creator/billing/transactions"

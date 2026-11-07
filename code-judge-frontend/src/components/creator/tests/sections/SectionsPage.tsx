@@ -31,6 +31,7 @@ import {
 } from "./types";
 import { DEFAULT_PAPER_HEADER, parseTimeAllowedMinutes, type PaperHeaderMeta } from "@/utils/paperHeader";
 import { saveTestRecord } from "@/utils/savedTests";
+import { createPaperPreviewDataUrl } from "@/utils/questionSetExport";
 import type { QuestionPaper } from "./paperTypes";
 
 const STEPS = [
@@ -81,23 +82,37 @@ export function SectionsPage() {
   );
 
   const handlePaperReady = useCallback((paper: QuestionPaper) => {
-    void saveTestRecord({
-      draftId,
-      title: paper.title.trim() || paperTitle.trim() || "Untitled test",
-      creationType: "test",
-      duration: paper.durationMinutes ?? durationForAi,
-      subjects: paperHeader.subject.trim() ? [paperHeader.subject.trim()] : [],
-      sectionsCount: paper.sections.length,
-      totalQuestions: paper.totalQuestions,
-      totalMarks: paper.totalMarks,
-      meta: { ...paperHeader, heading: paper.title.trim() || paperTitle.trim() || "Question Paper" },
-      paper,
-    })
-      .then(() => toast.success({ title: "Paper saved", description: "Find it under Tests in your account." }))
-      .catch((error) => toast.error({
-        title: "Paper not saved",
-        description: error instanceof Error ? error.message : "Could not save the paper to your account.",
-      }));
+    void (async () => {
+      const meta = { ...paperHeader, heading: paper.title.trim() || paperTitle.trim() || "Question Paper" };
+      let previewDataUrl: string | null = null;
+      try {
+        previewDataUrl = await createPaperPreviewDataUrl({ paper, header: meta });
+      } catch (error) {
+        console.error("Could not generate the saved paper thumbnail.", error);
+      }
+
+      try {
+        await saveTestRecord({
+          draftId,
+          title: paper.title.trim() || paperTitle.trim() || "Untitled test",
+          creationType: "test",
+          duration: paper.durationMinutes ?? durationForAi,
+          subjects: paperHeader.subject.trim() ? [paperHeader.subject.trim()] : [],
+          sectionsCount: paper.sections.length,
+          totalQuestions: paper.totalQuestions,
+          totalMarks: paper.totalMarks,
+          meta,
+          paper,
+          previewDataUrl,
+        });
+        toast.success({ title: "Paper saved", description: "Find it under Tests in your account." });
+      } catch (error) {
+        toast.error({
+          title: "Paper not saved",
+          description: error instanceof Error ? error.message : "Could not save the paper to your account.",
+        });
+      }
+    })();
   }, [draftId, paperTitle, paperHeader, durationForAi, toast]);
 
   const updateSection = useCallback((id: string, patch: Partial<Section>) => {
@@ -186,7 +201,7 @@ export function SectionsPage() {
             Step {activeStep + 1} of {STEPS.length} · {STEPS[activeStep]?.label}
           </p>
           <h1 className="mt-2 text-[22px] font-black tracking-tight text-[var(--qs-ink)] sm:text-2xl">
-            Create Test
+            Create Paper
           </h1>
           <p className="mt-1 text-[13px] font-medium text-[var(--qs-muted)]">
             Build and structure your question paper with sections.

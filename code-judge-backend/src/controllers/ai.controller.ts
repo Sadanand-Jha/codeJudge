@@ -298,6 +298,7 @@ export const generateQuestionsFromUpload = async (req: Request, res: Response) =
       subjectId,
       chapterId,
       topicId,
+      userId: Number(userId),
     };
 
     if (wantsStream) {

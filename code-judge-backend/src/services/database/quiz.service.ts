@@ -97,6 +97,7 @@ export class QuizService {
     showResultsImmediately?: boolean;
     negativeMarking?: boolean;
     leaderboard?: boolean;
+    antiCheatEnabled?: boolean;
     status?: string;
     registrationFields?: string[];
   }): Promise<any> {
@@ -282,8 +283,8 @@ export class QuizService {
     return this.repository.getQuestionWiseReview(attemptId, userId);
   }
 
-  async getAllSubjects(search?: string): Promise<any[]> {
-    return this.repository.getAllSubjects(search);
+  async getAllSubjects(search?: string, userId?: number | null): Promise<any[]> {
+    return this.repository.getAllSubjects(search, userId);
   }
 
   async getAllExamCategories(search?: string): Promise<any[]> {

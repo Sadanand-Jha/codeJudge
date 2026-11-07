@@ -1,210 +1,195 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import QuizCodeForm from "@/components/marketing/QuizCodeForm";
-import SampleQuizDemo, {
-  type SampleQuizQuestion,
-} from "@/components/marketing/SampleQuizDemo";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { ArrowDown, ArrowRight, Check, Sparkles } from "lucide-react";
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import type { CSSProperties } from "react";
+import LandingIllustration from "./LandingIllustration";
+import LandingStudentDemoLink from "./LandingStudentDemoLink";
 
-interface Track {
-  pill: string;
-  label: string;
-  questions: SampleQuizQuestion[];
-}
+const DEMO_QUESTIONS = [
+  "What force pulls objects toward Earth?",
+  "How does friction affect a moving object?",
+  "Which unit measures force?",
+  "What happens when balanced forces act?",
+];
 
-const TRACKS: Record<string, Track> = {
-  default: {
-    pill: "Featured sample",
-    label: "General knowledge",
-    questions: [
-      {
-        q: "Which gas do plants take in for photosynthesis?",
-        o: ["Oxygen", "Carbon dioxide", "Nitrogen", "Hydrogen"],
-        a: 1,
-      },
-      {
-        q: "What is the SI unit of force?",
-        o: ["Joule", "Watt", "Newton", "Pascal"],
-        a: 2,
-      },
-      {
-        q: "Who chaired the drafting committee of the Indian Constitution?",
-        o: ["Jawaharlal Nehru", "Sardar Patel", "Rajendra Prasad", "Dr. B. R. Ambedkar"],
-        a: 3,
-      },
-    ],
-  },
-  JEE: {
-    pill: "JEE Main & Adv",
-    label: "JEE Main track",
-    questions: [
-      {
-        q: "A projectile has maximum horizontal range when launched at what angle to the horizontal?",
-        o: ["30°", "45°", "60°", "75°"],
-        a: 1,
-      },
-      {
-        q: "What is the hybridization of carbon atoms in benzene (C₆H₆)?",
-        o: ["sp", "sp²", "sp³", "dsp²"],
-        a: 1,
-      },
-      {
-        q: "What is the derivative of ln(sin x) with respect to x?",
-        o: ["tan x", "cot x", "sec x", "-csc x"],
-        a: 1,
-      },
-    ],
-  },
-  NEET: {
-    pill: "NEET UG",
-    label: "NEET UG track",
-    questions: [
-      {
-        q: "Which organelle is known as the powerhouse of the eukaryotic cell?",
-        o: ["Golgi apparatus", "Mitochondria", "Lysosome", "Endoplasmic reticulum"],
-        a: 1,
-      },
-      {
-        q: "Which gas do plants take in for photosynthesis?",
-        o: ["Oxygen", "Carbon dioxide", "Nitrogen", "Hydrogen"],
-        a: 1,
-      },
-      {
-        q: "Normal human blood pH is maintained within which narrow range?",
-        o: ["6.40 – 6.50", "7.00 – 7.10", "7.35 – 7.45", "8.10 – 8.20"],
-        a: 2,
-      },
-    ],
-  },
-  GATE: {
-    pill: "GATE CS",
-    label: "GATE CS track",
-    questions: [
-      {
-        q: "Which scheduling algorithm gives the minimum average waiting time for a given set of processes?",
-        o: ["FCFS", "Round Robin", "Shortest Job First", "Priority Scheduling"],
-        a: 2,
-      },
-      {
-        q: "A TLB hit ratio is 90%, TLB lookup takes 10 ns and memory access takes 100 ns. What is the effective access time?",
-        o: ["110 ns", "120 ns", "190 ns", "99 ns"],
-        a: 1,
-      },
-      {
-        q: "What is the worst-case time complexity of searching a key in a balanced AVL tree?",
-        o: ["O(1)", "O(log n)", "O(n)", "O(n log n)"],
-        a: 1,
-      },
-    ],
-  },
-  SSC: {
-    pill: "SSC CGL",
-    label: "SSC CGL track",
-    questions: [
-      {
-        q: "If the cost price of 15 articles equals the selling price of 12 articles, what is the profit percentage?",
-        o: ["20%", "25%", "15%", "30%"],
-        a: 1,
-      },
-      {
-        q: "What is the SI unit of force?",
-        o: ["Joule", "Watt", "Newton", "Pascal"],
-        a: 2,
-      },
-      {
-        q: "Which river is also known as Dakshin Ganga in Peninsular India?",
-        o: ["Krishna", "Godavari", "Kaveri", "Mahanadi"],
-        a: 1,
-      },
-    ],
-  },
-  UPSC: {
-    pill: "UPSC CSE",
-    label: "UPSC CSE track",
-    questions: [
-      {
-        q: "Who chaired the drafting committee of the Indian Constitution?",
-        o: ["Jawaharlal Nehru", "Sardar Patel", "Rajendra Prasad", "Dr. B. R. Ambedkar"],
-        a: 3,
-      },
-      {
-        q: "Which Constitutional Amendment added Fundamental Duties (Part IVA)?",
-        o: ["42nd Amendment, 1976", "44th Amendment, 1978", "73rd Amendment, 1992", "86th Amendment, 2002"],
-        a: 0,
-      },
-      {
-        q: "The Monetary Policy Committee of India is chaired ex-officio by whom?",
-        o: ["Union Finance Minister", "Governor of the RBI", "Chief Economic Adviser", "NITI Aayog Vice-Chairperson"],
-        a: 1,
-      },
-    ],
-  },
-  Banking: {
-    pill: "IBPS & Banking",
-    label: "IBPS & Banking track",
-    questions: [
-      {
-        q: 'What does the "U" stand for in the UPI payment system in India?',
-        o: ["Universal", "Unified", "Unique", "Utility"],
-        a: 1,
-      },
-      {
-        q: "At what rate does the RBI lend short-term funds to commercial banks against government securities?",
-        o: ["Reverse Repo Rate", "Repo Rate", "Cash Reserve Ratio", "Statutory Liquidity Ratio"],
-        a: 1,
-      },
-      {
-        q: "A sum doubles itself in 8 years at simple interest. What is the annual rate of interest?",
-        o: ["10%", "12.5%", "15%", "8.5%"],
-        a: 1,
-      },
-    ],
-  },
-};
+function LivePaperDemo({ reduceMotion }: { reduceMotion: boolean }) {
+  const demoRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [phase, setPhase] = useState(3);
 
-const TRACK_KEYS = Object.keys(TRACKS);
-const DEMO_CODE = "VQBAMIDJETTWEFRT";
+  useEffect(() => {
+    const handleAnimationToggle = (event: Event) => {
+      setIsPaused((event as CustomEvent<{ paused: boolean }>).detail.paused);
+    };
+    window.addEventListener("landing-animations-toggle", handleAnimationToggle);
+    return () => window.removeEventListener("landing-animations-toggle", handleAnimationToggle);
+  }, []);
 
-export default function LandingHero() {
-  const [activeTrack, setActiveTrack] = useState("default");
+  useEffect(() => {
+    const element = demoRef.current;
+    if (!element || reduceMotion) return;
+    if (typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsVisible(entry.isIntersecting),
+      { threshold: 0.15 }
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [reduceMotion]);
 
-  const sets = useMemo(() => {
-    const track = TRACKS[activeTrack] ?? TRACKS.default;
-    return [{ subject: track.label, questions: track.questions }];
-  }, [activeTrack]);
+  useEffect(() => {
+    if (!isVisible || isPaused || reduceMotion) return;
+    let timeout = 0;
+    const scheduleCycle = () => {
+      setPhase(0);
+      timeout = window.setTimeout(() => {
+        setPhase(1);
+        timeout = window.setTimeout(() => {
+          setPhase(2);
+          timeout = window.setTimeout(() => {
+            setPhase(3);
+            timeout = window.setTimeout(scheduleCycle, 2000);
+          }, 3500);
+        }, 1000);
+      }, 1500);
+    };
+    timeout = window.setTimeout(scheduleCycle, 0);
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [isVisible, isPaused, reduceMotion]);
 
   return (
-    <section className="wrap hero hero-compact" aria-labelledby="landing-hero-title">
-      <div>
-        <div className="hero-badge">
-          <strong>AI paper studio</strong>
-          <span>Create quizzes with AI · Share them with a code</span>
-        </div>
-        <h1 id="landing-hero-title">Pick a scope. The paper writes itself.</h1>
-        <p className="lead">
-          Turn any syllabus, chapter or topic into a print-ready exam paper in seconds. Send
-          students a single access code, and watch scores, ranks and question-level analytics
-          arrive live — no app installs.
-        </p>
-        <QuizCodeForm demoCode={DEMO_CODE} />
-        <div className="exam-tracks">
-          <span className="tracks-label">Ready-made scope &amp; practice tracks</span>
-          <div className="exam-pills" role="group" aria-label="Choose a sample quiz track">
-            {TRACK_KEYS.map((key) => (
-              <button
-                key={key}
-                type="button"
-                className="exam-pill"
-                aria-pressed={activeTrack === key}
-                onClick={() => setActiveTrack(key)}
-              >
-                {key === "default" ? `${TRACKS[key].pill} (3 Qs)` : TRACKS[key].pill}
-              </button>
-            ))}
-          </div>
-        </div>
+    <div
+      ref={demoRef}
+      className={`landing-live-demo${isVisible ? " is-playing" : ""}${reduceMotion ? " is-static" : ""}${phase > 0 ? ` phase-${phase}` : ""}`}
+      aria-label="Animated preview of a science paper being generated"
+    >
+      <div className="landing-demo-field">
+        <span>TOPIC</span>
+        <b>Class 9 · Science · Forces and motion</b>
+        <i aria-hidden="true" />
       </div>
-      <SampleQuizDemo key={activeTrack} sets={sets} timerSeconds={45} />
+      <div className="landing-demo-generate">
+        <Sparkles size={15} aria-hidden />
+        Generate paper
+      </div>
+      <div className="landing-demo-questions" aria-live="off">
+        {DEMO_QUESTIONS.map((question, index) => (
+          <div className="landing-demo-question" key={question} style={{ "--question-index": index } as CSSProperties}>
+            <span>{String(index + 1).padStart(2, "0")}</span>
+            <p>{question}</p>
+            <Check size={16} aria-hidden />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function LandingHero({
+  trialDays,
+  freePlanName,
+}: {
+  trialDays: number;
+  freePlanName: string;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll({
+    target: panelRef,
+    offset: ["start 90%", "end 10%"],
+  });
+  const scale = useTransform(scrollYProgress, [0, 0.46, 1], [1, 1.06, 1.15]);
+  const radius = useTransform(scrollYProgress, [0, 0.46, 1], ["32px", "14px", "0px"]);
+
+  return (
+    <section className="landing-hero" aria-labelledby="landing-title">
+      <div className="landing-hero-aurora" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+        <i />
+      </div>
+      <div className="landing-hero-copy">
+        <span className="landing-eyebrow">
+          <Sparkles size={15} aria-hidden />
+          A calmer way to run a classroom
+        </span>
+        <h1 id="landing-title">
+          From syllabus to <span className="landing-hero-gradient-word">classroom-ready</span> paper.
+        </h1>
+        <p>
+          Create a quiz by hand or let AI draft it. Share one code with your students, then
+          see how everyone did.
+        </p>
+        <div className="landing-hero-actions">
+          <Link className="landing-button landing-button-primary" href="/creator/quizzes/create">
+            Create your first paper
+            <ArrowRight size={17} aria-hidden />
+          </Link>
+          <LandingStudentDemoLink className="landing-button landing-button-outline">
+            Try the student demo
+            <ArrowDown size={16} aria-hidden />
+          </LandingStudentDemoLink>
+        </div>
+        <p className="landing-trial-note">
+          {trialDays > 0 ? (
+            <Link href="/start-free-trial">
+              A {trialDays}-day Basic trial is available
+            </Link>
+          ) : (
+            <Link href="/register">{freePlanName} is free to start</Link>
+          )}
+        </p>
+      </div>
+
+      <div
+        className="landing-hero-art-wrap"
+        onPointerMove={(event) => {
+          if (reduceMotion || event.pointerType !== "mouse") return;
+          const bounds = event.currentTarget.getBoundingClientRect();
+          event.currentTarget.style.setProperty("--pointer-x", `${(event.clientX - bounds.left) / bounds.width - 0.5}`);
+          event.currentTarget.style.setProperty("--pointer-y", `${(event.clientY - bounds.top) / bounds.height - 0.5}`);
+        }}
+        onPointerLeave={(event) => {
+          event.currentTarget.style.setProperty("--pointer-x", "0");
+          event.currentTarget.style.setProperty("--pointer-y", "0");
+        }}
+      >
+        <div className="landing-fan-card landing-fan-card-yellow" aria-hidden="true" />
+        <div className="landing-fan-card landing-fan-card-rose" aria-hidden="true" />
+        <motion.div
+          ref={panelRef}
+          className="landing-hero-panel"
+          style={reduceMotion ? undefined : { scale, borderRadius: radius }}
+        >
+          <div className="landing-panel-intro">
+            <span className="landing-panel-label">
+              <Sparkles size={14} aria-hidden />
+              AI paper studio
+            </span>
+            <h2>Your topic, turned into a paper.</h2>
+            <p>Choose a subject, set the scope, and review questions before you share.</p>
+          </div>
+          <div className="landing-screen-frame">
+            <div className="landing-screen-toolbar">
+              <span><i /> AI Studio</span>
+              <span>Draft paper</span>
+              <span>Review questions</span>
+            </div>
+            <LivePaperDemo reduceMotion={Boolean(reduceMotion)} />
+          </div>
+        </motion.div>
+        <LandingIllustration variant="hero" />
+      </div>
+      <p className="landing-hero-caption">
+        Start with a blank paper or give the AI your subject and syllabus.
+      </p>
     </section>
   );
 }

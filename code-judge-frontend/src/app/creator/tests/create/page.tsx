@@ -1,4 +1,10 @@
 import { CreateTestWizard, type CreationType } from "@/components/creator/tests/CreateTestWizard";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Create Paper — Creator Studio",
+  description: "Generate a print-ready question paper and save it to your account.",
+};
 
 export default async function CreateTestRoute({
   searchParams,

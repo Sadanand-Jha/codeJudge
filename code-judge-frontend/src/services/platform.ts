@@ -464,6 +464,27 @@ export interface PlatformPlanImpact {
   prices: PlatformPlanPrice[];
 }
 
+export interface CountryPricingConfig {
+  id: number;
+  countryCode: string | null;
+  currency: string;
+  amountMajor: number;
+  amountMinor: number;
+  minorUnitExponent: number;
+  version: number;
+  isFallback: boolean;
+  isActive: boolean;
+  isCurrent: boolean;
+}
+
+export interface CountryPricingRevenue {
+  countryCode: string | null;
+  currency: string;
+  orders: number;
+  revenueMinor: number;
+  subscriptions: number;
+}
+
 export interface EntitlementDefinition {
   key: string;
   label: string;
@@ -785,6 +806,21 @@ export const platformApi = {
   search: (q: string) => get<{ users: { id: number; username: string; email: string }[]; quizzes: { id: number; name: string; code: string }[]; attempts: { id: number; quiz_id: number; user_id: number; status: string; username: string | null }[] }>("/search", { q }),
   alerts: () => get<{ items: { severity: string; message: string; link: string }[] }>("/alerts"),
   subscriptionPlans: () => get<{ plans: PlatformPlan[] }>("/subscriptions/plans"),
+  countryPricing: () =>
+    get<{
+      prices: CountryPricingConfig[];
+      revenue: CountryPricingRevenue[];
+    }>("/subscriptions/country-pricing"),
+  updateCountryPricing: (
+    countryCode: string | "fallback",
+    payload: { currency: string; amountMajor: number; isActive: boolean }
+  ) =>
+    schedulePlatformRequest(async () => {
+      const response = await platformClient.put<{
+        price: CountryPricingConfig;
+      }>(`/v1/platform/subscriptions/country-pricing/${countryCode}`, payload);
+      return response.data;
+    }),
   trialRequests: (filters?: {
     status?: PlatformTrialRequestStatus;
     search?: string;

@@ -85,7 +85,7 @@ export function PricingPreview({
             {content.plans_banner && tab !== "packs" && (
               <p className="qp-pill mb-2 inline-flex">{content.plans_banner}</p>
             )}
-            <p className="eb">{tab === "packs" ? "Credit packs" : "Monthly plans"}</p>
+            <p className="eb">{tab === "packs" ? "Credit packs" : "Plans"}</p>
             <h1>{heading}</h1>
             <p className="lead">{subheading}</p>
           </div>
@@ -112,9 +112,9 @@ export function PricingPreview({
                         {plan.offer && <p className="qp-offer">{plan.offer}</p>}
                         <p className="qp-plan-desc">{plan.tagline}</p>
                         <div className="qp-price">
-                          <b>{inr(plan.price)}</b>
+                          <b>{plan.price === 0 ? "Free" : inr(plan.price)}</b>
                           {plan.originalPrice && plan.originalPrice > plan.price && <s>{inr(plan.originalPrice)}</s>}
-                          <span>/ month</span>
+                          <span>{plan.price === 0 ? "forever" : "/ month"}</span>
                         </div>
                         <p className={`qp-plan-credits${plan.credits === 0 ? " is-muted" : ""}`}>
                           <Sparkles size={13} aria-hidden="true" />

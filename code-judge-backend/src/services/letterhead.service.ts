@@ -10,6 +10,11 @@ import {
   normalizeHeaderConfig,
   sanitizeLetterheadName,
 } from "../utils/letterheadConfig.ts";
+import {
+  assertStorageCapacity,
+  lockTeacherStorage,
+  StorageLimitExceededError,
+} from "./storageQuota.service.ts";
 
 export type LetterheadFormat = "pdf" | "png" | "jpg" | "jpeg";
 
@@ -195,6 +200,7 @@ export async function getLetterheadUsage(userId: number | string) {
 }
 
 export async function assertCanCreateLetterhead(userId: number | string): Promise<void> {
+  await assertStorageCapacity(Number(userId), 0);
   const usage = await getLetterheadUsage(userId);
   if (usage.count >= usage.max) {
     throw new LetterheadError(
@@ -342,7 +348,7 @@ export async function createLetterhead(
   const client: PoolClient = await pool.connect();
   try {
     await client.query("BEGIN");
-    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`letterheads:${id}`]);
+    await lockTeacherStorage(client, id);
     const usage = await client.query<{ count: number }>(
       "SELECT COUNT(*)::int AS count FROM letterhead_templates WHERE user_id = $1",
       [id]
@@ -356,6 +362,7 @@ export async function createLetterhead(
         `You can save up to ${max} letterheads. Delete one to add another.`
       );
     }
+    await assertStorageCapacity(id, bytes, client);
 
     const insert = await client.query<LetterheadRow>(
       `INSERT INTO letterhead_templates (
@@ -381,7 +388,19 @@ export async function createLetterhead(
     await client.query("COMMIT");
     return serializeLetterhead(insert.rows[0], false);
   } catch (error) {
-    await client.query("ROLLBACK").catch(() => {});
+    try {
+      await client.query("ROLLBACK");
+    } catch (rollbackError) {
+      console.error("Letterhead transaction rollback failed:", rollbackError);
+    }
+    if (error instanceof StorageLimitExceededError) {
+      try {
+        await cloudinary.uploader.destroy(publicId, { resource_type: "image", invalidate: true });
+      } catch (cleanupError) {
+        console.error("Rejected over-quota letterhead cleanup failed:", cleanupError);
+      }
+      throw new LetterheadError(403, "STORAGE_LIMIT_REACHED", error.message, error.upgradeUrl);
+    }
     if ((error as { code?: string }).code === "23505") {
       throw new LetterheadError(409, "DUPLICATE_LETTERHEAD", "That header is already saved.");
     }
