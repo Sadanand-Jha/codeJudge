@@ -9,14 +9,6 @@ import {
 } from "../services/countryPricing.service.ts";
 
 assert.deepEqual(
-  choosePricingCountry({
-    billingCountry: "GB",
-    ipCountry: "IN",
-    mobileCountry: "US",
-  }),
-  { countryCode: "GB", source: "subscription" }
-);
-assert.deepEqual(
   choosePricingCountry({ ipCountry: "US", mobileCountry: "IN" }),
   { countryCode: "US", source: "ip" }
 );

@@ -17,6 +17,7 @@ export type EntitlementCategory =
   | "pdf"
   | "branding"
   | "ai"
+  | "email"
   | "storage"
   | "team"
   | "security";
@@ -129,6 +130,14 @@ export const ENTITLEMENT_REGISTRY: EntitlementDefinition[] = [
     type: "boolean",
     category: "ai",
     default: true,
+  },
+  {
+    key: "email_responses",
+    label: "Email response reports",
+    description: "Email the Excel response report to the quiz creator, including the automatic report when a quiz ends.",
+    type: "boolean",
+    category: "email",
+    default: false,
   },
   {
     key: "storage_mb",

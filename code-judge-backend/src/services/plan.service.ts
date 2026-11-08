@@ -258,6 +258,10 @@ export class PlanService {
   ): Promise<PlanDetailRow> {
     const before = await this.getPlan(planId);
 
+    if (before.is_default_free) {
+      input = { ...input, is_public: true };
+    }
+
     if (input.name !== undefined) {
       const trimmedName = input.name.trim();
       const existingName = await planRepository.getPlanByName(trimmedName);
@@ -528,6 +532,7 @@ export class PlanService {
     const entitlements = input.entitlements ? validateEntitlements(input.entitlements) : undefined;
     const payload = {
       ...input,
+      ...(plan.is_default_free ? { is_public: true } : {}),
       ...(entitlements ? { entitlements } : {}),
       discount_badge:
         input.discount_badge !== undefined ? input.discount_badge?.trim() || null : plan.discount_badge,

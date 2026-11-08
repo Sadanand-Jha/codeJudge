@@ -130,7 +130,7 @@ export class PricingService {
            WHERE plan_id = p.id
          ) e ON TRUE
          WHERE p.status = 'active'
-           AND p.is_public = TRUE
+           AND (p.is_public = TRUE OR p.is_default_free = TRUE)
          ORDER BY p.sort_order ASC, p.id ASC`
       ),
       pool.query(
@@ -170,7 +170,7 @@ export class PricingService {
         };
       });
       const monthlyPrices = prices.filter((price) => price.billingPeriod === "monthly");
-      const regionalElevate = String(row.slug) === "pro";
+      const regionalElevate = ["pro", "elevate"].includes(String(row.slug));
       if (regionalElevate && monthlyPrices.length > 0) {
         monthlyPrices[0] = {
           ...monthlyPrices[0],

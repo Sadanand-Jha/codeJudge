@@ -293,7 +293,7 @@ export function MyHeadersPage() {
           <button
             type="button"
             onClick={() => showCustomHeaderUpgrade()}
-            className="b sm shrink-0 gap-1.5 border-[#1a1240] bg-[#fccf0a] text-[#1a1240]"
+            className="b sm shrink-0 gap-1.5 border-[#1a1240] bg-[#fccf0a] text-white"
           >
             <Crown className="h-4 w-4" />
             Upgrade to Pro

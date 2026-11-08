@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
 import LandingHero from "@/components/marketing/landing/LandingHero";
 import LandingPricing from "@/components/marketing/landing/LandingPricing";
@@ -79,7 +78,7 @@ export default async function HomePage() {
       <LpHeader />
       <main>
         <div className="landing-page-wrap">
-          <LandingHero trialDays={trialDays} freePlanName={freePlan?.name ?? "Essential"} />
+          <LandingHero trialDays={trialDays} />
           <LandingProductShowcase />
           <LandingRoomsPromo />
           <LandingWorkflow />
@@ -130,11 +129,6 @@ export default async function HomePage() {
         </div>
       </footer>
 
-      <div className="landing-sticky-cta">
-        <Link href="/creator/quizzes/create">
-          Create your first paper <ArrowRight size={17} aria-hidden />
-        </Link>
-      </div>
       <LandingReveal />
     </LandingPageShell>
   );

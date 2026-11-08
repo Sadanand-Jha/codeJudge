@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
-import ThemeToggle from "@/components/ui/ThemeToggle";
 
 const LINKS = [
   { label: "Features", href: "#features" },
@@ -13,8 +12,11 @@ const LINKS = [
   { label: "FAQ", href: "#faq" },
 ];
 
-export default function LpHeader() {
+export type LpHeaderLink = { label: string; href: string };
+
+export default function LpHeader({ links = LINKS }: { links?: LpHeaderLink[] }) {
   const [open, setOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -23,21 +25,29 @@ export default function LpHeader() {
     return () => window.removeEventListener("resize", close);
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!headerRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
+  }, [open]);
+
   return (
-    <header className="lpx-header">
+    <header ref={headerRef} className="lpx-header">
       <div className="lpx-wrap lpx-nav">
         <Link href="/" className="lpx-logo" aria-label="QuizSupport home">
           <SecureLogo size={38} variant="full" rounded={false} />
         </Link>
         <nav className="lpx-links landing-nav-pill" aria-label="Primary">
-          {LINKS.map((link) => (
+          {links.map((link) => (
             <a key={link.href} href={link.href}>
               {link.label}
             </a>
           ))}
         </nav>
         <div className="lpx-nav-actions">
-          <ThemeToggle variant="icon" />
           <Link href="/login" className="landing-nav-login">
             Log in
           </Link>
@@ -59,7 +69,7 @@ export default function LpHeader() {
       </div>
       {open && (
         <div className="lpx-mobile" id="landing-mobile-menu">
-          {LINKS.map((link) => (
+          {links.map((link) => (
             <a key={link.href} href={link.href} onClick={() => setOpen(false)}>
               {link.label}
             </a>

@@ -4,7 +4,7 @@ import type { Request } from "express";
 import { isRazorpayConfigured } from "../config/razorpay.ts";
 import * as countryPricingRepository from "../repositories/countryPricing.repository.ts";
 
-type CountrySignal = "subscription" | "payment" | "ip" | "mobile" | "fallback";
+type CountrySignal = "ip" | "mobile" | "default" | "fallback";
 
 export interface CountryPricingSelection {
   countryCode: string | null;
@@ -170,12 +170,9 @@ export function countryFromMobile(mobile: string | null): string | null {
 }
 
 export function choosePricingCountry(input: {
-  billingCountry?: string | null;
   ipCountry?: string | null;
   mobileCountry?: string | null;
 }): { countryCode: string | null; source: CountrySignal } {
-  const billingCountry = normalizeCountry(input.billingCountry);
-  if (billingCountry) return { countryCode: billingCountry, source: "subscription" };
   const ipCountry = normalizeCountry(input.ipCountry);
   if (ipCountry) return { countryCode: ipCountry, source: "ip" };
   const mobileCountry = normalizeCountry(input.mobileCountry);
@@ -210,25 +207,6 @@ export async function resolveCountryPricing(
   userId: string | null,
   request?: Request
 ): Promise<CountryPricingSelection> {
-  const billing = userId
-    ? await countryPricingRepository.findVerifiedBillingPrice(userId)
-    : null;
-  if (billing) {
-    return {
-      countryCode: billing.countryCode,
-      countryName: displayCountry(billing.countryCode),
-      currency: billing.currency,
-      amount: billing.amountMinor / 10 ** billing.minorUnitExponent,
-      amountMinor: billing.amountMinor,
-      minorUnitExponent: billing.minorUnitExponent,
-      version: billing.version,
-      configId: billing.id,
-      isFallback: false,
-      checkoutAvailable: isRazorpayCurrencySupported(billing.currency),
-      source: billing.source,
-    };
-  }
-
   const ipCountry =
     (request ? countryFromTrustedProxy(request) : null) ??
     (request ? countryFromSignedFrontend(request) : null);
@@ -236,8 +214,15 @@ export async function resolveCountryPricing(
     ? countryFromMobile(await countryPricingRepository.findUserMobile(userId))
     : null;
   const detected = choosePricingCountry({ ipCountry, mobileCountry });
-  const detectedCountry = detected.countryCode;
-  const detectedSource = detected.source;
+  const defaultCountry = detected.countryCode
+    ? null
+    : normalizeCountry(process.env.PRICING_DEFAULT_COUNTRY);
+  const detectedCountry = detected.countryCode ?? defaultCountry;
+  const detectedSource = detected.countryCode
+    ? detected.source
+    : defaultCountry
+      ? "default"
+      : detected.source;
   const regionalPrice = detectedCountry
     ? await countryPricingRepository.findCurrentPrice(detectedCountry)
     : null;

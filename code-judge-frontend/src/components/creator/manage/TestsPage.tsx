@@ -15,8 +15,13 @@ import {
   type SavedTestSummary,
 } from "@/utils/savedTests";
 import { createPaperPreviewDataUrl, downloadPaperPdf } from "@/utils/questionSetExport";
+import { PaperExportDialog } from "@/components/creator/common/PaperExportDialog";
+import type { PaperHeaderMeta } from "@/utils/paperHeader";
 import { useLetterheadChoice } from "@/hooks/useLetterheadChoice";
 import { SavedTestEditDialog } from "./SavedTestEditDialog";
+
+const PAPER_GRID =
+  "grid min-w-0 grid-cols-2 justify-start gap-x-3 gap-y-4 sm:gap-x-5 sm:[grid-template-columns:repeat(auto-fill,minmax(190px,220px))]";
 
 const formatCreatedAt = (value: string) => {
   const date = new Date(value);
@@ -108,12 +113,26 @@ function SavedPaperPreview({
           </div>
         </div>
       )}
-      <span className="absolute right-2 top-2 rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em] text-[#1a1240]">
+      <button
+        type="button"
+        onClick={onDownload}
+        disabled={downloading}
+        className="absolute inset-0 z-[1] rounded-[12px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--qs-brand)] disabled:cursor-wait"
+        aria-label={`Open download options for ${test.title}`}
+      />
+      <span className="pointer-events-none absolute right-2 top-2 z-[2] rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em] text-[#1a1240]">
         Saved
       </span>
-      <div className="absolute inset-x-0 bottom-0 flex translate-y-2 flex-col items-center gap-2 bg-gradient-to-t from-[#1a1240]/90 via-[#1a1240]/65 to-transparent px-3 pb-3 pt-12 opacity-0 transition-all group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
-        <p className="w-full truncate text-center text-xs font-extrabold text-white" title={test.title}>
+      <div className="absolute inset-x-0 bottom-0 z-[2] flex translate-y-0 flex-col items-center gap-2 bg-gradient-to-t from-[#1a1240]/90 via-[#1a1240]/65 to-transparent px-3 pb-3 pt-12 opacity-100 transition-all sm:translate-y-2 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100 sm:group-focus-within:translate-y-0 sm:group-focus-within:opacity-100">
+        <p className="w-full truncate text-center text-xs font-extrabold text-[#fff]" title={test.title}>
           {test.title}
+        </p>
+        <p className="flex min-w-0 items-center gap-1 text-[10px] font-semibold text-white/75">
+          <CalendarDays className="h-3 w-3 shrink-0" />
+          <span className="truncate">{formatCreatedAt(test.createdAt)}</span>
+        </p>
+        <p className="truncate text-[10px] font-semibold text-white/75">
+          {test.totalQuestions} Qs · {test.totalMarks} marks · {test.duration} min
         </p>
         <div className="flex items-center justify-center gap-2">
           <button
@@ -170,6 +189,8 @@ export function TestsPage() {
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [editingTest, setEditingTest] = useState<SavedTestSummary | null>(null);
+  const [exportTest, setExportTest] = useState<SavedTestSummary | null>(null);
+  const [exportMeta, setExportMeta] = useState<PaperHeaderMeta | null>(null);
   const { chooseHeader, dialog: headerChoiceDialog } = useLetterheadChoice();
 
   const loadTests = useCallback(async () => {
@@ -225,8 +246,19 @@ export function TestsPage() {
     setTests((current) => current.map((item) => (item.id === updated.id ? updated : item)));
   }, []);
 
+  const openDownload = useCallback((test: SavedTestSummary) => {
+    setExportTest(test);
+    setExportMeta({ ...test.meta, heading: test.meta.heading || test.title });
+  }, []);
+
+  const closeDownload = useCallback(() => {
+    if (downloadingId !== null) return;
+    setExportTest(null);
+    setExportMeta(null);
+  }, [downloadingId]);
+
   const handleDownload = useCallback(
-    async (test: SavedTestSummary) => {
+    async (test: SavedTestSummary, meta: PaperHeaderMeta) => {
       setDownloadingId(test.id);
       try {
         const saved = await getSavedTest(test.id);
@@ -238,9 +270,11 @@ export function TestsPage() {
         if (choice.status === "cancelled") return;
         await downloadPaperPdf({
           paper: saved.paper,
-          header: { ...saved.meta, heading: saved.meta.heading || saved.title },
+          header: { ...meta, heading: meta.heading || saved.title },
           letterhead: choice.placement,
         });
+        setExportTest(null);
+        setExportMeta(null);
         toast.success({ title: "PDF downloaded", description: `"${saved.title}" saved as a print-ready paper.` });
       } catch (error) {
         toast.error({
@@ -265,8 +299,7 @@ export function TestsPage() {
 
       {loading ? (
         <div
-          className="grid min-w-0 justify-start gap-x-5 gap-y-4"
-          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 190px), 220px))" }}
+          className={PAPER_GRID}
           aria-label="Loading saved papers"
         >
           <NewTestCard />
@@ -287,50 +320,36 @@ export function TestsPage() {
             </button>
           </div>
           <div
-            className="grid min-w-0 justify-start gap-x-5 gap-y-4"
-            style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 190px), 220px))" }}
+            className={PAPER_GRID}
           >
             <NewTestCard />
           </div>
         </div>
       ) : tests.length === 0 ? (
         <div
-          className="grid min-w-0 justify-start gap-x-5 gap-y-4"
-          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 190px), 220px))" }}
+          className={PAPER_GRID}
         >
           <NewTestCard />
         </div>
       ) : (
         <div
-          className="grid min-w-0 justify-start gap-x-5 gap-y-4"
-          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 190px), 220px))" }}
+          className={PAPER_GRID}
         >
           <NewTestCard />
           {tests.map((test) => (
             <article
               key={`${test.id}-${test.updatedAt}`}
-              className="flex min-w-0 max-w-[220px] flex-col gap-2"
+              className="min-w-0 max-w-[220px]"
+              aria-label={test.title}
             >
               <SavedPaperPreview
                 test={test}
-                onDownload={() => void handleDownload(test)}
+                onDownload={() => openDownload(test)}
                 onEdit={() => setEditingTest(test)}
                 onDelete={() => void handleDelete(test)}
                 downloading={downloadingId === test.id}
                 deleting={deletingId === test.id}
               />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-extrabold leading-5 text-[var(--qs-ink)]" title={test.title}>
-                  {test.title}
-                </p>
-                <p className="mt-0.5 flex min-w-0 items-center gap-1 text-[11px] font-semibold text-[var(--qs-muted)]">
-                  <CalendarDays className="h-3 w-3 shrink-0" />
-                  <span className="truncate">{formatCreatedAt(test.createdAt)}</span>
-                </p>
-                <p className="mt-0.5 truncate text-[11px] font-semibold text-[var(--qs-muted)]">
-                  {test.totalQuestions} Qs · {test.totalMarks} marks · {test.duration} min
-                </p>
-              </div>
             </article>
           ))}
         </div>
@@ -342,6 +361,18 @@ export function TestsPage() {
           test={editingTest}
           onClose={() => setEditingTest(null)}
           onSaved={handleSaved}
+        />
+      )}
+
+      {exportTest && exportMeta && (
+        <PaperExportDialog
+          open
+          onClose={closeDownload}
+          meta={exportMeta}
+          onChange={setExportMeta}
+          onDownload={() => void handleDownload(exportTest, exportMeta)}
+          downloading={downloadingId === exportTest.id}
+          questionCount={exportTest.totalQuestions}
         />
       )}
 

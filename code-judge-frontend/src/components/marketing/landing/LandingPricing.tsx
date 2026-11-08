@@ -25,9 +25,9 @@ export default function LandingPricing({ plans }: { plans: PricingPlan[] }) {
   return (
     <section className="landing-section landing-pricing" id="pricing" data-reveal>
       <div className="landing-section-heading">
-        <span className="landing-eyebrow">Pricing</span>
+        <span className="landing-eyebrow">Start for free</span>
         <h2>Start simple. Add more when you need it.</h2>
-        <p>Current plans and prices, shown clearly. You can also start for free.</p>
+        <p>Free to start. Upgrade only when you need more for your classroom.</p>
       </div>
 
       {visiblePlans.length ? (
