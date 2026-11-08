@@ -6,16 +6,19 @@ import {
   Layers3,
   LockKeyhole,
   Mail,
+  ShieldCheck,
   Smartphone,
   Sparkles,
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import { PricingFooter, PricingNav } from "@/components/pricing/PricingChrome";
-import { PublicPlanBuyOption } from "@/components/pricing/PublicPlanBuyOption";
+import { SecureLogo } from "@/components/common/SecureLogo";
+import { LandingPlanCard } from "@/components/pricing/LandingPlanCard";
+import { LandingPageShell } from "@/components/marketing/landing/LandingPageShell";
+import LandingReveal from "@/components/marketing/landing/LandingReveal";
+import LpHeader from "@/components/marketing/landing/LpHeader";
 import { BASIC_TRIAL_CREDITS } from "@/lib/constants";
 import {
-  getPlanDiscount,
   type PricingCatalog,
 } from "@/services/pricing";
 import {
@@ -30,6 +33,13 @@ const PLAN_INCLUDES: Array<{ title: string; icon: LucideIcon }> = [
   { title: "Email results to creator", icon: Mail },
   { title: "Leaderboards", icon: Layers3 },
   { title: "Any device", icon: Smartphone },
+];
+
+const HEADER_LINKS = [
+  { label: "Home", href: "/" },
+  { label: "Plans", href: "#pricing" },
+  { label: "AI credits", href: "/pricing/credits" },
+  { label: "FAQ", href: "#faq" },
 ];
 
 function buildFaqs(catalog: PricingCatalog) {
@@ -88,121 +98,120 @@ export default async function PricingPage() {
       ? Math.max(...catalog.creditPacks.map((pack) => pack.validityMonths))
       : 0;
   const faqs = buildFaqs(catalog);
+  const startHref = trialDays > 0 ? "/login?next=/creator/billing/plans" : "/register";
+  const startLabel =
+    trialDays > 0 ? "Request Basic trial" : freePlan ? "Start for free" : "Get started";
 
   return (
-    <div className="qs-ui qs-lp qp-page min-h-screen">
-      <PricingNav active="plans" />
+    <LandingPageShell>
+      <LpHeader links={HEADER_LINKS} />
 
       <main id="top">
-        <header className="wrap qp-hero">
-          <p className="eb">{content.plans_banner || "Plans"}</p>
-          <h1>{content.plans_heading || "Plans that grow with your quiz load"}</h1>
-          <p className="lead">
-            {content.plans_subheading ||
-              "Essential is free forever. Elevate adds advanced tools, anti-cheat, analytics and monthly AI credits when you need more."}
-          </p>
-          <div className="qp-actions">
-            <Link
-              href={trialDays > 0 ? "/login?next=/creator/billing/plans" : "/register"}
-              className="btn pri"
-            >
-              {trialDays > 0 ? "Request Basic trial" : freePlan ? "Start free" : "Get started"}{" "}
-              <ArrowRight size={16} />
-            </Link>
-            <a href="#plans" className="btn">
-              Compare plans
-            </a>
-          </div>
-          <div className="qp-meta" aria-label="Pricing highlights">
-            <span>No card required</span>
-            {freePlan && <span>{freePlan.name} free forever</span>}
-            {trialDays > 0 && <span>Basic trial · approval required</span>}
-            {trialDays > 0 && <span>AI credits included</span>}
-            {offer && <span>{offer}</span>}
-            <span>GST included</span>
-          </div>
-        </header>
+        <div className="landing-page-wrap">
+          <section className="pricing-hero" aria-labelledby="pricing-title" data-reveal>
+            <div className="pricing-hero-inner">
+              <span className="landing-eyebrow">
+                <Sparkles size={15} aria-hidden />
+                Plans &amp; pricing
+              </span>
+              <h1 id="pricing-title">
+                {content.plans_heading || (
+                  <>
+                    Simple pricing for{" "}
+                    <span className="pricing-hero-gradient-word">every classroom</span>.
+                  </>
+                )}
+              </h1>
+              <p className="pricing-hero-lead">
+                {content.plans_subheading ||
+                  "Essential is free forever. Elevate adds advanced tools, anti-cheat, analytics and monthly AI credits when you need more."}
+              </p>
+              <div className="pricing-hero-actions">
+                <Link href={startHref} className="landing-button landing-button-primary">
+                  {startLabel} <ArrowRight size={17} aria-hidden />
+                </Link>
+                <a href="#pricing" className="landing-button landing-button-outline">
+                  Compare plans
+                </a>
+              </div>
+              <ul className="pricing-hero-meta" aria-label="Pricing highlights">
+                <li>
+                  <ShieldCheck size={14} aria-hidden />
+                  No card required
+                </li>
+                {freePlan ? (
+                  <li>
+                    <Check size={14} aria-hidden />
+                    {freePlan.name} free forever
+                  </li>
+                ) : null}
+                {trialDays > 0 ? (
+                  <li>
+                    <Sparkles size={14} aria-hidden />
+                    {trialPlan?.name ?? "Basic"} trial · approval required
+                  </li>
+                ) : null}
+                {creditValidityMonths > 0 ? (
+                  <li>
+                    <Zap size={14} aria-hidden />
+                    AI credit top-ups
+                  </li>
+                ) : null}
+                {offer ? <li>{offer}</li> : null}
+                <li>GST included</li>
+              </ul>
+            </div>
+          </section>
 
-        <section className="s qp-plans" id="plans">
-          <div className="wrap">
-            <div className="qp-head">
-              <p className="eb">Choose a plan</p>
-              <h2 className="t">One simple price for every quiz maker</h2>
-              <p className="d">
-                Every plan includes the full quiz builder, access codes,
-                instant results and leaderboards. Plans differ by quiz
-                creations and the monthly AI credits included.
+          <section className="landing-section landing-pricing pricing-plans" id="pricing" data-reveal>
+            <div className="landing-section-heading pricing-plans-heading">
+              <span className="landing-eyebrow">Choose a plan</span>
+              <h2>One simple price for every quiz maker</h2>
+              <p>
+                Every plan includes the full quiz builder, access codes, instant
+                results and leaderboards. Plans differ by quiz creations and the
+                monthly AI credits included.
               </p>
             </div>
 
-            <div className="qp-grid">
-              {catalog.plans.length === 0 && (
-                <p className="qp-plan-desc">Plans are currently unavailable. Please check back later.</p>
-              )}
-              {catalog.plans.map((plan) => {
-                const discount = getPlanDiscount(plan);
-                return (
-                  <article
+            {catalog.plans.length ? (
+              <div className="landing-pricing-grid">
+                {catalog.plans.map((plan) => (
+                  <LandingPlanCard
                     key={plan.id}
-                    className={`qp-plan${plan.featured ? " is-hot" : ""}`}
-                    aria-labelledby={`plan-${plan.id}`}
-                  >
-                    {plan.featured && <span className="qp-badge">Most popular</span>}
+                    plan={plan}
+                    checkoutAvailable={catalog.countryPricing?.checkoutAvailable ?? true}
+                    countryName={catalog.countryPricing?.countryName}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="landing-pricing-empty">
+                Plans are currently unavailable. Please check back later.
+              </p>
+            )}
 
-                    <div className="qp-plan-top">
-                      <h3 id={`plan-${plan.id}`}>{plan.name}</h3>
-                      {plan.discountBadge || discount > 0 ? (
-                        <span className="qp-pill">{plan.discountBadge || `${discount}% off`}</span>
-                      ) : null}
-                    </div>
-                    {plan.offer && <p className="qp-offer">{plan.offer}</p>}
-                    <p className="qp-plan-desc">{plan.tagline}</p>
-
-                    <p
-                      className={`qp-plan-credits${plan.credits === 0 ? " is-muted" : ""}`}
-                    >
-                      <Sparkles size={14} aria-hidden="true" />
-                      {plan.credits > 0
-                        ? `Includes ${plan.credits} AI credits / month`
-                        : "AI credits sold separately"}
-                    </p>
-
-                    <ul className="qp-features">
-                      {plan.features.filter((feature) => !/trial/i.test(feature)).map((feature) => (
-                        <li key={feature}>
-                          <span className="qp-tick" aria-hidden="true">
-                            <Check size={12} strokeWidth={3.5} />
-                          </span>
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-
-                    <PublicPlanBuyOption
-                      plan={plan}
-                      label={plan.cta || `Choose ${plan.name}`}
-                      checkoutAvailable={catalog.countryPricing?.checkoutAvailable ?? true}
-                      countryName={catalog.countryPricing?.countryName}
-                    />
-                  </article>
-                );
-              })}
+            <div className="landing-free-start">
+              <div>
+                <strong>Not ready to upgrade?</strong>
+                <span>
+                  {content.plans_gst_note ||
+                    `${freePlan?.name ?? "Essential"} is free forever. Elevate includes monthly AI credits; top up anytime with a one-time pack.`}
+                </span>
+              </div>
+              <Link href="/register">
+                Start for free <ArrowRight size={16} aria-hidden />
+              </Link>
             </div>
 
-            <p className="qp-after">
-              <Sparkles size={15} />
-              {content.plans_gst_note ||
-                "Essential is free forever. Elevate includes monthly AI credits; top up anytime with a one-time pack."}
-            </p>
-
-            <div className="qp-includes">
-              <p className="qp-includes-label">Every plan includes</p>
-              <div className="qp-includes-grid">
+            <div className="pricing-perks">
+              <p className="pricing-perks-label">Every plan includes</p>
+              <div className="pricing-perks-grid">
                 {PLAN_INCLUDES.map((item) => {
                   const Icon = item.icon;
                   return (
-                    <span key={item.title}>
-                      <Icon size={15} />
+                    <span className="pricing-perk" key={item.title}>
+                      <Icon size={15} aria-hidden />
                       {item.title}
                     </span>
                   );
@@ -210,71 +219,88 @@ export default async function PricingPage() {
               </div>
             </div>
 
-            <div className="qp-cross">
+            <div className="pricing-credits-card">
               <div>
-                <span className="qp-cross-tag">Optional top-up</span>
+                <span className="pricing-credits-eyebrow">Optional top-up</span>
                 <h3>Need extra AI credits?</h3>
                 <p>
                   Paid plans include a monthly allowance. Additional credits are
-                  one-time packs{creditValidityMonths > 0 ? `, valid for ${creditValidityMonths} months,` : ""} and
-                  work with every plan.
+                  one-time packs
+                  {creditValidityMonths > 0
+                    ? `, valid for ${creditValidityMonths} months,`
+                    : ""}{" "}
+                  and work with every plan.
                 </p>
               </div>
-              <Link href="/pricing/credits" className="btn qp-cross-btn">
-                Explore AI credits <ArrowRight size={15} />
+              <Link className="landing-button pricing-credits-button" href="/pricing/credits">
+                Explore AI credits <ArrowRight size={16} aria-hidden />
               </Link>
             </div>
-          </div>
-        </section>
+          </section>
 
-        <section className="s qp-faq" id="faq">
-          <div className="wrap qp-faq-wrap">
-            <p className="eb">Good to know</p>
-            <h2 className="t">Plan questions, answered</h2>
-            {faqs.map((faq) => (
-              <details className="fq" key={faq.q}>
-                <summary>{faq.q}</summary>
-                <p>{faq.a}</p>
-              </details>
-            ))}
-          </div>
-        </section>
+          <section className="landing-section landing-faq" id="faq" data-reveal>
+            <div className="landing-faq-intro">
+              <div className="landing-section-heading">
+                <span className="landing-eyebrow">Good to know</span>
+                <h2>Plan questions, answered.</h2>
+              </div>
+              <div className="landing-faq-contact">
+                <span>Still have questions?</span>
+                <Link href="/contact">Contact us</Link>
+              </div>
+            </div>
+            <div className="landing-faq-list">
+              {faqs.map((faq) => (
+                <details key={faq.q}>
+                  <summary>{faq.q}</summary>
+                  <p>{faq.a}</p>
+                </details>
+              ))}
+            </div>
+          </section>
 
-        <section className="s qp-cta-section">
-          <div className="wrap">
-            <div className="cta">
-              <div>
-                <p className="eb">Start today</p>
+          <section className="landing-closing" data-reveal>
+            <div className="landing-closing-inner">
+              <div className="landing-closing-copy">
+                <span className="landing-eyebrow">Start today</span>
                 <h2>
                   {trialDays > 0
-                    ? `Request your ${trialDays}-day Basic trial today.`
+                    ? `Request your ${trialDays}-day ${trialPlan?.name ?? "Basic"} trial today.`
                     : freePlan
                       ? `Start free with ${freePlan.name} today.`
                       : "Start creating quizzes today."}
                 </h2>
+                <Link className="landing-button landing-button-closing" href={startHref}>
+                  {trialDays > 0 ? "Request your trial" : "Create an account"}{" "}
+                  <ArrowRight size={17} aria-hidden />
+                </Link>
               </div>
-              <div className="qp-cta-actions">
-                <Link href="/register" className="btn">
-                  Create an account
-                </Link>
-                <Link
-                  href="/pricing/credits"
-                  className="btn"
-                  style={{
-                    background: "transparent",
-                    color: "var(--on-brand)",
-                    borderColor: "var(--on-brand)",
-                  }}
-                >
-                  View AI credits
-                </Link>
+              <div className="landing-closing-brand">
+                <SecureLogo size={54} variant="full" theme="dark" rounded={false} />
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </main>
 
-      <PricingFooter />
-    </div>
+      <footer className="landing-footer">
+        <div className="landing-page-wrap landing-footer-inner">
+          <Link href="/" aria-label="QuizSupport home">
+            <SecureLogo size={34} variant="full" rounded={false} />
+          </Link>
+          <nav aria-label="Footer">
+            <Link href="/">Home</Link>
+            <Link href="/pricing">Pricing</Link>
+            <Link href="/pricing/credits">AI credits</Link>
+            <Link href="/about">About</Link>
+            <Link href="/contact">Contact</Link>
+            <Link href="/privacy">Privacy</Link>
+          </nav>
+          <span>Thoughtful quizzes for every classroom.</span>
+        </div>
+      </footer>
+
+      <LandingReveal />
+    </LandingPageShell>
   );
 }

@@ -91,13 +91,7 @@ function LivePaperDemo({ reduceMotion }: { reduceMotion: boolean }) {
   );
 }
 
-export default function LandingHero({
-  trialDays,
-  freePlanName,
-}: {
-  trialDays: number;
-  freePlanName: string;
-}) {
+export default function LandingHero({ trialDays }: { trialDays: number }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
   const { scrollYProgress } = useScroll({
@@ -137,15 +131,13 @@ export default function LandingHero({
             <ArrowDown size={16} aria-hidden />
           </LandingStudentDemoLink>
         </div>
-        <p className="landing-trial-note">
-          {trialDays > 0 ? (
+        {trialDays > 0 && (
+          <p className="landing-trial-note">
             <Link href="/start-free-trial">
               A {trialDays}-day Basic trial is available
             </Link>
-          ) : (
-            <Link href="/register">{freePlanName} is free to start</Link>
-          )}
-        </p>
+          </p>
+        )}
       </div>
 
       <div

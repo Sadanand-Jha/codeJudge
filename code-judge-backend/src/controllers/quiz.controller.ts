@@ -14,7 +14,7 @@ import { QuizCreationLimitError } from "../services/quizCreationLimits.ts";
 import { QuizQuestionLimitError } from "../services/quizQuestionLimits.ts";
 import { prepareAttemptDecoys, TRAP_STRENGTH_DEFAULT } from "../services/quizDecoy.service.ts";
 import { sanitizeAttemptForStudent } from "../services/quizDecoy.ts";
-import { assertLimit, getEntitlements, sendEntitlementError } from "../services/entitlement.service.ts";
+import { assertLimit, sendEntitlementError } from "../services/entitlement.service.ts";
 import { isQuizCodeConflictError } from "../utils/databaseError.ts";
 import {
   getQuizAttemptDeadlineMs,
@@ -3225,15 +3225,7 @@ export const sendQuizResponsesEmail = async (req: Request, res: Response) => {
       return;
     }
 
-    const entitlements = await getEntitlements(userId);
-    if (!entitlements.isPaid) {
-      res.status(403).json({
-        success: false,
-        message: "Emailing response reports is available on paid plans. Upgrade your plan to use this feature.",
-        data: { reason: "subscription_required", upgradeUrl: "/pricing" },
-      });
-      return;
-    }
+    await assertLimit(userId, "email_responses", 0);
 
     const responseCount = await countQuizResponses(numericQuizId);
     if (responseCount === 0) {
@@ -3272,6 +3264,7 @@ export const sendQuizResponsesEmail = async (req: Request, res: Response) => {
 
     res.status(200).json({ success: true, data: { sent: true, to: email } });
   } catch (error) {
+    if (sendEntitlementError(error, res)) return;
     console.error("Error emailing quiz responses:", error);
     res.status(500).json({
       success: false,

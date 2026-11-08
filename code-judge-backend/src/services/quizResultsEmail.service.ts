@@ -2,6 +2,7 @@ import { pool } from "../config/database.ts";
 import { enqueueResponsesReportEmail, isEmailQueueConfigured } from "../queues/email.queue.ts";
 import { sendResponsesReportEmail } from "./email.service.ts";
 import { countQuizResponses, generateResponsesReport } from "./responsesReport.service.ts";
+import { getEntitlements } from "./entitlement.service.ts";
 import { schedulerLog } from "../utils/schedulerLog.ts";
 
 type QuizResponsesEmailRow = {
@@ -48,6 +49,11 @@ async function getQuizForResponsesEmail(quizId: number): Promise<QuizResponsesEm
   return result.rows[0] ?? null;
 }
 
+async function creatorHasEmailResponses(userId: number): Promise<boolean> {
+  const entitlements = await getEntitlements(userId);
+  return entitlements.values.email_responses === true;
+}
+
 async function countPendingAttempts(quizId: number): Promise<number> {
   const result = await pool.query(
     `SELECT COUNT(*)::int AS count
@@ -83,6 +89,10 @@ export async function maybeQueueQuizResponsesEmail(quizId: number): Promise<bool
   }
   if (!quiz.creator_email) {
     schedulerLog("email", `quiz ${quizId}: skipped because creator has no email`);
+    return false;
+  }
+  if (!(await creatorHasEmailResponses(quiz.createdby))) {
+    schedulerLog("email", `quiz ${quizId}: skipped because creator's plan does not include response emails`);
     return false;
   }
 
@@ -138,6 +148,10 @@ export async function processQuizResponsesEmail(
     return { sent: false, reason: "not_ended" };
   }
   if (!quiz.creator_email) throw new Error("Quiz creator email not found");
+  if (!(await creatorHasEmailResponses(quiz.createdby))) {
+    schedulerLog("email-worker", `quiz ${quizId}: skipped because creator's plan does not include response emails`);
+    return { sent: false, reason: "plan_required" };
+  }
 
   const pendingAttempts = await countPendingAttempts(quizId);
   schedulerLog("email-worker", `quiz ${quizId}: ${pendingAttempts} attempt(s) still in_progress`);

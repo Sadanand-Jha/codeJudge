@@ -129,6 +129,14 @@ export const LOCAL_ENTITLEMENT_REGISTRY: EntitlementDefinition[] = [
     default: true,
   },
   {
+    key: "email_responses",
+    label: "Email response reports",
+    description: "Email the Excel response report to the quiz creator, including the automatic report when a quiz ends.",
+    type: "boolean",
+    category: "email",
+    default: false,
+  },
+  {
     key: "storage_mb",
     label: "Storage",
     description: "Total retained PDF, image and document uploads. Set -1 for unlimited storage.",

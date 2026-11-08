@@ -202,7 +202,11 @@ export function PricingAdmin() {
 
   const previewPlans = useMemo(() => {
     const visible = plans
-      .filter((plan) => plan.id === selectedPlanId || (plan.status === "active" && plan.is_public))
+      .filter(
+        (plan) =>
+          plan.id === selectedPlanId ||
+          (plan.status === "active" && (plan.is_public || plan.is_default_free))
+      )
       .map((plan) =>
         plan.id === selectedPlanId && previewPlan ? previewPlan : planPreview(plan)
       );
@@ -577,7 +581,7 @@ export function PricingAdmin() {
                     </div>
                     <div className="mt-3 flex items-center justify-between gap-2">
                       <span className="text-[10px] font-bold text-[var(--qs-muted)]">
-                        {plan.is_public ? "Public" : "Hidden"}
+                        {plan.is_public || plan.is_default_free ? "Public" : "Hidden"}
                       </span>
                       <button
                         type="button"

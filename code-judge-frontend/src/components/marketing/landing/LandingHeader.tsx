@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Menu, Plus, X } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
-import ThemeToggle from "@/components/ui/ThemeToggle";
 
 const NAV_LINKS = [
   { label: "Toolkit", href: "#toolkit" },
@@ -83,7 +82,6 @@ export default function LandingHeader({ trialDays = 0 }: { trialDays?: number })
                 {link.label}
               </a>
             ))}
-            <ThemeToggle variant="icon" />
             <Link href="/login" className="btn sm">
               Log in
             </Link>
@@ -93,7 +91,6 @@ export default function LandingHeader({ trialDays = 0 }: { trialDays?: number })
           </nav>
 
           <div className="ha">
-            <ThemeToggle variant="icon" />
             <Link href="/login" className="btn sm login-desktop">
               Log in
             </Link>

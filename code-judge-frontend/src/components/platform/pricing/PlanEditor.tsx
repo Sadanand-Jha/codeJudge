@@ -108,7 +108,9 @@ export function PlanEditor({
   const [discountBadge, setDiscountBadge] = useState(draft?.discount_badge ?? plan.discount_badge ?? "");
   const [trialDays, setTrialDays] = useState(String(draft?.trial_days ?? plan.trial_days));
   const [sortOrder, setSortOrder] = useState(String(draft?.sort_order ?? plan.sort_order));
-  const [isPublic, setIsPublic] = useState(draft?.is_public ?? plan.is_public);
+  const [isPublic, setIsPublic] = useState(
+    plan.is_default_free ? true : (draft?.is_public ?? plan.is_public)
+  );
   const [featured, setFeatured] = useState(draft?.featured ?? plan.featured);
   const [features, setFeatures] = useState<FeatureRow[]>(() => featureRows(draft?.features ?? plan.features));
   const [newFeature, setNewFeature] = useState("");
@@ -598,7 +600,12 @@ export function PlanEditor({
           <input className={INPUT} type="number" step={1} value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} />
         </Field>
         <div className="flex flex-col justify-end gap-2 pb-1">
-          <Toggle label="Visible on public pricing" checked={isPublic} onChange={setIsPublic} />
+          <Toggle
+            label="Visible on public pricing"
+            checked={isPublic}
+            onChange={setIsPublic}
+            disabled={plan.is_default_free}
+          />
           <Toggle label="Featured / most popular" checked={featured} onChange={setFeatured} />
         </div>
       </div>

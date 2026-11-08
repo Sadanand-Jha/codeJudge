@@ -30,7 +30,7 @@ export function PricingNav({
             className={active === "plans" ? "is-active" : undefined}
             aria-current={active === "plans" ? "page" : undefined}
           >
-            Monthly plans
+            Plans
           </Link>
           <Link
             href="/pricing/credits"
