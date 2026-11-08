@@ -62,6 +62,19 @@ export interface CreatorPublicStats {
   teacherRatingCount: number;
 }
 
+/**
+ * Aggregate-only teacher card for the community "Top teachers" rail.
+ * Only teachers whose quizzes have actually been attempted are returned.
+ */
+export interface CommunityTopTeacher {
+  id: number;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  quizzes: number;
+  attempts: number;
+}
+
 export class QuizRepository {
   /**
    * Get all quizzes with filters and pagination
@@ -1955,6 +1968,41 @@ export class QuizRepository {
       averageTeacherRating: row.average_teacher_rating == null ? null : Number(row.average_teacher_rating),
       teacherRatingCount: Number(row.teacher_rating_count) || 0,
     };
+  }
+
+  /**
+   * Community "Top teachers" leaderboard. Only teachers with at least one
+   * non-deleted quiz that has collected attempts are included, ranked by
+   * total attempts. Aggregate-only: no student or personal data.
+   */
+  async getCommunityTopTeachers(limit = 8): Promise<CommunityTopTeacher[]> {
+    const safeLimit = Math.min(Math.max(Math.trunc(limit) || 8, 1), 50);
+    const result = await pool.query(
+      `SELECT u.id,
+              u.username,
+              u.display_name,
+              a.url AS avatar_url,
+              COUNT(DISTINCT q.id)::int AS quizzes,
+              COUNT(qa.id)::int AS attempts
+       FROM users u
+       JOIN quiz q ON q.createdby = u.id AND q.deleted_at IS NULL
+       LEFT JOIN quiz_attempt qa ON qa.quiz_id = q.id AND qa.deleted_at IS NULL
+       LEFT JOIN avatar a ON a.id = u.avatar_id
+       GROUP BY u.id, u.username, u.display_name, a.url
+       HAVING COUNT(qa.id) > 0
+       ORDER BY attempts DESC, quizzes DESC, u.id ASC
+       LIMIT $1`,
+      [safeLimit]
+    );
+
+    return result.rows.map((row) => ({
+      id: Number(row.id),
+      username: String(row.username ?? ""),
+      displayName: row.display_name ?? null,
+      avatarUrl: row.avatar_url ?? null,
+      quizzes: Number(row.quizzes) || 0,
+      attempts: Number(row.attempts) || 0,
+    }));
   }
 
   async getQuizResult(attemptId: number, userId: number): Promise<any | null> {

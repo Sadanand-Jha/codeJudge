@@ -9,6 +9,8 @@ import {
 import { cn } from "@/lib/helpers";
 import Link from "next/link";
 import { useToast } from "@/hooks/useToast";
+import { useMySubscription } from "@/hooks/useMySubscription";
+import { PlansUpsellModal } from "@/components/creator/quiz-studio/components/PlansUpsellModal";
 import { QuestionHtml, renderQuestionHtml } from "@/components/creator/questions/QuestionHtml";
 import {
   getQuizResponses,
@@ -277,6 +279,11 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailPlansOpen, setEmailPlansOpen] = useState(false);
+  const [emailPlansMounted, setEmailPlansMounted] = useState(false);
+  const { subscription, isLoading: subscriptionLoading } = useMySubscription();
+  const emailLocked =
+    !subscriptionLoading && subscription?.emailResponsesAvailable !== true;
   const [presenceNow, setPresenceNow] = useState(() => Date.now());
   const firstResponsesLoadRef = useRef(true);
 
@@ -628,9 +635,22 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
             </button>
             <button
               type="button"
-              onClick={() => void handleSendEmail()}
-              disabled={sendingEmail || !hasResponses}
-              title={hasResponses ? undefined : "Email is available once students respond to this quiz."}
+              onClick={() => {
+                if (emailLocked) {
+                  setEmailPlansMounted(true);
+                  setEmailPlansOpen(true);
+                  return;
+                }
+                void handleSendEmail();
+              }}
+              disabled={sendingEmail || (!hasResponses && !emailLocked)}
+              title={
+                emailLocked
+                  ? "Upgrade to a paid plan to email response reports."
+                  : !hasResponses
+                    ? "Email is available once students respond to this quiz."
+                    : undefined
+              }
               className={cn(topBtn, "disabled:cursor-not-allowed disabled:opacity-60")}
             >
               <Mail className={cn("h-4 w-4", sendingEmail && "animate-pulse")} />
@@ -1427,6 +1447,14 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
           </>
         )}
       </AnimatePresence>
+
+      {emailPlansMounted && (
+        <PlansUpsellModal
+          preset="email"
+          open={emailPlansOpen}
+          onClose={() => setEmailPlansOpen(false)}
+        />
+      )}
     </div>
   );
 }

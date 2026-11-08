@@ -62,12 +62,9 @@ test("public ids must stay inside the authenticated user's folder", () => {
   assert.equal(isOwnedPublicId(null, 42), false);
 });
 
-test("only paid Pro or Institute plans unlock custom headers", () => {
-  assert.equal(isCustomHeaderPlan(false, "pro"), false);
-  assert.equal(isCustomHeaderPlan(true, "free"), false);
-  assert.equal(isCustomHeaderPlan(true, "basic"), false);
-  assert.equal(isCustomHeaderPlan(true, "pro"), true);
-  assert.equal(isCustomHeaderPlan(true, "institute"), true);
+test("every paid plan unlocks custom headers", () => {
+  assert.equal(isCustomHeaderPlan(false), false);
+  assert.equal(isCustomHeaderPlan(true), true);
 });
 
 test("server clamps placements and keeps tall portraits below 40% of A4", () => {

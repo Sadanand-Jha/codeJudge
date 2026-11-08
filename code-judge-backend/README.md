@@ -11,19 +11,31 @@ A robust backend service for the QuizSupport platform, handling code execution, 
 - **AI Hints Integration**: AI-powered hints for problem solving
 - **Real-time Updates**: Redis-based caching and job queuing
 
-## Quiz Grading
+## Documentation
 
-See [QUIZ_GRADING_README.md](./QUIZ_GRADING_README.md) for the complete,
-current description of how quiz attempts are graded, including scoring rules,
-question-type behavior, recalculation, visibility, reports, and known gaps.
+Detailed documentation lives in [docs/](./docs/).
 
-Related documentation:
+**Plans, pricing, and billing**
 
-- [QUIZ_MODULE_BACKEND.md](./QUIZ_MODULE_BACKEND.md) - quiz module/API overview
-- [QUIZ_STUDENT_FLOW.md](./QUIZ_STUDENT_FLOW.md) - student attempt flow
-- [QUIZ_CREATION_FLOW.md](./QUIZ_CREATION_FLOW.md) - creator flow
-- [QUIZ_STUDENT_CALL_MAP.md](./QUIZ_STUDENT_CALL_MAP.md) - frontend/backend call map
-- [CUSTOM_SYLLABUS_README.md](./CUSTOM_SYLLABUS_README.md) - teacher-owned custom syllabus, multi-subject import splitting, AI streaming, and recovery flow
+- [Platform plan management](./docs/PLATFORM_PLAN_MANAGEMENT.md) - how plans are created, edited, published, archived, and priced from `/platform`
+- [Country-wise plan pricing](./docs/COUNTRY_WISE_PRICING.md) - country detection, regional Elevate prices, checkout snapshots, and troubleshooting
+- [Razorpay billing flow](./docs/RAZORPAY_BILLING_FLOW.md) - order creation, checkout, verification, webhooks, and subscription activation
+
+**Quiz and AI**
+
+- [Quiz grading](./docs/QUIZ_GRADING_README.md) - scoring rules, question-type behavior, recalculation, visibility, reports, and known gaps
+- [Quiz module backend](./docs/QUIZ_MODULE_BACKEND.md) - quiz module/API overview
+- [Student attempt flow](./docs/QUIZ_STUDENT_FLOW.md) - student attempt flow
+- [Quiz creation flow](./docs/QUIZ_CREATION_FLOW.md) - creator flow
+- [Frontend/backend call map](./docs/QUIZ_STUDENT_CALL_MAP.md) - quiz frontend/backend call map
+- [Custom syllabus](./docs/CUSTOM_SYLLABUS_README.md) - teacher-owned custom syllabus, multi-subject import splitting, AI streaming, and recovery
+- [AI file generation flow](./docs/AI_FILE_GENERATION_FLOW.md) - AI chat and quiz-generation pipeline
+
+**Platform and operations**
+
+- [Registration flow](./docs/REGISTRATION_FLOW.md) - three-step email-verification registration
+- [Frontend/backend connection notes](./docs/connect_fe_be.md) - frontend data needs mapped to the database schema
+- [Local to cloud database sync](./docs/DB_SYNC.md) - `npm run sync:db` behavior and configuration
 
 ## Tech Stack
 

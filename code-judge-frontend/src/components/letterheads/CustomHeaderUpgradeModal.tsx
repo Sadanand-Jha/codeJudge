@@ -28,7 +28,7 @@ function UpgradeDialog({
 
   const upgrade = () => {
     onClose();
-    router.push("/creator/billing/plans?plan=pro");
+    router.push("/creator/billing/plans");
   };
 
   return (
@@ -49,7 +49,7 @@ function UpgradeDialog({
             </span>
             <div className="min-w-0">
               <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--qs-brand)]">
-                Pro feature
+                Paid feature
               </p>
               <h2 id="custom-header-upgrade-title" className="mt-0.5 text-lg font-extrabold tracking-tight text-[var(--qs-ink)]">
                 Use your college letterhead
@@ -63,7 +63,7 @@ function UpgradeDialog({
 
         <div className="space-y-3 px-5 py-5">
           <p className="text-sm font-medium text-[var(--qs-muted)]">
-            Upgrade to Pro to put your institute&apos;s letterhead at the top of every question paper.
+            Upgrade to any paid plan to put your institute&apos;s letterhead at the top of every question paper.
           </p>
           <ul className="space-y-2 text-sm font-semibold text-[var(--qs-ink)]">
             {[
@@ -96,7 +96,7 @@ function UpgradeDialog({
           </button>
           <button type="button" className="b b-pri sm gap-1.5 text-white" onClick={upgrade}>
             <Crown className="h-4 w-4" />
-            Upgrade to Pro
+            View paid plans
           </button>
         </div>
       </div>

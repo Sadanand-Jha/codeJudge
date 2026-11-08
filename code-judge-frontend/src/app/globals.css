@@ -1128,6 +1128,7 @@ button.cf-btn:hover {
 [data-theme="light"] .ai-studio-btn,
 [data-theme="light"] .ai-studio-btn .text-white,
 [data-theme="light"] .ai-studio-btn span { color: #FFFFFF !important; }
+[data-theme="light"] .qs-student-view-label { color: #FFFFFF !important; }
 [data-theme="light"] .text-\[\#F8FAFC\] { color: #111827 !important; }
 [data-theme="light"] .text-\[\#E5E7EB\] { color: #111827 !important; }
 [data-theme="light"] .text-\[\#AAB6C8\] { color: #6B7280 !important; }
@@ -5004,7 +5005,7 @@ textarea {
   --qs-poly-3: #ddd2ff;
   --qs-poly-4: #d0c2ff;
   --qs-poly-5: #ffe9a3;
-  /* Empty-tank ("low fuel") warning palette. Used only on the Studio
+  /* Low-fuel warning palette (5-30 credits). Used only on the Studio
      dashboard and its credit indicators, never on the global shell. */
   --qs-credit-page: #fffbe8;
   --qs-credit-surface: #fffef5;
@@ -5041,8 +5042,9 @@ textarea {
 
 /* Low-fuel warning theme. data-credit-state lives on the Studio shell so the
    header/sidebar can react, but the tinted tokens are only applied to the
-   dashboard page surface. Other Studio pages keep the normal light theme. */
-.qs-ui[data-credit-state="empty"] [data-credit-page="dashboard"] {
+   dashboard page surface while the balance is between 5 and 30 credits.
+   Other Studio pages and a 0-credit balance keep the normal light theme. */
+.qs-ui[data-credit-state="low"] [data-credit-page="dashboard"] {
   --qs-bg: var(--qs-credit-page);
   --qs-surface: var(--qs-credit-surface);
   --qs-line: var(--qs-credit-border);
@@ -5059,9 +5061,12 @@ textarea {
 }
 .qs-credit-fuel > i {
   height: 10px;
-  border: 2px solid var(--qs-credit-chip-border);
+  border: 2px solid var(--qs-line);
   border-radius: 999px;
   background: transparent;
+}
+.qs-ui[data-credit-state="low"] [data-credit-page="dashboard"] .qs-credit-fuel > i {
+  border-color: var(--qs-credit-chip-border);
 }
 .qs-credit-fuel > i[data-filled="true"] {
   background: var(--qs-credit-accent);

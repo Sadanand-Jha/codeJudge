@@ -48,8 +48,7 @@ export type CreatorNavSection =
 export const CREATOR_NAV: CreatorNavItem[] = [
   { label: "Dashboard", href: "/creator", icon: LayoutDashboard, section: "Overview", exact: true },
   { label: "My Quizzes", href: "/creator/quizzes", icon: ListChecks, section: "Quizzes", match: (p) => p === "/creator/quizzes" || p.startsWith("/creator/quizzes/") },
-  { label: "Question Papers", href: "/creator/tests", icon: ClipboardList, section: "Question Papers", match: (p) => p === "/creator/tests" || (p.startsWith("/creator/tests/") && !p.startsWith("/creator/tests/create")) },
-  { label: "Create Paper", href: "/creator/tests/create", icon: NotebookPen, section: "Question Papers", match: (p) => p === "/creator/tests/create" || p.startsWith("/creator/tests/create/") },
+  { label: "Question Papers", href: "/creator/tests", icon: ClipboardList, section: "Question Papers", match: (p) => p === "/creator/tests" || p.startsWith("/creator/tests/") },
   { label: "Assignment Builder", href: "/creator/problems", icon: NotebookPen, section: "Question Papers" },
   { label: "Paper Headers", href: "/creator/headers", icon: FileImage, section: "Question Papers", badge: "PRO" },
   { label: "My Syllabus", href: "/creator/syllabus", icon: BookOpen, section: "Library" },

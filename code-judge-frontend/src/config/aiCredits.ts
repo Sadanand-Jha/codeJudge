@@ -140,9 +140,13 @@ export const RATE_LIMIT_CONFIG: RateLimitConfig = {
 /* ============================================
    Low-credit thresholds
    ============================================ */
-/** Empty-tank threshold. At or below this effective balance the Studio enters
- *  the "low fuel" warning theme. */
+/** Empty-tank threshold. At or below this effective balance the Studio reports
+ *  an empty balance, but keeps the standard theme. */
 export const LOW_CREDIT_THRESHOLD = 0;
+/** The yellow "low fuel" warning theme is shown only while the effective
+ *  balance sits inside this inclusive band. */
+export const LOW_CREDIT_MIN = 5;
+export const LOW_CREDIT_MAX = 30;
 /** Legacy 20%-of-allowance ratio used by the softer "running low" nudge. */
 export const LOW_CREDIT_RATIO_THRESHOLD = 0.2;
 

@@ -1,10 +1,9 @@
 // Room join/share endpoints mounted at /api/rooms.
-// Teachers create rooms and rotate passwords; authenticated users join with
-// the code + password they received from their teacher.
+// Any authenticated user can create rooms and rotate passwords; other
+// authenticated users join with the code + password they received.
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.ts";
 import { requirePaidPlan } from "../middleware/requirePaidPlan.ts";
-import { requireTeacher } from "../middleware/requireTeacher.ts";
 import { roomJoinRateLimit } from "../middleware/roomJoinRateLimit.ts";
 import {
   roomCreateSchema,
@@ -28,20 +27,18 @@ const router = Router();
 
 router.use(authenticate);
 
-router.post("/", requireTeacher, requirePaidPlan, validate(roomCreateSchema), createRoomWithCredentials);
+router.post("/", requirePaidPlan, validate(roomCreateSchema), createRoomWithCredentials);
 router.post("/join/form", roomJoinRateLimit, validate(roomJoinSchema), previewRoomJoin);
 router.post("/join", roomJoinRateLimit, validate(roomJoinSchema), joinRoom);
 router.get("/enrolled", getEnrolledRooms);
 router.post(
   "/:code/reset-password",
-  requireTeacher,
   validate(roomPasswordResetSchema),
   resetRoomPassword
 );
 router.get("/:id/registration-form", getRoomRegistrationForm);
 router.put(
   "/:id/registration-form",
-  requireTeacher,
   validate(roomRegistrationFormSchema),
   updateRoomRegistrationForm
 );

@@ -2190,6 +2190,23 @@ export const getCreatorStats = async (req: Request, res: Response) => {
 };
 
 /**
+ * GET /api/v1/user/quiz/community/top-teachers
+ * Community leaderboard of teachers whose quizzes have been attempted,
+ * ordered by total attempts. Aggregate-only: no student or personal data.
+ */
+export const getCommunityTopTeachers = async (req: Request, res: Response) => {
+  try {
+    const rawLimit = Number(req.query.limit);
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 8;
+    const teachers = await quizService.getCommunityTopTeachers(limit);
+    res.status(200).json({ success: true, data: teachers });
+  } catch (error) {
+    console.error("Error fetching community top teachers:", error);
+    res.status(500).json({ success: false, message: "Could not load top teachers" });
+  }
+};
+
+/**
  * POST /api/v1/user/quiz/:quizId/rating
  * Only a learner with a completed attempt may rate. A completed attempt means
  * the quiz has ended for that learner, even if a shared live session remains open.

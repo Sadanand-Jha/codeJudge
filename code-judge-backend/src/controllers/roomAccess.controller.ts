@@ -41,7 +41,7 @@ function passwordExpiryFromBody(body: Record<string, unknown>): Date | null {
   return computePasswordExpiresAt(body.expires_in_minutes as number | null | undefined);
 }
 
-// POST /api/rooms  { name, password? }  (teacher only)
+// POST /api/rooms  { name, password? }  (any authenticated user)
 export const createRoomWithCredentials = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;

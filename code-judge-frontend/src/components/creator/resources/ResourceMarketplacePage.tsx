@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { toast } from "@/lib/toast";
+import { getCommunityTopTeachers, type CommunityTopTeacher } from "@/services/quiz";
 
 interface MarketplaceQuiz {
   id: number;
@@ -46,20 +47,6 @@ const SUBJECTS = [...new Set(QUIZZES.map((quiz) => quiz.subject))];
 const LEVELS = [...new Set(QUIZZES.map((quiz) => quiz.level))];
 const LANGUAGES = [...new Set(QUIZZES.map((quiz) => quiz.language))];
 
-const TOP_TEACHERS = [...new Map(
-  QUIZZES.map((quiz) => [quiz.teacher, quiz.teacher])
-).keys()]
-  .map((name) => {
-    const quizzes = QUIZZES.filter((quiz) => quiz.teacher === name);
-    return {
-      name,
-      count: quizzes.length,
-      pulls: quizzes.reduce((total, quiz) => total + quiz.pulls, 0),
-    };
-  })
-  .sort((a, b) => b.pulls - a.pulls)
-  .slice(0, 8);
-
 const AVATAR_TONES = [
   "bg-[var(--qs-sun)] text-[var(--qs-ink)]",
   "bg-[var(--qs-poly-1)] text-[var(--qs-brand)]",
@@ -89,9 +76,11 @@ function avatarTone(name: string): string {
 
 function Avatar({
   name,
+  src,
   size = "md",
 }: {
   name: string;
+  src?: string | null;
   size?: "md" | "lg";
 }) {
   return (
@@ -105,7 +94,7 @@ function Avatar({
           : "h-[54px] w-[54px] text-[19px]"
       )}
     >
-      {initials(name)}
+      {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : initials(name)}
     </span>
   );
 }
@@ -136,6 +125,25 @@ export function ResourceMarketplacePage() {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [pulled, setPulled] = useState<Set<number>>(new Set());
   const [preview, setPreview] = useState<MarketplaceQuiz | null>(null);
+  const [topTeachers, setTopTeachers] = useState<CommunityTopTeacher[]>([]);
+  const [topTeachersLoading, setTopTeachersLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    getCommunityTopTeachers(8)
+      .then((teachers) => {
+        if (active) setTopTeachers(teachers);
+      })
+      .catch(() => {
+        if (active) setTopTeachers([]);
+      })
+      .finally(() => {
+        if (active) setTopTeachersLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!preview) return;
@@ -256,33 +264,48 @@ export function ResourceMarketplacePage() {
           </span>
         </div>
         <div className="mt-1 flex gap-3.5 overflow-x-auto px-1 pb-3 pt-1 [scrollbar-width:thin]">
-          {TOP_TEACHERS.map((item) => {
-            const active = teacher === item.name;
-            return (
-              <button
-                key={item.name}
-                type="button"
-                onClick={() => setTeacher(active ? "" : item.name)}
-                className={cn(
-                  "grid w-[150px] shrink-0 justify-items-center gap-1 rounded-[18px] border-2 px-3 py-4 font-[inherit] text-[var(--qs-ink)] transition-all",
-                  active
-                    ? "border-[var(--qs-ink)] bg-[var(--qs-sun)] shadow-[4px_4px_0_var(--qs-ink)]"
-                    : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:-translate-y-0.5 hover:border-[var(--qs-ink)]"
-                )}
-              >
-                <Avatar name={item.name} size="lg" />
-                <b className="text-center text-[14.5px] font-extrabold">{item.name}</b>
-                <small
+          {topTeachersLoading ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-[148px] w-[150px] shrink-0 animate-pulse rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]"
+              />
+            ))
+          ) : topTeachers.length === 0 ? (
+            <p className="rounded-[18px] border-2 border-dashed border-[var(--qs-line)] px-5 py-6 text-[13px] font-bold text-[var(--qs-muted)]">
+              No teachers with quiz attempts yet.
+            </p>
+          ) : (
+            topTeachers.map((item) => {
+              const name = item.displayName?.trim() || item.username || `Teacher #${item.id}`;
+              const active = teacher === name;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setTeacher(active ? "" : name)}
                   className={cn(
-                    "text-[12px] font-bold",
-                    active ? "text-[#5b4a10]" : "text-[var(--qs-muted)]"
+                    "grid w-[150px] shrink-0 justify-items-center gap-1 rounded-[18px] border-2 px-3 py-4 font-[inherit] text-[var(--qs-ink)] transition-all",
+                    active
+                      ? "border-[var(--qs-ink)] bg-[var(--qs-sun)] shadow-[4px_4px_0_var(--qs-ink)]"
+                      : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:-translate-y-0.5 hover:border-[var(--qs-ink)]"
                   )}
                 >
-                  {item.count} quiz{item.count > 1 ? "zes" : ""} · {item.pulls} pulls
-                </small>
-              </button>
-            );
-          })}
+                  <Avatar name={name} src={item.avatarUrl} size="lg" />
+                  <b className="text-center text-[14.5px] font-extrabold">{name}</b>
+                  <small
+                    className={cn(
+                      "text-[12px] font-bold",
+                      active ? "text-[#5b4a10]" : "text-[var(--qs-muted)]"
+                    )}
+                  >
+                    {item.quizzes} quiz{item.quizzes === 1 ? "" : "zes"} · {item.attempts} attempt
+                    {item.attempts === 1 ? "" : "s"}
+                  </small>
+                </button>
+              );
+            })
+          )}
         </div>
       </section>
 
@@ -400,16 +423,6 @@ export function ResourceMarketplacePage() {
                       {quiz.subject} teacher
                     </small>
                   </div>
-                  <span
-                    className={cn(
-                      "ml-auto grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 transition-colors",
-                      active
-                        ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
-                        : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-transparent"
-                    )}
-                  >
-                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                  </span>
                 </div>
 
                 <h3 className="mt-4 line-clamp-2 min-h-[2.5em] text-[19px] font-extrabold leading-[1.25] tracking-[-0.02em] text-[var(--qs-ink)]">

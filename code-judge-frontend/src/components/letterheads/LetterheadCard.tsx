@@ -101,7 +101,7 @@ export function LetterheadCard({
             aria-label="Upgrade to use this letterhead"
           >
             <span className="inline-flex items-center rounded-full border-2 border-white bg-black/35 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em]">
-              Pro required
+              Paid plan required
             </span>
           </button>
         )}

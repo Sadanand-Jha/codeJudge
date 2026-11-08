@@ -323,10 +323,13 @@ two-page PDF, PNG, DOCX, and rejection of content over the branding area.
 | `docs/problem-page-flow.md` | Problem page architecture & backend integration |
 | `docs/quiz-visibility-system.md` | Quiz visibility, access control, permissions |
 | `docs/complete-problems-flow.md` | Complete problems flow documentation |
-| `code-judge-backend/QUIZ_CREATION_FLOW.md` | Quiz creation backend flow |
-| `code-judge-backend/REGISTRATION_FLOW.md` | User registration flow |
-| `code-judge-backend/QUIZ_MODULE_BACKEND.md` | Quiz module backend docs |
-| `code-judge-backend/AI_FILE_GENERATION_FLOW.md` | AI file generation flow |
+| `code-judge-backend/docs/QUIZ_CREATION_FLOW.md` | Quiz creation backend flow |
+| `code-judge-backend/docs/REGISTRATION_FLOW.md` | User registration flow |
+| `code-judge-backend/docs/QUIZ_MODULE_BACKEND.md` | Quiz module backend docs |
+| `code-judge-backend/docs/AI_FILE_GENERATION_FLOW.md` | AI file generation flow |
+| `code-judge-backend/docs/PLATFORM_PLAN_MANAGEMENT.md` | Managing plans from `/platform` |
+| `code-judge-backend/docs/COUNTRY_WISE_PRICING.md` | Country-wise plan pricing |
+| `code-judge-backend/docs/RAZORPAY_BILLING_FLOW.md` | Razorpay billing backend flow |
 
 ---
 
