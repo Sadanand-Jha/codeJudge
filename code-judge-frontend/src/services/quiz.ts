@@ -994,6 +994,27 @@ export async function getCreatorStats(creatorId: string): Promise<CreatorPublicS
   return response.data;
 }
 
+/** Aggregate-only teacher card for the community "Top teachers" rail. */
+export interface CommunityTopTeacher {
+  id: number;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  quizzes: number;
+  attempts: number;
+}
+
+/**
+ * Teachers whose quizzes have actually been attempted, ranked by total
+ * attempts. Only aggregate data is returned — no student or personal info.
+ */
+export async function getCommunityTopTeachers(limit = 8): Promise<CommunityTopTeacher[]> {
+  const response = await apiClient.get<CommunityTopTeacher[]>("/v1/user/quiz/community/top-teachers", {
+    params: { limit },
+  });
+  return response.data;
+}
+
 // ─────────────────────────────────────────
 // Quiz Analytics API
 // ─────────────────────────────────────────

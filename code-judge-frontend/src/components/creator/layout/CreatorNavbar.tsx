@@ -114,6 +114,7 @@ function ProfileMenu() {
 export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuToggle?: () => void }) {
   const { state: creditState, balance: creditBalance } = useCreditState();
   const empty = creditState === "empty";
+  const low = creditState === "low";
   const unknown = creditState === "unknown";
 
   return (
@@ -147,14 +148,16 @@ export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuTogg
           aria-label={
             empty
               ? "0 AI credits left. Buy credits."
-              : unknown
-                ? "AI credit balance loading."
-                : `${creditBalance} AI credits left. Buy more.`
+              : low
+                ? `${creditBalance} AI credits left. Running low, buy credits.`
+                : unknown
+                  ? "AI credit balance loading."
+                  : `${creditBalance} AI credits left. Buy more.`
           }
           data-credit-chip={creditState}
           className={cn(
             "mr-0.5 inline-flex shrink-0 items-center gap-1 rounded-full border-2 px-2 py-1 text-[10px] font-bold tabular-nums transition-colors sm:text-[11px]",
-            empty
+            low
               ? "border-[var(--qs-credit-chip-border)] bg-[var(--qs-credit-chip-bg)] text-[var(--qs-credit-chip-text)] hover:brightness-[0.98]"
               : "border-[var(--qs-sun)] bg-[var(--qs-sun)]/25 text-[var(--qs-ink)] hover:bg-[var(--qs-sun)]/45"
           )}

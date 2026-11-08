@@ -71,7 +71,7 @@ export function DateTimeField({
           onChange={(e) => onTimeChange(e.target.value)}
           disabled={disabled}
           className={cn(
-            "w-28 rounded-[12px] border-2 bg-[var(--qs-surface)] px-3 py-2 text-sm font-medium text-[var(--qs-ink)] outline-none transition-colors",
+            "w-36 shrink-0 rounded-[12px] border-2 bg-[var(--qs-surface)] px-2.5 py-2 text-sm font-medium tabular-nums text-[var(--qs-ink)] outline-none transition-colors",
             error
               ? "border-[var(--qs-bad)]/50"
               : "border-[var(--qs-line)] focus:border-[var(--qs-brand)]",

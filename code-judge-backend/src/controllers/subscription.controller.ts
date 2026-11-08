@@ -24,6 +24,7 @@ export const getMySubscription = async (req: Request, res: Response) => {
         status: entitlements.status,
         isPaid: entitlements.isPaid,
         antiCheatAvailable: entitlements.isPaid && entitlements.values.anti_cheat === true,
+        emailResponsesAvailable: entitlements.isPaid && entitlements.values.email_responses === true,
         startedAt: entitlements.startedAt,
         currentPeriodStart: entitlements.currentPeriodStart,
         currentPeriodEnd: entitlements.currentPeriodEnd,

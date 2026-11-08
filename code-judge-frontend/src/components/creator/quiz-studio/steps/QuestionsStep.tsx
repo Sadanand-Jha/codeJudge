@@ -21,6 +21,7 @@ import { QuestionList } from "../components/QuestionList";
 import { QuestionEditor } from "../components/QuestionEditor";
 import { LiveRail } from "../components/LiveRail";
 import { AiGenerateModal } from "../components/AiGenerateModal";
+import { PlansUpsellModal } from "../components/PlansUpsellModal";
 import { StudentPreviewModal } from "../components/StudentPreviewModal";
 import { useStudio } from "../StudioProvider";
 import { Plus, ListChecks, Settings2, ChevronLeft, ChevronRight, Eye, Download } from "lucide-react";
@@ -36,10 +37,15 @@ import { MobileQuestionSettingsSheet } from "../components/mobile/MobileQuestion
 import { AiStreamText } from "@/components/ui";
 import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
 import { MobileQuestionEditor } from "../components/mobile/MobileQuestionEditor";
+import { useMySubscription } from "@/hooks/useMySubscription";
 
 export function QuestionsStep() {
   const { state, addQuestion, importQuestionsAndSave, setActiveQuestion, questionsLoading } = useStudio();
+  const { subscription, isLoading: subscriptionLoading } = useMySubscription();
+  const aiLocked = !subscriptionLoading && subscription?.isPaid !== true;
   const [aiOpen, setAiOpen] = useState(false);
+  const [aiPlansOpen, setAiPlansOpen] = useState(false);
+  const [aiPlansMounted, setAiPlansMounted] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [generatedPdfCode, setGeneratedPdfCode] = useState("");
@@ -70,6 +76,15 @@ export function QuestionsStep() {
       setPdfOpening(false);
     }
   }, [pdfCode]);
+
+  const openAiGenerator = useCallback(() => {
+    if (aiLocked) {
+      setAiPlansMounted(true);
+      setAiPlansOpen(true);
+      return;
+    }
+    setAiOpen(true);
+  }, [aiLocked]);
 
   const handleAiQuestions = async (questions: CreatorQuestion[]) => {
     await importQuestionsAndSave(questions);
@@ -147,7 +162,7 @@ export function QuestionsStep() {
               size="sm"
               label="AI"
               ariaLabel="AI Generate"
-              onClick={() => setAiOpen(true)}
+              onClick={openAiGenerator}
               className="shrink-0"
             />
             <button
@@ -232,7 +247,7 @@ export function QuestionsStep() {
                 <AiGenerateButton
                   size="md"
                   label="Generate with AI"
-                  onClick={() => setAiOpen(true)}
+                  onClick={openAiGenerator}
                   fullWidth
                   className="rounded-[14px] px-5 py-3 text-sm"
                 />
@@ -250,7 +265,7 @@ export function QuestionsStep() {
               size="md"
               label="AI"
               ariaLabel="AI Generate"
-              onClick={() => setAiOpen(true)}
+              onClick={openAiGenerator}
               className="flex-1 px-4 py-3"
             />
             <button
@@ -269,7 +284,7 @@ export function QuestionsStep() {
           onClose={() => setMobileBankOpen(false)}
           onAiGenerate={() => {
             setMobileBankOpen(false);
-            setAiOpen(true);
+            openAiGenerator();
           }}
         />
         <MobileQuestionSettingsSheet open={mobileSettingsOpen} onClose={() => setMobileSettingsOpen(false)} />
@@ -283,7 +298,7 @@ export function QuestionsStep() {
         className="hidden min-h-0 min-w-0 shrink-0 flex-col gap-3 min-[900px]:flex min-[900px]:flex-row min-[1240px]:h-[calc(100dvh-13rem)]"
       >
         <aside className="min-h-0 shrink-0 min-[1024px]:sticky min-[1024px]:top-3 min-[900px]:w-[280px] min-[900px]:self-start min-[1240px]:w-[290px]">
-          <QuestionList onAiGenerate={() => setAiOpen(true)} onDownloadPdf={openPdfModal} />
+          <QuestionList onAiGenerate={openAiGenerator} onDownloadPdf={openPdfModal} />
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 min-[1240px]:h-full">
@@ -316,7 +331,7 @@ export function QuestionsStep() {
                   <AiGenerateButton
                     size="md"
                     label="Generate with AI"
-                    onClick={() => setAiOpen(true)}
+                    onClick={openAiGenerator}
                     className="rounded-[14px] px-5 py-2.5 text-sm"
                   />
                 </div>
@@ -347,6 +362,14 @@ export function QuestionsStep() {
         quizId={state.serverQuizId ?? null}
         currentQuestionCount={state.questions.length}
       />
+
+      {aiPlansMounted && (
+        <PlansUpsellModal
+          preset="ai"
+          open={aiPlansOpen}
+          onClose={() => setAiPlansOpen(false)}
+        />
+      )}
 
       {studentPreviewOpen && (
         <StudentPreviewModal

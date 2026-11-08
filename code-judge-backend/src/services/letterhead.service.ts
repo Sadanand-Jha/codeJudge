@@ -18,7 +18,6 @@ import {
 
 export type LetterheadFormat = "pdf" | "png" | "jpg" | "jpeg";
 
-export const CUSTOM_HEADER_PLAN_SLUGS = new Set(["pro", "institute"]);
 export const LETTERHEAD_MAX_BYTES = 10 * 1024 * 1024;
 const DEFAULT_MAX_LETTERHEADS = 4;
 const ALLOWED_FORMATS: LetterheadFormat[] = ["pdf", "png", "jpg", "jpeg"];
@@ -134,13 +133,14 @@ export function isOwnedPublicId(publicId: unknown, userId: number | string): boo
   return value.startsWith(`${letterheadFolder(userId)}/`);
 }
 
-export function isCustomHeaderPlan(isPaid: boolean, planSlug: string | null | undefined): boolean {
-  return Boolean(isPaid && planSlug && CUSTOM_HEADER_PLAN_SLUGS.has(planSlug));
+/** Custom headers are included with every paid plan. */
+export function isCustomHeaderPlan(isPaid: boolean): boolean {
+  return isPaid;
 }
 
 export async function canUseCustomHeader(userId: number | string): Promise<boolean> {
   const entitlements = await getEntitlements(userId);
-  return isCustomHeaderPlan(entitlements.isPaid, entitlements.planSlug);
+  return isCustomHeaderPlan(entitlements.isPaid);
 }
 
 export async function requireCustomHeaderAccess(userId: number | string): Promise<void> {
@@ -148,7 +148,7 @@ export async function requireCustomHeaderAccess(userId: number | string): Promis
   throw new LetterheadError(
     403,
     "PLAN_UPGRADE_REQUIRED",
-    "Custom letterheads are available on the Pro plan.",
+    "Custom letterheads are available on paid plans.",
     "/pricing"
   );
 }

@@ -830,7 +830,7 @@ export default function PdfConfigModal({
                       {isPro ? (
                         <span className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em] text-[#1a1240]">
                           <Crown className="h-3 w-3" />
-                          Pro
+                          Paid
                         </span>
                       ) : (
                         <button
@@ -839,7 +839,7 @@ export default function PdfConfigModal({
                           className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--qs-line)] px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)]/50 hover:text-[var(--qs-brand)]"
                         >
                           <Lock className="h-3 w-3" />
-                          Pro feature
+                          Paid feature
                         </button>
                       )}
                     </div>
@@ -857,12 +857,12 @@ export default function PdfConfigModal({
                         ...letterheads.map((header) => ({
                           value: String(header.id),
                           label: `${header.name}${header.isDefault ? " (default)" : ""}${
-                            !isPro ? " — Pro required" : ""
+                            !isPro ? " — Paid plan required" : ""
                           }`,
                         })),
                         {
                           value: "add",
-                          label: isPro ? "Add new header" : "Add new header (Pro)",
+                          label: isPro ? "Add new header" : "Add new header (Paid)",
                           action: true,
                         icon: <Plus className="h-3.5 w-3.5" />,
                         },

@@ -271,6 +271,10 @@ export class QuizService {
     return this.repository.getCreatorPublicStats(creatorId);
   }
 
+  async getCommunityTopTeachers(limit = 8) {
+    return this.repository.getCommunityTopTeachers(limit);
+  }
+
   async getQuizCrowdAvatars(quizId: number) {
     return this.repository.getQuizCrowdAvatars(quizId);
   }

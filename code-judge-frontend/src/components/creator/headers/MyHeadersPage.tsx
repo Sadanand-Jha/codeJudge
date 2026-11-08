@@ -16,7 +16,7 @@ import { LETTERHEAD_MAX_PER_USER } from "@/config/letterheads";
 import { canUseCustomHeader } from "@/lib/planAccess";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { toast } from "@/lib/toast";
-import { showCustomHeaderUpgrade } from "@/lib/customHeaderUpgrade";
+import { PlansUpsellModal } from "@/components/creator/quiz-studio/components/PlansUpsellModal";
 import {
   LETTERHEADS_CHANGED_EVENT,
   deleteLetterhead,
@@ -39,7 +39,9 @@ interface EditingHeader {
 
 export function MyHeadersPage() {
   const { subscription, isLoading: planLoading } = useMySubscription();
-  const isPro = canUseCustomHeader(subscription);
+  const hasHeaderAccess = canUseCustomHeader(subscription);
+  const [plansOpen, setPlansOpen] = useState(false);
+  const [plansMounted, setPlansMounted] = useState(false);
   const [data, setData] = useState<LetterheadListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,9 +100,14 @@ export function MyHeadersPage() {
   const usage = data?.usage;
   const atLimit = Boolean(usage && usage.count >= usage.max);
 
+  const openPlans = () => {
+    setPlansMounted(true);
+    setPlansOpen(true);
+  };
+
   const openUpload = () => {
-    if (!isPro) {
-      showCustomHeaderUpgrade();
+    if (!hasHeaderAccess) {
+      openPlans();
       return;
     }
     if (atLimit) {
@@ -114,8 +121,8 @@ export function MyHeadersPage() {
   };
 
   const setDefault = async (letterhead: Letterhead) => {
-    if (!isPro) {
-      showCustomHeaderUpgrade();
+    if (!hasHeaderAccess) {
+      openPlans();
       return;
     }
     if (letterhead.isDefault) return;
@@ -251,7 +258,7 @@ export function MyHeadersPage() {
               <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Paper Headers</h1>
               <span className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-brand)]">
                 <Crown className="h-3 w-3" />
-                Pro
+                Paid
               </span>
             </div>
             <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--qs-on-brand)]/85 sm:text-base">
@@ -277,14 +284,14 @@ export function MyHeadersPage() {
         </div>
       </header>
 
-      {!planLoading && !isPro && (
+      {!planLoading && !hasHeaderAccess && (
         <div className="flex flex-col justify-between gap-3 rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] p-4 text-[#1a1240] sm:flex-row sm:items-center">
           <div className="flex items-start gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] border-2 border-[#1a1240] bg-white/60">
               <Lock className="h-5 w-5" />
             </span>
             <div>
-              <p className="text-sm font-extrabold">Custom letterheads are a Pro feature</p>
+              <p className="text-sm font-extrabold">Custom letterheads are included with paid plans</p>
               <p className="mt-0.5 text-xs font-semibold opacity-80">
                 Your saved headers stay safe. Upgrade to add, adjust or use them again.
               </p>
@@ -292,11 +299,11 @@ export function MyHeadersPage() {
           </div>
           <button
             type="button"
-            onClick={() => showCustomHeaderUpgrade()}
+            onClick={openPlans}
             className="b sm shrink-0 gap-1.5 border-[#1a1240] bg-[#fccf0a] text-white"
           >
             <Crown className="h-4 w-4" />
-            Upgrade to Pro
+            View paid plans
           </button>
         </div>
       )}
@@ -330,8 +337,8 @@ export function MyHeadersPage() {
             place it on the A4 page.
           </p>
           <button type="button" onClick={openUpload} className="b b-pri mx-auto mt-5 gap-1.5">
-            {isPro ? <CloudUpload className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-            {isPro ? "Upload your first header" : "Unlock with Pro"}
+            {hasHeaderAccess ? <CloudUpload className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+            {hasHeaderAccess ? "Upload your first header" : "Unlock with a paid plan"}
           </button>
         </div>
       ) : (
@@ -340,7 +347,7 @@ export function MyHeadersPage() {
             <LetterheadCard
               key={letterhead.id}
               letterhead={letterhead}
-              locked={!isPro}
+              locked={!hasHeaderAccess}
               busy={savingId === letterhead.id}
               onSetDefault={() => void setDefault(letterhead)}
               onAdjust={() =>
@@ -352,7 +359,7 @@ export function MyHeadersPage() {
               }
               onRename={() => setRenaming({ letterhead, name: letterhead.name })}
               onDelete={() => setDeleting(letterhead)}
-              onUpgrade={() => showCustomHeaderUpgrade()}
+              onUpgrade={openPlans}
             />
           ))}
         </div>
@@ -482,6 +489,14 @@ export function MyHeadersPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {plansMounted && (
+        <PlansUpsellModal
+          preset="headers"
+          open={plansOpen}
+          onClose={() => setPlansOpen(false)}
+        />
       )}
     </div>
   );

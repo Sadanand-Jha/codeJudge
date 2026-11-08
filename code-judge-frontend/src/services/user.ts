@@ -17,6 +17,7 @@ export interface MySubscription {
   status: "trialing" | "active" | "past_due" | "paused" | "canceled" | "expired" | "free";
   isPaid: boolean;
   antiCheatAvailable: boolean;
+  emailResponsesAvailable: boolean;
   startedAt: string | null;
   currentPeriodStart: string | null;
   currentPeriodEnd: string | null;

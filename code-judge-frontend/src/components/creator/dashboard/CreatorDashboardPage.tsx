@@ -515,20 +515,20 @@ function LiveQuizCard({ quiz, onChangeTiming }: { quiz: QuizRow; onChangeTiming:
 
 function LowFuelStrip() {
   const { state } = useCreditState();
-  if (state !== "empty") return null;
+  if (state !== "low") return null;
 
   return (
     <section
       role="status"
       aria-live="polite"
-      data-credit-warning="empty"
+      data-credit-warning="low"
       className="flex flex-col gap-3 rounded-[18px] border-2 border-[var(--qs-credit-strip-border)] bg-[var(--qs-credit-strip-bg)] px-4 py-3 text-[var(--qs-credit-strip-text)] sm:flex-row sm:items-center"
     >
       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-[var(--qs-credit-chip-border)] bg-[var(--qs-credit-card)]">
         <TriangleAlert className="h-4 w-4" strokeWidth={2.5} />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-extrabold leading-5">Your tank is empty. Refuel your credits.</p>
+        <p className="text-[13px] font-extrabold leading-5">Your fuel is running low. Top up your credits.</p>
         <p className="text-[12px] font-medium leading-5">Credits stay valid for 6 months from purchase.</p>
       </div>
       <div className="flex flex-wrap gap-2 sm:shrink-0">
@@ -558,8 +558,10 @@ function CreditsCard() {
   const { state, expiresAt } = useCreditState();
   const remaining = balance.totalRemaining;
   const empty = state === "empty";
-  const low =
+  const low = state === "low";
+  const runningLow =
     !empty &&
+    !low &&
     checkLowCreditWarning(remaining, balance.monthlyAllowance || remaining || 1);
   const { catalog } = usePricingCatalog();
   const validityMonths =
@@ -585,10 +587,10 @@ function CreditsCard() {
 
   return (
     <article
-      data-credit-card={empty ? "empty" : "ok"}
+      data-credit-card={low ? "low" : empty ? "empty" : "ok"}
       className={cn(
         "flex h-full flex-col rounded-[24px] border-2 p-6 sm:p-8",
-        empty
+        low
           ? "border-[var(--qs-credit-chip-border)] bg-[var(--qs-credit-card)]"
           : "border-[var(--qs-ink)] bg-[var(--qs-surface)]"
       )}
@@ -596,12 +598,12 @@ function CreditsCard() {
       <span
         className={cn(
           "grid h-14 w-14 place-items-center rounded-full border-2",
-          empty
+          low
             ? "border-[var(--qs-credit-chip-border)] bg-[var(--qs-credit-card)] text-[var(--qs-credit-chip-text)]"
             : "border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]"
         )}
       >
-        {empty ? <Fuel className="h-6 w-6" strokeWidth={2.5} /> : <Sparkles className="h-7 w-7" strokeWidth={2} />}
+        {empty || low ? <Fuel className="h-6 w-6" strokeWidth={2.5} /> : <Sparkles className="h-7 w-7" strokeWidth={2} />}
       </span>
       <p className="mt-5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1 leading-none">
         <span className="qs-display text-[56px] font-extrabold leading-none tracking-[-0.02em] text-[var(--qs-ink)]">{remaining}</span>
@@ -610,9 +612,11 @@ function CreditsCard() {
       <p className="mt-2.5 text-[15px] leading-6 text-[var(--qs-muted)]">
         {empty
           ? "Your tank is empty. Buy credits to keep generating with AI."
-          : validityMonths
-            ? `Valid ${validityMonths} months from purchase.`
-            : "One-time credits, valid from purchase."}
+          : low
+            ? "Your tank is running low. Top up before it runs out."
+            : validityMonths
+              ? `Valid ${validityMonths} months from purchase.`
+              : "One-time credits, valid from purchase."}
       </p>
 
       <div className="mt-4">
@@ -631,10 +635,10 @@ function CreditsCard() {
       </div>
 
       {expiryHint && (
-        <p className="mt-2 text-[12px] font-semibold text-[var(--qs-credit-chip-text)]">{expiryHint}</p>
+        <p className="mt-2 text-[12px] font-semibold text-[var(--qs-warn)]">{expiryHint}</p>
       )}
 
-      {low && !expiryHint && (
+      {runningLow && !expiryHint && (
         <div className="mt-3.5 flex items-start gap-2.5 rounded-2xl border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/20 p-3">
           <span className="mt-0.5 text-[var(--qs-ink)]">
             <TriangleAlert className="h-4 w-4" />
@@ -812,9 +816,17 @@ function NeedsAttentionPanel({ quizzes }: { quizzes: QuizRow[] }) {
 
     if (creditState === "empty") {
       list.push({
-        tone: "warn",
+        tone: "bad",
         label: "Credits",
         text: "AI credits have run out. Buy a pack to keep generating with AI.",
+        href: "/creator/billing/credits",
+        cta: "Buy credits",
+      });
+    } else if (creditState === "low") {
+      list.push({
+        tone: "warn",
+        label: "Credits",
+        text: "AI credits are running low. Top up to keep generating with AI.",
         href: "/creator/billing/credits",
         cta: "Buy credits",
       });

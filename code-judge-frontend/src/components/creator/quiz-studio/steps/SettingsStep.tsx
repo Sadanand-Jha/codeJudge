@@ -3,7 +3,22 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Check, ChevronDown, Copy, Eye, KeyRound, RefreshCw, ShieldCheck, Shuffle } from "lucide-react";
+import {
+  AlertTriangle,
+  AppWindow,
+  ArrowRight,
+  Check,
+  ChevronDown,
+  Copy,
+  Eye,
+  KeyRound,
+  Lock,
+  Maximize,
+  RefreshCw,
+  ShieldCheck,
+  Shuffle,
+  Sparkles,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
@@ -12,6 +27,7 @@ import { regenerateQuizCode } from "@/services/quiz";
 import { useStudio } from "../StudioProvider";
 import { StudioStepHeader, StudioStepLayout, SwitchField } from "../primitives";
 import { TimingSection } from "../components/timing";
+import { PlansUpsellModal } from "../components/PlansUpsellModal";
 
 const GROUPS: Array<{ id: string; label: string; icon: LucideIcon; fields: SettingField[]; comingSoon?: boolean; alwaysOn?: boolean }> = [
   {
@@ -29,19 +45,6 @@ const GROUPS: Array<{ id: string; label: string; icon: LucideIcon; fields: Setti
     icon: Eye,
     fields: [
       { key: "showResultsImmediately", label: "Show results", description: "Students can see the marks obtained in their attempt" },
-    ],
-  },
-  {
-    id: "security",
-    label: "Security",
-    icon: ShieldCheck,
-    fields: [
-      {
-        key: "antiCheatEnabled",
-        label: "Anti-cheat mode",
-        description: "Fullscreen, tab-switch detection and copy protection. Available on paid plans.",
-        requiresPaid: true,
-      },
     ],
   },
 ];
@@ -87,6 +90,14 @@ export function SettingsStep() {
             />
           </motion.div>
         ))}
+
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 + GROUPS.length * 0.06 }}
+        >
+          <SecurityCard antiCheatAvailable={antiCheatAvailable} />
+        </motion.div>
       </div>
     </StudioStepLayout>
   );
@@ -212,6 +223,200 @@ export function QuizCodeCard() {
   );
 }
 
+const ANTI_CHEAT_FEATURES: Array<{ icon: LucideIcon; title: string; description: string }> = [
+  { icon: Maximize, title: "Fullscreen lock", description: "Students stay inside the quiz" },
+  { icon: AppWindow, title: "Tab-switch detection", description: "Know when someone leaves the tab" },
+  { icon: Copy, title: "Copy protection", description: "Question text cannot be copied" },
+];
+
+function SecurityPreview() {
+  return (
+    <div
+      aria-hidden="true"
+      className="relative hidden w-[300px] flex-none flex-col min-[900px]:flex min-[1240px]:w-[340px]"
+    >
+      <div className="relative min-h-[300px] flex-1 overflow-hidden rounded-[18px] border-2 border-[#1a1033] bg-[radial-gradient(circle_at_25%_15%,#4a1fb8,#2a0f7a_70%)]">
+        <div className="absolute -right-[26px] -top-[26px] h-[100px] w-[100px] rounded-full bg-[#ffc72c]" />
+        <div className="absolute -bottom-[34px] -left-[30px] h-[110px] w-[110px] rounded-full border-[12px] border-[#ff6fb1]" />
+        <span className="qs-student-view-label absolute left-[14px] top-[14px] rounded-full bg-white/15 px-[9px] py-1 text-[10px] font-extrabold tracking-[0.08em] text-white">
+          STUDENT VIEW
+        </span>
+        <div className="absolute left-1/2 top-1/2 w-[76%] -translate-x-1/2 -translate-y-[46%] rounded-[14px] border-2 border-[#1a1033] bg-white p-3">
+          <div className="flex items-center justify-between gap-2 text-[11px] font-bold text-[#5b5470]">
+            Question 4 of 10
+            <span className="flex items-center gap-1 text-[#5b2ee8]">
+              <ShieldCheck className="h-[15px] w-[15px]" />
+              Anti-cheat on
+            </span>
+          </div>
+          <div className="mb-2 mt-2.5 h-2 w-4/5 rounded-[4px] bg-[#e4ddf7]" />
+          <div className="mb-1.5 h-[22px] rounded-[8px] border-2 border-[#e4ddf7]" />
+          <div className="h-[22px] rounded-[8px] border-2 border-[#5b2ee8] bg-[#f1ecff]" />
+        </div>
+        <div className="absolute bottom-3 right-3 flex items-center gap-2 rounded-[12px] border-2 border-[#1a1033] bg-[#fff3d6] px-3 py-[9px] text-xs font-bold text-[#8a4b00] shadow-[3px_3px_0_#1a1033]">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>
+            Tab switch detected
+            <span className="block text-[11px] font-semibold">Return to your quiz</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SecurityCard({ antiCheatAvailable }: { antiCheatAvailable: boolean }) {
+  const { state, updateSettings } = useStudio();
+  const [open, setOpen] = useState(true);
+  const [plansOpen, setPlansOpen] = useState(false);
+  const [plansMounted, setPlansMounted] = useState(false);
+  const locked = !antiCheatAvailable;
+  const enabled = state.settings.antiCheatEnabled === true;
+
+  const openPlans = () => {
+    setPlansMounted(true);
+    setPlansOpen(true);
+  };
+
+  return (
+    <section
+      aria-label="Security"
+      className="min-w-0 overflow-hidden rounded-[20px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]"
+    >
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-3 px-[22px] py-[18px] text-left"
+      >
+        <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[11px] border-2 border-[var(--qs-ink)] bg-[var(--qs-poly-1)] text-[var(--qs-brand)]">
+          <ShieldCheck className="h-[18px] w-[18px]" />
+        </span>
+        <span className="min-w-0 text-base font-extrabold text-[var(--qs-ink)]">Security</span>
+        <ChevronDown
+          className={cn(
+            "ml-auto h-[18px] w-[18px] shrink-0 text-[var(--qs-ink)] transition-transform",
+            open && "rotate-180"
+          )}
+        />
+      </button>
+
+      {open && (
+        <div className="flex gap-6 px-[22px] pb-[22px]">
+          <div className="flex min-w-0 flex-1 flex-col gap-[14px]">
+            <div className="flex flex-wrap items-center gap-[10px]">
+              <span className="text-[19px] font-extrabold leading-tight text-[var(--qs-ink)]">
+                Anti-cheat mode
+              </span>
+              {locked && (
+                <span className="inline-flex items-center gap-[5px] rounded-full bg-[var(--qs-ink)] px-[9px] py-1 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#ffc72c]">
+                  <Sparkles className="h-3 w-3" />
+                  Paid plans
+                </span>
+              )}
+              {locked ? (
+                <button
+                  type="button"
+                  onClick={openPlans}
+                  aria-label="Upgrade to enable anti-cheat mode"
+                  className="ml-auto flex h-7 w-[50px] flex-none items-center rounded-full border-2 border-[#8b849c] bg-[#e4e0ee] p-0.5 transition-transform hover:-translate-y-px active:translate-y-0"
+                >
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#8b849c] text-white">
+                    <Lock className="h-[11px] w-[11px]" />
+                  </span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={enabled}
+                  aria-label="Anti-cheat mode"
+                  onClick={() => updateSettings({ antiCheatEnabled: !enabled })}
+                  className={cn(
+                    "ml-auto flex h-7 w-[50px] flex-none items-center rounded-full border-2 p-0.5 transition-colors",
+                    enabled
+                      ? "border-[var(--qs-ink)] bg-[var(--qs-ok)]"
+                      : "border-[#8b849c] bg-[#e4e0ee]"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex h-5 w-5 items-center justify-center rounded-full transition-transform",
+                      enabled
+                        ? "translate-x-[22px] bg-[var(--qs-surface)] text-[var(--qs-ok)]"
+                        : "bg-[#8b849c] text-white"
+                    )}
+                  >
+                    {enabled ? (
+                      <Check className="h-[11px] w-[11px]" strokeWidth={3} />
+                    ) : (
+                      <Lock className="h-[11px] w-[11px]" />
+                    )}
+                  </span>
+                </button>
+              )}
+            </div>
+
+            <p className="text-sm leading-normal text-[var(--qs-muted)]">
+              {locked
+                ? "Keep every attempt fair. Available on paid plans, so upgrade to switch it on."
+                : "Keep every attempt fair. Fullscreen, tab-switch detection and copy protection are ready for this quiz."}
+            </p>
+
+            <div className="flex flex-col gap-3">
+              {ANTI_CHEAT_FEATURES.map(({ icon: Icon, title, description }) => (
+                <div key={title} className="flex items-center gap-3">
+                  <span className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-[12px] border-2 border-[var(--qs-poly-3)] bg-[var(--qs-poly-1)] text-[var(--qs-brand)]">
+                    <Icon className="h-[18px] w-[18px]" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-bold text-[var(--qs-ink)]">{title}</span>
+                    <span className="block text-[13px] text-[var(--qs-muted)]">{description}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {locked && (
+              <>
+                <div className="mt-1 flex flex-wrap items-center gap-[10px]">
+                  <button
+                    type="button"
+                    onClick={openPlans}
+                    className="inline-flex min-h-12 items-center justify-center gap-[10px] rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] py-0 pl-4 pr-2.5 text-sm font-extrabold text-[var(--qs-ink)] shadow-[3px_3px_0_var(--qs-ink)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#ffd650] hover:shadow-[5px_5px_0_var(--qs-ink)] focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-[3px] focus-visible:outline-[var(--qs-brand)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+                  >
+                    <Sparkles className="h-[18px] w-[18px]" />
+                    Unlock anti-cheat
+                    <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-[var(--qs-ink)] text-[var(--qs-sun)]">
+                      <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+                    </span>
+                  </button>
+                  <Link
+                    href="/creator/billing/plans"
+                    className="inline-flex min-h-11 items-center px-2 text-[13px] font-bold text-[var(--qs-brand)] underline underline-offset-2"
+                  >
+                    Compare plans
+                  </Link>
+                </div>
+              </>
+            )}
+          </div>
+
+          <SecurityPreview />
+        </div>
+      )}
+
+      {plansMounted && (
+        <PlansUpsellModal
+          preset="anti-cheat"
+          open={plansOpen}
+          onClose={() => setPlansOpen(false)}
+        />
+      )}
+    </section>
+  );
+}
+
 function SettingGroup({
   label,
   icon: Icon,
@@ -283,6 +488,8 @@ function SettingGroup({
 
 function Field({ field, antiCheatAvailable }: { field: SettingField; antiCheatAvailable: boolean }) {
   const { state, updateSettings } = useStudio();
+  const [plansOpen, setPlansOpen] = useState(false);
+  const [plansMounted, setPlansMounted] = useState(false);
   const value = (state.settings as unknown as Record<string, unknown>)[field.key];
   const locked = field.requiresPaid === true && !antiCheatAvailable;
   const disabled = locked && !value;
@@ -331,12 +538,23 @@ function Field({ field, antiCheatAvailable }: { field: SettingField; antiCheatAv
         disabled={disabled}
       />
       {disabled && (
-        <Link
-          href="/pricing"
-          className="mb-2 inline-flex items-center rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2 py-1 text-[11px] font-extrabold text-[var(--qs-brand)] transition-colors hover:border-[var(--qs-brand)]"
+        <button
+          type="button"
+          onClick={() => {
+            setPlansMounted(true);
+            setPlansOpen(true);
+          }}
+          className="mb-2 inline-flex items-center rounded-[10px] border-2 border-[var(--qs-poly-3)] bg-[var(--qs-poly-1)] px-3 py-2 text-[12px] font-bold text-[var(--qs-brand)] transition-colors hover:border-[var(--qs-brand)]"
         >
           View paid plans
-        </Link>
+        </button>
+      )}
+      {locked && plansMounted && (
+        <PlansUpsellModal
+          preset="anti-cheat"
+          open={plansOpen}
+          onClose={() => setPlansOpen(false)}
+        />
       )}
     </div>
   );

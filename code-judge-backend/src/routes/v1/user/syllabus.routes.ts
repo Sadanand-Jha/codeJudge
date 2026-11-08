@@ -5,7 +5,6 @@ import multer from "multer";
 import { authenticate } from "../../../middleware/auth.ts";
 import { requireAiCredits } from "../../../middleware/requireAiCredits.ts";
 import { requireActiveAiUser } from "../../../middleware/requireActiveAiUser.ts";
-import { requireTeacher } from "../../../middleware/requireTeacher.ts";
 import {
   createCustomSyllabus,
   deleteCustomSyllabus,
@@ -86,23 +85,22 @@ const uploadSyllabus = (req: Request, res: Response, next: NextFunction) => {
 router.use(authenticate);
 
 router.get("/search", searchCustomSyllabus);
-router.get("/import/cost", requireTeacher, getSyllabusImportCost);
+router.get("/import/cost", getSyllabusImportCost);
 router.post(
   "/import",
-  requireTeacher,
   requireActiveAiUser,
   requireAiCredits,
   uploadSyllabus,
   startCustomSyllabusImport
 );
-router.get("/import/:jobId/stream", requireTeacher, streamCustomSyllabusImport);
-router.get("/import/:jobId", requireTeacher, getCustomSyllabusImportJob);
+router.get("/import/:jobId/stream", streamCustomSyllabusImport);
+router.get("/import/:jobId", getCustomSyllabusImportJob);
 
-router.get("/", requireTeacher, listCustomSyllabi);
-router.post("/", requireTeacher, createCustomSyllabus);
+router.get("/", listCustomSyllabi);
+router.post("/", createCustomSyllabus);
 router.get("/:id", getCustomSyllabus);
-router.put("/:id", requireTeacher, updateCustomSyllabus);
-router.patch("/:id/rename", requireTeacher, renameCustomSyllabus);
-router.delete("/:id", requireTeacher, deleteCustomSyllabus);
+router.put("/:id", updateCustomSyllabus);
+router.patch("/:id/rename", renameCustomSyllabus);
+router.delete("/:id", deleteCustomSyllabus);
 
 export default router;

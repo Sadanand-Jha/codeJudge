@@ -35,6 +35,7 @@ import {
   getQuizRating,
   submitQuizRating,
   getCreatorStats,
+  getCommunityTopTeachers,
   getQuizLeaderboard,
   getQuizCrowd,
   getQuizAnalytics,
@@ -138,6 +139,10 @@ router.post("/:quizId/rating", validate(quizRatingSchema), submitQuizRating);
 
 // Public creator card for the join page (aggregate-only, no personal info).
 router.get("/creator/:creatorId/stats", getCreatorStats);
+
+// Community "Top teachers": only creators whose quizzes were attempted,
+// ranked by total attempts. Must stay above the generic `/:quizId` route.
+router.get("/community/top-teachers", getCommunityTopTeachers);
 
 // GET /api/v1/user/quiz/:quizId — get a single quiz
 router.get("/:quizId", getQuizById);

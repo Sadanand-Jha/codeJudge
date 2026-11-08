@@ -362,6 +362,10 @@ export function TimingSection({
                     onChange={handleScheduleChange}
                     manualStatus={manual.status}
                     validationErrors={validationErrors}
+                    quizId={quizId}
+                    onEnded={() =>
+                      handleManualChange({ status: "ended", endedAt: new Date().toISOString() })
+                    }
                   />
                 </motion.div>
               ) : (

@@ -1,6 +1,6 @@
-import { LOW_CREDIT_THRESHOLD } from "@/config/aiCredits";
+import { LOW_CREDIT_MAX, LOW_CREDIT_MIN, LOW_CREDIT_THRESHOLD } from "@/config/aiCredits";
 
-export type CreditState = "ok" | "empty" | "unknown";
+export type CreditState = "ok" | "low" | "empty" | "unknown";
 export type CreditBalanceStatus = "idle" | "loading" | "ready" | "error";
 
 export interface NormalizedCreditSnapshot {
@@ -39,7 +39,10 @@ export function creditStateFromSnapshot({
   if (!hasSnapshot) return "unknown";
   if (balance === null || balance === undefined) return "unknown";
   if (status === "ready" && !Number.isFinite(Number(balance))) return "unknown";
-  return normalizeCredits(balance) <= LOW_CREDIT_THRESHOLD ? "empty" : "ok";
+  const credits = normalizeCredits(balance);
+  if (credits <= LOW_CREDIT_THRESHOLD) return "empty";
+  if (credits >= LOW_CREDIT_MIN && credits <= LOW_CREDIT_MAX) return "low";
+  return "ok";
 }
 
 function parseExpiry(value: string | null | undefined): number | null {
