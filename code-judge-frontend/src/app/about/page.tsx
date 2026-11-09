@@ -1,6 +1,9 @@
 import Link from "next/link";
 import {
+  ArrowRight,
   ArrowUpRight,
+  Check,
+  Sparkles,
   Binary,
   Boxes,
   Braces,
@@ -13,7 +16,6 @@ import {
   MapPin,
   Network,
   Server,
-  Sparkles,
   Terminal,
   Trophy,
   Users,
@@ -21,8 +23,12 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import ThemeToggle from "@/components/ui/ThemeToggle";
 import { SecureLogo } from "@/components/common/SecureLogo";
+import { LandingPageShell } from "@/components/marketing/landing/LandingPageShell";
+import LandingIllustration from "@/components/marketing/landing/LandingIllustration";
+import LandingReveal from "@/components/marketing/landing/LandingReveal";
+import { LandingClosingCta } from "@/components/marketing/landing/LandingSections";
+import LpHeader from "@/components/marketing/landing/LpHeader";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
 
 export const metadata = buildPublicPageMetadata({
@@ -92,170 +98,206 @@ function LinkedInMark({ className = "" }: { className?: string }) {
   );
 }
 
+const ABOUT_LINKS = [
+  { label: "Features", href: "#features" },
+  { label: "Developer", href: "#developer" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "Contact", href: "/contact" },
+];
+
 export default function AboutPage() {
   return (
-    <div className="qs-ui qs-lp min-h-screen">
-      <nav aria-label="Main">
-        <div className="wrap">
-          <Link href="/" aria-label="QuizSupport home">
-            <SecureLogo size={42} variant="full" rounded={false} className="logo" />
-          </Link>
-          <div className="nl">
-            <Link href="/">Home</Link>
-            <ThemeToggle variant="icon" />
-            <Link href="/creator/quizzes/create" className="btn sm pri">
-              Create a quiz
-            </Link>
-          </div>
-        </div>
-      </nav>
+    <LandingPageShell>
+      <LpHeader links={ABOUT_LINKS} />
 
       <main id="top">
-        <header className="wrap pg-top">
-          <p className="eb">About QuizSupport</p>
-          <h1>One platform for the whole quiz</h1>
-          <p className="pg-lead">
-            QuizSupport is an online quiz platform for creating quizzes, sharing
-            them with an access code and getting instant results on any device —
-            with AI-assisted question generation and live leaderboards built in.
-          </p>
-          <div className="pg-meta">
-            <span className="pl ok">Live quizzes</span>
-            <span className="pl blue">AI-assisted creation</span>
-            <span className="pl mu">Instant results</span>
-          </div>
-        </header>
+        <div className="landing-page-wrap">
+          <section className="landing-hero about-hero" aria-labelledby="about-title" data-reveal>
+            <div className="landing-hero-aurora" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+              <i />
+            </div>
+            <div className="landing-hero-copy">
+              <span className="landing-eyebrow">
+                <Sparkles size={15} aria-hidden />
+                About QuizSupport
+              </span>
+              <h1 id="about-title">
+                One platform for the <span className="landing-hero-gradient-word">whole quiz</span>.
+              </h1>
+              <p>
+                QuizSupport is an online quiz platform for creating quizzes, sharing them with an
+                access code and getting instant results on any device, with AI-assisted question
+                generation and live leaderboards built in.
+              </p>
+              <div className="landing-hero-actions">
+                <Link className="landing-button landing-button-primary" href="/creator/quizzes/create">
+                  Create your first paper <ArrowRight size={17} aria-hidden />
+                </Link>
+                <Link className="landing-button landing-button-outline" href="/pricing">
+                  See pricing
+                </Link>
+              </div>
+              <ul className="pricing-hero-meta landing-pricing-meta" aria-label="Highlights">
+                <li>
+                  <Check size={14} aria-hidden />
+                  Live quizzes
+                </li>
+                <li>
+                  <Sparkles size={14} aria-hidden />
+                  AI-assisted creation
+                </li>
+                <li>
+                  <Trophy size={14} aria-hidden />
+                  Instant results
+                </li>
+              </ul>
+            </div>
 
-        <section className="s">
-          <div className="wrap">
-            <p className="eb">What it does</p>
-            <h2 className="t">Everything a quiz needs, in one place</h2>
-            <div className="fg">
+            <div className="landing-hero-art-wrap">
+              <div className="landing-fan-card landing-fan-card-yellow" aria-hidden="true" />
+              <div className="landing-fan-card landing-fan-card-rose" aria-hidden="true" />
+              <div className="landing-hero-panel">
+                <div className="landing-panel-intro">
+                  <span className="landing-panel-label">
+                    <Sparkles size={14} aria-hidden />
+                    What it does
+                  </span>
+                  <h2>Everything a quiz needs.</h2>
+                  <p>Write, share, and review from one place.</p>
+                </div>
+                <ul className="pricing-glance-list">
+                  {FEATURES.map((feature) => {
+                    const Icon = feature.icon;
+                    return (
+                      <li key={feature.title}>
+                        <span>{feature.title}</span>
+                        <Icon size={16} aria-hidden />
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+              <LandingIllustration variant="hero" />
+            </div>
+            <p className="landing-hero-caption">Built for teachers, students and quiz makers.</p>
+          </section>
+
+          <section className="landing-section about-features" id="features" data-reveal>
+            <div className="landing-section-heading">
+              <span className="landing-eyebrow">What it does</span>
+              <h2>Everything a quiz needs, in one place.</h2>
+              <p>From the first question to the final leaderboard.</p>
+            </div>
+            <div className="about-feature-grid">
               {FEATURES.map((feature) => {
                 const Icon = feature.icon;
                 return (
-                  <div className="fc" key={feature.title}>
-                    <i>
-                      <Icon size={20} />
-                    </i>
+                  <article className="about-feature-card" key={feature.title}>
+                    <span className="about-feature-icon">
+                      <Icon size={22} strokeWidth={2} aria-hidden />
+                    </span>
                     <h3>{feature.title}</h3>
                     <p>{feature.desc}</p>
-                  </div>
+                  </article>
                 );
               })}
             </div>
-          </div>
-        </section>
+          </section>
 
-        <section className="s">
-          <div className="wrap ab-dev">
-            <figure className="ab-photo">
-              <img
-                src="/images/quiz/image7.png"
-                alt="Sadanand Jha, developer of QuizSupport"
-              />
-              <figcaption className="ab-tag">Developer of QuizSupport</figcaption>
-            </figure>
+          <section className="landing-section about-developer" id="developer" data-reveal>
+            <div className="about-dev-grid">
+              <figure className="about-dev-photo">
+                <img src="/images/quiz/image7.png" alt="Sadanand Jha, developer of QuizSupport" />
+                <figcaption>Developer of QuizSupport</figcaption>
+              </figure>
 
-            <div>
-              <p className="eb">About the developer</p>
-              <h2 className="t">Built by Sadanand Jha</h2>
-              <p className="ab-bio">
-                QuizSupport is designed, engineered and maintained by Sadanand
-                Jha — a software developer turning ambitious ideas into
-                intelligent products, combining AI workflows, contest-grade
-                problem solving and backend systems built to survive the real
-                world. When a teacher reports a bug or a student hits a rough
-                edge, feedback lands with the person who writes the code.
-              </p>
+              <div className="about-dev-copy">
+                <span className="landing-eyebrow">About the developer</span>
+                <h2>Built by Sadanand Jha</h2>
+                <p>
+                  QuizSupport is designed, engineered and maintained by Sadanand Jha — a software
+                  developer turning ambitious ideas into intelligent products, combining AI workflows,
+                  contest-grade problem solving and backend systems built to survive the real world.
+                  When a teacher reports a bug or a student hits a rough edge, feedback lands with the
+                  person who writes the code.
+                </p>
 
-              <div className="ab-facts">
-                {FACTS.map((fact) => {
-                  const Icon = fact.icon;
-                  return (
-                    <span className="pl mu" key={fact.label}>
-                      <Icon size={12} />
-                      {fact.label}
-                    </span>
-                  );
-                })}
-              </div>
+                <div className="about-chips">
+                  {FACTS.map((fact) => {
+                    const Icon = fact.icon;
+                    return (
+                      <span key={fact.label}>
+                        <Icon size={12} aria-hidden />
+                        {fact.label}
+                      </span>
+                    );
+                  })}
+                </div>
 
-              <div className="ab-stack" aria-label="Technologies">
-                {STACK.map((tech) => {
-                  const Icon = tech.icon;
-                  return (
-                    <span key={tech.name}>
-                      <Icon size={13} style={{ color: tech.color }} />
-                      {tech.name}
-                    </span>
-                  );
-                })}
-              </div>
+                <div className="about-stack" aria-label="Technologies">
+                  {STACK.map((tech) => {
+                    const Icon = tech.icon;
+                    return (
+                      <span key={tech.name}>
+                        <Icon size={13} style={{ color: tech.color }} aria-hidden />
+                        {tech.name}
+                      </span>
+                    );
+                  })}
+                </div>
 
-              <div className="ab-actions">
-                <Link className="btn pri" href="/meet-the-developer">
-                  Meet the developer <ArrowUpRight size={16} />
-                </Link>
-                <a
-                  className="ab-soc"
-                  href="https://github.com/Sadanand-Jha"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="GitHub"
-                >
-                  <GitHubMark className="h-[18px] w-[18px]" />
-                </a>
-                <a
-                  className="ab-soc"
-                  href="https://www.linkedin.com/in/sadanand-jha/"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="LinkedIn"
-                >
-                  <LinkedInMark className="h-[18px] w-[18px]" />
-                </a>
+                <div className="about-dev-actions">
+                  <Link className="landing-button landing-button-primary" href="/meet-the-developer">
+                    Meet the developer <ArrowUpRight size={16} aria-hidden />
+                  </Link>
+                  <a
+                    className="about-social"
+                    href="https://github.com/Sadanand-Jha"
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="GitHub"
+                  >
+                    <GitHubMark className="h-[18px] w-[18px]" />
+                  </a>
+                  <a
+                    className="about-social"
+                    href="https://www.linkedin.com/in/sadanand-jha/"
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="LinkedIn"
+                  >
+                    <LinkedInMark className="h-[18px] w-[18px]" />
+                  </a>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        <section className="s" style={{ borderTop: 0 }}>
-          <div className="wrap">
-            <div className="cta">
-              <h2>Your first quiz takes about five minutes.</h2>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <Link className="btn" href="/creator/quizzes/create">
-                  Create a quiz
-                </Link>
-                <a
-                  className="btn"
-                  href="#top"
-                  style={{
-                    background: "transparent",
-                    color: "var(--on-brand)",
-                    borderColor: "var(--on-brand)",
-                  }}
-                >
-                  Join with a code
-                </a>
-              </div>
-            </div>
-          </div>
-        </section>
+          <LandingClosingCta />
+        </div>
       </main>
 
-      <footer>
-        <div className="wrap">
-          <SecureLogo size={34} variant="full" rounded={false} className="logo" />
-          <div className="fl">
+      <footer className="landing-footer">
+        <div className="landing-page-wrap landing-footer-inner">
+          <Link href="/" aria-label="QuizSupport home">
+            <SecureLogo size={34} variant="full" rounded={false} />
+          </Link>
+          <nav aria-label="Footer">
+            <Link href="/">Home</Link>
+            <Link href="/pricing">Pricing</Link>
             <Link href="/about">About</Link>
             <Link href="/contact">Contact</Link>
-            <Link href="/privacy">Privacy Policy</Link>
-            <Link href="/quiz">Quizzes</Link>
-          </div>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/quiz">Student quizzes</Link>
+          </nav>
+          <span>Thoughtful quizzes for every classroom.</span>
         </div>
       </footer>
-    </div>
+
+      <LandingReveal />
+    </LandingPageShell>
   );
 }

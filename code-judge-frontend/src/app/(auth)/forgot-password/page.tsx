@@ -20,10 +20,10 @@ import { OtpInput } from "@/components/auth/OtpInput";
 const AUTH_PRIMARY_BUTTON = "b b-pri b-lg b-full group min-h-12";
 
 const INPUT_CLASS =
-  "h-[50px] w-full rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] pl-11 pr-4 text-[15px] font-medium text-[var(--qs-ink)] outline-none transition-[border-color,box-shadow] placeholder:text-[#8b86a8] focus:border-[var(--qs-brand)] focus:ring-4 focus:ring-[var(--qs-brand)]/15";
+  "h-[3.125rem] w-full rounded-[0.875rem] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] pl-11 pr-4 text-[0.9375rem] font-medium text-[var(--qs-ink)] outline-none transition-[border-color,box-shadow] placeholder:text-[#8b86a8] focus:border-[var(--qs-brand)] focus:ring-4 focus:ring-[var(--qs-brand)]/15";
 
 const LABEL_CLASS =
-  "mb-2 block text-[11.5px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]";
+  "mb-2 block text-[0.71875rem] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]";
 
 type Step = "email" | "verify" | "reset";
 
@@ -258,7 +258,7 @@ export default function ForgotPasswordPage() {
       }
     >
       <div className="mb-5 flex items-center justify-between gap-4">
-        <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[var(--qs-muted)]">
+        <span className="text-[0.625rem] font-extrabold uppercase tracking-[0.14em] text-[var(--qs-muted)]">
           Step {stepNumber} of 3
         </span>
         <div
@@ -292,7 +292,7 @@ export default function ForgotPasswordPage() {
                   Account email
                 </label>
                 <div className="relative">
-                  <Mail className="pointer-events-none absolute left-[15px] top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)]" />
+                  <Mail className="pointer-events-none absolute left-[0.9375rem] top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)]" />
                   <input
                     id="reset-email"
                     type="email"
@@ -383,7 +383,7 @@ export default function ForgotPasswordPage() {
                   New password
                 </label>
                 <div className="relative">
-                  <Lock className="pointer-events-none absolute left-[15px] top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)]" />
+                  <Lock className="pointer-events-none absolute left-[0.9375rem] top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)]" />
                   <input
                     id="reset-password"
                     type={showPassword ? "text" : "password"}
@@ -406,7 +406,7 @@ export default function ForgotPasswordPage() {
                     tabIndex={-1}
                     onClick={() => setShowPassword((v) => !v)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-[10px] text-[var(--qs-muted)] transition-colors hover:text-[var(--qs-brand)] focus-visible:outline-none"
+                    className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-[0.625rem] text-[var(--qs-muted)] transition-colors hover:text-[var(--qs-brand)] focus-visible:outline-none"
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
@@ -421,7 +421,7 @@ export default function ForgotPasswordPage() {
                   Confirm new password
                 </label>
                 <div className="relative">
-                  <Lock className="pointer-events-none absolute left-[15px] top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)]" />
+                  <Lock className="pointer-events-none absolute left-[0.9375rem] top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)]" />
                   <input
                     id="reset-confirm-password"
                     type={showConfirmPassword ? "text" : "password"}
@@ -449,7 +449,7 @@ export default function ForgotPasswordPage() {
                     tabIndex={-1}
                     onClick={() => setShowConfirmPassword((v) => !v)}
                     aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                    className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-[10px] text-[var(--qs-muted)] transition-colors hover:text-[var(--qs-brand)] focus-visible:outline-none"
+                    className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-[0.625rem] text-[var(--qs-muted)] transition-colors hover:text-[var(--qs-brand)] focus-visible:outline-none"
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="h-5 w-5" />

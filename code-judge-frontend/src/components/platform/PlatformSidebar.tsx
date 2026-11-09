@@ -226,7 +226,7 @@ export function PlatformSidebarDrawer({ open, onClose, healthOk }: { open: boole
   return (
     <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Platform navigation">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden="true" />
-      <aside className="absolute left-0 top-0 h-[100dvh] w-[min(280px,calc(100vw-2rem))] border-r-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
+      <aside className="absolute left-0 top-0 h-dvh max-h-dvh w-[min(17.5rem,calc(100vw-2rem))] border-r-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
         <SidebarBody onNavigate={onClose} healthOk={healthOk} />
       </aside>
     </div>

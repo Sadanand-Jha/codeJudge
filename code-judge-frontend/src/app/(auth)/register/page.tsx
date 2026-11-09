@@ -50,7 +50,7 @@ function RegisterContent() {
 
   if (!hasHydrated) {
     return (
-      <div className="qs-ui flex min-h-screen items-center justify-center">
+      <div className="qs-ui flex min-h-dvh items-center justify-center">
         <AuthLoader />
       </div>
     );
@@ -80,7 +80,7 @@ export default function RegisterPage() {
   return (
     <Suspense
       fallback={
-        <div className="qs-ui flex min-h-screen items-center justify-center">
+        <div className="qs-ui flex min-h-dvh items-center justify-center">
           <AuthLoader />
         </div>
       }

@@ -32,10 +32,10 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
 };
 
 const INPUT_CLASS =
-  "h-[50px] w-full rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] pl-11 pr-4 text-[15px] font-medium text-[var(--qs-ink)] outline-none transition-[border-color,box-shadow] placeholder:text-[#8b86a8] focus:border-[var(--qs-brand)] focus:ring-4 focus:ring-[var(--qs-brand)]/15";
+  "h-[3.125rem] w-full rounded-[0.875rem] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] pl-11 pr-4 text-[0.9375rem] font-medium text-[var(--qs-ink)] outline-none transition-[border-color,box-shadow] placeholder:text-[#8b86a8] focus:border-[var(--qs-brand)] focus:ring-4 focus:ring-[var(--qs-brand)]/15";
 
 const LABEL_CLASS =
-  "mb-2 block text-[11.5px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]";
+  "mb-2 block text-[0.71875rem] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]";
 
 function LoginContent() {
   const router = useRouter();
@@ -101,7 +101,7 @@ function LoginContent() {
 
   if (!hasHydrated) {
     return (
-      <div className="qs-ui flex min-h-screen items-center justify-center">
+      <div className="qs-ui flex min-h-dvh items-center justify-center">
         <AuthLoader />
       </div>
     );
@@ -159,18 +159,18 @@ function LoginContent() {
           description: "Build one by hand, encrypted as you save.",
         },
         {
-          icon: <Lock className="h-[18px] w-[18px]" strokeWidth={2.2} />,
+          icon: <Lock className="h-[1.125rem] w-[1.125rem]" strokeWidth={2.2} />,
           title: "Encrypted vault",
           description: "Your key never leaves this device.",
           tone: "dark",
         },
       ]}
     >
-      <span className="mx-auto flex w-max items-center gap-2 rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-poly-1)] px-3.5 py-[7px] text-[11.5px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-brand)]">
+      <span className="mx-auto flex w-max items-center gap-2 rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-poly-1)] px-3.5 py-[0.4375rem] text-[0.71875rem] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-brand)]">
         <Sparkles className="h-3.5 w-3.5" />
         Your AI learning workspace
       </span>
-      <h2 className="mb-1 mt-4 text-center text-[30px] font-extrabold tracking-[-0.035em] text-[var(--qs-ink)]">
+      <h2 className="mb-1 mt-4 text-center text-[clamp(1.75rem,2.5vw,1.875rem)] font-extrabold tracking-[-0.035em] text-[var(--qs-ink)]">
         Welcome back
       </h2>
       <p className="mb-6 text-center text-sm text-[var(--qs-muted)]">
@@ -181,8 +181,8 @@ function LoginContent() {
         <label htmlFor="login-identifier" className={LABEL_CLASS}>
           Email or username
         </label>
-        <div className="relative mb-[18px]">
-          <AtSign className="pointer-events-none absolute left-[15px] top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)]" />
+        <div className="relative mb-[1.125rem]">
+          <AtSign className="pointer-events-none absolute left-[0.9375rem] top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)]" />
           <input
             id="login-identifier"
             type="text"
@@ -206,8 +206,8 @@ function LoginContent() {
         <label htmlFor="login-password" className={LABEL_CLASS}>
           Password
         </label>
-        <div className="relative mb-[18px]">
-          <Lock className="pointer-events-none absolute left-[15px] top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)]" />
+        <div className="relative mb-[1.125rem]">
+          <Lock className="pointer-events-none absolute left-[0.9375rem] top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)]" />
           <input
             id="login-password"
             type={showPassword ? "text" : "password"}
@@ -228,7 +228,7 @@ function LoginContent() {
             onClick={() => setShowPassword((visible) => !visible)}
             aria-label={showPassword ? "Hide password" : "Show password"}
             aria-pressed={showPassword}
-            className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-[10px] text-[var(--qs-muted)] transition-colors hover:text-[var(--qs-brand)] focus-visible:outline-none"
+            className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-[0.625rem] text-[var(--qs-muted)] transition-colors hover:text-[var(--qs-brand)] focus-visible:outline-none"
           >
             {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
           </button>
@@ -265,18 +265,18 @@ function LoginContent() {
       <div className="my-5 h-0.5 bg-[var(--qs-line)]" />
 
       <div className="grid gap-2.5 min-[420px]:grid-cols-2">
-        <Link href="/forgot-password" className="b b-full group min-h-[46px] text-[14px]">
+        <Link href="/forgot-password" className="b b-full group min-h-[2.875rem] text-[0.875rem]">
           <KeyRound className="h-4 w-4 transition-transform group-hover:-rotate-6" /> Reset password
         </Link>
         <Link
           href={registerHref}
-          className="b b-full group min-h-[46px] text-[14px]"
+          className="b b-full group min-h-[2.875rem] text-[0.875rem]"
         >
           <UserPlus className="h-4 w-4 transition-transform group-hover:scale-110" /> Create account
         </Link>
       </div>
 
-      <p className="mt-5 flex items-center justify-center gap-2 text-center text-[12.5px] leading-relaxed text-[var(--qs-muted)]">
+      <p className="mt-5 flex items-center justify-center gap-2 text-center text-[0.78125rem] leading-relaxed text-[var(--qs-muted)]">
         <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--qs-ok)]" />
         Questions are encrypted in your browser before they reach our servers.
       </p>
@@ -288,7 +288,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="qs-ui flex min-h-screen items-center justify-center">
+        <div className="qs-ui flex min-h-dvh items-center justify-center">
           <AuthLoader />
         </div>
       }

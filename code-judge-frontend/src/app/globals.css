@@ -507,7 +507,7 @@ body {
   background: var(--background);
   color: var(--text-primary);
   font-family: var(--font-onest), "Onest", -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 14px;
+  font-size: 1rem;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -523,10 +523,28 @@ h6 {
 }
 
 html {
+  font-size: clamp(14px, 0.35vw + 10px, 18px);
   min-height: 100%;
   height: auto;
   overflow-x: clip;
   overflow-y: visible;
+}
+
+/* Tailwind's `screen` height utilities otherwise use the older, fixed 100vh
+   unit. Keep those full-page states reachable on short laptop viewports. */
+.min-h-screen {
+  min-height: 100dvh;
+}
+
+.h-screen {
+  height: auto;
+  min-height: 100dvh;
+}
+
+/* Shared fluid page container for route-level content. */
+.page-container {
+  width: min(92%, 75rem);
+  margin-inline: auto;
 }
 
 /* The sidebar is a fixed-width compositor layer. Keep all three positions in
@@ -790,7 +808,7 @@ html.theme-transition .student-quiz-theme *::after {
 /* Problem HTML renderer */
 .problem-html {
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.7;
   max-width: 100%;
   overflow-x: auto;
@@ -803,7 +821,7 @@ html.theme-transition .student-quiz-theme *::after {
 .problem-html ul,
 .problem-html ol {
   margin: 0.6em 0;
-  padding-left: 24px;
+  padding-left: 1.5rem;
 }
 
 .problem-html li {
@@ -823,9 +841,9 @@ html.theme-transition .student-quiz-theme *::after {
   font-family: "Consolas", "Courier New", monospace;
   background: rgba(124, 58, 237, 0.1);
   color: #7C3AED;
-  padding: 2px 6px;
-  border-radius: 6px;
-  font-size: 12px;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
   border: 1px solid rgba(124, 58, 237, 0.15);
 }
 
@@ -842,11 +860,11 @@ html.theme-transition .student-quiz-theme *::after {
 }
 
 .problem-html pre {
-  padding: 14px 18px;
+  padding: 0.875rem 1.125rem;
   overflow-x: auto;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 0.75rem;
   margin: 0.8em 0;
   max-width: 100%;
   box-sizing: border-box;
@@ -858,7 +876,7 @@ html.theme-transition .student-quiz-theme *::after {
   padding: 0;
   border-radius: 0;
   border: none;
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .problem-html table {
@@ -869,7 +887,7 @@ html.theme-transition .student-quiz-theme *::after {
 .problem-html th,
 .problem-html td {
   border: 1px solid var(--border);
-  padding: 8px 12px;
+  padding: 0.5rem 0.75rem;
   color: var(--text-secondary);
 }
 
@@ -957,10 +975,10 @@ html.theme-transition .student-quiz-theme *::after {
 /* Select dropdown */
 select.cf-select {
   font-family: inherit;
-  font-size: 12px;
+  font-size: 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 10px;
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.625rem;
   background: var(--card);
   color: var(--text-primary);
   outline: none;
@@ -969,10 +987,10 @@ select.cf-select {
 /* Button */
 button.cf-btn {
   font-family: inherit;
-  font-size: 12px;
+  font-size: 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 18px;
+  border-radius: 0.5rem;
+  padding: 0.375rem 1.125rem;
   background: var(--card);
   color: var(--text-primary);
   cursor: pointer;
@@ -987,7 +1005,7 @@ button.cf-btn:hover {
 .card-premium {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 1rem;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
 }
 
@@ -1452,11 +1470,11 @@ button.cf-btn:hover {
     background-color: #1e1e24;
     color: #ffffff;
     border: 1px solid #2a2a35;
-    border-radius: 6px;
-    padding: 8px 12px;
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
     outline: none;
     font-family: inherit;
-    font-size: 14px;
+    font-size: 0.875rem;
     line-height: 1.5;
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
   }
@@ -1480,9 +1498,9 @@ button.cf-btn:hover {
   select {
     background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6b7b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 10px center;
-    background-size: 12px;
-    padding-right: 32px;
+    background-position: right 0.625rem center;
+    background-size: 0.75rem;
+    padding-right: 2rem;
   }
 
   /* ===== Light Theme Form Element Overrides ===== */
@@ -1495,7 +1513,7 @@ button.cf-btn:hover {
     background-color: #ffffff;
     color: #111827;
     border: 1px solid #E5E7EB;
-    border-radius: 6px;
+    border-radius: 0.375rem;
     color-scheme: light;
   }
 
@@ -1515,8 +1533,8 @@ button.cf-btn:hover {
   [data-theme="light"] select {
     background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 10px center;
-    background-size: 12px;
+    background-position: right 0.625rem center;
+    background-size: 0.75rem;
   }
 }
 
@@ -3642,7 +3660,7 @@ svg {
 .story-viewport {
   position: sticky;
   top: 0;
-  height: 100vh;
+  min-height: 100dvh;
   width: 100%;
   overflow: hidden;
 }
@@ -12859,7 +12877,7 @@ textarea {
   text-decoration: underline;
 }
 .lpx-price-grid {
-  grid-template-columns: repeat(auto-fit,minmax(320px,1fr));
+  grid-template-columns: repeat(auto-fit,minmax(16rem,1fr));
   gap: 40px 44px;
   margin-top: 36px;
   display: grid;
@@ -12982,7 +13000,7 @@ textarea {
   background: #1a1240;
   border: 3px solid var(--qs-ink);
   border-radius: 28px;
-  grid-template-columns: repeat(auto-fit,minmax(300px,1fr));
+  grid-template-columns: repeat(auto-fit,minmax(16rem,1fr));
   align-items: center;
   gap: 28px;
   margin-top: 64px;
@@ -15531,22 +15549,22 @@ textarea {
 }
 
 .landing-hero {
-  padding: clamp(64px, 9vw, 112px) 0 76px;
+  padding: clamp(4rem, 9vw, 7rem) 0 4.75rem;
   background: linear-gradient(180deg, #2a0f7a 0%, #2a0f7a 48%, #ffffff 100%);
   text-align: center;
 }
 
 .landing-hero-copy {
-  width: min(100% - 36px, 900px);
+  width: min(92%, 56.25rem);
   margin-inline: auto;
 }
 
 .landing-eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   color: var(--landing-brand);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 650;
   letter-spacing: 0.075em;
   line-height: 1.4;
@@ -15554,18 +15572,18 @@ textarea {
 }
 
 .landing-hero h1 {
-  max-width: 920px;
-  margin: 20px auto 0 !important;
-  font-size: clamp(42px, 7.3vw, 88px);
+  max-width: 57.5rem;
+  margin: 1.25rem auto 0 !important;
+  font-size: clamp(2.625rem, 7.3vw, 5.5rem);
   font-weight: 450 !important;
   line-height: 0.98;
 }
 
 .landing-hero-copy > p:not(.landing-trial-note) {
-  max-width: 610px;
-  margin: 22px auto 0;
+  max-width: 38.125rem;
+  margin: 1.375rem auto 0;
   color: var(--landing-muted);
-  font-size: clamp(15px, 1.5vw, 17px);
+  font-size: clamp(0.9375rem, 1.5vw, 1.0625rem);
   line-height: 1.65;
 }
 
@@ -15573,20 +15591,20 @@ textarea {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 12px;
-  margin-top: 28px;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
 }
 
 .landing-button {
   display: inline-flex;
-  min-height: 50px;
+  min-height: 3.125rem;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 0 20px;
+  gap: 0.625rem;
+  padding: 0 1.25rem;
   border: 1px solid transparent;
   border-radius: 999px;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
@@ -15611,9 +15629,9 @@ textarea {
 }
 
 .landing-trial-note {
-  margin-top: 15px !important;
+  margin-top: 0.9375rem !important;
   color: var(--landing-muted);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .landing-trial-note a {
@@ -15629,9 +15647,9 @@ textarea {
 
 .landing-hero-art-wrap {
   position: relative;
-  width: min(100% - 48px, 1060px);
-  margin: clamp(50px, 8vw, 86px) auto 0;
-  border-radius: 32px;
+  width: min(92%, 66.25rem);
+  margin: clamp(3.125rem, 8vw, 5.375rem) auto 0;
+  border-radius: 2rem;
   overflow: hidden;
 }
 
@@ -15639,7 +15657,7 @@ textarea {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  border-radius: 32px;
+  border-radius: 2rem;
   background: #2a0f7a;
 }
 
@@ -16226,7 +16244,7 @@ textarea {
 
 .landing-statement-section {
   display: grid;
-  min-height: 100vh;
+  min-height: 100dvh;
   place-items: center;
   padding: 48px 0;
   background: #0e0a1f;
@@ -16263,7 +16281,7 @@ textarea {
   position: relative;
   z-index: 1;
   max-width: 1000px;
-  font-size: clamp(36px, 7vw, 72px);
+  font-size: clamp(2.25rem, 7vw, 4.5rem);
   font-weight: 450;
   letter-spacing: -0.055em;
   line-height: 1.02;
@@ -16290,7 +16308,7 @@ textarea {
 .landing-paper-copy h2 {
   max-width: 11ch;
   margin-top: 14px !important;
-  font-size: clamp(34px, 4.7vw, 56px);
+  font-size: clamp(2.125rem, 4.7vw, 3.5rem);
   font-weight: 450 !important;
   line-height: 1.02;
 }
@@ -16512,7 +16530,7 @@ textarea {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
-  max-width: 1200px;
+  max-width: 75rem;
   margin: 0 auto;
 }
 
@@ -16577,7 +16595,7 @@ textarea {
 
 .landing-plan-price b {
   color: var(--landing-ink);
-  font-size: clamp(27px, 3vw, 36px);
+  font-size: clamp(1.6875rem, 3vw, 2.25rem);
   font-weight: 500;
   letter-spacing: -0.05em;
 }
@@ -17526,10 +17544,10 @@ html.reveal-ready .lpx.landing-redesign [data-reveal].is-revealed {
 }
 
 .landing-statement-section {
-  width: 100vw;
-  min-height: 100vh;
-  margin-inline: calc((100% - 100vw) / 2);
-  padding-inline: max(24px, calc((100vw - 1200px) / 2));
+  width: 100%;
+  min-height: 100dvh;
+  margin-inline: 0;
+  padding-inline: max(1.5rem, calc((100% - 75rem) / 2));
   background: #0e0a1f;
 }
 
@@ -17765,10 +17783,10 @@ html.landing-animations-paused .landing-redesign *::after {
   }
 
   .landing-statement-section {
-    width: 100vw;
-    min-height: 70vh;
-    margin-inline: calc((100% - 100vw) / 2);
-    padding: 58px 24px;
+    width: 100%;
+    min-height: 70dvh;
+    margin-inline: 0;
+    padding: 3.625rem 1.5rem;
   }
 
   .landing-paper-section,
@@ -17849,17 +17867,17 @@ html.landing-animations-paused .landing-redesign *::after {
 .lpx.landing-redesign .landing-faq,
 .lpx.landing-redesign .landing-closing {
   box-sizing: border-box;
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
-  padding-right: max(24px, calc((100vw - 1200px) / 2));
-  padding-left: max(24px, calc((100vw - 1200px) / 2));
+  width: 100%;
+  margin-inline: 0;
+  padding-right: max(1.5rem, calc((100% - 75rem) / 2));
+  padding-left: max(1.5rem, calc((100% - 75rem) / 2));
   border: 0;
   box-shadow: none;
 }
 
 .lpx.landing-redesign .landing-hero {
   z-index: 1;
-  min-height: 100vh;
+  min-height: 100dvh;
   padding-top: clamp(72px, 9vw, 118px);
   padding-bottom: 96px;
   overflow: hidden;
@@ -17924,7 +17942,7 @@ html.landing-animations-paused .landing-redesign *::after {
 .lpx.landing-redesign .landing-audience-grid,
 .lpx.landing-redesign .landing-pricing-grid,
 .lpx.landing-redesign .landing-closing-copy {
-  max-width: 1200px;
+  max-width: 75rem;
   margin-right: auto;
   margin-left: auto;
 }
@@ -18065,7 +18083,7 @@ html.landing-animations-paused .landing-redesign *::after {
 }
 
 .lpx.landing-redesign .landing-workflow {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: #fff;
 }
 
@@ -18317,7 +18335,7 @@ html.landing-animations-paused .landing-redesign *::after {
 .lpx.landing-redesign .landing-statement-section {
   position: relative;
   display: grid;
-  min-height: 100vh;
+  min-height: 100dvh;
   place-items: center;
   overflow: hidden;
   padding-top: calc(48px + 48px);
@@ -19285,9 +19303,9 @@ html.landing-animations-paused .lpx.landing-redesign .landing-art-hero .landing-
   position: relative;
   z-index: 1;
   box-sizing: border-box;
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
-  padding: clamp(64px, 8vw, 100px) max(24px, calc((100vw - 1200px) / 2)) clamp(110px, 13vw, 170px);
+  width: 100%;
+  margin-left: 0;
+  padding: clamp(4rem, 8vw, 6.25rem) max(1.5rem, calc((100% - 75rem) / 2)) clamp(6.875rem, 13vw, 10.625rem);
   overflow: hidden;
   background:
     radial-gradient(circle at 16% 18%, rgba(255, 199, 44, 0.18), transparent 32%),
@@ -19303,9 +19321,9 @@ html.landing-animations-paused .lpx.landing-redesign .landing-art-hero .landing-
 }
 
 .lpx.landing-redesign .pricing-hero h1 {
-  max-width: 900px;
-  margin: 18px auto 0 !important;
-  font-size: clamp(42px, 6.4vw, 74px);
+  max-width: 56.25rem;
+  margin: 1.125rem auto 0 !important;
+  font-size: clamp(2.625rem, 6.4vw, 4.625rem);
   font-weight: 450 !important;
   line-height: 1;
   letter-spacing: -0.045em;
@@ -19319,10 +19337,10 @@ html.landing-animations-paused .lpx.landing-redesign .landing-art-hero .landing-
 }
 
 .pricing-hero-lead {
-  max-width: 620px;
-  margin: 20px auto 0 !important;
+  max-width: 38.75rem;
+  margin: 1.25rem auto 0 !important;
   color: var(--landing-muted);
-  font-size: clamp(15px, 1.5vw, 17px);
+  font-size: clamp(0.9375rem, 1.5vw, 1.0625rem);
   line-height: 1.65;
 }
 
@@ -19362,20 +19380,20 @@ html.landing-animations-paused .lpx.landing-redesign .landing-art-hero .landing-
 }
 
 .lpx.landing-redesign .pricing-plans-heading {
-  max-width: 720px;
+  max-width: 45rem;
   margin-right: auto;
   margin-left: auto;
   text-align: center;
 }
 
 .lpx.landing-redesign .pricing-plans-heading > p {
-  max-width: 640px;
+  max-width: 40rem;
   margin-right: auto;
   margin-left: auto;
 }
 
 .lpx.landing-redesign .pricing-plans .landing-pricing-grid {
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
 }
 
 .lpx.landing-redesign .pricing-plan-card {
@@ -19858,16 +19876,16 @@ html.landing-animations-paused .lpx.landing-redesign .landing-art-hero .landing-
   position: relative;
   z-index: 9;
   box-sizing: border-box;
-  width: 100vw;
+  width: 100%;
   margin-top: -48px;
-  margin-left: calc(50% - 50vw);
-  padding: calc(clamp(72px, 9vw, 118px) + 48px) max(24px, calc((100vw - 1200px) / 2)) clamp(72px, 9vw, 118px);
+  margin-left: 0;
+  padding: calc(clamp(4.5rem, 9vw, 7.375rem) + 3rem) max(1.5rem, calc((100% - 75rem) / 2)) clamp(4.5rem, 9vw, 7.375rem);
   border-radius: 48px 48px 0 0;
   background: #fff;
 }
 
 .pricing-white-inner {
-  width: min(100%, 1200px);
+  width: min(92%, 75rem);
   margin-inline: auto;
 }
 
@@ -19995,4 +20013,349 @@ html.landing-animations-paused .lpx.landing-redesign .landing-art-hero .landing-
   border-color: var(--landing-brand);
   background: var(--landing-bg);
   color: var(--landing-brand) !important;
+}
+
+/* Pricing page: uses the landing hero layout; glance list inside the art panel */
+.pricing-glance-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.9rem;
+  list-style: none;
+}
+.pricing-glance-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border: 2px solid var(--qs-line, #e5e1f5);
+  border-radius: 0.875rem;
+  background: var(--qs-surface, #fff);
+  color: var(--qs-ink, #1a1240);
+  font-weight: 700;
+}
+.pricing-glance-list li b {
+  font-weight: 800;
+  color: var(--qs-brand, #6d4aff);
+}
+
+/* About page: landing layout, feature grid and developer block */
+.about-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1.25rem;
+}
+.about-feature-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: 1.375rem;
+  border: 1px solid #251c47;
+  border-radius: 1.375rem;
+  background: #fff;
+  box-shadow: 5px 5px 0 #ffc72c;
+  color: #1a1240;
+}
+.about-feature-icon {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 2px solid #251c47;
+  border-radius: 0.875rem;
+  background: #ffc72c;
+}
+.about-feature-card h3 {
+  margin: 0.25rem 0 0;
+  font-size: 1.0625rem;
+  font-weight: 800;
+}
+.about-feature-card p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: #5b5478;
+}
+.about-dev-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: 2.5rem;
+}
+.about-dev-photo {
+  margin: 0;
+  position: relative;
+}
+.about-dev-photo img {
+  width: 100%;
+  border: 2px solid #251c47;
+  border-radius: 1.5rem;
+  box-shadow: 8px 8px 0 #ffc72c;
+  object-fit: cover;
+}
+.about-dev-photo figcaption {
+  margin-top: 0.875rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5b5478;
+}
+.about-dev-copy h2 {
+  margin: 0.625rem 0 0.75rem;
+  font-size: clamp(1.75rem, 3.4vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #1a1240;
+}
+.about-dev-copy > p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: #5b5478;
+}
+.about-chips,
+.about-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.125rem;
+}
+.about-chips span,
+.about-stack span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border: 2px solid #e5e1f5;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #1a1240;
+}
+.about-dev-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.375rem;
+}
+.about-social {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 2px solid #251c47;
+  border-radius: 0.875rem;
+  background: #fff;
+  color: #1a1240;
+}
+@media (max-width: 860px) {
+  .about-dev-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* About sections sit directly in main (the landing wrap uses display: contents),
+   so they need their own page gutters and width. */
+.lpx.landing-redesign .about-features,
+.lpx.landing-redesign .about-developer {
+  width: min(92%, 75rem);
+  margin-inline: auto;
+}
+.about-dev-photo img {
+  aspect-ratio: 4 / 5;
+}
+
+/* Pricing sections sit directly in main (landing wrap is display: contents),
+   so the plans section needs its own page gutters. */
+.lpx.landing-redesign .pricing-plans {
+  width: min(92%, 75rem);
+  margin-inline: auto;
+}
+
+/* Credit packs: always lay out side by side, wrapping only when the row is full. */
+.lpx.landing-redesign .landing-pricing-grid.pricing-packs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  align-items: stretch;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+/* Contact & privacy: body sections sit below the landing hero, so they need
+   their own gutters (the landing wrap uses display: contents). */
+.lpx.landing-redesign .contact-body,
+.lpx.landing-redesign .privacy-body {
+  margin-top: 2.5rem;
+  margin-bottom: 2.5rem;
+}
+
+/* Contact page: feedback form and side cards in the landing style */
+.lpx.landing-redesign .contact-body {
+  width: min(92%, 75rem);
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(16rem, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+.lpx.landing-redesign .contact-body .ct-form,
+.lpx.landing-redesign .contact-body .ct-card {
+  border: 2px solid #251c47;
+  border-radius: 1.375rem;
+  background: #fff;
+  box-shadow: 5px 5px 0 #ffc72c;
+  padding: 1.625rem;
+  color: #1a1240;
+}
+.lpx.landing-redesign .contact-body .ct-form h2 {
+  margin: 0 0 0.375rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #1a1240;
+}
+.lpx.landing-redesign .contact-body .ct-sub,
+.lpx.landing-redesign .contact-body .fb-hint,
+.lpx.landing-redesign .contact-body .ct-note {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #5b5478;
+}
+.lpx.landing-redesign .contact-body .fb-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1.125rem 0 0.625rem;
+}
+.lpx.landing-redesign .contact-body .fb-chip {
+  padding: 0.5rem 0.875rem;
+  border: 2px solid #e5e1f5;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #1a1240;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.lpx.landing-redesign .contact-body .fb-chip:hover {
+  border-color: #6d4aff;
+}
+.lpx.landing-redesign .contact-body .fb-chip.on {
+  border-color: #251c47;
+  background: #6d4aff;
+  color: #fff;
+  box-shadow: 3px 3px 0 #ffc72c;
+}
+.lpx.landing-redesign .contact-body .ct-label {
+  display: block;
+  margin: 1rem 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b5478;
+}
+.lpx.landing-redesign .contact-body .ct-field {
+  width: 100%;
+  min-height: 10rem;
+  padding: 0.875rem;
+  border: 2px solid #e5e1f5;
+  border-radius: 1rem;
+  background: #fbfaff;
+  font-size: 0.875rem;
+  color: #1a1240;
+  resize: vertical;
+  outline: none;
+}
+.lpx.landing-redesign .contact-body .ct-field:focus {
+  border-color: #6d4aff;
+}
+.lpx.landing-redesign .contact-body .fb-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.875rem;
+}
+.lpx.landing-redesign .contact-body .fb-count {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #5b5478;
+}
+.lpx.landing-redesign .contact-body .fb-count.warn,
+.lpx.landing-redesign .contact-body .fb-error {
+  color: #c2410c;
+}
+.lpx.landing-redesign .contact-body .btn.pri {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.875rem;
+  padding: 0 1.25rem;
+  border: 2px solid #251c47;
+  border-radius: 0.875rem;
+  background: #6d4aff;
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 3px 3px 0 #ffc72c;
+  cursor: pointer;
+}
+.lpx.landing-redesign .contact-body .btn.pri:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.lpx.landing-redesign .contact-body .ct-side {
+  display: grid;
+  gap: 1.25rem;
+}
+.lpx.landing-redesign .contact-body .ct-ico,
+.lpx.landing-redesign .contact-body .fb-check,
+.lpx.landing-redesign .contact-body .fb-lock {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 2px solid #251c47;
+  border-radius: 0.875rem;
+  background: #ffc72c;
+  color: #1a1240;
+  margin-bottom: 0.75rem;
+}
+.lpx.landing-redesign .contact-body .ct-card h3 {
+  margin: 0 0 0.375rem;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  color: #1a1240;
+}
+.lpx.landing-redesign .contact-body .ct-card p {
+  margin: 0 0 0.875rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: #5b5478;
+}
+.lpx.landing-redesign .contact-body .ct-card .btn.sm {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  min-height: 2.625rem;
+  border: 2px solid #e5e1f5;
+  border-radius: 0.75rem;
+  background: #fff;
+  color: #1a1240;
+  font-weight: 800;
+  text-decoration: none;
+  align-items: center;
+}
+.lpx.landing-redesign .contact-body .ct-card .btn.sm:hover {
+  border-color: #6d4aff;
+}
+@media (max-width: 860px) {
+  .lpx.landing-redesign .contact-body {
+    grid-template-columns: 1fr;
+  }
 }

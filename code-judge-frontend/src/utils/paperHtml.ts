@@ -157,19 +157,33 @@ function protectCompounds(html: string): string {
   return html.replace(/([^\s<>]+-[^\s<>]+)/g, '<span class="nw">$1</span>');
 }
 
-/** Render caret exponents as real superscripts: 2^128 → 2<sup>128</sup>. */
-function renderExponents(html: string): string {
-  return html.replace(/(\d+(?:\.\d+)?)\^(\d+)/g, "$1<sup>$2</sup>");
+/**
+ * Turns plain-text math notation into typeset HTML:
+ *   t^3 → t<sup>3</sup>, sin^-1(x) → sin<sup>-1</sup>(x), 2^(2/3) → 2<sup>2/3</sup>
+ *   f_0 → f<sub>0</sub>, sqrt(2) → √2, 5 * 10 → 5 × 10
+ * Only single-character or short subscripts are converted so words such as
+ * "user_id" are left alone.
+ */
+function renderMath(html: string): string {
+  return html
+    .replace(/sqrt\((\d+(?:\.\d+)?|[a-zA-Z]\w*)\)/g, "√$1")
+    .replace(/sqrt\(([^()]*)\)/g, "√($1)")
+    .replace(/\s\*\s/g, " × ")
+    .replace(/([A-Za-zα-ωΑ-Ω\d])_(\d+|[A-Za-z])(?![A-Za-z\d])/g, "$1<sub>$2</sub>")
+    .replace(
+      /([a-zA-Z]+(?:\.\d+)?|\d+(?:\.\d+)?)\^(-?\d+(?:\/\d+)?|\([^()]*\)|[a-zA-Z]+)/g,
+      (_match, base: string, exp: string) => `${base}<sup>${exp.replace(/^\(|\)$/g, "")}</sup>`
+    );
 }
 
 function normalizeInline(html: string): string {
   const normalized = html
     .replace(/<(\/?)(b|strong|i|em|u|sub|sup|code)(?:\s[^>]*)?>/gi, "<$1$2>")
-    .replace(/<[^>]*>/g, "")
+    .replace(/<(?!\/?(?:b|strong|i|em|u|sub|sup|code)>)[^>]*>/gi, "")
     .replace(/&nbsp;/gi, " ")
     .replace(/<(?!\/?(?:b|strong|i|em|u|sub|sup|code)>)/g, "&lt;")
     .replace(/&(?!amp;|lt;|gt;|nbsp;|quot;|#\d+;)/g, "&amp;");
-  return protectCompounds(renderExponents(normalized));
+  return protectCompounds(renderMath(normalized));
 }
 
 interface CodeSegment {
@@ -579,7 +593,7 @@ ${renderInstructions(meta, questions)}
   const body = questions
     .map((question, index) => renderQuestion(question, index, options, twoColumns))
     .join("");
-  return `<section class="paper${activeHeader ? " has-lh" : ""}">${headerImage}${activeHeader ? `<div class="lh-space" style="height:${spacer}mm"></div>` : ""}${paperHead}<main class="qs${twoColumns ? " two" : ""}">${body}</main><div class="end">End of question paper</div></section>`;
+  return `<section class="paper${activeHeader ? " has-lh" : ""}">${headerImage}${activeHeader ? `<div class="lh-space" style="height:${spacer}mm"></div>` : ""}${paperHead}<main class="qs${twoColumns ? " two" : ""}">${body}</main></section>`;
 }
 
 export function buildPaperBody(input: PaperBuildInput, mode: "print" | "preview" = "print"): string {
@@ -670,7 +684,6 @@ table.tbl th { font-weight: 700; }
 .qimg { margin: 3mm 0 0; text-align: center; break-inside: avoid; }
 .qimg img { max-width: 100%; height: auto; }
 .qimg .cap { margin-top: 1mm; font-size: 9.5pt; font-style: italic; }
-.end { margin: 4mm 0 0; font-size: 9.5pt; font-style: italic; text-align: center; break-before: avoid; }
 .pgbreak { break-before: page; }
 .keypage { break-before: page; }
 .keytitle { margin: 0 0 1mm; font-size: 14pt; font-weight: 700; text-align: center; }

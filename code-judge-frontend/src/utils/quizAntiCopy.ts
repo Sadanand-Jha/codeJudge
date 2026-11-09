@@ -177,7 +177,7 @@ export function injectWatermarkStyles(): void {
       pointer-events: none;
       z-index: 1;
       opacity: 0.06;
-      font-size: 14px;
+      font-size: 0.875rem;
       color: #000;
       line-height: 2;
       transform: rotate(-30deg);
@@ -185,7 +185,7 @@ export function injectWatermarkStyles(): void {
       flex-wrap: wrap;
       align-items: center;
       justify-content: center;
-      gap: 40px;
+      gap: 2.5rem;
       overflow: hidden;
     }
     
@@ -220,13 +220,13 @@ export function injectWatermarkStyles(): void {
     
     .quiz-paused-overlay h2 {
       color: #EC4899;
-      font-size: 24px;
-      margin-bottom: 10px;
+      font-size: 1.5rem;
+      margin-bottom: 0.625rem;
     }
     
     .quiz-paused-overlay p {
       color: #9CA3AF;
-      font-size: 14px;
+      font-size: 0.875rem;
     }
   `;
   

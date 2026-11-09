@@ -147,6 +147,16 @@ const onest = Onest({
   weight: ["400", "500", "600", "700", "800"],
   variable: "--font-onest",
   display: "swap",
+  // Used whenever Onest cannot be loaded (offline, blocked CDN, first paint).
+  fallback: [
+    "-apple-system",
+    "BlinkMacSystemFont",
+    "Segoe UI",
+    "Roboto",
+    "Helvetica Neue",
+    "Arial",
+    "sans-serif",
+  ],
 });
 
 export default function RootLayout({
