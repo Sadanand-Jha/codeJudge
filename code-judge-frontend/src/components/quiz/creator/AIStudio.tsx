@@ -28,6 +28,7 @@ import AIQuestionReviewOverlay, {
 } from "@/components/quiz/creator/AIQuestionReviewOverlay";
 import { QuizRichText } from "@/components/quiz/QuizRichText";
 import { QuestionBankFilters } from "@/components/creator/tests/sections/QuestionBankFilters";
+import Select from "@/components/ui/Select";
 
 /* ============================================
    Types
@@ -1007,7 +1008,7 @@ export default function AIStudio({
                   <Brain className="h-3.5 w-3.5 text-accent" />
                   Bloom's Taxonomy Level
                 </label>
-                <select
+                <Select
                   value={options.bloomsLevel[0] || "understand"}
                   onChange={(e) => setOptions((prev) => ({ ...prev, bloomsLevel: [e.target.value as BloomsLevel] }))}
                   className="w-full rounded-lg border border-border bg-card px-3 py-2 text-[11px] text-text-primary focus:border-accent focus:outline-none"
@@ -1015,7 +1016,7 @@ export default function AIStudio({
                   {Object.entries(BLOOMS_LABELS).map(([key, label]) => (
                     <option key={key} value={key}>{label}</option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               {/* Additional Options */}

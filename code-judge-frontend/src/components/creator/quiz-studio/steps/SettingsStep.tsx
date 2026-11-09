@@ -28,6 +28,7 @@ import { useStudio } from "../StudioProvider";
 import { StudioStepHeader, StudioStepLayout, SwitchField } from "../primitives";
 import { TimingSection } from "../components/timing";
 import { PlansUpsellModal } from "../components/PlansUpsellModal";
+import Select from "@/components/ui/Select";
 
 const GROUPS: Array<{ id: string; label: string; icon: LucideIcon; fields: SettingField[]; comingSoon?: boolean; alwaysOn?: boolean }> = [
   {
@@ -283,23 +284,73 @@ function SecurityCard({ antiCheatAvailable }: { antiCheatAvailable: boolean }) {
       aria-label="Security"
       className="min-w-0 overflow-hidden rounded-[20px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]"
     >
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        aria-expanded={open}
-        className="flex w-full items-center gap-3 px-[22px] py-[18px] text-left"
-      >
-        <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[11px] border-2 border-[var(--qs-ink)] bg-[var(--qs-poly-1)] text-[var(--qs-brand)]">
-          <ShieldCheck className="h-[18px] w-[18px]" />
-        </span>
-        <span className="min-w-0 text-base font-extrabold text-[var(--qs-ink)]">Security</span>
-        <ChevronDown
-          className={cn(
-            "ml-auto h-[18px] w-[18px] shrink-0 text-[var(--qs-ink)] transition-transform",
-            open && "rotate-180"
-          )}
-        />
-      </button>
+      <div className="flex w-full items-center gap-3 px-[22px] py-[18px]">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        >
+          <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[11px] border-2 border-[var(--qs-ink)] bg-[var(--qs-poly-1)] text-[var(--qs-brand)]">
+            <ShieldCheck className="h-[18px] w-[18px]" />
+          </span>
+          <span className="min-w-0 text-base font-extrabold text-[var(--qs-ink)]">Security</span>
+        </button>
+
+        {locked ? (
+          <button
+            type="button"
+            onClick={openPlans}
+            aria-label="Upgrade to enable anti-cheat mode"
+            className="flex h-7 w-[50px] flex-none items-center rounded-full border-2 border-[#8b849c] bg-[#e4e0ee] p-0.5 transition-transform hover:-translate-y-px active:translate-y-0"
+          >
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#8b849c] text-white">
+              <Lock className="h-[11px] w-[11px]" />
+            </span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            role="switch"
+            aria-checked={enabled}
+            aria-label="Anti-cheat mode"
+            onClick={() => updateSettings({ antiCheatEnabled: !enabled })}
+            className={cn(
+              "flex h-7 w-[50px] flex-none items-center rounded-full border-2 p-0.5 transition-colors",
+              enabled
+                ? "border-[var(--qs-ink)] bg-[var(--qs-ok)]"
+                : "border-[#8b849c] bg-[#e4e0ee]"
+            )}
+          >
+            <span
+              className={cn(
+                "flex h-5 w-5 items-center justify-center rounded-full transition-transform",
+                enabled
+                  ? "translate-x-[22px] bg-[var(--qs-surface)] text-[var(--qs-ok)]"
+                  : "bg-[#8b849c] text-white"
+              )}
+            >
+              {enabled ? (
+                <Check className="h-[11px] w-[11px]" strokeWidth={3} />
+              ) : (
+                <Lock className="h-[11px] w-[11px]" />
+              )}
+            </span>
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+          aria-label={open ? "Collapse security settings" : "Expand security settings"}
+          className="flex h-7 w-7 flex-none items-center justify-center text-[var(--qs-ink)]"
+        >
+          <ChevronDown
+            className={cn("h-[18px] w-[18px] transition-transform", open && "rotate-180")}
+          />
+        </button>
+      </div>
 
       {open && (
         <div className="flex gap-6 px-[22px] pb-[22px]">
@@ -313,47 +364,6 @@ function SecurityCard({ antiCheatAvailable }: { antiCheatAvailable: boolean }) {
                   <Sparkles className="h-3 w-3" />
                   Paid plans
                 </span>
-              )}
-              {locked ? (
-                <button
-                  type="button"
-                  onClick={openPlans}
-                  aria-label="Upgrade to enable anti-cheat mode"
-                  className="ml-auto flex h-7 w-[50px] flex-none items-center rounded-full border-2 border-[#8b849c] bg-[#e4e0ee] p-0.5 transition-transform hover:-translate-y-px active:translate-y-0"
-                >
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#8b849c] text-white">
-                    <Lock className="h-[11px] w-[11px]" />
-                  </span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={enabled}
-                  aria-label="Anti-cheat mode"
-                  onClick={() => updateSettings({ antiCheatEnabled: !enabled })}
-                  className={cn(
-                    "ml-auto flex h-7 w-[50px] flex-none items-center rounded-full border-2 p-0.5 transition-colors",
-                    enabled
-                      ? "border-[var(--qs-ink)] bg-[var(--qs-ok)]"
-                      : "border-[#8b849c] bg-[#e4e0ee]"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "flex h-5 w-5 items-center justify-center rounded-full transition-transform",
-                      enabled
-                        ? "translate-x-[22px] bg-[var(--qs-surface)] text-[var(--qs-ok)]"
-                        : "bg-[#8b849c] text-white"
-                    )}
-                  >
-                    {enabled ? (
-                      <Check className="h-[11px] w-[11px]" strokeWidth={3} />
-                    ) : (
-                      <Lock className="h-[11px] w-[11px]" />
-                    )}
-                  </span>
-                </button>
               )}
             </div>
 
@@ -498,7 +508,7 @@ function Field({ field, antiCheatAvailable }: { field: SettingField; antiCheatAv
     return (
       <div className="flex items-center justify-between py-2.5">
         <span className="text-sm font-medium text-[var(--qs-ink)]">{field.label}</span>
-        <select
+        <Select
           value={String(value)}
           onChange={(e) => updateSettings({ [field.key]: e.target.value })}
           className="rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 py-1 text-xs font-bold text-[var(--qs-ink)] outline-none focus:border-[var(--qs-brand)]"
@@ -508,7 +518,7 @@ function Field({ field, antiCheatAvailable }: { field: SettingField; antiCheatAv
               {o}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
     );
   }

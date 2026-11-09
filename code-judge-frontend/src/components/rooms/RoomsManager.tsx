@@ -31,6 +31,7 @@ import AddStudentsModal from "@/components/quiz/creator/settings/audience/AddStu
 import DuplicateRoomModal from "./DuplicateRoomModal";
 import RoomUpdatesSummary from "./RoomUpdatesSummary";
 import RoomStudentSearch from "./RoomStudentSearch";
+import Select from "@/components/ui/Select";
 
 type FilterTab = "all" | "active" | "archived" | "recent";
 type SortKey = "updated" | "name" | "students";
@@ -385,7 +386,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
               );
             })}
           </div>
-          <select
+          <Select
             value={sort}
             onChange={(e) => setSort(e.target.value as SortKey)}
             aria-label="Sort rooms"
@@ -396,7 +397,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
                 Sort: {s.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         {/* Rooms table */}

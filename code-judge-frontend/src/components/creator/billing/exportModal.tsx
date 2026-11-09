@@ -6,6 +6,7 @@ import { X, FileSpreadsheet, FileText, FileDown, CheckCircle2 } from "lucide-rea
 import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
 import { BillButton, IconButton } from "./ui";
+import Select from "@/components/ui/Select";
 
 const SCOPE_OPTIONS = [
   { id: "transactions", label: "Transactions" },
@@ -137,27 +138,27 @@ export function ExportModal({ open, onClose }: { open: boolean; onClose: () => v
               <div className="mt-2.5 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div>
                   <label className="mb-1.5 block text-[11px] font-medium text-text-muted">Date range</label>
-                  <select value={range} onChange={(e) => setRange(e.target.value)} className="w-full rounded-lg border border-input-border bg-input-bg px-2.5 py-2 text-xs text-text-primary outline-none focus:border-accent">
+                  <Select value={range} onChange={(e) => setRange(e.target.value)} className="w-full rounded-lg border border-input-border bg-input-bg px-2.5 py-2 text-xs text-text-primary outline-none focus:border-accent">
                     {["Today", "Last 7 days", "Last 10 days", "Last 30 days", "This month", "Last month", "Custom range"].map((r) => (
                       <option key={r}>{r}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 <div>
                   <label className="mb-1.5 block text-[11px] font-medium text-text-muted">Product</label>
-                  <select value={product} onChange={(e) => setProduct(e.target.value)} className="w-full rounded-lg border border-input-border bg-input-bg px-2.5 py-2 text-xs text-text-primary outline-none focus:border-accent">
+                  <Select value={product} onChange={(e) => setProduct(e.target.value)} className="w-full rounded-lg border border-input-border bg-input-bg px-2.5 py-2 text-xs text-text-primary outline-none focus:border-accent">
                     {PRODUCT_FILTERS.map((p) => (
                       <option key={p}>{p}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 <div>
                   <label className="mb-1.5 block text-[11px] font-medium text-text-muted">Status</label>
-                  <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full rounded-lg border border-input-border bg-input-bg px-2.5 py-2 text-xs text-text-primary outline-none focus:border-accent">
+                  <Select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full rounded-lg border border-input-border bg-input-bg px-2.5 py-2 text-xs text-text-primary outline-none focus:border-accent">
                     {STATUS_FILTERS.map((s) => (
                       <option key={s}>{s}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
               </div>
 

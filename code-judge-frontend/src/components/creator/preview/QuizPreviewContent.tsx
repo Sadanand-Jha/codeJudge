@@ -259,7 +259,6 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
       onExitPreview={onExitPreview}
       autoEnter
       fullWidth
-      overlapHeader
       hideChrome={isMobile}
     >
       {isMobile ? (

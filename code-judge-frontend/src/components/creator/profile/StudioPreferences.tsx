@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Globe, Languages, Sparkles } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import Select from "@/components/ui/Select";
 
 export function StudioPreferences() {
   const [visibility, setVisibility] = useState<"public" | "private">("public");
@@ -36,7 +37,7 @@ export function StudioPreferences() {
 
         {/* Language */}
         <PrefRow icon={Languages} label="Default Language">
-          <select
+          <Select
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
             className="h-8 rounded-md border border-profile-border bg-profile-surface-elevated px-2.5 text-[13px] text-profile-text-primary outline-none focus:border-profile-accent"
@@ -44,7 +45,7 @@ export function StudioPreferences() {
             <option>English</option>
             <option>Hindi</option>
             <option>Bilingual</option>
-          </select>
+          </Select>
         </PrefRow>
 
         {/* AI Generation */}

@@ -4,7 +4,8 @@ import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Send, Check, BarChart3, Copy, Loader2 } from "lucide-react";
+import { Send, Check, BarChart3, Copy, Loader2, FileText, ListChecks, Clock, Users, IndianRupee, CalendarClock, Flag } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
 import { WhatsAppShareModal } from "@/components/common/WhatsAppShareModal";
 import { buildShareMessage, WhatsAppIcon } from "@/components/creator/common/ShareQuizDialog";
@@ -18,15 +19,15 @@ import { StudioStepLayout } from "../primitives";
 import { formatDateTimeIST } from "../components/timing/helpers";
 import { cn } from "@/lib/helpers";
 
-const TILE_TONES = [
-  { bg: "bg-[var(--qs-brand)]", text: "text-[var(--qs-on-brand)]" },
-  { bg: "bg-[var(--qs-ok)]", text: "text-[var(--qs-on-brand)]" },
-  { bg: "bg-[var(--qs-sun)]", text: "text-[#1a1240]" },
-  { bg: "bg-[var(--qs-bad)]", text: "text-[var(--qs-on-brand)]" },
-  { bg: "bg-[var(--qs-blue)]", text: "text-[var(--qs-on-brand)]" },
-  { bg: "bg-[var(--qs-warn)]", text: "text-[var(--qs-on-brand)]" },
-  { bg: "bg-[var(--qs-ink)]", text: "text-[var(--qs-bg)]" },
-];
+const TILE_TONE_CLASSES = {
+  brand: "bg-[var(--qs-poly-1)] text-[var(--qs-brand)]",
+  blue: "bg-[var(--qs-poly-1)] text-[var(--qs-blue)]",
+  ok: "bg-[var(--qs-okbg)] text-[var(--qs-ok)]",
+  warn: "bg-[var(--qs-warnbg)] text-[var(--qs-warn)]",
+  bad: "bg-[var(--qs-badbg)] text-[var(--qs-bad)]",
+} as const;
+
+type TileTone = keyof typeof TILE_TONE_CLASSES;
 
 function buildJoinLink(code: string): string {
   const normalized = code.replace(/\s+/g, "");
@@ -96,25 +97,33 @@ export function PublishStep({
   };
 
   const isScheduled = state.info.quizLifecycle === "scheduled";
-  const rows: Array<{ label: string; value: ReactNode }> = [
-    { label: "Title", value: state.info.title || "Untitled Quiz" },
-    { label: "Questions", value: String(summary.questionCount) },
+  const rows: Array<{ label: string; value: ReactNode; icon: LucideIcon; tone: TileTone }> = [
+    { label: "Title", value: state.info.title || "Untitled Quiz", icon: FileText, tone: "brand" },
+    { label: "Questions", value: String(summary.questionCount), icon: ListChecks, tone: "blue" },
     {
       label: "Responses",
       value: isScheduled ? "Open during the scheduled window" : "Open until you end the quiz",
+      icon: Clock,
+      tone: "warn",
     },
-    { label: "Audience", value: state.audience.mode === "classroom" ? "Room" : "Anyone" },
+    { label: "Audience", value: state.audience.mode === "classroom" ? "Room" : "Anyone", icon: Users, tone: "brand" },
     {
       label: "Price",
       value: state.pricing.mode === "paid" ? "₹" + state.pricing.price : "Free",
+      icon: IndianRupee,
+      tone: "ok",
     },
     {
       label: "Start",
       value: state.info.startDate ? formatDateTimeIST(state.info.startDate, "Immediately") : "Immediately",
+      icon: CalendarClock,
+      tone: "ok",
     },
     {
       label: "End",
       value: state.info.endDate ? formatDateTimeIST(state.info.endDate, "Manual") : "Manual",
+      icon: Flag,
+      tone: "bad",
     },
   ];
 
@@ -160,20 +169,31 @@ export function PublishStep({
             </div>
           </div>
 
-          <dl className="mt-5 grid grid-cols-3 gap-2">
-            {rows.map((r, index) => (
-              <div
-                key={r.label}
-                className={cn(
-                  "flex min-h-[84px] min-w-0 flex-col justify-between rounded-[12px] border-2 border-black/10 px-2.5 py-2.5 shadow-[2px_2px_0_rgba(26,18,64,0.18)] sm:px-3",
-                  TILE_TONES[index % TILE_TONES.length].bg,
-                  TILE_TONES[index % TILE_TONES.length].text
-                )}
-              >
-                <dt className="text-[9px] font-extrabold uppercase tracking-[0.08em] opacity-70">{r.label}</dt>
-                <dd className="mt-1 break-words text-[11px] font-bold leading-snug">{r.value}</dd>
-              </div>
-            ))}
+          <dl className="mt-5 grid grid-cols-3 gap-2.5">
+            {rows.map((r) => {
+              const Icon = r.icon;
+              return (
+                <div
+                  key={r.label}
+                  className="flex min-h-[88px] min-w-0 flex-col justify-between gap-2 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-3"
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "grid h-6 w-6 flex-none place-items-center rounded-[8px]",
+                        TILE_TONE_CLASSES[r.tone]
+                      )}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                    </span>
+                    <dt className="min-w-0 truncate text-[9px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+                      {r.label}
+                    </dt>
+                  </div>
+                  <dd className="break-words text-[12px] font-bold leading-snug text-[var(--qs-ink)]">{r.value}</dd>
+                </div>
+              );
+            })}
           </dl>
 
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t-2 border-[var(--qs-line)] pt-4">

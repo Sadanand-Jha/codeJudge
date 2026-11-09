@@ -16,6 +16,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
+import Select from "@/components/ui/Select";
 
 /* ------------------------------------------------------------------ */
 /* Formatters (deterministic — safe for SSR/CSR hydration)             */
@@ -362,10 +363,11 @@ export function FilterSelect({
       <label htmlFor={fieldId} className="sr-only">
         {label}
       </label>
-      <select
+      <Select
         id={fieldId}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        showChevron={false}
         className="h-[38px] w-full min-w-[150px] cursor-pointer appearance-none rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] pl-3 pr-9 text-[13px] font-bold text-[var(--qs-ink)] outline-none transition-colors focus:border-[var(--qs-brand)]"
       >
         {options.map((option) => (
@@ -373,7 +375,7 @@ export function FilterSelect({
             {option.label}
           </option>
         ))}
-      </select>
+      </Select>
       <ChevronDown
         size={14}
         className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--qs-muted)]"

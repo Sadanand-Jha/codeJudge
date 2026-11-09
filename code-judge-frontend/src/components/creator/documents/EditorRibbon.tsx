@@ -66,6 +66,7 @@ import type {
   ListKind,
 } from "@/lib/documentEditor/types";
 import { cn } from "@/lib/helpers";
+import UiSelect from "@/components/ui/Select";
 
 export type RibbonTab = "home" | "insert" | "layout" | "review" | "view";
 
@@ -155,18 +156,18 @@ function Select({
   title?: string;
 }) {
   return (
-    <select
+    <UiSelect
       aria-label={ariaLabel}
       title={title}
       value={value}
       onChange={(event) => onChange(event.target.value)}
       className={cn(
-        "h-7 rounded-[5px] border border-[var(--qs-line)] bg-white px-1 text-[11px] font-semibold text-[#3d355f] outline-none focus:border-[var(--qs-brand)]",
+        "h-7 gap-1 rounded-[5px] border border-[var(--qs-line)] bg-white px-1 text-[11px] font-semibold text-[#3d355f] outline-none focus:border-[var(--qs-brand)]",
         width
       )}
     >
       {children}
-    </select>
+    </UiSelect>
   );
 }
 

@@ -1122,6 +1122,10 @@ button.cf-btn:hover {
 
 /* ===== White text → dark text (on light surfaces) ===== */
 [data-theme="light"] .text-white { color: #111827 !important; }
+/* Quiz surfaces put white text on their own dark/brand backgrounds — never
+   darken those glyphs when the rest of the app is in light theme. */
+[data-theme="light"] .student-quiz-theme .text-white,
+[data-theme="light"] .student-quiz-theme.text-white { color: #FFFFFF !important; }
 [data-theme="light"] .creator-studio-btn,
 [data-theme="light"] .creator-studio-btn .text-white,
 [data-theme="light"] .creator-studio-btn span,

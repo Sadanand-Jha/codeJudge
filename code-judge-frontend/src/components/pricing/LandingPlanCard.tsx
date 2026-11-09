@@ -5,6 +5,7 @@ import { Check } from "lucide-react";
 import { PublicPlanCta } from "@/components/pricing/PublicCheckoutCta";
 import { formatBillingPeriod, formatPricingAmount } from "@/services/pricing";
 import type { PricingPlan } from "@/types/pricing";
+import Select from "@/components/ui/Select";
 
 export function LandingPlanCard({
   plan,
@@ -74,7 +75,7 @@ export function LandingPlanCard({
       {plan.prices.length > 1 ? (
         <label className="pricing-plan-billing">
           Billing period
-          <select
+          <Select
             value={selectedPrice?.id ?? ""}
             onChange={(event) => setPriceId(Number(event.target.value))}
           >
@@ -84,7 +85,7 @@ export function LandingPlanCard({
                 {formatPricingAmount(price.amount, price.currency)}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
       ) : null}
 

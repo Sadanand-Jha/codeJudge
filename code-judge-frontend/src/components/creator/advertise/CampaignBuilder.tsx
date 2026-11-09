@@ -27,6 +27,7 @@ import {
 import { ELIGIBLE_PRODUCTS, ELIGIBLE_AUDIENCE_SIZE, QUALITY_SCORE, VISIBILITY_FACTORS } from "./mockData";
 import { budgetToReach, BUDGET_MIN, BUDGET_MAX, DURATION_OPTIONS, type CampaignDurationPreset } from "./types";
 import type { AdProduct } from "./types";
+import Select from "@/components/ui/Select";
 
 const STEPS = [
   { id: 1, label: "Test Series", icon: ListChecks },
@@ -325,9 +326,10 @@ function SelectField({ label, value, onChange, options }: { label: string; value
     <div>
       <label className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">{label}</label>
       <div className="relative mt-1.5">
-        <select
+        <Select
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          showChevron={false}
           className="w-full appearance-none rounded-xl border border-border bg-input-bg px-3.5 py-2.5 pr-9 text-[13px] text-text-primary outline-none focus:border-accent/40"
         >
           {options.map((o) => (
@@ -335,7 +337,7 @@ function SelectField({ label, value, onChange, options }: { label: string; value
               {o}
             </option>
           ))}
-        </select>
+        </Select>
         <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
       </div>
     </div>

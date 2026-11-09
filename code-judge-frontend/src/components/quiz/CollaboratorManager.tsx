@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { UserPlus, Trash2 } from "lucide-react";
 import { Collaborator, CollaboratorRole } from "@/types/quiz";
 import { mockUsers } from "@/mocks/users";
+import Select from "@/components/ui/Select";
 
 interface CollaboratorManagerProps {
   collaborators: Collaborator[];
@@ -52,19 +53,20 @@ export default function CollaboratorManager({ collaborators, onChange }: Collabo
 
       {/* Add collaborator */}
       <div className="flex gap-2">
-        <select
+        <Select
           onChange={(e) => {
             if (e.target.value) addCollaborator(e.target.value);
             e.target.value = "";
           }}
           className="flex-1 h-9 rounded-lg border border-border-hover bg-card px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           defaultValue=""
+          tone="dark"
         >
           <option value="" disabled>Add collaborator...</option>
           {mockUsers.map((user) => (
             <option key={user.id} value={user.id}>{user.username}</option>
           ))}
-        </select>
+        </Select>
       </div>
 
       {/* Collaborator list */}
@@ -77,15 +79,16 @@ export default function CollaboratorManager({ collaborators, onChange }: Collabo
               <p className="text-[11px] text-muted-foreground">Added {collab.addedAt}</p>
             </div>
 
-            <select
+            <Select
               value={collab.role}
               onChange={(e) => updateRole(collab.id, e.target.value as CollaboratorRole)}
               className="h-7 rounded-lg border border-border-hover bg-[#0B0D12] px-2 text-[11px] text-white focus:border-[#EC4899] focus:outline-none"
+              tone="dark"
             >
               {roles.map((role) => (
                 <option key={role} value={role}>{role}</option>
               ))}
-            </select>
+            </Select>
 
             <button type="button"
               onClick={() => removeCollaborator(collab.id)}

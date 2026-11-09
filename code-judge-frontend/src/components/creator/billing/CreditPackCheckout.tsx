@@ -5,6 +5,7 @@ import { ArrowLeft, Lock } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { formatPricingAmount, type PricingCreditPack } from "@/services/pricing";
+import Select from "@/components/ui/Select";
 
 /* Layout: left column (steps) + sticky right summary. Pack/payment
    components keep their behaviour; only arrangement changed. */
@@ -580,7 +581,7 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack }:
               <label htmlFor="cko-bk" className="mb-1.5 block text-[13px] font-semibold text-slate-900 dark:text-white">
                 Or choose another bank
               </label>
-              <select
+              <Select
                 id="cko-bk"
                 value={bankSelect}
                 onChange={(e) => {
@@ -594,7 +595,7 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack }:
                 {MORE_BANKS.map((b) => (
                   <option key={b}>{b}</option>
                 ))}
-              </select>
+              </Select>
             </div>
           </div>
 

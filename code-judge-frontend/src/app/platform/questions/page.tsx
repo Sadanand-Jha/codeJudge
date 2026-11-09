@@ -10,6 +10,7 @@ import { useAsync } from "@/components/platform/usePlatformAsync";
 import { PageHeader } from "@/components/platform/subpage-blocks";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { toast } from "@/lib/toast";
+import Select from "@/components/ui/Select";
 
 /* /platform/questions — reads the curated subjective question bank
    subject-wise / chapter-wise / topic-wise and deletes a single question. */
@@ -435,7 +436,7 @@ export default function QuestionBankPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
                   <span className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-[.14em] text-[var(--text-muted)]">Difficulty</span>
-                  <select
+                  <Select
                     value={editDifficultyId ?? ""}
                     onChange={(event) => setEditDifficultyId(event.target.value ? Number(event.target.value) : null)}
                     disabled={savingEdit}
@@ -444,11 +445,11 @@ export default function QuestionBankPage() {
                     {(facets?.difficulties ?? []).map((d) => (
                       <option key={d.id} value={d.id}>{d.name}</option>
                     ))}
-                  </select>
+                  </Select>
                 </label>
                 <label className="block">
                   <span className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-[.14em] text-[var(--text-muted)]">Category</span>
-                  <select
+                  <Select
                     value={editCategoryId ?? ""}
                     onChange={(event) => setEditCategoryId(event.target.value ? Number(event.target.value) : null)}
                     disabled={savingEdit}
@@ -457,7 +458,7 @@ export default function QuestionBankPage() {
                     {(facets?.categories ?? []).map((c) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
-                  </select>
+                  </Select>
                 </label>
               </div>
             </div>

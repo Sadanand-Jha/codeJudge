@@ -38,6 +38,7 @@ import { formatPasswordExpiry } from "@/utils/passwordExpiry";
 import { Stagger, usePrefersReducedMotion, type CurtainPhase, Curtain } from "./roomMotion";
 import TeacherPublicCard from "./TeacherPublicCard";
 import styles from "./roomsCinematic.module.css";
+import Select from "@/components/ui/Select";
 
 const DRAFT_KEY = "quizsupport_room_join_draft";
 
@@ -644,7 +645,7 @@ export default function RoomJoinForm({
                                 )}
                               </label>
                               {field.type === "select" ? (
-                                <select
+                                <Select
                                   id={`room-reg-${field.id}`}
                                   value={registrationValues[field.label] ?? ""}
                                   onChange={(event) => {
@@ -667,7 +668,7 @@ export default function RoomJoinForm({
                                       {option}
                                     </option>
                                   ))}
-                                </select>
+                                </Select>
                               ) : (
                                 <input
                                   id={`room-reg-${field.id}`}

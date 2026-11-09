@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { AssessmentSettings, DEFAULT_ASSESSMENT_SETTINGS } from "@/types/quiz";
 import { Settings2 } from "lucide-react";
+import Select from "@/components/ui/Select";
 
 interface AssessmentSettingsPanelProps {
   settings: AssessmentSettings;
@@ -62,14 +63,14 @@ export default function AssessmentSettingsPanel({ settings, onChange }: Assessme
 
         <div className="space-y-1">
           <label className="text-xs font-medium text-[#9CA3Aff]">Negative Marking</label>
-          <select
+          <Select
             value={settings.negativeMarking ? "yes" : "no"}
             onChange={(e) => update("negativeMarking", e.target.value === "yes")}
             className="w-full h-9 rounded-lg border border-border-hover bg-[#0B0D12] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           >
             <option value="no">No</option>
             <option value="yes">Yes</option>
-          </select>
+          </Select>
           {settings.negativeMarking && (
             <input
               type="number"

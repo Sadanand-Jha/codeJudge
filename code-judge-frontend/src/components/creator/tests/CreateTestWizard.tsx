@@ -40,6 +40,7 @@ import {
   getSectionQuestionCount,
   getSectionMarks,
 } from "./sections/types";
+import Select from "@/components/ui/Select";
 
 const STEPS = [
   { id: "basic", label: "Basic Information", icon: FileText },
@@ -598,7 +599,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
               <div className="grid gap-4 md:grid-cols-[1fr_2fr]">
                 <div>
                   <label className="mb-1.5 block text-xs font-bold text-text-primary">Language</label>
-                  <select
+                  <Select
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
                     className="h-11 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary focus:border-pink-500/50 focus:outline-none"
@@ -608,7 +609,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                         {l.label}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs font-bold text-text-primary">Difficulty</label>

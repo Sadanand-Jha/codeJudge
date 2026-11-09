@@ -14,6 +14,7 @@ import {
 } from "@/services/platform";
 import { BTN, BTN_DANGER, BTN_PRI, DraftBadge, Field, INPUT, Toggle, VersionHistory } from "./admin-ui";
 import type { PreviewPlan } from "./PricingPreview";
+import Select from "@/components/ui/Select";
 
 type FeatureRow = { id: string; text: string; enabled: boolean };
 
@@ -547,7 +548,7 @@ export function PlanEditor({
           </label>
           {archiveStrategy === "migrate" && (
             <Field label="Migration target" hint="Only active plans can receive migrated subscribers.">
-              <select
+              <Select
                 className={INPUT}
                 value={archiveTargetId}
                 onChange={(event) => setArchiveTargetId(event.target.value)}
@@ -560,7 +561,7 @@ export function PlanEditor({
                       {candidate.name}
                     </option>
                   ))}
-              </select>
+              </Select>
             </Field>
           )}
           <div className="flex flex-wrap gap-2">

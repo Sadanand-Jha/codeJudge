@@ -39,6 +39,7 @@ import {
   QuizVisibility,
   LifecycleSetting,
 } from "@/types/quiz";
+import Select from "@/components/ui/Select";
 
 interface QuizSettingsProps {
   quizId: string;
@@ -182,7 +183,7 @@ function SelectField({ label, value, onChange, options, suffix }: { label: strin
     <div className="space-y-1.5">
       <label className="text-[10px] font-medium text-muted-foreground">{label}</label>
       <div className="flex items-center gap-2">
-        <select
+        <Select
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="w-full h-9 px-2 rounded-lg border border-border-hover bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none"
@@ -190,7 +191,7 @@ function SelectField({ label, value, onChange, options, suffix }: { label: strin
           {options.map((opt) => (
             <option key={opt} value={opt.toLowerCase().replace(/\s+/g, "_")}>{opt}</option>
           ))}
-        </select>
+        </Select>
         {suffix && <span className="text-[10px] text-[#6B7280] shrink-0">{suffix}</span>}
       </div>
     </div>

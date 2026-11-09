@@ -8,6 +8,7 @@ import { TestSeriesCard } from "./TestSeriesCard";
 import { SectionHeading } from "./ui";
 import type { Difficulty } from "./types";
 import { cn } from "@/lib/helpers";
+import Select from "@/components/ui/Select";
 
 type FilterKey = "all" | string;
 type SortKey = "popular" | "rating" | "newest" | "price-low" | "price-high";
@@ -173,7 +174,7 @@ export function TopSeriesMarketplace({
                 className="h-10 w-48 rounded-xl border border-input-border bg-input-bg pl-8 pr-3 text-xs text-text-primary placeholder-text-muted focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10"
               />
             </div>
-            <select
+            <Select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
               aria-label="Sort test series"
@@ -184,7 +185,7 @@ export function TopSeriesMarketplace({
                   {s.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </div>
 
@@ -196,7 +197,7 @@ export function TopSeriesMarketplace({
             <SegBtn active={pricing === "paid"} onClick={() => setPricing("paid")}>Paid</SegBtn>
           </div>
 
-          <select
+          <Select
             value={difficulty}
             onChange={(e) => setDifficulty(e.target.value as Difficulty | "all")}
             aria-label="Filter by difficulty"
@@ -207,9 +208,9 @@ export function TopSeriesMarketplace({
                 {d.label}
               </option>
             ))}
-          </select>
+          </Select>
 
-          <select
+          <Select
             value={source}
             onChange={(e) => setSource(e.target.value as SourceKey)}
             aria-label="Filter by creator"
@@ -220,9 +221,9 @@ export function TopSeriesMarketplace({
                 {s.label}
               </option>
             ))}
-          </select>
+          </Select>
 
-          <select
+          <Select
             value={teacherId}
             onChange={(e) => setTeacherId(e.target.value)}
             aria-label="Filter by teacher"
@@ -234,7 +235,7 @@ export function TopSeriesMarketplace({
                 {t.name}
               </option>
             ))}
-          </select>
+          </Select>
 
           {activeFilters > 0 && (
             <button

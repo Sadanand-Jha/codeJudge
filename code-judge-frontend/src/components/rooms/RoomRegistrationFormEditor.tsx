@@ -32,6 +32,7 @@ import {
   parseRegistrationOptions,
   validateRegistrationFormConfig,
 } from "@/utils/roomRegistration";
+import Select from "@/components/ui/Select";
 
 interface RoomRegistrationFormEditorProps {
   open: boolean;
@@ -331,7 +332,7 @@ export default function RoomRegistrationFormEditor({
                     </div>
 
                     <div className="mt-3 grid gap-2.5 sm:grid-cols-[1fr_auto]">
-                      <select
+                      <Select
                         value={field.type}
                         onChange={(event) =>
                           updateType(field.id, event.target.value as RoomRegistrationFieldType)
@@ -344,7 +345,7 @@ export default function RoomRegistrationFormEditor({
                             {type.label}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                       <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-xs font-bold text-[var(--qs-ink)]">
                         <input
                           type="checkbox"
@@ -421,12 +422,12 @@ export default function RoomRegistrationFormEditor({
                         {field.required ? <span className="ml-1 text-[var(--qs-bad)]">*</span> : null}
                       </p>
                       {field.type === "select" ? (
-                        <select disabled className="mt-1 h-9 w-full rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 text-[11px] font-medium text-[var(--qs-muted)]">
+                        <Select disabled className="mt-1 h-9 w-full rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 text-[11px] font-medium text-[var(--qs-muted)]">
                           <option>Select an option…</option>
                           {field.options.map((option) => (
                             <option key={option}>{option}</option>
                           ))}
-                        </select>
+                        </Select>
                       ) : (
                         <input
                           disabled

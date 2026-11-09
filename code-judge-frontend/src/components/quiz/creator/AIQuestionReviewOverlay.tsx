@@ -23,6 +23,7 @@ import {
 import { cn } from "@/lib/helpers";
 import { QuestionHtml } from "@/components/creator/questions/QuestionHtml";
 import { QuizRichText } from "@/components/quiz/QuizRichText";
+import Select from "@/components/ui/Select";
 
 export interface PreviewQuestion {
   id: string;
@@ -661,7 +662,7 @@ function QuestionEditForm({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <label className={labelCls}>Question Type</label>
-          <select
+          <Select
             value={draft.type}
             onChange={(e) => onChange({ type: e.target.value as PreviewQuestion["type"] })}
             className={inputCls}
@@ -671,11 +672,11 @@ function QuestionEditForm({
                 {TYPE_LABELS[t]}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div className="space-y-1.5">
           <label className={labelCls}>Difficulty</label>
-          <select
+          <Select
             value={draft.difficulty}
             onChange={(e) => onChange({ difficulty: e.target.value as PreviewQuestion["difficulty"] })}
             className={inputCls}
@@ -685,7 +686,7 @@ function QuestionEditForm({
                 {d}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       </div>
 
