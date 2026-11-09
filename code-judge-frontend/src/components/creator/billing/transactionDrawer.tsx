@@ -44,22 +44,22 @@ export function TransactionDrawer({
           exit={{ x: "100%" }}
           transition={{ type: "spring", stiffness: 340, damping: 34 }}
           onClick={(e) => e.stopPropagation()}
-          className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-border bg-card shadow-2xl"
+          className="absolute inset-x-2 bottom-2 top-auto flex max-h-[88vh] flex-col overflow-hidden rounded-[14px] border-[1.5px] border-border bg-card shadow-2xl sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-0 sm:h-full sm:max-h-none sm:w-full sm:max-w-md sm:rounded-none sm:border-0 sm:border-l"
           role="dialog"
           aria-modal="true"
           aria-label="Transaction details"
         >
-          <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <div className="flex items-center justify-between border-b border-border px-3.5 py-2.5 sm:px-6 sm:py-4">
             <div className="flex items-center gap-2.5">
               <ReceiptText className="h-4 w-4 text-pink-500 dark:text-ai-accent" />
-              <p className="text-[15px] font-bold text-text-primary">Transaction Details</p>
+              <p className="text-[12.5px] font-bold text-text-primary sm:text-[15px]">Transaction Details</p>
             </div>
             <IconButton label="Close" onClick={onClose}>
               <X className="h-4 w-4" />
             </IconButton>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-6 py-5">
+          <div className="flex-1 overflow-y-auto px-3.5 py-3 sm:px-6 sm:py-5">
             {/* Status header */}
             <div className="flex items-center justify-between">
               <div>
@@ -69,15 +69,15 @@ export function TransactionDrawer({
               <StatusBadge label={transaction.status} tone={(PAYOUT_STATUS_TONE[transaction.status] ?? "slate") as StatusTone} dot />
             </div>
 
-            <div className="mt-4 rounded-xl border border-border bg-white/[0.03] p-4">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-text-secondary">Amount</p>
-              <p className="mt-1 text-2xl font-bold tracking-tight text-text-primary tabular-nums">
+            <div className="mt-2.5 rounded-[10px] border border-border bg-white/[0.03] p-2.5 sm:mt-4 sm:rounded-xl sm:p-4">
+              <p className="text-[9.5px] font-medium uppercase tracking-wider text-text-secondary sm:text-[11px]">Amount</p>
+              <p className="mt-0.5 text-[18px] font-bold tracking-tight text-text-primary tabular-nums sm:mt-1 sm:text-2xl">
                 {formatINR(transaction.net)}
               </p>
             </div>
 
             {/* Detail rows */}
-            <dl className="mt-5 space-y-0">
+            <dl className="mt-2.5 space-y-0 sm:mt-5">
               {[
                 ["Date", transaction.date],
                 ["Student", transaction.student],
@@ -93,15 +93,15 @@ export function TransactionDrawer({
                   key={label}
                   className={cnRow(i, arr.length, label === "Net earnings")}
                 >
-                  <dt className="text-xs text-text-secondary">{label}</dt>
-                  <dd className={label === "Net earnings" ? "text-sm font-bold text-emerald-500" : "text-xs font-semibold text-text-primary"}>
+                  <dt className="text-[10px] text-text-secondary sm:text-xs">{label}</dt>
+                  <dd className={label === "Net earnings" ? "text-[12px] font-bold text-emerald-500 sm:text-sm" : "text-[10px] font-semibold text-text-primary sm:text-xs"}>
                     {value}
                   </dd>
                 </div>
               ))}
             </dl>
 
-            <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-3">
+            <div className="mt-2.5 rounded-[10px] border border-emerald-500/20 bg-emerald-500/[0.06] p-2.5 sm:mt-4 sm:rounded-xl sm:p-3">
               <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-300">Completed</p>
               <p className="mt-0.5 text-[11px] text-text-secondary">
                 Funds were credited to your available balance.
@@ -109,7 +109,7 @@ export function TransactionDrawer({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5 border-t border-border px-6 py-4">
+          <div className="grid grid-cols-2 gap-1.5 border-t border-border px-3.5 py-2.5 sm:gap-2.5 sm:px-6 sm:py-4">
             <BillButton variant="ghost" icon={<Download className="h-4 w-4" />} onClick={() => actionFeedback("Receipt download")}>
               Download receipt
             </BillButton>
@@ -131,7 +131,7 @@ export function TransactionDrawer({
 
 function cnRow(i: number, total: number, highlighted: boolean): string {
   return [
-    "flex items-center justify-between border-b border-border/60 px-0 py-3 last:border-0",
+    "flex items-center justify-between border-b border-border/60 px-0 py-1.5 last:border-0 sm:py-3",
     highlighted && "bg-emerald-500/[0.05] -mx-2 px-2 rounded-lg",
   ]
     .filter(Boolean)

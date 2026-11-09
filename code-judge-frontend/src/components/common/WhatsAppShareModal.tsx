@@ -108,21 +108,21 @@ export function WhatsAppShareModal({
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.25, ease: [0.2, 0.9, 0.3, 1.15] }}
         onClick={(event) => event.stopPropagation()}
-        className="my-auto w-full max-w-[470px] rounded-[24px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-[22px] shadow-[8px_8px_0_var(--qs-sun)]"
+        className="my-auto w-full max-w-[470px] rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3.5 shadow-[2px_3px_0_var(--qs-sun)] sm:rounded-[24px] sm:border-2 sm:p-[22px] sm:shadow-[8px_8px_0_var(--qs-sun)]"
       >
         <div className="flex items-center gap-3">
-          <div className="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-[14px] border-2 border-[var(--qs-ink)] bg-[#1fa971] text-white shadow-[2px_2px_0_var(--qs-ink)]">
+          <div className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[#1fa971] text-white shadow-[1px_2px_0_var(--qs-ink)] sm:h-[46px] sm:w-[46px] sm:rounded-[14px] sm:border-2 sm:shadow-[2px_2px_0_var(--qs-ink)]">
             <WhatsAppIcon className="h-6 w-6" />
           </div>
           <div className="min-w-0">
             <h3
               id="whatsapp-share-title"
-              className="text-[20px] font-extrabold tracking-[-0.02em] text-[var(--qs-ink)]"
+              className="text-[15px] font-bold tracking-normal text-[var(--qs-ink)] sm:text-[20px] sm:font-extrabold sm:tracking-[-0.02em]"
             >
               {title}
             </h3>
             {subtitle ? (
-              <p className="mt-0.5 text-[12.5px] font-medium text-[var(--qs-muted)]">
+              <p className="mt-0.5 text-[10.5px] font-medium text-[var(--qs-muted)] sm:text-[12.5px]">
                 {subtitle}
               </p>
             ) : null}
@@ -131,14 +131,14 @@ export function WhatsAppShareModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="ml-auto grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-ink)] hover:bg-[var(--qs-bg)]"
+            className="ml-auto grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[9px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-ink)] hover:bg-[var(--qs-bg)] sm:h-[38px] sm:w-[38px] sm:rounded-[12px] sm:border-2"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {highlight ? (
-          <div className="mt-4 flex items-center gap-2 rounded-[14px] bg-[var(--qs-ink)] px-3.5 py-2.5 text-[13px] font-semibold leading-[1.35] text-white shadow-[3px_3px_0_var(--qs-sun)]">
+          <div className="mt-2.5 flex items-center gap-1.5 rounded-[10px] bg-[var(--qs-ink)] px-2.5 py-2 text-[11px] font-medium leading-[1.3] text-white shadow-[2px_2px_0_var(--qs-sun)] sm:mt-4 sm:gap-2 sm:rounded-[14px] sm:px-3.5 sm:py-2.5 sm:text-[13px] sm:font-semibold sm:leading-[1.35] sm:shadow-[3px_3px_0_var(--qs-sun)]">
             <Sparkles className="h-4 w-4 shrink-0 fill-[var(--qs-sun)] text-[var(--qs-sun)]" />
             <span className="min-w-0">{highlight}</span>
           </div>
@@ -156,17 +156,17 @@ export function WhatsAppShareModal({
             setMessage(event.target.value);
             setPhoneError(null);
           }}
-          className="min-h-[120px] w-full resize-y rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 text-[13px] font-medium leading-[1.45] text-[var(--qs-ink)] outline-none focus:border-[var(--qs-brand)]"
+          className="min-h-[90px] w-full resize-y rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 text-[11.5px] font-medium leading-[1.4] text-[var(--qs-ink)] outline-none focus:border-[var(--qs-brand)] sm:min-h-[120px] sm:rounded-[14px] sm:border-2 sm:p-3 sm:text-[13px] sm:leading-[1.45]"
         />
-        <p className="mt-1 text-right text-[11.5px] font-semibold text-[var(--qs-muted)]">
+        <p className="mt-0.5 text-right text-[9.5px] font-medium text-[var(--qs-muted)] sm:mt-1 sm:text-[11.5px] sm:font-semibold">
           {message.length}/1000
         </p>
 
         <label htmlFor="whatsapp-share-phone" className={cn(LABEL, "mt-3 mb-1.5")}>
           Send to a number (optional)
         </label>
-        <div className="flex overflow-hidden rounded-[14px] border-2 border-[var(--qs-line)] focus-within:border-[var(--qs-brand)]">
-          <span className="grid place-items-center bg-[var(--qs-brand)]/10 px-3.5 text-[14px] font-extrabold text-[var(--qs-brand)]">
+        <div className="flex overflow-hidden rounded-[10px] border border-[var(--qs-line)] focus-within:border-[var(--qs-brand)] sm:rounded-[14px] sm:border-2">
+          <span className="grid place-items-center bg-[var(--qs-brand)]/10 px-2.5 text-[12px] font-bold text-[var(--qs-brand)] sm:px-3.5 sm:text-[14px] sm:font-extrabold">
             +91
           </span>
           <input
@@ -180,7 +180,7 @@ export function WhatsAppShareModal({
               setPhone(event.target.value);
               setPhoneError(null);
             }}
-            className="min-w-0 flex-1 border-0 bg-transparent px-3.5 py-3 text-[14.5px] font-bold text-[var(--qs-ink)] outline-none"
+            className="min-w-0 flex-1 border-0 bg-transparent px-2.5 py-2 text-[11.5px] font-semibold text-[var(--qs-ink)] outline-none sm:px-3.5 sm:py-3 sm:text-[14.5px] sm:font-bold"
           />
         </div>
         <p
@@ -192,12 +192,12 @@ export function WhatsAppShareModal({
           {phoneError ?? "Leave empty to pick a contact inside WhatsApp."}
         </p>
 
-        <div className="mt-4 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-brand)]/5 p-3.5">
-          <p className="mb-2 text-[11.5px] font-extrabold text-[var(--qs-brand)]">
+        <div className="mt-2.5 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-brand)]/5 p-2.5 sm:mt-4 sm:rounded-[16px] sm:border-2 sm:p-3.5">
+          <p className="mb-1.5 text-[10px] font-bold text-[var(--qs-brand)] sm:mb-2 sm:text-[11.5px] sm:font-extrabold">
             Preview
           </p>
           <div className="max-h-[220px] overflow-y-auto">
-            <div className="ml-auto max-w-[92%] rounded-[14px_14px_4px_14px] border-2 border-[var(--qs-ink)] bg-[#dcf5ea] px-3 pt-2.5 pb-1.5 text-[13px] leading-[1.45] text-[var(--qs-ink)] shadow-[3px_3px_0_var(--qs-ink)]">
+            <div className="ml-auto max-w-[92%] rounded-[10px_10px_3px_10px] border-[1.5px] border-[var(--qs-ink)] bg-[#dcf5ea] px-2.5 pt-2 pb-1 text-[11px] leading-[1.4] text-[var(--qs-ink)] shadow-[2px_2px_0_var(--qs-ink)] sm:rounded-[14px_14px_4px_14px] sm:border-2 sm:px-3 sm:pt-2.5 sm:pb-1.5 sm:text-[13px] sm:leading-[1.45] sm:shadow-[3px_3px_0_var(--qs-ink)]">
               <div className="break-words">
                 {message.trim() ? (
                   <WhatsAppText text={message} />

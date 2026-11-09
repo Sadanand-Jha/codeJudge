@@ -5,8 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
+  BarChart3,
   Check,
   // MoreHorizontal,
+  ListChecks,
+  Pencil,
   Plus,
   RotateCcw,
   Search,
@@ -81,10 +84,24 @@ const STATUS_META: Record<QuizStatus, { label: string; tone: string; dot: string
   completed: { label: "Completed", tone: "text-[#2457d6]", dot: "#2457d6" },
 };
 
+const MOBILE_TAG: Record<QuizStatus, { label: string; className: string }> = {
+  live: { label: "Live", className: "bg-[#D9F5E5] text-[#0B6B3A]" },
+  draft: { label: "Draft", className: "bg-[#FFEBC2] text-[#8A4B00]" },
+  scheduled: { label: "Scheduled", className: "bg-[#E0E8FF] text-[#2347B8]" },
+  completed: { label: "Done", className: "bg-[#E0E8FF] text-[#2347B8]" },
+};
+
+function shortDuration(minutes: number | null): string | null {
+  if (minutes == null || !Number.isFinite(minutes) || minutes <= 0) return null;
+  const total = Math.round(minutes);
+  if (total < 60) return `${total}m`;
+  const hours = Math.floor(total / 60);
+  const rest = total % 60;
+  return rest ? `${hours}h ${rest}m` : `${hours}h`;
+}
+
 const BTN =
   "inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-60";
-const BTN_PRI =
-  "inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:brightness-110 active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_var(--qs-sun)] disabled:cursor-not-allowed disabled:opacity-60";
 const BTN_SM =
   "inline-flex items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-[12px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]";
 const BTN_PRI_SM =
@@ -161,27 +178,51 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3 lg:space-y-5">
       {/* Header */}
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+      <div className="flex items-center justify-between gap-3 xl:items-end">
         <div className="min-w-0">
-          <h1 className="qs-display text-[22px] font-extrabold leading-[1.08] tracking-[-0.025em] text-[var(--qs-ink)] sm:text-[27px] lg:text-[30px]">
+          <h1 className="qs-display text-[21px] font-extrabold leading-[1.08] tracking-[-0.025em] text-[var(--qs-ink)] sm:text-[27px] lg:text-[30px]">
             My Quizzes
           </h1>
-          <p className="mt-1.5 text-[11px] text-[var(--qs-muted)] sm:text-[12px]">
+          <p className="mt-1.5 hidden text-[11px] text-[var(--qs-muted)] sm:text-[12px] lg:block">
             Create, manage and track everything you publish.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/creator/quizzes/create" className={BTN_PRI}>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            href="/creator/quizzes/create"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3.5 text-[13px] font-semibold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none lg:h-auto lg:rounded-[12px] lg:border-2 lg:px-4 lg:py-2.5 lg:font-bold lg:shadow-[3px_3px_0_var(--qs-sun)]"
+          >
             <Plus className="h-4 w-4" />
             Create quiz
           </Link>
         </div>
       </div>
 
-      {/* AI callout */}
-      <section className="rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 shadow-[4px_4px_0_var(--qs-sun)] sm:p-6">
+      {/* AI callout — compact single row on mobile */}
+      <section className="flex h-[46px] items-center gap-2 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] px-1.5 lg:hidden">
+        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-[7px] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+          <WandSparkles className="h-3.5 w-3.5" strokeWidth={2.4} />
+        </span>
+        <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-[var(--qs-ink)]">
+          Build quizzes with AI
+        </span>
+        {!WHOLE_QUIZ_AI_ENABLED && (
+          <span className="shrink-0 rounded-[6px] bg-[var(--qs-warnbg)] px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.04em] text-[var(--qs-warn)]">
+            Soon
+          </span>
+        )}
+        <Link
+          href="/creator/quizzes/create"
+          className="inline-flex h-7 shrink-0 items-center justify-center rounded-[8px] bg-[var(--qs-brand)] px-2.5 text-[12px] font-semibold text-[var(--qs-on-brand)]"
+        >
+          Generate
+        </Link>
+      </section>
+
+      {/* AI callout — desktop */}
+      <section className="hidden rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 shadow-[4px_4px_0_var(--qs-sun)] sm:p-6 lg:block">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[13px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
             <WandSparkles className="h-5 w-5" strokeWidth={2.4} />
@@ -217,7 +258,12 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
         <>
           <TilesSkeleton />
           <ToolbarSkeleton />
-          <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-2 2xl:grid-cols-3">
+          <div className="flex flex-col gap-2 lg:hidden">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <QuizRowSkeleton key={i} />
+            ))}
+          </div>
+          <div className="hidden grid-cols-1 gap-[18px] lg:grid lg:grid-cols-2 2xl:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <QuizCardSkeleton key={i} />
             ))}
@@ -261,9 +307,10 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
       {status === "ready" && data && (
         <>
           {/* Stat tiles — the Live tile is the page's one bold element */}
-          <div className="grid grid-cols-2 gap-[18px] lg:grid-cols-4">
+          <div className="grid grid-cols-4 gap-1.5 lg:gap-[18px]">
             <StatTile
               label="Total quizzes"
+              mobileLabel="Quizzes"
               value={String(stats.total)}
               hint="Across all statuses"
               dot="var(--qs-brand)"
@@ -279,6 +326,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
             />
             <StatTile
               label="Total responses"
+              mobileLabel="Responses"
               value={stats.responses.toLocaleString("en-IN")}
               hint={stats.responses > 0 ? "Across all quizzes" : "No responses yet"}
               dot="#2457d6"
@@ -286,6 +334,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
             />
             <StatTile
               label="Avg rating"
+              mobileLabel="Rating"
               value={stats.rating === null ? "—" : stats.rating.toFixed(1)}
               unit={stats.rating === null ? undefined : "/ 5"}
               hint={stats.rating === null ? "No ratings yet" : "Student rating"}
@@ -295,18 +344,18 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
           </div>
 
           {/* Search + filter chips */}
-          <div className="flex flex-col gap-3 rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 xl:flex-row xl:items-center">
-            <label className="relative block min-w-0 flex-1 xl:max-w-xs">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
+          <div className="flex flex-col gap-2.5 lg:gap-3 lg:rounded-[18px] lg:border-2 lg:border-[var(--qs-line)] lg:bg-[var(--qs-surface)] lg:p-3 xl:flex-row xl:items-center">
+            <label className="relative block w-full min-w-0 lg:flex-1 xl:max-w-xs">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)] lg:left-3.5" />
               <input
                 type="search"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search quizzes..."
-                className="h-11 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-10 pr-3 text-[13px] font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
+                className="h-[42px] w-full rounded-[10px] border border-[#CFC7F0] bg-[var(--qs-surface)] pl-9 pr-3 text-[13px] font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] lg:h-11 lg:rounded-[12px] lg:border-2 lg:border-[var(--qs-line)] lg:pl-10"
               />
             </label>
-            <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto scrollbar-none">
+            <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto scrollbar-none lg:gap-2">
               {TABS.map((tab) => {
                 const active = filter === tab.id;
                 return (
@@ -316,17 +365,18 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                     onClick={() => setFilter(tab.id)}
                     aria-pressed={active}
                     className={cn(
-                      "inline-flex h-9 shrink-0 items-center gap-2 rounded-full border-2 px-3.5 text-[13px] font-bold transition-colors",
+                      "inline-flex h-8 shrink-0 items-center gap-1 rounded-full border px-3 text-[12px] font-medium transition-colors lg:h-9 lg:gap-2 lg:border-2 lg:px-3.5 lg:text-[13px] lg:font-bold",
                       active
                         ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
-                        : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
+                        : "border-[#CFC7F0] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
                     )}
                   >
-                    {tab.label}
+                    <span className="lg:hidden">{tab.id === "completed" ? "Done" : tab.label}</span>
+                    <span className="hidden lg:inline">{tab.label}</span>
                     <span
                       className={cn(
-                        "rounded-full px-1.5 text-[11px] font-extrabold tabular-nums",
-                        active ? "bg-[var(--qs-bg)]/15" : "bg-[var(--qs-line)]/50 text-[var(--qs-muted)]"
+                        "rounded-full px-0 text-[11px] font-semibold tabular-nums lg:px-1.5 lg:font-extrabold",
+                        active ? "bg-transparent lg:bg-[var(--qs-bg)]/15" : "bg-transparent text-current lg:bg-[var(--qs-line)]/50 lg:text-[var(--qs-muted)]"
                       )}
                     >
                       {counts[tab.id]}
@@ -335,7 +385,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                 );
               })}
             </div>
-            <span className="shrink-0 px-1 text-[13px] font-semibold text-[var(--qs-muted)] xl:ml-auto">
+            <span className="hidden shrink-0 px-1 text-[13px] font-semibold text-[var(--qs-muted)] xl:ml-auto xl:block">
               Showing {filtered.length} of {data.length}
             </span>
           </div>
@@ -356,23 +406,35 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-2 2xl:grid-cols-3">
-              {filtered.map((quiz, index) => (
-                <QuizCardItem
-                  key={quiz.id}
-                  quiz={quiz}
-                  index={index}
-                  // menuOpen={openMenuId === quiz.id}
-                  // onToggleMenu={() => setOpenMenuId((current) => (current === quiz.id ? null : quiz.id))}
-                  // onCloseMenu={() => setOpenMenuId(null)}
-                  onGoTo={(page) => goTo(quiz.id, page)}
-                  // onDelete={() => {
-                  //   setOpenMenuId(null);
-                  //   setDeleteTarget(quiz);
-                  // }}
-                />
-              ))}
-            </div>
+            <>
+              <ul className="flex flex-col gap-2 lg:hidden">
+                {filtered.map((quiz, index) => (
+                  <MobileQuizRow
+                    key={quiz.id}
+                    quiz={quiz}
+                    index={index}
+                    onGoTo={(page) => goTo(quiz.id, page)}
+                  />
+                ))}
+              </ul>
+              <div className="hidden grid-cols-1 gap-[18px] lg:grid lg:grid-cols-2 2xl:grid-cols-3">
+                {filtered.map((quiz, index) => (
+                  <QuizCardItem
+                    key={quiz.id}
+                    quiz={quiz}
+                    index={index}
+                    // menuOpen={openMenuId === quiz.id}
+                    // onToggleMenu={() => setOpenMenuId((current) => (current === quiz.id ? null : quiz.id))}
+                    // onCloseMenu={() => setOpenMenuId(null)}
+                    onGoTo={(page) => goTo(quiz.id, page)}
+                    // onDelete={() => {
+                    //   setOpenMenuId(null);
+                    //   setDeleteTarget(quiz);
+                    // }}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </>
       )}
@@ -472,6 +534,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
 
 function StatTile({
   label,
+  mobileLabel,
   value,
   unit,
   hint,
@@ -480,6 +543,7 @@ function StatTile({
   index,
 }: {
   label: string;
+  mobileLabel?: string;
   value: string;
   unit?: string;
   hint: string;
@@ -493,37 +557,46 @@ function StatTile({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, delay: index * 0.04 }}
       className={cn(
-        "rounded-[18px] border-2 px-4 py-4",
+        "flex h-[54px] flex-col justify-center rounded-[10px] border px-2.5 lg:h-auto lg:rounded-[18px] lg:border-2 lg:px-4 lg:py-4",
         highlight ? "border-[var(--qs-ink)] bg-[var(--qs-sun)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
       )}
     >
       <p
         className={cn(
-          "flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.08em]",
-          highlight ? "text-[#1A1240]" : "text-[var(--qs-muted)]"
+          "order-2 flex items-center gap-2 text-[10.5px] font-normal lg:order-1 lg:text-[11px] lg:font-extrabold lg:uppercase lg:tracking-[0.08em]",
+          highlight ? "text-[#1A1240]/80 lg:text-[#1A1240]" : "text-[var(--qs-muted)]"
         )}
       >
         <span
-          className="h-2.5 w-2.5 shrink-0 rounded-full"
+          className="hidden h-2.5 w-2.5 shrink-0 rounded-full lg:block"
           style={{ background: highlight ? "#1A1240" : dot }}
         />
-        {label}
+        <span className="truncate lg:hidden">{mobileLabel ?? label}</span>
+        <span className="hidden lg:inline">{label}</span>
       </p>
       <p
         className={cn(
-          "qs-display mt-2 text-[34px] font-extrabold leading-none tracking-tight",
+          "qs-display order-1 text-[17px] font-bold leading-5 tracking-tight lg:order-2 lg:mt-2 lg:text-[34px] lg:font-extrabold lg:leading-none",
           highlight ? "text-[#1A1240]" : "text-[var(--qs-ink)]"
         )}
       >
         {value}
         {unit && (
-          <span className={cn("ml-1.5 text-[13px] font-semibold", highlight ? "text-[#1A1240]/70" : "text-[var(--qs-muted)]")}>
+          <span
+            className={cn(
+              "ml-0.5 text-[10px] font-normal lg:ml-1.5 lg:text-[13px] lg:font-semibold",
+              highlight ? "text-[#1A1240]/70" : "text-[var(--qs-muted)]"
+            )}
+          >
             {unit}
           </span>
         )}
       </p>
       <p
-        className={cn("mt-1.5 truncate text-[12px]", highlight ? "text-[#1A1240]/70" : "text-[var(--qs-muted)]")}
+        className={cn(
+          "order-3 mt-1.5 hidden truncate text-[12px] lg:block",
+          highlight ? "text-[#1A1240]/70" : "text-[var(--qs-muted)]"
+        )}
         title={hint}
       >
         {hint}
@@ -546,6 +619,110 @@ function StatusPill({ status }: { status: QuizStatus }) {
       )}
       {STATUS_META[status].label}
     </span>
+  );
+}
+
+function MobileQuizRow({
+  quiz,
+  index,
+  onGoTo,
+}: {
+  quiz: QuizCard;
+  index: number;
+  onGoTo: (page: "edit" | "analytics" | "responses") => void;
+}) {
+  const [shareOpen, setShareOpen] = useState(false);
+  const isLive = quiz.status === "live";
+  const tag = MOBILE_TAG[quiz.status];
+  const duration = shortDuration(quiz.duration);
+  const meta = [
+    `${quiz.questions} Q`,
+    duration,
+    `${quiz.attempts.toLocaleString("en-IN")} ${quiz.attempts === 1 ? "attempt" : "attempts"}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const actions = [
+    { label: `Edit ${quiz.title}`, icon: Pencil, primary: true, onClick: () => onGoTo("edit") },
+    { label: `Analytics for ${quiz.title}`, icon: BarChart3, primary: false, onClick: () => onGoTo("analytics") },
+    { label: `Responses for ${quiz.title}`, icon: ListChecks, primary: false, onClick: () => onGoTo("responses") },
+  ];
+
+  return (
+    <motion.li
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index * 0.025, 0.18), duration: 0.25 }}
+      className={cn(
+        "flex items-center gap-1.5 rounded-[14px] border bg-[var(--qs-surface)] pl-3.5 pr-1.5 shadow-[2px_3px_0_var(--qs-sun)]",
+        isLive ? "border-[1.5px] border-[var(--qs-ink)] shadow-[2px_2px_0_var(--qs-sun)]" : "border-[var(--qs-line)]"
+      )}
+    >
+      <div className="min-w-0 flex-1 py-2.5">
+        <p className="line-clamp-2 text-[13px] font-semibold leading-4 text-[var(--qs-ink)]">{quiz.title}</p>
+        <p className="mt-1.5 flex items-center gap-1.5 overflow-hidden whitespace-nowrap text-[10.5px] text-[var(--qs-muted)]">
+          <span
+            className={cn(
+              "shrink-0 rounded-[6px] px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.04em]",
+              tag.className
+            )}
+          >
+            {tag.label}
+          </span>
+          <span className="truncate">{meta}</span>
+        </p>
+      </div>
+      <div className="flex shrink-0 items-center">
+        {actions.map((action) => {
+          const Icon = action.icon;
+          return (
+            <button
+              key={action.label}
+              type="button"
+              onClick={action.onClick}
+              aria-label={action.label}
+              className="grid h-[38px] w-[38px] place-items-center"
+            >
+              <span
+                className={cn(
+                  "grid h-8 w-8 place-items-center rounded-[9px] border",
+                  action.primary
+                    ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
+                    : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)]"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+              </span>
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => setShareOpen(true)}
+          aria-label={`Share ${quiz.title} on WhatsApp`}
+          className="grid h-[38px] w-[38px] place-items-center"
+        >
+          <span className="grid h-8 w-8 place-items-center rounded-[9px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[#15803D]">
+            <WhatsAppIcon className="h-4 w-4" />
+          </span>
+        </button>
+      </div>
+
+      {shareOpen && (
+        <ShareQuizDialog
+          quiz={{
+            id: quiz.id,
+            title: quiz.title,
+            code: quiz.code,
+            questions: quiz.questions,
+            status: quiz.status,
+            duration: quiz.duration,
+          }}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
+    </motion.li>
   );
 }
 
@@ -695,9 +872,9 @@ function QuizCardItem({
 
 function TilesSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-[18px] lg:grid-cols-4">
+    <div className="grid grid-cols-4 gap-1.5 lg:gap-[18px]">
       {Array.from({ length: 4 }).map((_, i) => (
-        <Skeleton key={i} className="h-[104px] rounded-[18px]" />
+        <Skeleton key={i} className="h-[54px] rounded-[10px] lg:h-[104px] lg:rounded-[18px]" />
       ))}
     </div>
   );
@@ -705,9 +882,26 @@ function TilesSkeleton() {
 
 function ToolbarSkeleton() {
   return (
-    <div className="flex flex-col gap-3 rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 xl:flex-row xl:items-center">
-      <Skeleton className="h-11 rounded-[12px] xl:w-80" />
-      <Skeleton className="h-9 flex-1 rounded-full" />
+    <div className="flex flex-col gap-2.5 lg:gap-3 lg:rounded-[18px] lg:border-2 lg:border-[var(--qs-line)] lg:bg-[var(--qs-surface)] lg:p-3 xl:flex-row xl:items-center">
+      <Skeleton className="h-[42px] rounded-[10px] lg:h-11 lg:rounded-[12px] xl:w-80" />
+      <Skeleton className="h-8 flex-1 rounded-full lg:h-9" />
+    </div>
+  );
+}
+
+function QuizRowSkeleton() {
+  return (
+    <div className="flex h-[66px] items-center gap-1.5 rounded-[14px] border border-[var(--qs-line)] bg-[var(--qs-surface)] pl-3.5 pr-1.5 shadow-[2px_3px_0_var(--qs-sun)]">
+      <div className="min-w-0 flex-1 space-y-1.5">
+        <Skeleton className="h-3.5 w-3/4 rounded" />
+        <Skeleton className="h-3 w-1/2 rounded" />
+      </div>
+      <div className="flex shrink-0 gap-1.5">
+        <Skeleton className="h-8 w-8 rounded-[9px]" />
+        <Skeleton className="h-8 w-8 rounded-[9px]" />
+        <Skeleton className="h-8 w-8 rounded-[9px]" />
+        <Skeleton className="h-8 w-8 rounded-[9px]" />
+      </div>
     </div>
   );
 }

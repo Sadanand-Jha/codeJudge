@@ -283,14 +283,14 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
         aria-modal="true"
         aria-labelledby="share-quiz-title"
         onClick={(event) => event.stopPropagation()}
-        className="relative my-auto max-h-[calc(100dvh-2rem)] w-full max-w-[940px] overflow-y-auto rounded-[24px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[8px_8px_0_var(--qs-sun)]"
+        className="relative my-auto max-h-[calc(100dvh-2rem)] w-full max-w-[940px] overflow-y-auto rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[2px_3px_0_var(--qs-sun)] sm:rounded-[24px] sm:border-2 sm:shadow-[8px_8px_0_var(--qs-sun)]"
       >
         <div className="flex items-start justify-between gap-4 px-5 pb-1 pt-5">
           <div>
-            <h2 id="share-quiz-title" className="qs-display text-[20px] font-extrabold text-[var(--qs-ink)]">
+            <h2 id="share-quiz-title" className="qs-display text-[15px] font-bold text-[var(--qs-ink)] sm:text-[20px] sm:font-extrabold">
               Share on WhatsApp
             </h2>
-            <p className="mt-1 text-[13px] leading-5 text-[var(--qs-muted)]">
+            <p className="mt-0.5 text-[10.5px] leading-4 text-[var(--qs-muted)] sm:mt-1 sm:text-[13px] sm:leading-5">
               Pick a style, tweak the message, and share. Students get a tap-to-join link.
             </p>
           </div>
@@ -304,7 +304,7 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
           </button>
         </div>
 
-        <div className="grid gap-5 px-5 pb-5 pt-3 md:grid-cols-2 md:gap-6 md:px-6 md:pb-6">
+        <div className="grid gap-2.5 px-3.5 pb-3.5 pt-2.5 sm:gap-5 sm:px-5 sm:pb-5 sm:pt-3 md:grid-cols-2 md:gap-6 md:px-6 md:pb-6">
           <div className="min-w-0 space-y-4">
             <div>
               <div className="mb-2 grid grid-cols-2 gap-2" role="tablist" aria-label="Message style">
@@ -322,7 +322,7 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
                         setCopied(false);
                       }}
                       className={cn(
-                        "rounded-[12px] border-2 px-2 py-2 text-[13px] font-bold transition-colors",
+                        "rounded-[9px] border px-1.5 py-1.5 text-[11px] font-semibold transition-colors sm:rounded-[12px] sm:border-2 sm:px-2 sm:py-2 sm:text-[13px] sm:font-bold",
                         selected
                           ? "border-[var(--qs-brand)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
                           : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
@@ -333,7 +333,7 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
                   );
                 })}
               </div>
-              <p className="min-h-[2.6em] text-[12px] leading-[1.4] text-[var(--qs-muted)]">
+              <p className="min-h-[2.6em] text-[10px] leading-[1.35] text-[var(--qs-muted)] sm:text-[12px] sm:leading-[1.4]">
                 {activeStyle.description}
               </p>
             </div>
@@ -342,7 +342,7 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
               <div className="mb-1.5 flex items-center justify-between gap-2">
                 <label
                   htmlFor="share-quiz-message"
-                  className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ink)]"
+                  className="text-[9.5px] font-bold uppercase tracking-[0.08em] text-[var(--qs-ink)] sm:text-[11px] sm:font-extrabold"
                 >
                   Your message
                 </label>
@@ -362,7 +362,7 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
                 onChange={(event) => setCustomMessage(event.target.value)}
                 rows={9}
                 spellCheck={false}
-                className="w-full resize-y rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2 text-[12.5px] leading-[1.5] text-[var(--qs-ink)] outline-none transition-colors focus:border-[var(--qs-brand)]"
+                className="w-full resize-y rounded-[9px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 py-1.5 text-[11px] leading-[1.4] text-[var(--qs-ink)] outline-none transition-colors focus:border-[var(--qs-brand)] sm:rounded-[12px] sm:border-2 sm:px-3 sm:py-2 sm:text-[12.5px] sm:leading-[1.5]"
               />
             </div>
 
@@ -380,7 +380,7 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
               <span className="text-[11px] text-[var(--qs-muted)]">Updates as you type</span>
             </div>
 
-            <div className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[#efeae2] p-4 dark:bg-[#0b141a]">
+            <div className="rounded-[12px] border border-[var(--qs-line)] bg-[#efeae2] p-2.5 dark:bg-[#0b141a] sm:rounded-[18px] sm:border-2 sm:p-4">
               <div className="max-w-[95%] rounded-[10px] rounded-bl-[2px] bg-[#d9fdd3] p-1 text-[#111b21] shadow-[0_1px_1px_rgba(0,0,0,0.15)] dark:bg-[#005c4b] dark:text-[#e9edef]">
                 <div
                   className="overflow-hidden rounded-[7px] bg-[#f7f8f8] dark:bg-[#025144]"
@@ -420,7 +420,7 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
               >
                 Send to a number (optional)
               </label>
-              <div className="flex overflow-hidden rounded-[12px] border-2 border-[var(--qs-line)] focus-within:border-[var(--qs-brand)]">
+              <div className="flex overflow-hidden rounded-[9px] border border-[var(--qs-line)] focus-within:border-[var(--qs-brand)] sm:rounded-[12px] sm:border-2">
                 <span className="grid place-items-center bg-[var(--qs-brand)]/10 px-3 text-[13px] font-extrabold text-[var(--qs-brand)]">
                   +91
                 </span>
@@ -435,7 +435,7 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
                     setWaPhone(event.target.value);
                     setWaError(null);
                   }}
-                  className="min-w-0 flex-1 border-0 bg-transparent px-3 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] outline-none"
+                  className="min-w-0 flex-1 border-0 bg-transparent px-2.5 py-2 text-[11.5px] font-semibold text-[var(--qs-ink)] outline-none sm:px-3 sm:py-2.5 sm:text-[13px] sm:font-bold"
                 />
               </div>
               <p
@@ -455,7 +455,7 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
                 disabled={copying}
                 aria-live="polite"
                 className={cn(
-                  "flex-1 rounded-[12px] px-3 py-3 text-[13px] font-bold shadow-[0_4px_0_rgba(0,0,0,0.22)] transition-all active:translate-y-[3px] active:shadow-[0_1px_0_rgba(0,0,0,0.22)] disabled:cursor-wait disabled:opacity-70",
+                  "flex-1 rounded-[9px] px-2 py-2.5 text-[11.5px] font-semibold sm:rounded-[12px] sm:px-3 sm:py-3 sm:text-[13px] sm:font-bold shadow-[0_4px_0_rgba(0,0,0,0.22)] transition-all active:translate-y-[3px] active:shadow-[0_1px_0_rgba(0,0,0,0.22)] disabled:cursor-wait disabled:opacity-70",
                   copied
                     ? "bg-[var(--qs-ok)] text-[var(--qs-on-brand)]"
                     : "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
@@ -466,7 +466,7 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
               <button
                 type="button"
                 onClick={openWhatsApp}
-                className="flex flex-1 items-center justify-center gap-2 rounded-[12px] bg-[#25d366] px-3 py-3 text-[13px] font-bold text-[#06301a] shadow-[0_4px_0_rgba(0,0,0,0.2)] transition-all hover:brightness-105 active:translate-y-[3px] active:shadow-[0_1px_0_rgba(0,0,0,0.2)]"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] bg-[#25d366] px-2 py-2.5 text-[11.5px] font-semibold sm:gap-2 sm:rounded-[12px] sm:px-3 sm:py-3 sm:text-[13px] sm:font-bold text-[#06301a] shadow-[0_4px_0_rgba(0,0,0,0.2)] transition-all hover:brightness-105 active:translate-y-[3px] active:shadow-[0_1px_0_rgba(0,0,0,0.2)]"
               >
                 <WhatsAppIcon className="h-4 w-4 text-white" />
                 Open WhatsApp

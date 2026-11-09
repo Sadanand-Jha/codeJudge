@@ -27,9 +27,9 @@ import { checkLowCreditWarning, useAICreditsStore } from "@/store/aiCreditsStore
 import type { AICreditPurchase, AICreditUsageEntry } from "@/types/aiCredits";
 
 const BTN =
-  "inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]";
+  "inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 py-2 text-[11.5px] font-semibold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] sm:gap-2 sm:rounded-[12px] sm:border-2 sm:px-4 sm:py-2.5 sm:text-[13px] sm:font-bold";
 const BTN_PRI =
-  "inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:brightness-110 active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_var(--qs-sun)]";
+  "inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] px-2 py-2 text-[11.5px] font-semibold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] transition-all hover:brightness-110 active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0_var(--qs-sun)] sm:gap-2 sm:rounded-[12px] sm:border-2 sm:px-4 sm:py-2.5 sm:text-[13px] sm:font-bold sm:shadow-[3px_3px_0_var(--qs-sun)] sm:active:shadow-[2px_2px_0_var(--qs-sun)]";
 const PILL =
   "inline-flex shrink-0 items-center gap-1.5 rounded-full border-2 border-current px-2.5 py-[3px] text-[10px] font-black uppercase tracking-[0.08em]";
 
@@ -72,15 +72,15 @@ function DashPanel({
   className?: string;
 }) {
   return (
-    <section className={cn("flex h-full flex-col rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-6", className)}>
-      <header className="flex flex-wrap items-start justify-between gap-3">
+    <section className={cn("flex h-full flex-col rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3.5 sm:rounded-[26px] sm:border-2 sm:p-6", className)}>
+      <header className="flex flex-wrap items-baseline justify-between gap-3 sm:items-start">
         <div className="min-w-0">
-          <h2 className="qs-display text-[21px] font-extrabold text-[var(--qs-ink)]">{title}</h2>
-          {subtitle && <p className="mt-0.5 text-[13px] text-[var(--qs-muted)]">{subtitle}</p>}
+          <h2 className="qs-display text-[14px] font-bold text-[var(--qs-ink)] sm:text-[21px] sm:font-extrabold">{title}</h2>
+          {subtitle && <p className="mt-0.5 text-[10.5px] text-[var(--qs-muted)] sm:text-[13px]">{subtitle}</p>}
         </div>
         {action && <div className="shrink-0">{action}</div>}
       </header>
-      <div className="mt-5 min-h-0 flex-1">{children}</div>
+      <div className="mt-2.5 min-h-0 flex-1 sm:mt-5">{children}</div>
     </section>
   );
 }
@@ -101,21 +101,21 @@ function MetricTile({
   icon: ReactNode;
 }) {
   return (
-    <article className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3.5">
+    <article className="rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 py-2 sm:rounded-[18px] sm:border-2 sm:px-4 sm:py-3.5">
       <div className="flex items-center justify-between gap-2">
-        <p className="flex min-w-0 items-center gap-2 text-[10px] font-black uppercase tracking-[0.11em] text-[var(--qs-muted)]">
-          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />
+        <p className="flex min-w-0 items-center gap-1.5 text-[9.5px] font-semibold text-[var(--qs-muted)] sm:gap-2 sm:text-[10px] sm:font-black sm:uppercase sm:tracking-[0.11em]">
+          <span className="hidden h-2.5 w-2.5 shrink-0 rounded-full sm:block" style={{ background: color }} />
           <span className="truncate">{label}</span>
         </p>
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-line)] text-[var(--qs-muted)]">
+        <span className="hidden h-8 w-8 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-line)] text-[var(--qs-muted)] sm:grid">
           {icon}
         </span>
       </div>
-      <p className="qs-display mt-2 text-[30px] font-extrabold leading-none tracking-tight text-[var(--qs-ink)]">
+      <p className="qs-display mt-0.5 text-[20px] font-bold leading-6 tracking-tight text-[var(--qs-ink)] sm:mt-2 sm:text-[30px] sm:font-extrabold sm:leading-none">
         {value}
-        {unit && <span className="ml-1.5 text-[13px] font-semibold tracking-normal text-[var(--qs-muted)]">{unit}</span>}
+        {unit && <span className="ml-1 text-[11px] font-medium text-[var(--qs-muted)] sm:ml-1.5 sm:text-[13px] sm:font-semibold">{unit}</span>}
       </p>
-      <p className="mt-1.5 truncate text-[12px] text-[var(--qs-muted)]" title={hint}>
+      <p className="mt-0.5 truncate text-[10px] text-[var(--qs-muted)] sm:mt-1.5 sm:text-[12px]" title={hint}>
         {hint}
       </p>
     </article>
@@ -162,29 +162,29 @@ function CreditsCard({
     (subscription?.status === "free" ? "Free plan" : "Current");
 
   return (
-    <div className="relative mb-4 mr-4">
-      <span aria-hidden="true" className="absolute -bottom-4 -right-4 left-4 top-4 rounded-[30px] bg-[var(--qs-sun)]" />
-      <article className="relative flex h-full flex-col rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-6">
+    <div className="relative mb-0 mr-0 sm:mb-4 sm:mr-4">
+      <span aria-hidden="true" className="absolute -bottom-4 -right-4 left-4 top-4 hidden rounded-[30px] bg-[var(--qs-sun)] sm:block" />
+      <article className="relative flex h-full flex-col rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3.5 shadow-[2px_3px_0_var(--qs-sun)] sm:rounded-[26px] sm:border-2 sm:p-6 sm:shadow-none">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <span className={cn(PILL, low ? "text-[#a85d00]" : "text-[var(--qs-ok)]")}>
               <span className="h-1.5 w-1.5 rounded-full bg-current" />
               {low ? "Running low" : "Available now"}
             </span>
-            <h2 className="qs-display mt-3 text-[21px] font-extrabold text-[var(--qs-ink)]">AI credit balance</h2>
+            <h2 className="qs-display mt-1.5 text-[15px] font-bold text-[var(--qs-ink)] sm:mt-3 sm:text-[21px] sm:font-extrabold">AI credit balance</h2>
           </div>
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]">
-            <Sparkles className="h-5 w-5" strokeWidth={2.5} />
+          <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240] sm:h-12 sm:w-12 sm:border-2">
+            <Sparkles className="h-3.5 w-3.5 sm:h-5 sm:w-5" strokeWidth={2.5} />
           </span>
         </div>
 
-        <p className="mt-4 leading-none">
-          <span className="qs-display text-[48px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-[56px]">
+        <p className="mt-2 leading-none sm:mt-4">
+          <span className="qs-display text-[32px] font-bold tracking-tight text-[var(--qs-ink)] sm:text-[56px] sm:font-extrabold">
             {balance.totalRemaining.toLocaleString("en-IN")}
           </span>
-          <span className="ml-2.5 align-middle text-[15px] font-bold text-[var(--qs-muted)]">credits left</span>
+          <span className="ml-2 align-middle text-[12px] font-medium text-[var(--qs-muted)] sm:ml-2.5 sm:text-[15px] sm:font-bold">credits left</span>
         </p>
-        <p className="mt-2 text-[13px] text-[var(--qs-muted)]">
+        <p className="mt-1.5 text-[10.5px] text-[var(--qs-muted)] sm:mt-2 sm:text-[13px]">
           {isTrialActive ? (
             <>
               {trialPlanName} trial · {BASIC_TRIAL_CREDITS} trial AI credits ·{" "}
@@ -206,20 +206,20 @@ function CreditsCard({
           )}
         </p>
 
-        <div className="mt-5">
-          <div className="flex items-center justify-between gap-3 text-[11px] font-bold text-[var(--qs-muted)]">
+        <div className="mt-3 sm:mt-5">
+          <div className="flex items-center justify-between gap-3 text-[10.5px] font-semibold text-[var(--qs-muted)] sm:text-[11px] sm:font-bold">
             <span>Monthly plan usage</span>
             <span className="tabular-nums text-[var(--qs-ink)]">
               {monthlyUsed.toLocaleString("en-IN")} / {monthlyTotal.toLocaleString("en-IN")}
             </span>
           </div>
-          <div className="mt-2 h-3.5 overflow-hidden rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)]">
+          <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[var(--qs-line)] sm:mt-2 sm:h-3.5 sm:border-2 sm:border-[var(--qs-ink)] sm:bg-[var(--qs-bg)]">
             <div
               className={cn("h-full rounded-full transition-all duration-500", low ? "bg-[var(--qs-sun)]" : "bg-[var(--qs-brand)]")}
               style={{ width: `${monthlyPct}%` }}
             />
           </div>
-          <p className="mt-1.5 text-[11px] text-[var(--qs-muted)]">
+          <p className="mt-1 text-[10px] text-[var(--qs-muted)] sm:mt-1.5 sm:text-[11px]">
             {Math.round(monthlyPct)}% of this month&apos;s included credits used.
           </p>
         </div>
@@ -233,7 +233,7 @@ function CreditsCard({
           </div>
         )}
 
-        <div className="mt-auto flex flex-wrap gap-2 pt-5">
+        <div className="mt-auto grid grid-cols-2 gap-1.5 pt-3.5 [&>*]:w-full sm:flex sm:flex-wrap sm:gap-2 sm:pt-5 sm:[&>*]:w-auto">
           <Link href="/creator/billing/credits" className={BTN_PRI}>
             <Coins className="h-4 w-4" />
             Buy credits
@@ -295,9 +295,9 @@ function TopUpsCard({ purchases }: { purchases: AICreditPurchase[] }) {
           {purchases.slice(0, 4).map((purchase, index) => (
             <div
               key={`${purchase.packId}-${purchase.timestamp}`}
-              className={cn("flex items-center gap-3 py-3", index > 0 && "border-t-2 border-[var(--qs-line)]")}
+              className={cn("flex items-center gap-2.5 py-2 sm:gap-3 sm:py-3", index > 0 && "border-t border-[var(--qs-line)] sm:border-t-2")}
             >
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[13px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-brand)]">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] border border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-brand)] sm:h-10 sm:w-10 sm:rounded-[13px] sm:border-2">
                 <Coins className="h-4 w-4" />
               </span>
               <div className="min-w-0 flex-1">
@@ -335,9 +335,9 @@ function UsageChart({ graph }: { graph: Array<{ day: string; credits: number }> 
       }
     >
       {graph.length === 0 ? (
-        <div className="flex h-[180px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--qs-line)] px-4 text-center">
-          <p className="text-[13px] font-bold text-[var(--qs-ink)]">No usage yet</p>
-          <p className="mt-1 max-w-[210px] text-[12px] leading-5 text-[var(--qs-muted)]">
+        <div className="flex h-[60px] flex-col items-center justify-center rounded-xl border-[1.5px] border-dashed border-[var(--qs-line)] px-3 text-center sm:h-[180px] sm:rounded-2xl sm:border-2 sm:px-4">
+          <p className="text-[11.5px] font-bold text-[var(--qs-ink)] sm:text-[13px]">No usage yet</p>
+          <p className="mt-1 hidden max-w-[210px] text-[12px] leading-5 text-[var(--qs-muted)] sm:block">
             Credit consumption will appear here after your first AI generation.
           </p>
         </div>
@@ -391,12 +391,12 @@ function RecentUsageCard({ entries }: { entries: AICreditUsageEntry[] }) {
       }
     >
       {entries.length === 0 ? (
-        <div className="flex h-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--qs-line)] px-4 py-8 text-center">
-          <span className="grid h-12 w-12 place-items-center rounded-full border-2 border-[var(--qs-line)] text-[var(--qs-muted)]">
+        <div className="flex h-[60px] flex-col items-center justify-center rounded-xl border-[1.5px] border-dashed border-[var(--qs-line)] px-3 text-center sm:h-full sm:rounded-2xl sm:border-2 sm:px-4 sm:py-8">
+          <span className="hidden h-12 w-12 place-items-center rounded-full border-2 border-[var(--qs-line)] text-[var(--qs-muted)] sm:grid">
             <Flame className="h-5 w-5" />
           </span>
-          <p className="mt-3 text-[13px] font-bold text-[var(--qs-ink)]">No AI usage yet</p>
-          <p className="mt-1 max-w-[210px] text-[12px] leading-5 text-[var(--qs-muted)]">
+          <p className="text-[11.5px] font-bold text-[var(--qs-ink)] sm:mt-3 sm:text-[13px]">No AI usage yet</p>
+          <p className="mt-1 hidden max-w-[210px] text-[12px] leading-5 text-[var(--qs-muted)] sm:block">
             Generate a paper or quiz and your usage will show up here.
           </p>
         </div>
@@ -488,15 +488,15 @@ function PlanSummaryStrip({
   return (
     <section
       aria-label="Monthly plan summary"
-      className="flex flex-wrap items-center justify-between gap-4 rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-5 py-4"
+      className="flex items-center gap-2.5 rounded-[14px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5 sm:flex-wrap sm:justify-between sm:gap-4 sm:rounded-[22px] sm:border-2 sm:px-5 sm:py-4"
     >
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]">
-          <CalendarClock className="h-5 w-5" />
+      <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
+        <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full border border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240] sm:h-11 sm:w-11 sm:border-2">
+          <CalendarClock className="h-4 w-4 sm:h-5 sm:w-5" />
         </span>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <span className={cn(PILL, "text-[var(--qs-brand)]")}>Current plan</span>
-          <p className="mt-1.5 truncate text-[15px] font-extrabold text-[var(--qs-ink)]">
+          <p className="mt-0.5 truncate text-[12.5px] font-bold text-[var(--qs-ink)] sm:mt-1.5 sm:text-[15px] sm:font-extrabold">
             {isTrialActive
               ? `${trialPlanName} trial`
               : isTrialExpired
@@ -508,10 +508,29 @@ function PlanSummaryStrip({
               </span>
             ) : null}
           </p>
+          <p className="truncate text-[10.5px] text-[var(--qs-muted)] sm:hidden">
+            {isTrialActive
+              ? `${BASIC_TRIAL_CREDITS} trial AI credits`
+              : isTrialExpired
+                ? "Trial ended · upgrade for AI credits"
+                : plan && plan.credits > 0
+                  ? `${plan.credits.toLocaleString("en-IN")} credits / month`
+                  : "No monthly credits"}
+            {" · "}
+            {purchasedCredits.toLocaleString("en-IN")} purchased credits
+          </p>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] font-semibold text-[var(--qs-muted)]">
+      <Link
+        href="/creator/billing/plans"
+        className="flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] font-semibold text-[var(--qs-brand)] sm:hidden"
+      >
+        Manage plan
+        <ArrowRight className="h-3 w-3" />
+      </Link>
+
+      <div className="hidden flex-wrap items-center gap-x-5 gap-y-2 text-[12px] font-semibold text-[var(--qs-muted)] sm:flex">
         <span className="inline-flex items-center gap-1.5">
           <Sparkles className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
           {isTrialActive
@@ -570,30 +589,16 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
   const low = data ? checkLowCreditWarning(data.balance.totalRemaining, data.balance.monthlyAllowance || data.balance.monthlyCredits || 1) : false;
 
   return (
-    <div className="space-y-5 pb-2">
+    <div className="space-y-3 pb-2 sm:space-y-5">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
           <span className={cn(PILL, "text-[#2457d6]")}>Billing</span>
-          <h1 className="qs-display mt-2 text-[28px] font-extrabold leading-[1.08] tracking-[-0.025em] text-[var(--qs-ink)] sm:text-[34px] lg:text-[38px]">
+          <h1 className="qs-display mt-1.5 text-[21px] font-bold leading-[26px] tracking-normal text-[var(--qs-ink)] sm:mt-2 sm:text-[34px] sm:font-extrabold sm:leading-[1.08] sm:tracking-[-0.025em] lg:text-[38px]">
             Billing Overview
           </h1>
-          <p className="mt-1.5 text-[14px] text-[var(--qs-muted)] sm:text-[15px]">
+          <p className="mt-0.5 text-[11px] leading-[15px] text-[var(--qs-muted)] sm:mt-1.5 sm:text-[15px]">
             Track your monthly plan, AI credit balance, usage and top-ups in one place.
           </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/creator/billing/plans" className={BTN}>
-            <CalendarClock className="h-4 w-4" />
-            Plans
-          </Link>
-          <Link href="/creator/billing/transactions" className={BTN}>
-            <History className="h-4 w-4" />
-            Transactions
-          </Link>
-          <Link href="/creator/billing/credits" className={BTN_PRI}>
-            <Coins className="h-4 w-4" />
-            Buy credits
-          </Link>
         </div>
       </div>
 
@@ -609,14 +614,14 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
 
           <TrialRequestPanel />
 
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:gap-5 lg:grid-cols-3">
             <div className="lg:col-span-2">
               <CreditsCard balance={data.balance} low={low} />
             </div>
             <TopUpsCard purchases={data.purchases} />
           </div>
 
-          <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-1.5 sm:gap-3.5 lg:grid-cols-4">
             <MetricTile
               label="Used this month"
               value={data.stats.consumedThisMonth.toLocaleString("en-IN")}
@@ -651,7 +656,7 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:gap-5 xl:grid-cols-3">
             <div className="min-w-0 xl:col-span-2">
               <UsageChart graph={data.stats.monthlyGraph} />
             </div>

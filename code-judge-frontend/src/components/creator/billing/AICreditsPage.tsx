@@ -169,29 +169,52 @@ export function AICreditsPage({
   };
 
   return (
-    <div className="space-y-5 pb-2">
-      <PageHeader
-        title="AI Credits"
-        subtitle="Top up credits whenever you need them."
-        actions={
-          <>
-            <Link
-              href="/creator/billing/plans"
-              className="inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
-            >
-              <CalendarClock className="h-4 w-4" />
-              Plans
-            </Link>
-            <Link
-              href="/creator/billing/transactions"
-              className="inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
-            >
-              <History className="h-4 w-4" />
-              Transactions
-            </Link>
-          </>
-        }
-      />
+    <div className="space-y-3 pb-2 sm:space-y-5">
+      <div className="hidden sm:block">
+        <PageHeader
+          title="AI Credits"
+          subtitle="Top up credits whenever you need them."
+          actions={
+            <>
+              <Link
+                href="/creator/billing/plans"
+                className="inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+              >
+                <CalendarClock className="h-4 w-4" />
+                Plans
+              </Link>
+              <Link
+                href="/creator/billing/transactions"
+                className="inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+              >
+                <History className="h-4 w-4" />
+                Transactions
+              </Link>
+            </>
+          }
+        />
+      </div>
+
+      <div className="sm:hidden">
+        <h1 className="qs-display text-[21px] font-bold leading-[26px] text-[var(--qs-ink)]">AI Credits</h1>
+        <p className="mt-0.5 text-[11px] leading-[15px] text-[var(--qs-muted)]">Top up credits whenever you need them.</p>
+        <div className="mt-2.5 flex items-center gap-1.5">
+          <Link
+            href="/creator/billing/plans"
+            className="flex h-[34px] items-center gap-1 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-[11.5px] font-semibold text-[var(--qs-ink)]"
+          >
+            <CalendarClock className="h-3.5 w-3.5" />
+            Plans
+          </Link>
+          <Link
+            href="/creator/billing/transactions"
+            className="flex h-[34px] items-center gap-1 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-[11.5px] font-semibold text-[var(--qs-ink)]"
+          >
+            <History className="h-3.5 w-3.5" />
+            Transactions
+          </Link>
+        </div>
+      </div>
 
       {state === "loading" && (
         <div className="flex min-h-[50vh] items-center justify-center">
@@ -200,9 +223,9 @@ export function AICreditsPage({
       )}
 
       {state === "error" && (
-        <div className="rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-8 text-center">
-          <p className="text-lg font-extrabold">Credit packs could not be loaded.</p>
-          <p className="mt-1 text-sm text-[var(--qs-muted)]">
+        <div className="rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 text-center sm:rounded-[22px] sm:border-2 sm:p-8">
+          <p className="text-[13px] font-bold sm:text-lg sm:font-extrabold">Credit packs could not be loaded.</p>
+          <p className="mt-1 text-[11px] text-[var(--qs-muted)] sm:text-sm">
             Please check your connection and try again.
           </p>
           <button type="button" onClick={retry} className={`${QS_OUTLINE_BTN} mt-4`}>
@@ -212,9 +235,9 @@ export function AICreditsPage({
       )}
 
       {state === "empty" && (
-        <div className="rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-8 text-center">
-          <p className="text-lg font-extrabold">No credit packs available</p>
-          <p className="mt-1 text-sm text-[var(--qs-muted)]">
+        <div className="rounded-[14px] border-[1.5px] border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 text-center sm:rounded-[22px] sm:border-2 sm:p-8">
+          <p className="text-[13px] font-bold sm:text-lg sm:font-extrabold">No credit packs available</p>
+          <p className="mt-1 text-[11px] text-[var(--qs-muted)] sm:text-sm">
             Credit packs are configured by the administrator. Please check back later.
           </p>
         </div>

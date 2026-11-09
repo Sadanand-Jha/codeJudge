@@ -78,26 +78,26 @@ function PackCard({
   const validity = `${months} month${months === 1 ? "" : "s"}`;
 
   return (
-    <article className="flex flex-col rounded-[20px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">
+    <article className="flex flex-col rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 sm:rounded-[20px] sm:border-2 sm:p-4">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-[20px] font-extrabold leading-tight tracking-[-0.015em]">
+        <h3 className="text-[14px] font-bold leading-tight tracking-normal sm:text-[20px] sm:font-extrabold sm:tracking-[-0.015em]">
           {summary.pack.name}
         </h3>
         <span className="whitespace-nowrap rounded-full bg-[var(--qs-bg)] px-2.5 py-1 text-[11px] font-extrabold text-[var(--qs-muted)]">
           One-time
         </span>
       </div>
-      <p className="mt-1.5 text-[13.5px] font-medium leading-[1.4] text-[var(--qs-muted)]">
+      <p className="mt-1 text-[10.5px] leading-[14px] text-[var(--qs-muted)] sm:mt-1.5 sm:text-[13.5px] sm:font-medium sm:leading-[1.4]">
         {summary.pack.blurb || `${credits.toLocaleString("en-IN")} AI credits for ${validity}.`}
       </p>
-      <p className="mt-3 text-[12px] font-bold text-[var(--qs-brand)]">
+      <p className="mt-1.5 text-[10px] font-semibold text-[var(--qs-brand)] sm:mt-3 sm:text-[12px] sm:font-bold">
         Top-up credits · no subscription needed
       </p>
       <div className="mt-1 flex flex-wrap items-baseline gap-2">
-        <span className="text-[38px] font-extrabold leading-none tracking-[-0.03em]">
+        <span className="text-[24px] font-bold leading-7 tracking-normal sm:text-[38px] sm:font-extrabold sm:leading-none sm:tracking-[-0.03em]">
           {formatPricingAmount(summary.total, "INR")}
         </span>
-        <span className="text-[13px] font-bold text-[var(--qs-muted)]">one-time</span>
+        <span className="text-[10.5px] font-medium text-[var(--qs-muted)] sm:text-[13px] sm:font-bold">one-time</span>
       </div>
       <div className="mt-3">
         <div className="flex justify-between gap-2 text-[12px] font-bold text-[var(--qs-brand)]">
@@ -114,7 +114,7 @@ function PackCard({
         </div>
       </div>
       <hr className="my-3 border-0 border-t-2 border-dashed border-[var(--qs-line)]" />
-      <ul className="grid gap-2 text-[13.5px] font-semibold">
+      <ul className="grid gap-1.5 text-[11px] font-medium sm:gap-2 sm:text-[13.5px] sm:font-semibold">
         <li className="flex items-center gap-2.5">
           <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
             <Check className="h-3 w-3" strokeWidth={2.6} />
@@ -129,8 +129,8 @@ function PackCard({
         </li>
       </ul>
 
-      <div className="mt-auto pt-4">
-        <p className="mb-2 text-[12px] font-bold text-[var(--qs-muted)]">Pay with</p>
+      <div className="mt-auto pt-2.5 sm:pt-4">
+        <p className="mb-1.5 text-[10px] font-semibold text-[var(--qs-muted)] sm:mb-2 sm:text-[12px] sm:font-bold">Pay with</p>
         <div className="mb-3 flex flex-wrap gap-1.5">
           {METHODS.map((m) => (
             <button
@@ -139,7 +139,7 @@ function PackCard({
               aria-pressed={method === m.id}
               onClick={() => onMethodChange(m.id)}
               className={cn(
-                "rounded-full border-2 px-3.5 py-1.5 text-[12.5px] font-bold transition-colors",
+                "rounded-full border px-2 py-1 text-[10.5px] font-medium sm:border-2 sm:px-3.5 sm:py-1.5 sm:text-[12.5px] sm:font-bold transition-colors",
                 method === m.id
                   ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
                   : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
@@ -152,7 +152,7 @@ function PackCard({
         <button
           type="button"
           onClick={onPay}
-          className="flex w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-4 py-3 text-[15px] font-extrabold text-[var(--qs-ink)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_3px_0_var(--qs-ink)] active:translate-y-0.5 active:shadow-none"
+          className="flex w-full items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] px-2.5 py-2.5 text-[12px] font-semibold sm:gap-2 sm:rounded-[14px] sm:border-2 sm:px-4 sm:py-3 sm:text-[15px] sm:font-extrabold text-[var(--qs-ink)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_3px_0_var(--qs-ink)] active:translate-y-0.5 active:shadow-none"
         >
           <Lock className="h-3.5 w-3.5" /> Pay {formatPricingAmount(summary.total, "INR")}
         </button>
@@ -184,24 +184,24 @@ function UpgradeCard({
     source.credits > 0 ? suggestion.comparedAmountPaise / source.credits : 0;
 
   return (
-    <article className="relative order-first flex flex-col rounded-[20px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] p-4 text-[var(--qs-on-brand)] shadow-[6px_6px_0_var(--qs-sun)] sm:order-none">
+    <article className="relative order-first flex flex-col rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] p-2.5 text-[var(--qs-on-brand)] shadow-[2px_3px_0_var(--qs-sun)] sm:rounded-[20px] sm:border-2 sm:p-4 sm:shadow-[6px_6px_0_var(--qs-sun)] sm:order-none">
       <span className="absolute -top-3.5 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-[var(--qs-ink)] px-3.5 py-[5px] text-[12px] font-extrabold text-[var(--qs-sun)]">
         <Sparkles className="h-3 w-3" />
         {suggestion.badge}
       </span>
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <h3 className="text-[20px] font-extrabold leading-tight tracking-[-0.015em]">
+        <h3 className="text-[14px] font-bold leading-tight tracking-normal sm:text-[20px] sm:font-extrabold sm:tracking-[-0.015em]">
           {pack.name}
         </h3>
         <span className="whitespace-nowrap rounded-full bg-[var(--qs-sun)] px-2.5 py-1 text-[11px] font-extrabold text-[#1A1240]">
           +{suggestion.extraCredits} credits
         </span>
       </div>
-      <p className="mt-1.5 text-[13.5px] font-medium leading-[1.4] text-white/80">
+      <p className="mt-1 text-[10.5px] leading-[14px] text-white/80 sm:mt-1.5 sm:text-[13.5px] sm:font-medium sm:leading-[1.4]">
         {suggestion.description}
       </p>
       <div className="mt-1 flex flex-wrap items-baseline gap-2">
-        <span className="text-[38px] font-extrabold leading-none tracking-[-0.03em]">
+        <span className="text-[24px] font-bold leading-7 tracking-normal sm:text-[38px] sm:font-extrabold sm:leading-none sm:tracking-[-0.03em]">
           {formatPricingAmount(suggestion.amountPaise / 100, "INR")}
         </span>
         <span className="text-[13px] font-bold text-white/80">today</span>
@@ -223,7 +223,7 @@ function UpgradeCard({
         </div>
       </div>
       <hr className="my-3 border-0 border-t-2 border-dashed border-white/35" />
-      <ul className="grid gap-2 text-[13.5px] font-semibold">
+      <ul className="grid gap-1.5 text-[11px] font-medium sm:gap-2 sm:text-[13.5px] sm:font-semibold">
         <li className="flex items-center gap-2.5">
           <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--qs-sun)] text-[#1A1240]">
             <Check className="h-3 w-3" strokeWidth={2.6} />
@@ -245,11 +245,11 @@ function UpgradeCard({
           {sourceRatePaise > 0 ? `, not ${perCredit(sourceRatePaise)}` : ""}
         </li>
       </ul>
-      <div className="mt-auto pt-4">
+      <div className="mt-auto pt-2.5 sm:pt-4">
         <button
           type="button"
           onClick={onAccept}
-          className="flex w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-4 py-3 text-[15px] font-extrabold text-[#1A1240] shadow-[0_4px_0_var(--qs-ink)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_6px_0_var(--qs-ink)] active:translate-y-0.5 active:shadow-none"
+          className="flex w-full items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2.5 py-2.5 text-[12px] font-semibold sm:gap-2 sm:rounded-[14px] sm:border-2 sm:px-4 sm:py-3 sm:text-[15px] sm:font-extrabold text-[#1A1240] shadow-[0_4px_0_var(--qs-ink)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_6px_0_var(--qs-ink)] active:translate-y-0.5 active:shadow-none"
         >
           Switch to {pack.name} · {formatPricingAmount(suggestion.amountPaise / 100, "INR")}
           <ArrowRight className="h-3.5 w-3.5" />
@@ -257,7 +257,7 @@ function UpgradeCard({
         <button
           type="button"
           onClick={onDecline}
-          className="mt-2 w-full text-center text-[12px] font-bold text-white/75 underline decoration-2 underline-offset-2 hover:text-white"
+          className="mt-1.5 w-full text-center text-[10px] font-semibold text-white/75 underline underline-offset-2 sm:mt-2 sm:text-[12px] sm:font-bold sm:decoration-2 sm:underline-offset-2 hover:text-white"
         >
           No thanks
         </button>
@@ -386,8 +386,8 @@ export function OrderSummaryDialog({
         }
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-[26px] font-black tracking-tight">
+        <header className="mb-2.5 flex items-center justify-between gap-2 sm:mb-4 sm:gap-3">
+          <h2 className="text-[18px] font-bold tracking-tight sm:text-[26px] sm:font-black">
             {phase === "success" ? "Payment successful" : "Order summary"}
           </h2>
           <button
@@ -403,16 +403,16 @@ export function OrderSummaryDialog({
 
         {phase === "summary" && (
           <>
-            <div className="mt-3 flex items-center justify-between gap-3 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-2.5 text-sm">
-              <span className="font-semibold text-[var(--qs-muted)]">Current balance</span>
-              <strong className="text-base font-extrabold tabular-nums">
+            <div className="mt-2 flex items-center justify-between gap-2 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-2 text-[11px] sm:mt-3 sm:gap-3 sm:rounded-[14px] sm:border-2 sm:px-4 sm:py-2.5 sm:text-sm">
+              <span className="font-medium text-[var(--qs-muted)] sm:font-semibold">Current balance</span>
+              <strong className="text-[12px] font-bold tabular-nums sm:text-base sm:font-extrabold">
                 {balance.toLocaleString("en-IN")} credits
               </strong>
             </div>
 
             <div
               className={cn(
-                "mt-6 grid gap-4",
+                "mt-3 grid gap-2.5 sm:mt-6 sm:gap-4",
                 suggestion && !declined && "sm:grid-cols-[1fr_1.18fr] sm:items-stretch"
               )}
             >
@@ -495,7 +495,7 @@ export function OrderSummaryDialog({
             <button
               type="button"
               onClick={onClose}
-              className="mt-3 w-full rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] py-[15px] text-base font-extrabold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
+              className="mt-2.5 w-full rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] py-2.5 text-[13px] font-bold sm:mt-3 sm:rounded-[14px] sm:border-2 sm:py-[15px] sm:text-base sm:font-extrabold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
             >
               Done
             </button>
@@ -513,14 +513,14 @@ export function OrderSummaryDialog({
               <button
                 type="button"
                 onClick={onBack}
-                className="flex-1 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-3 text-sm font-bold transition-colors hover:border-[var(--qs-brand)]"
+                className="flex-1 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] py-2.5 text-[12px] font-semibold sm:rounded-[14px] sm:border-2 sm:py-3 sm:text-sm sm:font-bold transition-colors hover:border-[var(--qs-brand)]"
               >
                 Back
               </button>
               <button
                 type="button"
                 onClick={() => onPay(method)}
-                className="flex-1 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] py-3 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
+                className="flex-1 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] py-2.5 text-[12px] font-bold sm:rounded-[14px] sm:border-2 sm:py-3 sm:text-sm sm:font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
               >
                 Try again
               </button>
@@ -541,14 +541,14 @@ export function OrderSummaryDialog({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-3 text-sm font-bold transition-colors hover:border-[var(--qs-brand)]"
+                className="flex-1 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] py-2.5 text-[12px] font-semibold sm:rounded-[14px] sm:border-2 sm:py-3 sm:text-sm sm:font-bold transition-colors hover:border-[var(--qs-brand)]"
               >
                 Close
               </button>
               <button
                 type="button"
                 onClick={onBack}
-                className="flex-1 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] py-3 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
+                className="flex-1 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] py-2.5 text-[12px] font-bold sm:rounded-[14px] sm:border-2 sm:py-3 sm:text-sm sm:font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
               >
                 Resume
               </button>
