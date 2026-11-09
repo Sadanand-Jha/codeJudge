@@ -53,8 +53,8 @@ export function GameTab({
   }));
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-[18px] lg:grid-cols-2">
+    <div className="space-y-2.5 sm:space-y-4">
+      <div className="grid gap-2.5 sm:gap-[18px] lg:grid-cols-2">
         <Panel title="Power-ups and lifelines" subtitle="Usage across all in-game events.">
           {types.length > 0 ? (
             <>
@@ -65,7 +65,7 @@ export function GameTab({
                   r: String(t.uses),
                 }))}
               />
-              <p className="mt-2 text-xs font-semibold text-[var(--qs-muted)]">
+              <p className="mt-1.5 text-[9.5px] font-semibold text-[var(--qs-muted)] sm:mt-2 sm:text-xs">
                 Total events: {Math.round(toNumber(game.total_events))} · Bar shows share of the most-used power-up.
               </p>
             </>
@@ -80,7 +80,7 @@ export function GameTab({
                 items={lives.map((l) => ({ l: `${Math.round(toNumber(l.lives_remaining))} ♥`, v: Math.round(toNumber(l.count)) }))}
                 peak
               />
-              <p className="mt-2 text-xs font-semibold text-[var(--qs-muted)]">Attempts grouped by remaining lives.</p>
+              <p className="mt-1.5 text-[9.5px] font-semibold text-[var(--qs-muted)] sm:mt-2 sm:text-xs">Attempts grouped by remaining lives.</p>
             </>
           ) : (
             <EmptyNote>No lives data — game mode may be disabled for this quiz.</EmptyNote>
@@ -88,7 +88,7 @@ export function GameTab({
         </Panel>
       </div>
 
-      <div className="grid gap-[18px] lg:grid-cols-2">
+      <div className="grid gap-2.5 sm:gap-[18px] lg:grid-cols-2">
         <Panel title="50-50 by question" subtitle="Where students used their fifty-fifty lifeline.">
           {fifty.length > 0 ? (
             <HBars

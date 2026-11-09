@@ -121,7 +121,7 @@ const STATUS_CHIP: Record<CreditTxnStatus, string> = {
 
 function StatusChip({ status }: { status: CreditTxnStatus }) {
   return (
-    <span className={cn("mt-0.5 inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[9.5px] font-semibold sm:gap-1.5 sm:border-2 sm:px-3 sm:py-1 sm:text-[12.5px] sm:font-extrabold", STATUS_CHIP[status])}>
+    <span className={cn("mt-0.5 inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[9px] font-semibold max-sm:bg-[var(--qs-surface)] max-sm:uppercase max-sm:tracking-[0.03em] sm:gap-1.5 sm:border-2 sm:px-3 sm:py-1 sm:text-[12.5px] sm:font-extrabold", STATUS_CHIP[status])}>
       <span className="h-1 w-1 rounded-full bg-current sm:h-[7px] sm:w-[7px]" aria-hidden="true" />
       {STATUS_META[status].label}
     </span>

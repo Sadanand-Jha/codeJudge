@@ -120,25 +120,25 @@ export function StudentsTab({
   }
 
   return (
-    <div className="rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-[22px]">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div className="rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] p-2.5 sm:rounded-[22px] sm:border-2 sm:p-5 lg:p-[22px]">
+      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 sm:mb-4 sm:gap-3">
         <div className="relative min-w-0 flex-1 sm:max-w-[320px]">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
+          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--qs-muted)] sm:left-3 sm:h-4 sm:w-4" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search by name or user ID"
-            className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-2 pl-9 pr-3 text-sm font-semibold text-[var(--qs-ink)] outline-none transition focus:border-[var(--qs-brand)]"
+            className="h-9 w-full rounded-[10px] border border-[#CFC7F0] bg-[var(--qs-surface)] pl-8 pr-2.5 text-[12px] font-medium text-[var(--qs-ink)] outline-none transition focus:border-[var(--qs-brand)] sm:h-auto sm:rounded-[12px] sm:border-2 sm:border-[var(--qs-line)] sm:py-2 sm:pl-9 sm:pr-3 sm:text-sm sm:font-semibold"
           />
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-1.5">
           {sortChips.map((c) => (
             <button
               key={c.key}
               type="button"
               onClick={() => setSort(c.key)}
               className={cn(
-                "rounded-full border-2 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.05em] transition",
+                "rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.04em] transition sm:border-2 sm:px-3 sm:text-xs sm:font-extrabold sm:tracking-[0.05em]",
                 sort === c.key
                   ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-surface)]"
                   : "border-[var(--qs-line)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
@@ -150,7 +150,7 @@ export function StudentsTab({
         </div>
       </div>
 
-      <div className="space-y-2.5 md:hidden">
+      <div className="space-y-1.5 md:hidden sm:space-y-2.5">
         {rows.map((s) => {
           const rank = ranks.get(s.attempt_id) ?? toNumber(s.rank);
           const pct = clampPercent(s.percentage);
@@ -166,21 +166,21 @@ export function StudentsTab({
             <div
               key={s.attempt_id}
               onClick={() => toggleRow(s)}
-              className="cursor-pointer rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 transition-colors active:bg-[var(--qs-bg)]"
+              className="cursor-pointer rounded-[12px] border border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 shadow-[2px_3px_0_var(--qs-sun)] transition-colors active:bg-[var(--qs-bg)] sm:rounded-[16px] sm:border-2 sm:p-3.5 sm:shadow-none"
             >
               <div className="flex items-center gap-3">
-                <b className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-ink)] text-xs font-extrabold text-[var(--qs-surface)]">
+                <b className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[10px] font-extrabold text-[var(--qs-surface)] sm:h-7 sm:w-7 sm:border-2 sm:text-xs">
                   {rank > 0 ? rank : "—"}
                 </b>
                 <span
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-[var(--qs-ink)] text-xs font-extrabold"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--qs-ink)] text-[10px] font-extrabold sm:h-9 sm:w-9 sm:border-2 sm:text-xs"
                   style={{ background: `hsl(${hue} 75% 88%)`, color: `hsl(${hue} 65% 28%)` }}
                 >
                   {initialsOf(name)}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <b className="block truncate text-sm font-bold text-[var(--qs-ink)]">{name}</b>
-                  <span className="text-xs font-semibold text-[var(--qs-muted)]">#{s.user_id}</span>
+                  <b className="block truncate text-[12px] font-bold text-[var(--qs-ink)] sm:text-sm">{name}</b>
+                  <span className="text-[9.5px] font-semibold text-[var(--qs-muted)] sm:text-xs">#{s.user_id}</span>
                 </div>
                 <button
                   type="button"
@@ -189,29 +189,29 @@ export function StudentsTab({
                     toggleRow(s);
                   }}
                   aria-label={isOpen ? "Collapse answers" : "Expand answers"}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-[var(--qs-line)] transition hover:border-[var(--qs-brand)]"
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--qs-line)] transition hover:border-[var(--qs-brand)] sm:h-7 sm:w-7 sm:border-2"
                 >
                   <ChevronDown className={cn("h-4 w-4 text-[var(--qs-ink)] transition-transform", isOpen && "rotate-180")} />
                 </button>
               </div>
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 sm:mt-3 sm:gap-x-4 sm:gap-y-2">
                 <div className="flex items-center gap-2">
-                  <b className="text-sm font-extrabold text-[var(--qs-ink)]">
+                  <b className="text-[11px] font-extrabold text-[var(--qs-ink)] sm:text-sm">
                     {toNumber(s.score).toFixed(0)}
                     {totalMarks > 0 ? ` / ${totalMarks}` : ""}
                   </b>
-                  <div className="h-2.5 w-14 overflow-hidden rounded-full border-2 border-[var(--qs-ink)]">
+                  <div className="h-2 w-12 overflow-hidden rounded-full border border-[var(--qs-ink)] sm:h-2.5 sm:w-14 sm:border-2">
                     <i className="block h-full bg-[var(--qs-brand)]" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
-                <span className="text-xs font-semibold text-[var(--qs-muted)]">
-                  Accuracy <b className="text-sm font-bold text-[var(--qs-ink)]">{acc.toFixed(1)}%</b>
+                <span className="text-[9.5px] font-semibold text-[var(--qs-muted)] sm:text-xs">
+                  Accuracy <b className="text-[11px] font-bold text-[var(--qs-ink)] sm:text-sm">{acc.toFixed(1)}%</b>
                 </span>
-                <span className="text-xs font-semibold text-[var(--qs-muted)]">
-                  Correct <b className="text-sm font-bold text-[var(--qs-ink)]">{Math.round(c)}</b>
+                <span className="text-[9.5px] font-semibold text-[var(--qs-muted)] sm:text-xs">
+                  Correct <b className="text-[11px] font-bold text-[var(--qs-ink)] sm:text-sm">{Math.round(c)}</b>
                 </span>
-                <span className="text-xs font-semibold text-[var(--qs-muted)]">
-                  Time <b className="text-sm font-bold text-[var(--qs-ink)]">{toNumber(s.time_taken) > 0 ? fmtSec(s.time_taken) : "—"}</b>
+                <span className="text-[9.5px] font-semibold text-[var(--qs-muted)] sm:text-xs">
+                  Time <b className="text-[11px] font-bold text-[var(--qs-ink)] sm:text-sm">{toNumber(s.time_taken) > 0 ? fmtSec(s.time_taken) : "—"}</b>
                 </span>
                 {s.status === "completed" ? (
                   <OutlinePill tone="ok">Completed</OutlinePill>
@@ -220,13 +220,13 @@ export function StudentsTab({
                 )}
               </div>
               {isOpen && (
-                <div className="mt-3 rounded-[16px] border-2 border-dashed border-[var(--qs-line)] p-4">
+                <div className="mt-2 rounded-[12px] border border-dashed border-[var(--qs-line)] p-2.5 sm:mt-3 sm:rounded-[16px] sm:border-2 sm:p-4">
                   {loadingId === s.attempt_id && !detail ? (
-                    <p className="text-sm font-semibold text-[var(--qs-muted)]">Loading answers…</p>
+                    <p className="text-[11px] font-semibold text-[var(--qs-muted)] sm:text-sm">Loading answers…</p>
                   ) : detail ? (
                     <ReviewChips detail={detail} />
                   ) : (
-                    <p className="text-sm font-semibold text-[var(--qs-muted)]">Answers could not be loaded.</p>
+                    <p className="text-[11px] font-semibold text-[var(--qs-muted)] sm:text-sm">Answers could not be loaded.</p>
                   )}
                 </div>
               )}
@@ -277,14 +277,14 @@ export function StudentsTab({
                       <td className="py-3.5 pr-4">
                         <div className="flex items-center gap-2.5">
                           <span
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-[var(--qs-ink)] text-xs font-extrabold"
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--qs-ink)] text-[10px] font-extrabold sm:h-9 sm:w-9 sm:border-2 sm:text-xs"
                             style={{ background: `hsl(${hue} 75% 88%)`, color: `hsl(${hue} 65% 28%)` }}
                           >
                             {initialsOf(name)}
                           </span>
                           <div className="min-w-0">
-                            <b className="block truncate text-sm font-bold text-[var(--qs-ink)]">{name}</b>
-                            <span className="text-xs font-semibold text-[var(--qs-muted)]">#{s.user_id}</span>
+                            <b className="block truncate text-[12px] font-bold text-[var(--qs-ink)] sm:text-sm">{name}</b>
+                            <span className="text-[9.5px] font-semibold text-[var(--qs-muted)] sm:text-xs">#{s.user_id}</span>
                           </div>
                         </div>
                       </td>
@@ -331,11 +331,11 @@ export function StudentsTab({
                     isOpen && (
                       <div className="rounded-[16px] border-2 border-dashed border-[var(--qs-line)] p-4">
                         {loadingId === s.attempt_id && !detail ? (
-                          <p className="text-sm font-semibold text-[var(--qs-muted)]">Loading answers…</p>
+                          <p className="text-[11px] font-semibold text-[var(--qs-muted)] sm:text-sm">Loading answers…</p>
                         ) : detail ? (
                           <ReviewChips detail={detail} />
                         ) : (
-                          <p className="text-sm font-semibold text-[var(--qs-muted)]">Answers could not be loaded.</p>
+                          <p className="text-[11px] font-semibold text-[var(--qs-muted)] sm:text-sm">Answers could not be loaded.</p>
                         )}
                       </div>
                     )

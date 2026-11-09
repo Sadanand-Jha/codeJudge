@@ -483,14 +483,6 @@ export function AIGenerateModal({
                           >
                             Retry
                           </button>
-                          <span className="text-[var(--qs-muted)]">or</span>
-                          <button
-                            type="button"
-                            onClick={handleClose}
-                            className="text-[11px] font-bold text-[var(--qs-ink)] hover:underline"
-                          >
-                            Create Sections Manually
-                          </button>
                         </div>
                       </div>
                     </div>
@@ -675,13 +667,6 @@ export function AIGenerateModal({
                     </div>
 
                     <div className="flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={handleClose}
-                        className="b sm"
-                      >
-                        Create Sections Manually
-                      </button>
                       <button
                         type="button"
                         onClick={() => {

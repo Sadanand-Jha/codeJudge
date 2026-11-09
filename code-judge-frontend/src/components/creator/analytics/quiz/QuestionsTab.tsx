@@ -16,19 +16,19 @@ function RankList({
   return (
     <>
       {rows.map(({ q, value }, idx) => (
-        <div key={q.id} className="my-2.5 flex items-center gap-2.5">
-          <b className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--qs-ink)] text-xs font-extrabold text-[var(--qs-surface)]">
+        <div key={q.id} className="my-2 flex items-center gap-2 sm:my-2.5 sm:gap-2.5">
+          <b className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--qs-ink)] text-[10px] font-extrabold text-[var(--qs-surface)] sm:h-6 sm:w-6 sm:text-xs">
             {idx + 1}
           </b>
           <div className="min-w-0 flex-1">
-            <b className="block truncate text-sm font-bold text-[var(--qs-ink)]">
+            <b className="block truncate text-[11.5px] font-bold text-[var(--qs-ink)] sm:text-sm">
               Q{q.question_number} · {cleanStatement(q.problem_statement)}
             </b>
-            <span className="text-xs font-semibold text-[var(--qs-muted)]">
+            <span className="text-[9.5px] font-semibold text-[var(--qs-muted)] sm:text-xs">
               {metric} {value}
             </span>
           </div>
-          <b className="text-sm font-extrabold text-[var(--qs-ink)]">{value}</b>
+          <b className="text-[11px] font-extrabold text-[var(--qs-ink)] sm:text-sm">{value}</b>
         </div>
       ))}
     </>
@@ -52,8 +52,8 @@ export function QuestionsTab({ questions }: { questions: QuestionStat[] }) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-[18px] lg:grid-cols-3">
+    <div className="space-y-2.5 sm:space-y-4">
+      <div className="grid gap-2.5 sm:gap-[18px] lg:grid-cols-3">
         <Panel title="Hardest questions" subtitle="Lowest accuracy, top 5.">
           <RankList rows={hardest} metric="Accuracy" />
         </Panel>
@@ -70,36 +70,36 @@ export function QuestionsTab({ questions }: { questions: QuestionStat[] }) {
           {questions.map((q) => {
             const acc = Math.min(100, Math.max(0, toNumber(q.accuracy)));
             return (
-              <div key={q.id} className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5">
+              <div key={q.id} className="rounded-[12px] border border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 sm:rounded-[16px] sm:border-2 sm:p-3.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <b className="text-sm font-extrabold text-[var(--qs-ink)]">Q{q.question_number}</b>
+                  <b className="text-[12px] font-extrabold text-[var(--qs-ink)] sm:text-sm">Q{q.question_number}</b>
                   <OutlinePill tone={difficultyTone(q.difficulty_name)}>{q.difficulty_name ?? "—"}</OutlinePill>
-                  <span className="text-xs font-medium text-[var(--qs-muted)]">{prettyType(q.problem_type)}</span>
+                  <span className="text-[9.5px] font-medium text-[var(--qs-muted)] sm:text-xs">{prettyType(q.problem_type)}</span>
                 </div>
-                <p className="mt-2 text-sm font-semibold text-[var(--qs-ink)]">{cleanStatement(q.problem_statement)}</p>
-                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-[var(--qs-muted)]">
+                <p className="mt-1.5 text-[11.5px] font-semibold leading-4 text-[var(--qs-ink)] sm:mt-2 sm:text-sm">{cleanStatement(q.problem_statement)}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[9.5px] text-[var(--qs-muted)] sm:mt-3 sm:gap-x-4 sm:gap-y-1.5 sm:text-xs">
                   <span>
-                    Attempts <b className="text-sm font-bold text-[var(--qs-ink)]">{Math.round(toNumber(q.total_responses))}</b>
+                    Attempts <b className="text-[11px] font-bold text-[var(--qs-ink)] sm:text-sm">{Math.round(toNumber(q.total_responses))}</b>
                   </span>
                   <span>
-                    Correct <b className="text-sm font-bold text-[var(--qs-ink)]">{Math.round(toNumber(q.correct_responses))}</b>
+                    Correct <b className="text-[11px] font-bold text-[var(--qs-ink)] sm:text-sm">{Math.round(toNumber(q.correct_responses))}</b>
                   </span>
                   <span>
-                    Incorrect <b className="text-sm font-bold text-[var(--qs-ink)]">{Math.round(toNumber(q.incorrect_responses))}</b>
+                    Incorrect <b className="text-[11px] font-bold text-[var(--qs-ink)] sm:text-sm">{Math.round(toNumber(q.incorrect_responses))}</b>
                   </span>
                   <span>
-                    Skipped <b className="text-sm font-bold text-[var(--qs-ink)]">{Math.round(toNumber(q.skipped_count))}</b>
+                    Skipped <b className="text-[11px] font-bold text-[var(--qs-ink)] sm:text-sm">{Math.round(toNumber(q.skipped_count))}</b>
                   </span>
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 sm:mt-3 sm:gap-x-4 sm:gap-y-1.5">
                   <div className="flex items-center gap-2">
-                    <b className="text-sm font-extrabold text-[var(--qs-ink)]">{acc.toFixed(1)}%</b>
-                    <div className="h-2.5 w-20 overflow-hidden rounded-full border-2 border-[var(--qs-ink)]">
+                    <b className="text-[11px] font-extrabold text-[var(--qs-ink)] sm:text-sm">{acc.toFixed(1)}%</b>
+                    <div className="h-2 w-16 overflow-hidden rounded-full border border-[var(--qs-ink)] sm:h-2.5 sm:w-20 sm:border-2">
                       <i className="block h-full bg-[var(--qs-brand)]" style={{ width: `${acc}%` }} />
                     </div>
                   </div>
-                  <span className="text-xs text-[var(--qs-muted)]">
-                    Avg time <b className="text-sm font-bold text-[var(--qs-ink)]">{fmtSec(toNumber(q.avg_time_ms) / 1000)}</b>
+                  <span className="text-[9.5px] text-[var(--qs-muted)] sm:text-xs">
+                    Avg time <b className="text-[11px] font-bold text-[var(--qs-ink)] sm:text-sm">{fmtSec(toNumber(q.avg_time_ms) / 1000)}</b>
                   </span>
                 </div>
               </div>
@@ -157,7 +157,7 @@ export function QuestionsTab({ questions }: { questions: QuestionStat[] }) {
         </div>
       </Panel>
 
-      <div className="grid gap-[18px] lg:grid-cols-2">
+      <div className="grid gap-2.5 sm:gap-[18px] lg:grid-cols-2">
         <Panel title="Accuracy by question" subtitle="Correct rate for each question.">
           <HBars
             items={questions.map((q) => ({
@@ -190,21 +190,21 @@ export function QuestionsTab({ questions }: { questions: QuestionStat[] }) {
             const s = toNumber(q.skipped_count);
             const total = Math.max(c + w + s, 1);
             return (
-              <div key={q.id} className="grid grid-cols-[44px_1fr_auto] items-center gap-3">
-                <b className="text-sm font-extrabold text-[var(--qs-ink)]">Q{q.question_number}</b>
-                <div className="flex h-6 overflow-hidden rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
+              <div key={q.id} className="grid grid-cols-[36px_1fr_auto] items-center gap-2 sm:grid-cols-[44px_1fr_auto] sm:gap-3">
+                <b className="text-[12px] font-extrabold text-[var(--qs-ink)] sm:text-sm">Q{q.question_number}</b>
+                <div className="flex h-5 overflow-hidden rounded-full border border-[var(--qs-ink)] bg-[var(--qs-surface)] sm:h-6 sm:border-2">
                   <i className="block h-full bg-[var(--qs-ok)]" style={{ width: `${(c / total) * 100}%` }} />
                   <i className="block h-full bg-[var(--qs-bad)]" style={{ width: `${(w / total) * 100}%` }} />
                   <i className="block h-full bg-[var(--qs-sun)]" style={{ width: `${(s / total) * 100}%` }} />
                 </div>
-                <span className="text-xs font-bold text-[var(--qs-muted)]">
+                <span className="text-[9px] font-bold text-[var(--qs-muted)] sm:text-xs">
                   {Math.round(c)} ✓ · {Math.round(w)} ✗ · {Math.round(s)} –
                 </span>
               </div>
             );
           })}
         </div>
-        <div className="mt-4 flex flex-wrap gap-4 text-xs font-extrabold uppercase tracking-[0.05em] text-[var(--qs-muted)]">
+        <div className="mt-3 flex flex-wrap gap-3 text-[9px] font-extrabold uppercase tracking-[0.04em] text-[var(--qs-muted)] sm:mt-4 sm:gap-4 sm:text-xs sm:tracking-[0.05em]">
           <span className="flex items-center gap-1.5">
             <i className="h-3 w-3 rounded-sm border-2 border-[var(--qs-ink)] bg-[var(--qs-ok)]" /> Correct
           </span>

@@ -643,21 +643,21 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                   <Layers className="h-5 w-5" />
                 </span>
                 <h2 className="mt-3 text-lg font-extrabold text-[var(--qs-ink)]">Set up your paper sections</h2>
-                <p className="mx-auto mt-1 max-w-lg text-xs leading-5 text-[var(--qs-muted)]">Create a fresh section structure or reuse one you have already saved.</p>
+                <p className="mx-auto mt-1 max-w-lg text-xs leading-5 text-[var(--qs-muted)]">Generate a section structure with AI or reuse one you have already saved.</p>
               </div>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
-                  onClick={startNewSection}
+                  onClick={() => setAiModalOpen(true)}
                   className="group min-h-44 rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-5 text-left transition-all hover:-translate-y-0.5 hover:border-[var(--qs-brand)]"
                 >
                   <span className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
-                    <Plus className="h-5 w-5" />
+                    <Sparkles className="h-5 w-5" />
                   </span>
-                  <span className="mt-5 block text-sm font-extrabold text-[var(--qs-ink)]">Create new section</span>
-                  <span className="mt-1 block text-xs leading-5 text-[var(--qs-muted)]">Build sections, question groups, marks and attempt rules from scratch.</span>
-                  <span className="mt-4 inline-flex items-center gap-1 text-[11px] font-bold text-[var(--qs-brand)]">Start creating <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" /></span>
+                  <span className="mt-5 block text-sm font-extrabold text-[var(--qs-ink)]">Generate with AI</span>
+                  <span className="mt-1 block text-xs leading-5 text-[var(--qs-muted)]">Let AI draft sections, question groups and marks from your syllabus or upload.</span>
+                  <span className="mt-4 inline-flex items-center gap-1 text-[11px] font-bold text-[var(--qs-brand)]">Generate sections <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" /></span>
                 </button>
 
                 <button
@@ -673,9 +673,9 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                     {!blueprintsLoading && blueprintsLoaded && blueprints.length > 0 && <span className="rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)] px-2 py-0.5 text-[9px] font-bold text-[var(--qs-ink)]">{blueprints.length} saved</span>}
                   </span>
                   <span className="mt-1 block text-xs leading-5 text-[var(--qs-muted)]">
-                    {blueprintsLoading ? "Checking saved sections…" : blueprintsLoaded && blueprints.length === 0 ? "No saved sections yet — create your first section." : "Choose a complete saved blueprint and continue immediately."}
+                    {blueprintsLoading ? "Checking saved sections…" : blueprintsLoaded && blueprints.length === 0 ? "No saved sections yet — generate one with AI first." : "Choose a complete saved blueprint and continue immediately."}
                   </span>
-                  <span className="mt-4 inline-flex items-center gap-1 text-[11px] font-bold text-[var(--qs-brand)]">{blueprintsLoaded && blueprints.length === 0 ? "Create your first section" : "View saved sections"} <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" /></span>
+                  <span className="mt-4 inline-flex items-center gap-1 text-[11px] font-bold text-[var(--qs-brand)]">{blueprintsLoaded && blueprints.length === 0 ? "Generate with AI" : "View saved sections"} <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" /></span>
                 </button>
               </div>
             </div>
