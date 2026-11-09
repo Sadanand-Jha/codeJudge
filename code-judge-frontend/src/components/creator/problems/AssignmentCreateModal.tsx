@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight, PenLine, Sparkles, X, type LucideIcon } from "lucide-react";
+import { ArrowRight, Sparkles, X, type LucideIcon } from "lucide-react";
 
 const CREATE_OPTIONS: Array<{
   label: string;
@@ -11,13 +11,6 @@ const CREATE_OPTIONS: Array<{
   icon: LucideIcon;
   badge: string;
 }> = [
-  {
-    label: "Create manually",
-    description: "Write and configure each problem yourself, with full control over the content.",
-    href: "/creator/problems/create/manual",
-    icon: PenLine,
-    badge: "Full control",
-  },
   {
     label: "Generate with AI",
     description: "Create a draft from your syllabus, selected topics or uploaded study material.",
@@ -70,7 +63,7 @@ export function AssignmentCreateModal({
               How do you want to create this assignment?
             </h2>
             <p className="mt-1 text-sm text-[var(--qs-muted)]">
-              Create it yourself, or let AI draft it from your syllabus.
+              Let AI draft it from your syllabus, selected topics or uploaded material.
             </p>
           </div>
           <button
@@ -83,7 +76,7 @@ export function AssignmentCreateModal({
           </button>
         </div>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="mt-5 grid gap-3">
           {CREATE_OPTIONS.map(({ label, description, href, icon: Icon, badge }) => (
             <Link
               key={label}

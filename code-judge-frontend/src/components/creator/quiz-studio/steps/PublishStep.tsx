@@ -370,7 +370,7 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
     setSharing(true);
     try {
       const currentCode = await loadCode();
-      setShareMessage(buildShareMessage({ ...shareQuiz, code: currentCode }, "clean"));
+      setShareMessage(buildShareMessage({ ...shareQuiz, code: currentCode }));
       setShareOpen(true);
     } catch (err) {
       toast.error({
@@ -387,7 +387,7 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
     setCopying(true);
     try {
       const currentCode = await loadCode();
-      const message = buildShareMessage({ ...shareQuiz, code: currentCode }, "clean");
+      const message = buildShareMessage({ ...shareQuiz, code: currentCode });
       await navigator.clipboard.writeText(message);
       toast.success({
         title: "Invite copied",

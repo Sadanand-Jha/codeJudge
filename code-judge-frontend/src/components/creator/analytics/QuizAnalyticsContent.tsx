@@ -99,19 +99,19 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
 
   if (loading && !data) {
     return (
-      <div className="mx-auto max-w-[1240px] px-4 py-6 pb-24 sm:px-6">
-        <div className="app-skeleton mb-6 h-12 w-72 rounded-[14px]" />
-        <div className="app-skeleton mb-6 h-72 rounded-[26px]" />
+      <div className="mx-auto max-w-[1240px] px-3 py-3 pb-20 sm:px-6 sm:py-6 sm:pb-24">
+        <div className="app-skeleton mb-3 h-10 w-44 rounded-[12px] sm:mb-6 sm:h-12 sm:w-72 sm:rounded-[14px]" />
+        <div className="app-skeleton mb-3 h-56 rounded-[16px] sm:mb-6 sm:h-72 sm:rounded-[26px]" />
         <div className="mb-4 flex gap-2">
-          <div className="app-skeleton h-8 w-24 rounded-full" />
-          <div className="app-skeleton h-8 w-24 rounded-full" />
-          <div className="app-skeleton h-8 w-24 rounded-full" />
-          <div className="app-skeleton h-8 w-24 rounded-full" />
+          <div className="app-skeleton h-8 w-20 rounded-full" />
+          <div className="app-skeleton h-8 w-20 rounded-full" />
+          <div className="app-skeleton h-8 w-20 rounded-full" />
+          <div className="app-skeleton h-8 w-20 rounded-full" />
         </div>
-        <div className="grid gap-[18px] lg:grid-cols-3">
-          <div className="app-skeleton h-64 rounded-[22px]" />
-          <div className="app-skeleton h-64 rounded-[22px]" />
-          <div className="app-skeleton h-64 rounded-[22px]" />
+        <div className="grid gap-2.5 lg:grid-cols-3 lg:gap-[18px]">
+          <div className="app-skeleton h-48 rounded-[14px] sm:h-64 sm:rounded-[22px]" />
+          <div className="app-skeleton h-48 rounded-[14px] sm:h-64 sm:rounded-[22px]" />
+          <div className="app-skeleton h-48 rounded-[14px] sm:h-64 sm:rounded-[22px]" />
         </div>
       </div>
     );
@@ -119,10 +119,10 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
 
   if (error || !data) {
     return (
-      <div className="mx-auto max-w-[1240px] px-4 py-16 sm:px-6">
-        <div className="mx-auto max-w-md rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-8 text-center">
-          <h2 className="text-xl font-extrabold text-[var(--qs-ink)]">Analytics unavailable</h2>
-          <p className="mt-2 text-sm font-medium text-[var(--qs-muted)]">
+      <div className="mx-auto max-w-[1240px] px-3 py-10 sm:px-6 sm:py-16">
+        <div className="mx-auto max-w-md rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 text-center sm:rounded-[22px] sm:border-2 sm:p-8">
+          <h2 className="text-[16px] font-bold text-[var(--qs-ink)] sm:text-xl sm:font-extrabold">Analytics unavailable</h2>
+          <p className="mt-1.5 text-[11px] font-medium text-[var(--qs-muted)] sm:mt-2 sm:text-sm">
             We couldn&apos;t load this quiz&apos;s analytics. Check your connection and try again.
           </p>
           <button type="button" onClick={() => setReloadKey((k) => k + 1)} className={cn("mt-5", btnPrimaryClass)}>
@@ -138,7 +138,7 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
   const gameTotalUses = toNumber(data.game?.total_events);
 
   return (
-    <div className="mx-auto max-w-[1240px] px-4 py-6 pb-24 sm:px-6">
+    <div className="mx-auto max-w-[1240px] px-3 py-3 pb-20 sm:px-6 sm:py-6 sm:pb-24">
       <AnalyticsTopBar
         quizName={meta?.name ?? "Quiz analytics"}
         status={meta?.status ?? null}
@@ -155,14 +155,14 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
         status={meta?.status ?? null}
       />
 
-      <div className="mb-5 flex flex-wrap gap-2">
+      <div className="mb-3 flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none sm:mb-5 sm:flex-wrap sm:gap-2 sm:overflow-visible sm:pb-0">
         {TABS.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setTab(t.id)}
             className={cn(
-              "rounded-full border-2 px-4 py-1.5 text-sm font-extrabold transition",
+              "inline-flex h-8 shrink-0 items-center rounded-full border px-3 text-[12px] font-semibold transition sm:h-auto sm:border-2 sm:px-4 sm:py-1.5 sm:text-sm sm:font-extrabold",
               tab === t.id
                 ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-surface)]"
                 : "border-[var(--qs-line)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"

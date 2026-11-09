@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ChevronLeft, ChevronRight, Mail, Search, X, RefreshCw,
+  ArrowLeft, ArrowUpDown, ChevronLeft, ChevronRight, Mail, Search, X, RefreshCw,
   MoreVertical, Pause, RotateCcw, Timer, TrendingUp, TrendingDown, Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
@@ -67,6 +67,7 @@ const STATUS_COLORS: Record<StudentStatus, string> = {
 const FILTERS = ["ALL", "SUBMITTED", "IN_PROGRESS", "NOT_STARTED", "TIMED_OUT"] as const;
 
 const SORT_LABELS = ["Correct (high to low)", "Fastest first", "Latest first"] as const;
+const SORT_SHORT = ["Correct", "Fastest", "Latest"] as const;
 
 const PAGE_SIZE = 8;
 
@@ -210,21 +211,21 @@ function mapStudent(row: QuizResponseStudent): Student {
 function StatusBadge({ status }: { status: StudentStatus }) {
   const cfg = STATUS_CONFIG[status];
   return (
-    <span className={cn("inline-block rounded-full border-2 border-current px-[11px] py-px text-xs font-extrabold uppercase tracking-[0.05em]", cfg.text)}>
+    <span className={cn("inline-block rounded-full border border-current px-1.5 py-px text-[8.5px] font-bold uppercase tracking-[0.04em] sm:border-2 sm:px-[11px] sm:py-px sm:text-xs sm:font-extrabold sm:tracking-[0.05em]", cfg.text)}>
       {cfg.label}
     </span>
   );
 }
 
 function RankBadge({ rank }: { rank: number | null }) {
-  if (rank === null) return <span className="grid h-[30px] w-[30px] place-items-center text-xs font-bold text-[var(--qs-muted)]">—</span>;
+  if (rank === null) return <span className="grid h-6 w-6 place-items-center text-[10px] font-bold text-[var(--qs-muted)] sm:h-[30px] sm:w-[30px] sm:text-xs">—</span>;
   const podium =
     rank === 1 ? "border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]"
     : rank === 2 ? "border-[var(--qs-ink)] bg-[#D8DCE6] text-[#1A1240]"
     : rank === 3 ? "border-[var(--qs-ink)] bg-[#E8B27E] text-[#1A1240]"
     : "border-[var(--qs-line)] text-[var(--qs-ink)]";
   return (
-    <span className={cn("grid h-[30px] w-[30px] place-items-center rounded-full border-2 text-sm font-extrabold", podium)}>
+    <span className={cn("grid h-6 w-6 place-items-center rounded-full border text-[10.5px] font-bold sm:h-[30px] sm:w-[30px] sm:border-2 sm:text-sm sm:font-extrabold", podium)}>
       {rank}
     </span>
   );
@@ -235,7 +236,7 @@ function StudentAvatar({ student, size = "sm" }: { student: Student; size?: "sm"
     <div
       className={cn(
         "relative grid shrink-0 place-items-center overflow-hidden rounded-full border-2 border-[var(--qs-ink)] font-extrabold text-white",
-        size === "lg" ? "h-14 w-14 text-lg" : "h-[38px] w-[38px] text-[13px]"
+        size === "lg" ? "h-14 w-14 text-lg" : "h-8 w-8 text-[11px] sm:h-[38px] sm:w-[38px] sm:text-[13px]"
       )}
       style={student.avatarUrl ? undefined : { background: `hsl(${nameHue(student.name)} 55% 42%)` }}
     >
@@ -589,49 +590,49 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
   }, [sendingEmail, hasResponses, resolvedQuizId, toast]);
 
   const kpis = [
-    { label: "Total students", value: summary.total, sub: "registered", color: "var(--qs-brand)" },
-    { label: "Submitted", value: summary.submitted, sub: "completed", color: "var(--qs-ok)" },
-    { label: "In progress", value: inProgressCount, sub: "currently taking", color: "#2457d6" },
-    { label: "Not started", value: notStartedCount, sub: "waiting", color: "#a85d00" },
-    { label: "Auto submitted", value: timedOutCount, sub: "time expired", color: "var(--qs-bad)" },
-    { label: "Avg correct", value: summary.avg.toFixed(1), sub: `/ ${totalQuestions}`, color: "#1A1240", hi: true },
-    { label: "Highest", value: summary.highest, sub: "correct", color: "var(--qs-ok)" },
-    { label: "Lowest", value: summary.lowest ?? "—", sub: "correct", color: "var(--qs-bad)" },
+    { label: "Total students", mobile: "Students", value: summary.total, sub: "registered", color: "var(--qs-brand)" },
+    { label: "Submitted", mobile: "Submitted", value: summary.submitted, sub: "completed", color: "var(--qs-ok)" },
+    { label: "In progress", mobile: "Active", value: inProgressCount, sub: "currently taking", color: "#2457d6" },
+    { label: "Not started", mobile: "Waiting", value: notStartedCount, sub: "waiting", color: "#a85d00" },
+    { label: "Auto submitted", mobile: "Auto", value: timedOutCount, sub: "time expired", color: "var(--qs-bad)" },
+    { label: "Avg correct", mobile: "Avg", value: summary.avg.toFixed(1), sub: `/ ${totalQuestions}`, color: "#1A1240", hi: true },
+    { label: "Highest", mobile: "High", value: summary.highest, sub: "correct", color: "var(--qs-ok)" },
+    { label: "Lowest", mobile: "Low", value: summary.lowest ?? "—", sub: "correct", color: "var(--qs-bad)" },
   ];
 
-  const topBtn = "inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-[9px] text-sm font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]";
+  const topBtn = "inline-flex h-9 items-center justify-center gap-1.5 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-[12px] font-semibold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] sm:h-auto sm:rounded-[12px] sm:border-2 sm:px-3.5 sm:py-[9px] sm:text-sm sm:font-bold";
 
   return (
     <div className="min-h-full bg-[var(--qs-bg)]">
-      <div className="mx-auto max-w-[1280px] px-4 py-6 pb-20 sm:px-6">
+      <div className="mx-auto max-w-[1280px] px-3 py-3 pb-16 sm:px-6 sm:py-6 sm:pb-20">
 
         {/* ── Top ───────────────────────────────────────────────────── */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3.5">
+        <div className="mb-3 flex items-center justify-between gap-2 sm:mb-6 sm:flex-wrap sm:gap-4">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3.5">
             <Link
               href="/creator/quizzes"
               aria-label="Back"
-              className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] transition-colors hover:border-[var(--qs-brand)]"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] transition-colors hover:border-[var(--qs-brand)] sm:h-[42px] sm:w-[42px] sm:rounded-[12px] sm:border-2"
             >
-              <ArrowLeft className="h-4.5 w-4.5 text-[var(--qs-ink)]" />
+              <ArrowLeft className="h-4 w-4 text-[var(--qs-ink)] sm:h-[18px] sm:w-[18px]" />
             </Link>
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-[28px] font-extrabold leading-none tracking-[-0.02em] text-[var(--qs-ink)] sm:text-[34px]">Responses</h1>
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <h1 className="qs-display text-[20px] font-bold leading-[1.15] tracking-[-0.02em] text-[var(--qs-ink)] sm:text-[34px] sm:font-extrabold sm:leading-none">Responses</h1>
                 {liveStudents.length > 0 && !quizEnded && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--qs-ok)]/40 bg-[var(--qs-ok)]/10 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ok)]">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--qs-ok)]" />
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[var(--qs-ok)]/40 bg-[var(--qs-ok)]/10 px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-[0.06em] text-[var(--qs-ok)] sm:gap-1.5 sm:border-2 sm:px-2.5 sm:text-[10px] sm:font-extrabold sm:tracking-[0.08em]">
+                    <span className="h-1 w-1 animate-pulse rounded-full bg-[var(--qs-ok)] sm:h-1.5 sm:w-1.5" />
                     Live
                   </span>
                 )}
               </div>
-              <p className="mt-0.5 truncate text-[var(--qs-muted)]">{quizName}</p>
+              <p className="mt-0.5 truncate text-[11px] leading-4 text-[var(--qs-muted)] sm:text-base">{quizName}</p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => void handleRefresh()} className={topBtn}>
+          <div className="flex shrink-0 items-center gap-1.5 sm:flex-wrap sm:gap-2">
+            <button type="button" onClick={() => void handleRefresh()} aria-label="Refresh responses" className={cn(topBtn, "w-9 px-0 sm:w-auto sm:px-3.5")}>
               <RefreshCw className={cn("h-4 w-4", (refreshing || loading) && "animate-spin")} />
-              Refresh
+              <span className="hidden sm:inline">Refresh</span>
             </button>
             <button
               type="button"
@@ -651,21 +652,22 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                     ? "Email is available once students respond to this quiz."
                     : undefined
               }
-              className={cn(topBtn, "disabled:cursor-not-allowed disabled:opacity-60")}
+              aria-label={sendingEmail ? "Sending email" : "Send responses on email"}
+              className={cn(topBtn, "w-9 px-0 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-3.5")}
             >
               <Mail className={cn("h-4 w-4", sendingEmail && "animate-pulse")} />
-              {sendingEmail ? "Sending…" : "Send on Email"}
+              <span className="hidden sm:inline">{sendingEmail ? "Sending…" : "Send on Email"}</span>
             </button>
           </div>
         </div>
 
         {error && (
-          <div className="mb-6 flex items-center justify-between gap-3 rounded-[16px] border-2 border-[var(--qs-bad)]/30 bg-[var(--qs-bad)]/[0.04] px-4 py-3">
-            <p className="text-xs font-bold text-[var(--qs-bad)]">{error}</p>
+          <div className="mb-3 flex items-center justify-between gap-2 rounded-[12px] border border-[var(--qs-bad)]/30 bg-[var(--qs-bad)]/[0.04] px-2.5 py-2 sm:mb-6 sm:gap-3 sm:rounded-[16px] sm:border-2 sm:px-4 sm:py-3">
+            <p className="text-[10.5px] font-bold text-[var(--qs-bad)] sm:text-xs">{error}</p>
             <button
               type="button"
               onClick={() => void load()}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-bad)]/40 px-3 py-1.5 text-[11px] font-extrabold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-bad)] hover:text-white"
+              className="inline-flex shrink-0 items-center gap-1 rounded-[8px] border border-[var(--qs-bad)]/40 px-2 py-1 text-[10px] font-bold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-bad)] hover:text-white sm:gap-1.5 sm:rounded-[10px] sm:border-2 sm:px-3 sm:py-1.5 sm:text-[11px] sm:font-extrabold"
             >
               <RefreshCw className="h-3 w-3" />
               Retry
@@ -674,12 +676,12 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
         )}
 
         {/* ── Stat tiles ────────────────────────────────────────────── */}
-        <div className="mb-5 grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+        <div className="mb-3 grid grid-cols-4 gap-1.5 sm:mb-5 sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-4">
           {loading ? (
             Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">
-                <div className="app-skeleton h-3 w-20 rounded" />
-                <div className="app-skeleton mt-3 h-7 w-14 rounded" />
+              <div key={i} className="rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 py-2.5 sm:rounded-[18px] sm:border-2 sm:p-4">
+                <div className="app-skeleton h-2.5 w-12 rounded sm:h-3 sm:w-20" />
+                <div className="app-skeleton mt-2 h-5 w-10 rounded sm:mt-3 sm:h-7 sm:w-14" />
               </div>
             ))
           ) : (
@@ -687,20 +689,21 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               <div
                 key={kpi.label}
                 className={cn(
-                  "rounded-[18px] border-2 p-4 sm:px-[18px]",
+                  "flex h-[54px] min-w-0 flex-col justify-center rounded-[10px] border px-2 py-1.5 sm:h-auto sm:rounded-[18px] sm:border-2 sm:p-4 sm:px-[18px]",
                   kpi.hi ? "border-[var(--qs-ink)] bg-[var(--qs-sun)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
                 )}
               >
                 <small className={cn(
-                  "flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.08em]",
+                  "flex items-center gap-1 text-[9px] font-medium leading-3 sm:gap-2 sm:text-xs sm:font-extrabold sm:uppercase sm:tracking-[0.08em]",
                   kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-muted)]"
                 )}>
-                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: kpi.color }} />
-                  {kpi.label}
+                  <span className="hidden h-2.5 w-2.5 shrink-0 rounded-full sm:block" style={{ background: kpi.color }} />
+                  <span className="truncate sm:hidden">{kpi.mobile}</span>
+                  <span className="hidden sm:inline">{kpi.label}</span>
                 </small>
-                <b className={cn("mt-2 block text-[32px] font-extrabold leading-[1.1] sm:text-[36px]", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-ink)]")}>
+                <b className={cn("qs-display mt-0.5 block text-[17px] font-bold leading-5 tracking-tight sm:mt-2 sm:text-[32px] sm:font-extrabold sm:leading-[1.1]", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-ink)]")}>
                   {kpi.value}
-                  <span className={cn("ml-1 text-sm font-medium", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-muted)]")}>{kpi.sub}</span>
+                  <span className={cn("hidden ml-1 text-sm font-medium sm:inline", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-muted)]")}>{kpi.sub}</span>
                 </b>
               </div>
             ))
@@ -709,12 +712,12 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
 
         {/* ── Live Now ──────────────────────────────────────────────── */}
         {liveStudents.length > 0 && !quizEnded && (
-          <div className="mb-6 rounded-[18px] border-2 border-[var(--qs-ok)]/40 bg-[var(--qs-ok)]/[0.05] p-4">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-[var(--qs-ok)] animate-pulse" />
-                <span className="text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ok)]">Live Now</span>
-                <span className="text-[11px] font-medium text-[var(--qs-muted)]">
+          <div className="mb-3 rounded-[12px] border border-[var(--qs-ok)]/40 bg-[var(--qs-ok)]/[0.05] p-2.5 sm:mb-6 sm:rounded-[18px] sm:border-2 sm:p-4">
+            <div className="mb-2 flex items-center justify-between gap-2 sm:mb-3 sm:flex-wrap sm:gap-3">
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--qs-ok)] animate-pulse sm:h-2 sm:w-2" />
+                <span className="text-[9.5px] font-bold uppercase tracking-[0.06em] text-[var(--qs-ok)] sm:text-xs sm:font-extrabold sm:tracking-[0.08em]">Live Now</span>
+                <span className="text-[9.5px] font-medium text-[var(--qs-muted)] sm:text-[11px]">
                   {liveStudents.length} student{liveStudents.length !== 1 ? "s" : ""} currently taking this quiz
                 </span>
               </div>
@@ -723,7 +726,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                   <button
                     type="button"
                     onClick={() => setLiveMenuOpen((open) => !open)}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-[8px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)] sm:h-8 sm:w-8 sm:rounded-[10px] sm:border-2"
                     aria-label="More actions"
                   >
                     <MoreVertical className="h-3.5 w-3.5" />
@@ -755,12 +758,12 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                   key={s.id}
                   type="button"
                   onClick={() => openDetail(s)}
-                  className="flex min-w-[200px] items-center gap-3 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2 text-left transition-colors hover:border-[var(--qs-brand)]"
+                  className="flex min-w-[160px] items-center gap-2 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 py-1.5 text-left transition-colors hover:border-[var(--qs-brand)] sm:min-w-[200px] sm:gap-3 sm:rounded-[14px] sm:border-2 sm:px-3 sm:py-2"
                 >
                   <StudentAvatar student={s} />
                   <span className="min-w-0">
-                    <span className="block truncate text-xs font-extrabold text-[var(--qs-ink)]">{nameWithAttempt(s.name, s.attemptNumber)}</span>
-                    <span className="block text-[10px] font-medium text-[var(--qs-muted)]">{s.timeTaken ? `Elapsed ${s.timeTaken}` : "Just started"}</span>
+                    <span className="block truncate text-[11px] font-bold text-[var(--qs-ink)] sm:text-xs sm:font-extrabold">{nameWithAttempt(s.name, s.attemptNumber)}</span>
+                    <span className="block text-[9.5px] font-medium text-[var(--qs-muted)] sm:text-[10px]">{s.timeTaken ? `Elapsed ${s.timeTaken}` : "Just started"}</span>
                   </span>
                 </button>
               ))}
@@ -769,24 +772,24 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
         )}
 
         {/* ── Analytics panels ──────────────────────────────────────── */}
-        <div className="mb-7 grid grid-cols-1 gap-[18px] lg:grid-cols-3">
-          <section className="rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-[22px]">
-            <header className="mb-4 flex items-start justify-between gap-3">
+        <div className="mb-4 flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 sm:mb-7 lg:grid lg:grid-cols-3 lg:gap-[18px] lg:overflow-visible lg:pb-0">
+          <section className="min-w-[248px] shrink-0 snap-start rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3 sm:min-w-[280px] sm:rounded-[22px] lg:min-w-0 sm:border-2 sm:p-5 lg:p-[22px]">
+            <header className="mb-2.5 flex items-start justify-between gap-2 sm:mb-4 sm:gap-3">
               <div>
-                <h2 className="text-[19px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-[21px]">Score Distribution</h2>
-                <p className="mt-0.5 text-[13px] text-[var(--qs-muted)]">{summary.submitted} completed students across all ranges</p>
+                <h2 className="text-[13.5px] font-bold text-[var(--qs-ink)] sm:text-[19px] sm:font-extrabold sm:tracking-tight lg:text-[21px]">Score Distribution</h2>
+                <p className="mt-0.5 text-[10.5px] text-[var(--qs-muted)] sm:text-[13px]">{summary.submitted} completed students across all ranges</p>
               </div>
-              <span className="shrink-0 rounded-full bg-[var(--qs-sun)] px-3 py-1 text-xs font-extrabold text-[#1A1240]">
+              <span className="shrink-0 rounded-full bg-[var(--qs-sun)] px-2 py-0.5 text-[9px] font-bold text-[#1A1240] sm:px-3 sm:py-1 sm:text-xs sm:font-extrabold">
                 Detailed stats →
               </span>
             </header>
-            <div className="flex h-[200px] items-end gap-3 border-b-2 border-[var(--qs-ink)]">
+            <div className="flex h-[140px] items-end gap-2 border-b-2 border-[var(--qs-ink)] sm:h-[200px] sm:gap-3">
               {scoreData.map((s) => (
                 <div key={s.range} className="group flex h-full flex-1 flex-col items-center justify-end">
-                  <em className="mb-1 text-[13px] font-extrabold not-italic text-[var(--qs-ink)]">{s.count}</em>
+                  <em className="mb-1 text-[10px] font-extrabold not-italic text-[var(--qs-ink)] sm:text-[13px]">{s.count}</em>
                   <div
                     className={cn(
-                      "w-full rounded-t-[10px] border-2 border-b-0 border-[var(--qs-ink)] transition-[filter] group-hover:brightness-110",
+                      "w-full rounded-t-[6px] border-2 border-b-0 border-[var(--qs-ink)] transition-[filter] group-hover:brightness-110 sm:rounded-t-[10px]",
                       s.count === maxBucket && s.count > 0 ? "bg-[var(--qs-sun)]" : "bg-[var(--qs-brand)]"
                     )}
                     style={{ height: s.count === 0 ? "4px" : `calc(${(s.count / maxBucket) * 84}%)` }}
@@ -794,20 +797,20 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                 </div>
               ))}
             </div>
-            <div className="mt-1.5 flex gap-3 text-xs font-bold text-[var(--qs-muted)]">
+            <div className="mt-1 flex gap-2 text-[9px] font-bold text-[var(--qs-muted)] sm:mt-1.5 sm:gap-3 sm:text-xs">
               {scoreData.map((s) => (
                 <span key={s.range} className="flex-1 text-center">{s.range}</span>
               ))}
             </div>
           </section>
 
-          <section className="rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-[22px]">
-            <header className="mb-4">
-              <h2 className="text-[19px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-[21px]">Submission Status</h2>
-              <p className="mt-0.5 text-[13px] text-[var(--qs-muted)]">Breakdown of {summary.total} students</p>
+          <section className="min-w-[248px] shrink-0 snap-start rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3 sm:min-w-[280px] sm:rounded-[22px] lg:min-w-0 sm:border-2 sm:p-5 lg:p-[22px]">
+            <header className="mb-2.5 sm:mb-4">
+              <h2 className="text-[13.5px] font-bold text-[var(--qs-ink)] sm:text-[19px] sm:font-extrabold sm:tracking-tight lg:text-[21px]">Submission Status</h2>
+              <p className="mt-0.5 text-[10.5px] text-[var(--qs-muted)] sm:text-[13px]">Breakdown of {summary.total} students</p>
             </header>
-            <div className="flex min-h-[200px] flex-wrap items-center justify-center gap-5 sm:gap-[22px]">
-              <svg viewBox="0 0 150 150" role="img" aria-label="Submission status" className="h-[150px] w-[150px] shrink-0">
+            <div className="flex min-h-[140px] flex-wrap items-center justify-center gap-3 sm:min-h-[200px] sm:gap-[22px]">
+              <svg viewBox="0 0 150 150" role="img" aria-label="Submission status" className="h-[112px] w-[112px] shrink-0 sm:h-[150px] sm:w-[150px]">
                 <circle cx="75" cy="75" r={DONUT_R} fill="none" stroke="var(--qs-line)" strokeWidth="20" />
                 {donutSegments.map((seg) => (
                   <circle
@@ -826,10 +829,10 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                 <text x="75" y="76" textAnchor="middle" fontWeight="800" fontSize="30" fill="var(--qs-ink)">{summary.total}</text>
                 <text x="75" y="94" textAnchor="middle" fontSize="9" fontWeight="800" letterSpacing="1.5" fill="var(--qs-muted)">STUDENTS</text>
               </svg>
-              <ul className="grid min-w-[150px] flex-1 gap-2.5">
+              <ul className="grid min-w-0 flex-1 gap-1.5 sm:min-w-[150px] sm:gap-2.5">
                 {submissionData.map((d) => (
-                  <li key={d.name} className="flex items-center gap-2.5 text-sm font-medium text-[var(--qs-ink)]">
-                    <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: d.color }} />
+                  <li key={d.name} className="flex items-center gap-2 text-[11px] font-medium text-[var(--qs-ink)] sm:gap-2.5 sm:text-sm">
+                    <span className="h-2 w-2 shrink-0 rounded-full sm:h-3 sm:w-3" style={{ background: d.color }} />
                     <span className="min-w-0 truncate">{d.name}</span>
                     <b className="ml-auto font-extrabold tabular-nums">{d.value}</b>
                   </li>
@@ -838,22 +841,22 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
             </div>
           </section>
 
-          <section className="rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-[22px]">
-            <header className="mb-4">
-              <h2 className="text-[19px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-[21px]">Time Taken</h2>
-              <p className="mt-0.5 text-[13px] text-[var(--qs-muted)]">Duration insights</p>
+          <section className="min-w-[248px] shrink-0 snap-start rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3 sm:min-w-[280px] sm:rounded-[22px] lg:min-w-0 sm:border-2 sm:p-5 lg:p-[22px]">
+            <header className="mb-2.5 sm:mb-4">
+              <h2 className="text-[13.5px] font-bold text-[var(--qs-ink)] sm:text-[19px] sm:font-extrabold sm:tracking-tight lg:text-[21px]">Time Taken</h2>
+              <p className="mt-0.5 text-[10.5px] text-[var(--qs-muted)] sm:text-[13px]">Duration insights</p>
             </header>
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2 sm:gap-3">
               {timeCards.map((t) => (
-                <div key={t.label} className="flex items-center gap-3.5 rounded-[16px] border-2 border-[var(--qs-line)] p-3">
-                  <i className={cn("grid h-[42px] w-[42px] shrink-0 place-items-center rounded-[12px] not-italic text-white", t.accent)}>
-                    <t.icon className="h-4.5 w-4.5" />
+                <div key={t.label} className="flex items-center gap-2 rounded-[11px] border border-[var(--qs-line)] p-2 sm:gap-3.5 sm:rounded-[16px] sm:border-2 sm:p-3">
+                  <i className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-[8px] not-italic text-white sm:h-[42px] sm:w-[42px] sm:rounded-[12px]", t.accent)}>
+                    <t.icon className="h-3.5 w-3.5 sm:h-[18px] sm:w-[18px]" />
                   </i>
                   <div className="min-w-0 flex-1">
-                    <strong className="block text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ink)]">{t.label}</strong>
-                    <small className="block text-[13px] text-[var(--qs-muted)]">{t.sub}</small>
+                    <strong className="block text-[9.5px] font-bold uppercase tracking-[0.06em] text-[var(--qs-ink)] sm:text-xs sm:font-extrabold sm:tracking-[0.08em]">{t.label}</strong>
+                    <small className="block text-[10px] text-[var(--qs-muted)] sm:text-[13px]">{t.sub}</small>
                   </div>
-                  <output className="shrink-0 text-[20px] font-extrabold tracking-tight text-[var(--qs-ink)] tabular-nums sm:text-[22px]">{t.value}</output>
+                  <output className="shrink-0 text-[15px] font-bold tracking-tight text-[var(--qs-ink)] tabular-nums sm:text-[20px] sm:font-extrabold lg:text-[22px]">{t.value}</output>
                 </div>
               ))}
             </div>
@@ -861,9 +864,9 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
         </div>
 
         {/* ── Filter bar ────────────────────────────────────────────── */}
-        <div className="mb-5 flex flex-wrap items-center gap-2.5">
+        <div className="mb-3 flex flex-col gap-2 sm:mb-5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2.5">
           <div className="relative w-full sm:w-auto sm:min-w-[220px] sm:flex-[0_1_290px]">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--qs-muted)] sm:left-3 sm:h-4 sm:w-4" />
             <input
               value={search}
               onChange={(e) => {
@@ -872,10 +875,10 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               }}
               placeholder="Search name or roll no…"
               aria-label="Search students"
-              className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-2.5 pl-9 pr-3.5 text-sm text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
+              className="h-[38px] w-full rounded-[10px] border border-[#CFC7F0] bg-[var(--qs-surface)] pl-8 pr-3 text-[12.5px] font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] sm:h-auto sm:rounded-[12px] sm:border-2 sm:border-[var(--qs-line)] sm:py-2.5 sm:pl-9 sm:pr-3.5 sm:text-sm"
             />
           </div>
-          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-1">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none sm:flex-wrap sm:gap-2 sm:overflow-visible sm:pb-0">
             {FILTERS.map((f) => {
               const active = filter === f;
               const label = f === "ALL" ? "All" : STATUS_CONFIG[f].label;
@@ -889,48 +892,48 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                     setPage(1);
                   }}
                   className={cn(
-                    "rounded-full border-2 px-[13px] py-1.5 text-xs font-extrabold uppercase tracking-[0.06em] transition-colors",
+                    "inline-flex h-7 shrink-0 items-center gap-1 rounded-full border px-2.5 text-[10.5px] font-semibold transition-colors sm:h-auto sm:border-2 sm:px-[13px] sm:py-1.5 sm:text-xs sm:font-extrabold sm:uppercase sm:tracking-[0.06em]",
                     active
                       ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
-                      : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
+                      : "border-[#CFC7F0] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
                   )}
                 >
                   {label}
-                  <i className={cn("ml-1.5 not-italic", active ? "opacity-70" : "text-[var(--qs-muted)]")}>{statusCounts[f]}</i>
+                  <i className={cn("text-[9.5px] not-italic sm:ml-1.5 sm:text-inherit", active ? "opacity-70" : "text-[var(--qs-muted)]")}>{statusCounts[f]}</i>
                 </button>
               );
             })}
-          </div>
-          <div className="flex w-full items-center gap-2 sm:w-auto">
             <button
               type="button"
               onClick={() => {
                 setSortMode((m) => (m + 1) % SORT_LABELS.length);
                 setPage(1);
               }}
-              className={cn(topBtn, "flex-1 justify-center sm:flex-none")}
+              className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full border border-[#CFC7F0] bg-[var(--qs-surface)] px-2.5 text-[10.5px] font-semibold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] sm:h-auto sm:border-2 sm:border-[var(--qs-line)] sm:px-3.5 sm:py-[9px] sm:text-sm sm:font-bold"
             >
-              Sort: {SORT_LABELS[sortMode]}
+              <ArrowUpDown className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="sm:hidden">Sort: {SORT_SHORT[sortMode]}</span>
+              <span className="hidden sm:inline">Sort: {SORT_LABELS[sortMode]}</span>
             </button>
           </div>
         </div>
 
         {/* ── Student Responses ─────────────────────────────────────── */}
-        <div className="relative mb-4 mr-4">
-          <div aria-hidden className="absolute left-4 top-4 -bottom-4 -right-4 rounded-[30px] bg-[var(--qs-sun)]" />
-          <div className="relative overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
-            <header className="px-4 pb-4 pt-5 sm:px-[26px]">
-              <h2 className="text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-2xl">Student Responses</h2>
-              <p className="mt-0.5 text-sm text-[var(--qs-muted)]">Monitor every student&apos;s quiz activity and performance in real time.</p>
+        <div className="relative mb-3 mr-0 sm:mb-4 sm:mr-4">
+          <div aria-hidden className="absolute left-3 top-3 -bottom-3 -right-3 hidden rounded-[22px] bg-[var(--qs-sun)] sm:block sm:left-4 sm:top-4 sm:-bottom-4 sm:-right-4 sm:rounded-[30px]" />
+          <div className="relative overflow-hidden rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] sm:rounded-[26px] sm:border-2">
+            <header className="px-3 pb-2.5 pt-3.5 sm:px-[26px] sm:pb-4 sm:pt-5">
+              <h2 className="text-[15px] font-bold tracking-tight text-[var(--qs-ink)] sm:text-[22px] sm:font-extrabold">Student Responses</h2>
+              <p className="mt-0.5 text-[10.5px] text-[var(--qs-muted)] sm:text-sm">Monitor every student&apos;s quiz activity and performance in real time.</p>
             </header>
             {/* Mobile cards */}
-            <div className="space-y-2.5 border-t-2 border-[var(--qs-line)] p-4 md:hidden">
+            <div className="space-y-1.5 border-t border-[var(--qs-line)] p-2 sm:space-y-2.5 sm:border-t-2 sm:p-4 md:hidden">
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="app-skeleton h-[92px] rounded-[16px]" />
+                  <div key={i} className="app-skeleton h-[76px] rounded-[12px]" />
                 ))
               ) : filtered.length === 0 ? (
-                <p className="px-2 py-8 text-center text-sm font-medium text-[var(--qs-muted)]">
+                <p className="px-2 py-6 text-center text-[11px] font-medium text-[var(--qs-muted)] sm:py-8 sm:text-sm">
                   {students.length === 0 ? "No responses yet — students haven't been registered or attempted this quiz." : "No records match this filter."}
                 </p>
               ) : (
@@ -938,29 +941,29 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                   <div
                     key={s.id}
                     onClick={() => openDetail(s)}
-                    className="cursor-pointer rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 transition-colors active:bg-[var(--qs-bg)]"
+                    className="cursor-pointer rounded-[12px] border border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 shadow-[2px_3px_0_var(--qs-sun)] transition-colors active:bg-[var(--qs-bg)] sm:rounded-[16px] sm:border-2 sm:p-3.5 sm:shadow-none"
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-2 sm:gap-3">
                       <RankBadge rank={s.rank} />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <StudentAvatar student={s} />
                           <div className="min-w-0">
-                            <p className="truncate font-bold text-[var(--qs-ink)]">{nameWithAttempt(s.name, s.attemptNumber)}</p>
-                            <p className="truncate text-[11px] text-[var(--qs-muted)]">
+                            <p className="truncate text-[12.5px] font-semibold text-[var(--qs-ink)] sm:text-[15px] sm:font-bold">{nameWithAttempt(s.name, s.attemptNumber)}</p>
+                            <p className="truncate text-[9.5px] text-[var(--qs-muted)] sm:text-[11px]">
                               {s.rollNo || "—"}
                             </p>
                           </div>
                         </div>
-                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 sm:mt-2 sm:gap-2">
                           <StatusBadge status={s.status} />
-                          <span className="text-xs font-bold text-[var(--qs-ink)]">
+                          <span className="text-[11px] font-bold text-[var(--qs-ink)] sm:text-xs">
                             {s.correct !== null ? s.correct : "—"}
                             <span className="font-medium text-[var(--qs-muted)]"> / {s.totalQuestions ?? "—"} correct</span>
                           </span>
-                          <span className="flex items-center gap-1.5 text-xs font-extrabold text-[var(--qs-ink)]">
+                          <span className="flex items-center gap-1 text-[11px] font-bold text-[var(--qs-ink)] sm:gap-1.5 sm:text-xs sm:font-extrabold">
                             {s.percentage !== null ? `${Math.round(s.percentage)}%` : "—"}
-                            <span className="h-1.5 w-[40px] overflow-hidden rounded-full bg-[var(--qs-line)]">
+                            <span className="h-1.5 w-[32px] overflow-hidden rounded-full bg-[var(--qs-line)] sm:w-[40px]">
                               <i
                                 className="block h-full rounded-full bg-[var(--qs-brand)]"
                                 style={{ width: `${Math.min(100, Math.max(0, s.percentage ?? 0))}%` }}
@@ -968,7 +971,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                             </span>
                           </span>
                         </div>
-                        <p className="mt-1.5 text-[11px] text-[var(--qs-muted)]">
+                        <p className="mt-1 text-[9.5px] text-[var(--qs-muted)] sm:mt-1.5 sm:text-[11px]">
                           {s.timeTaken ?? "—"} · {s.submittedAt ?? "—"}
                         </p>
                       </div>
@@ -976,9 +979,9 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                         type="button"
                         aria-label={`Actions for ${s.name}`}
                         onClick={(e) => openActionMenu(e, s)}
-                        className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-line)]"
+                        className="grid h-7 w-7 shrink-0 place-items-center rounded-[8px] text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-line)] sm:h-[34px] sm:w-[34px] sm:rounded-[10px]"
                       >
-                        <MoreVertical className="h-4 w-4" />
+                        <MoreVertical className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </button>
                     </div>
                   </div>
@@ -1059,24 +1062,24 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                 </tbody>
               </table>
             </div>
-            <div className="flex flex-col gap-3 border-t-2 border-[var(--qs-line)] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-[26px]">
-              <p className="text-sm font-medium text-[var(--qs-muted)]">
+            <div className="flex flex-col gap-2 border-t border-[var(--qs-line)] px-2.5 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:border-t-2 sm:px-[26px] sm:py-3.5">
+              <p className="text-[10.5px] font-medium text-[var(--qs-muted)] sm:text-sm">
                 Showing {filtered.length === 0 ? 0 : pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filtered.length)} of {filtered.length} records
               </p>
               {totalPages > 1 && (
-                <nav aria-label="Pagination" className="flex flex-wrap items-center gap-1.5">
+                <nav aria-label="Pagination" className="flex flex-wrap items-center gap-1 sm:gap-1.5">
                   <button
                     type="button"
                     onClick={() => setPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
                     aria-label="Previous page"
-                    className="grid h-8 min-w-8 place-items-center rounded-[9px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-35"
+                    className="grid h-7 min-w-7 place-items-center rounded-[7px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-35 sm:h-8 sm:min-w-8 sm:rounded-[9px] sm:border-2"
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </button>
                   {pageItems.map((item, i) =>
                     item === "…" ? (
-                      <span key={`ellipsis-${i}`} className="px-1 text-xs font-bold text-[var(--qs-muted)]" aria-hidden>
+                      <span key={`ellipsis-${i}`} className="px-1 text-[10px] font-bold text-[var(--qs-muted)] sm:text-xs" aria-hidden>
                         …
                       </span>
                     ) : (
@@ -1086,7 +1089,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                         onClick={() => setPage(item)}
                         aria-current={item === currentPage ? "page" : undefined}
                         className={cn(
-                          "grid h-8 min-w-8 place-items-center rounded-[9px] border-2 px-2 text-xs font-extrabold transition-colors",
+                          "grid h-7 min-w-7 place-items-center rounded-[7px] border px-1.5 text-[10.5px] font-bold transition-colors sm:h-8 sm:min-w-8 sm:rounded-[9px] sm:border-2 sm:px-2 sm:text-xs sm:font-extrabold",
                           item === currentPage
                             ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
                             : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
@@ -1101,9 +1104,9 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                     onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
                     aria-label="Next page"
-                    className="grid h-8 min-w-8 place-items-center rounded-[9px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-35"
+                    className="grid h-7 min-w-7 place-items-center rounded-[7px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-35 sm:h-8 sm:min-w-8 sm:rounded-[9px] sm:border-2"
                   >
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </button>
                 </nav>
               )}

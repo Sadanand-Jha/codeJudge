@@ -16,9 +16,9 @@ const DIFFICULTY_STYLES: Record<string, { card: string; bar: string; text: strin
 
 function InsightCard({ label, text }: { label: string; text: string }) {
   return (
-    <div className="min-w-0 rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 shadow-[3px_3px_0_var(--qs-sun)]">
-      <b className="text-[11px] font-extrabold uppercase tracking-[0.09em] text-[var(--qs-brand)]">{label}</b>
-      <p className="mt-1 text-sm font-semibold leading-snug text-[var(--qs-ink)]">{text}</p>
+    <div className="min-w-0 rounded-[12px] border border-[var(--qs-ink)] bg-[var(--qs-surface)] p-2.5 shadow-[2px_2px_0_var(--qs-sun)] sm:rounded-[18px] sm:border-2 sm:p-4 sm:shadow-[3px_3px_0_var(--qs-sun)]">
+      <b className="text-[9px] font-bold uppercase tracking-[0.06em] text-[var(--qs-brand)] sm:text-[11px] sm:font-extrabold sm:tracking-[0.09em]">{label}</b>
+      <p className="mt-0.5 text-[10.5px] font-semibold leading-3.5 text-[var(--qs-ink)] sm:mt-1 sm:text-sm sm:leading-snug">{text}</p>
     </div>
   );
 }
@@ -108,7 +108,7 @@ function DifficultyCards({ questions }: { questions: QuestionStat[] }) {
   }, [questions]);
 
   return (
-    <div className="grid gap-3.5 sm:grid-cols-3">
+    <div className="grid grid-cols-3 gap-1.5 sm:gap-3.5">
       {groups.map((g) => {
         const style = DIFFICULTY_STYLES[g.label] ?? {
           card: "bg-[var(--qs-surface)]",
@@ -118,7 +118,7 @@ function DifficultyCards({ questions }: { questions: QuestionStat[] }) {
         return (
           <div
             key={g.label}
-            className={cn("rounded-[18px] border-2 border-[var(--qs-ink)] p-4", style.card)}
+            className={cn("rounded-[12px] border border-[var(--qs-ink)] p-2.5 sm:rounded-[18px] sm:border-2 sm:p-4", style.card)}
           >
             <div className="flex items-center justify-between gap-2">
               <OutlinePill tone={difficultyTone(g.label)}>{g.label}</OutlinePill>
@@ -128,16 +128,16 @@ function DifficultyCards({ questions }: { questions: QuestionStat[] }) {
                 style={{ background: style.bar }}
               />
             </div>
-            <b className={cn("my-1.5 block text-[30px] font-extrabold leading-none", style.text)}>
+            <b className={cn("my-1 block text-[18px] font-bold leading-none sm:my-1.5 sm:text-[30px] sm:font-extrabold", style.text)}>
               {g.accuracy > 0 ? `${g.accuracy.toFixed(0)}%` : "—"}
             </b>
-            <div className="my-3 h-3 overflow-hidden rounded-full border-2 border-[var(--qs-ink)] bg-white/70">
+            <div className="my-1.5 h-2 overflow-hidden rounded-full border border-[var(--qs-ink)] bg-white/70 sm:my-3 sm:h-3 sm:border-2">
               <i
                 className="block h-full"
                 style={{ width: `${Math.min(100, g.accuracy)}%`, background: style.bar }}
               />
             </div>
-            <small className="text-xs font-bold text-[var(--qs-muted)]">
+            <small className="text-[8.5px] font-semibold leading-3 text-[var(--qs-muted)] sm:text-xs sm:font-bold">
               {g.count} question{g.count === 1 ? "" : "s"}
               {g.avgTime > 0 ? ` · avg ${fmtSec(g.avgTime)}` : ""}
             </small>
@@ -239,14 +239,14 @@ export function OverviewTab({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3 sm:space-y-5">
       <Panel
         title="Automated insights"
         subtitle="Plain-language findings pulled from live response data."
         tone="coral"
       >
         {insights.length > 0 ? (
-          <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-2 sm:gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
             {insights.map((i) => (
               <InsightCard key={i.label} label={i.label} text={i.text} />
             ))}
@@ -256,7 +256,7 @@ export function OverviewTab({
         )}
       </Panel>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-2.5 sm:gap-4 lg:grid-cols-3">
         <Panel
           title="Score distribution"
           subtitle="How final marks were spread."
@@ -264,7 +264,7 @@ export function OverviewTab({
           className="flex flex-col"
           bodyClassName="flex flex-1 flex-col"
         >
-          <div className="flex min-h-[260px] flex-1 flex-col justify-center">
+          <div className="flex min-h-[180px] flex-1 flex-col justify-center sm:min-h-[260px]">
             {hasScores ? (
               <>
                 <VBars
@@ -285,7 +285,7 @@ export function OverviewTab({
           className="flex flex-col"
           bodyClassName="flex flex-1 flex-col"
         >
-          <div className="flex min-h-[260px] flex-1 flex-col justify-center">
+          <div className="flex min-h-[180px] flex-1 flex-col justify-center sm:min-h-[260px]">
             <ScoreVsTimeChart points={scatter} />
           </div>
         </Panel>
@@ -296,7 +296,7 @@ export function OverviewTab({
           className="flex flex-col"
           bodyClassName="flex flex-1 flex-col"
         >
-          <div className="flex min-h-[260px] flex-1 flex-col justify-center">
+          <div className="flex min-h-[180px] flex-1 flex-col justify-center sm:min-h-[260px]">
             {funnelHasData ? (
               <HBars
                 items={funnelRows.map((f, i) => ({

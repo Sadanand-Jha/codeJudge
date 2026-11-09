@@ -24,36 +24,7 @@ export interface ShareQuizInfo {
   duration?: number | null;
 }
 
-export type ShareStyleId = "clean" | "ticket" | "desi" | "hype";
-
-interface ShareStyle {
-  id: ShareStyleId;
-  name: string;
-  description: string;
-}
-
-const SHARE_STYLES: ShareStyle[] = [
-  {
-    id: "clean",
-    name: "Clean",
-    description: "Short and direct. Best for class groups.",
-  },
-  {
-    id: "ticket",
-    name: "Ticket",
-    description: "Monospace code box, just like your yellow dashed code box.",
-  },
-  {
-    id: "desi",
-    name: "Desi",
-    description: "Hinglish and friendly. Works for school and college alike.",
-  },
-  {
-    id: "hype",
-    name: "Hype",
-    description: "Bold Hinglish announcement with code and tap-to-join link.",
-  },
-];
+export type ShareStyleId = "professional";
 
 export function formatJoinCode(code: string): string {
   return code.replace(/\s+/g, "").replace(/(.{4})(?=.)/g, "$1 ").toUpperCase();
@@ -103,67 +74,20 @@ export function buildQuizMessage(input: QuizMessageInput): string {
   return "https://wa.me/?text=" + encodeURIComponent(buildQuizLiveText(input));
 }
 
-export function buildShareMessage(quiz: ShareQuizInfo, style: ShareStyleId): string {
+export function buildShareMessage(quiz: ShareQuizInfo): string {
   const link = joinLink(quiz.code);
   const show = formatJoinCode(quiz.code);
   const questions = `${quiz.questions} ${quiz.questions === 1 ? "question" : "questions"}`;
 
-  if (style === "ticket") {
-    return `🎟️🔥 *QUIZ PASS* 🔥🎟️
-╔════════════════════╗
-   🎯 *${quiz.title}*
-╚════════════════════╝
+  return `*${quiz.title}*
 
-📚 ${questions}  •  ${statusLine(quiz.status)}
+${questions} · ${statusLine(quiz.status)}
 
-🎫 *YOUR ENTRY CODE*
-\`\`\`${show}\`\`\`
+Join code: *${show}*
 
-👇 *One-tap entry*
-${link}
+Join here: ${link}
 
-🍀 _Best of luck!_ 🚀`;
-  }
-
-  if (style === "hype") {
-    return buildQuizLiveText({
-      title: quiz.title,
-      count: quiz.questions,
-      code: quiz.code,
-      url: link,
-    });
-  }
-
-  if (style === "desi") {
-    const intro = quiz.status === "live" ? "shuru ho gaya hai! 🚀" : "join ke liye ready hai! 🚀";
-    return `🚀✨ *QUIZ TIME!* ✨🚀
-┏━━━━━━━━━━━━━━━━━━┓
-   🎯 *${quiz.title}*
-┗━━━━━━━━━━━━━━━━━━┛
-
-${intro}
-
-👇 *Seedha join karo*
-${link}
-
-🔑 Link na khule to code daalo: *${show}*
-
-🏆 _All the best!_ 💪`;
-  }
-
-  return `🎉✨ *QUIZ ALERT* ✨🎉
-┏━━━━━━━━━━━━━━━━━━┓
-   🎯 *${quiz.title}*
-┗━━━━━━━━━━━━━━━━━━┛
-
-📚 ${questions}  •  ${statusLine(quiz.status)}
-
-🔑 *Join code:* \`\`\`${show}\`\`\`
-
-👇 *Tap to join instantly*
-${link}
-
-🏆 _Good luck — you've got this!_ ✨`;
+${SITE_NAME}`;
 }
 
 export async function copyText(value: string): Promise<void> {
@@ -187,18 +111,14 @@ interface ShareQuizDialogProps {
 }
 
 export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
-  const [styleId, setStyleId] = useState<ShareStyleId>("clean");
   const [code, setCode] = useState(quiz.code);
   const [customMessage, setCustomMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [copying, setCopying] = useState(false);
-  const [waPhone, setWaPhone] = useState("");
-  const [waError, setWaError] = useState<string | null>(null);
   const copyTimerRef = useRef<number | null>(null);
 
-  const activeStyle = SHARE_STYLES.find((style) => style.id === styleId) ?? SHARE_STYLES[0];
   const durationLabel = formatDurationMinutes(quiz.duration);
-  const generatedMessage = buildShareMessage({ ...quiz, code }, styleId);
+  const generatedMessage = buildShareMessage({ ...quiz, code });
   const message = customMessage ?? generatedMessage;
   const sentAt = useMemo(
     () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
@@ -243,7 +163,7 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
         targetCode = await copyQuizCode(quiz.id);
         setCode(targetCode);
       }
-      await copyText(customMessage ?? buildShareMessage({ ...quiz, code: targetCode }, styleId));
+      await copyText(customMessage ?? buildShareMessage({ ...quiz, code: targetCode }));
       setCopied(true);
       if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
       copyTimerRef.current = window.setTimeout(() => setCopied(false), 2000);
@@ -258,15 +178,8 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
   };
 
   const openWhatsApp = () => {
-    let digits = waPhone.replace(/\D/g, "");
-    if (digits && digits.length < 10) {
-      setWaError("Enter a valid 10-digit mobile number.");
-      return;
-    }
-    if (digits.length === 10) digits = `91${digits}`;
-    setWaError(null);
     window.open(
-      `https://wa.me/${digits}?text=${encodeURIComponent(message)}`,
+      `https://wa.me/?text=${encodeURIComponent(message)}`,
       "_blank",
       "noopener,noreferrer"
     );
@@ -291,7 +204,7 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
               Share on WhatsApp
             </h2>
             <p className="mt-0.5 text-[10.5px] leading-4 text-[var(--qs-muted)] sm:mt-1 sm:text-[13px] sm:leading-5">
-              Pick a style, tweak the message, and share. Students get a tap-to-join link.
+              Review the message and share. Students get a tap-to-join link.
             </p>
           </div>
           <button
@@ -305,39 +218,7 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
         </div>
 
         <div className="grid gap-2.5 px-3.5 pb-3.5 pt-2.5 sm:gap-5 sm:px-5 sm:pb-5 sm:pt-3 md:grid-cols-2 md:gap-6 md:px-6 md:pb-6">
-          <div className="min-w-0 space-y-4">
-            <div>
-              <div className="mb-2 grid grid-cols-2 gap-2" role="tablist" aria-label="Message style">
-                {SHARE_STYLES.map((style) => {
-                  const selected = style.id === styleId;
-                  return (
-                    <button
-                      key={style.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={selected}
-                      onClick={() => {
-                        setStyleId(style.id);
-                        setCustomMessage(null);
-                        setCopied(false);
-                      }}
-                      className={cn(
-                        "rounded-[9px] border px-1.5 py-1.5 text-[11px] font-semibold transition-colors sm:rounded-[12px] sm:border-2 sm:px-2 sm:py-2 sm:text-[13px] sm:font-bold",
-                        selected
-                          ? "border-[var(--qs-brand)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
-                          : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
-                      )}
-                    >
-                      {style.name}
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="min-h-[2.6em] text-[10px] leading-[1.35] text-[var(--qs-muted)] sm:text-[12px] sm:leading-[1.4]">
-                {activeStyle.description}
-              </p>
-            </div>
-
+          <div className="hidden min-w-0 space-y-4 sm:block">
             <div>
               <div className="mb-1.5 flex items-center justify-between gap-2">
                 <label
@@ -366,7 +247,7 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
               />
             </div>
 
-            <p className="text-[12px] leading-relaxed text-[var(--qs-muted)]">
+            <p className="hidden text-[12px] leading-relaxed text-[var(--qs-muted)] sm:block">
               WhatsApp supports <b>*bold*</b>, <em>_italic_</em>, <code>```mono```</code> and{" "}
               <code>&gt; quote</code>. The card preview appears when the join link has Open Graph tags.
             </p>
@@ -411,41 +292,6 @@ export function ShareQuizDialog({ quiz, onClose }: ShareQuizDialogProps) {
                 </div>
                 <div className="px-1.5 pb-0.5 text-right text-[10px] opacity-60">{sentAt} ✓✓</div>
               </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="share-quiz-phone"
-                className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ink)]"
-              >
-                Send to a number (optional)
-              </label>
-              <div className="flex overflow-hidden rounded-[9px] border border-[var(--qs-line)] focus-within:border-[var(--qs-brand)] sm:rounded-[12px] sm:border-2">
-                <span className="grid place-items-center bg-[var(--qs-brand)]/10 px-3 text-[13px] font-extrabold text-[var(--qs-brand)]">
-                  +91
-                </span>
-                <input
-                  id="share-quiz-phone"
-                  type="tel"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  placeholder="98765 43210"
-                  value={waPhone}
-                  onChange={(event) => {
-                    setWaPhone(event.target.value);
-                    setWaError(null);
-                  }}
-                  className="min-w-0 flex-1 border-0 bg-transparent px-2.5 py-2 text-[11.5px] font-semibold text-[var(--qs-ink)] outline-none sm:px-3 sm:py-2.5 sm:text-[13px] sm:font-bold"
-                />
-              </div>
-              <p
-                className={cn(
-                  "mt-1 text-[11px] font-medium",
-                  waError ? "font-bold text-[#c0392b]" : "text-[var(--qs-muted)]"
-                )}
-              >
-                {waError ?? "Leave empty to pick a contact inside WhatsApp."}
-              </p>
             </div>
 
             <div className="flex gap-2.5">
