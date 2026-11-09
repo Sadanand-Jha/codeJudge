@@ -92,7 +92,7 @@ export default function ArticleLeftRail({
   onNavigate: (id: string) => void;
 }) {
   return (
-    <div className="sticky top-[4.5rem] max-h-[calc(100vh-6rem)] space-y-4 overflow-y-auto pb-4">
+    <div className="sticky top-[4.5rem] max-h-[calc(100dvh-6rem)] space-y-4 overflow-y-auto pb-4">
       <ArticleToc toc={toc} activeId={activeId} onNavigate={onNavigate} variant="rail" />
       <ProgressCard />
       <InfoCard post={post} />

@@ -73,7 +73,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
 
   if (gate === "checking") {
     return (
-      <div className="mx-auto max-w-[1200px] px-4 py-6 md:px-6">
+      <div className="page-container px-4 py-6 md:px-6">
         <div className="pf-skeleton h-8 w-2/3 rounded" />
         <div className="pf-skeleton mt-3 h-4 w-1/3 rounded" />
       </div>
@@ -81,19 +81,19 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   }
   if (gate !== "open") {
     return (
-      <div className="platform-shell min-h-screen bg-[var(--background)]">
+      <div className="platform-shell min-h-dvh bg-[var(--background)]">
         <OwnerGate mode={gate} onOpen={() => setGate("open")} />
       </div>
     );
   }
 
   return (
-    <div className="platform-shell qs-ui relative min-h-screen overflow-x-clip">
+    <div className="platform-shell qs-ui relative min-h-dvh overflow-x-clip">
       {/* No data fetching here — each nested page calls only its own API */}
       <PlatformSidebar />
       <PlatformSidebarDrawer open={navOpen} onClose={() => setNavOpen(false)} />
       <div className="relative min-w-0 lg:pl-60">
-        <header className="sticky top-0 z-20 flex h-[58px] w-full items-center gap-2 border-b-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 sm:px-3.5">
+        <header className="sticky top-0 z-20 flex h-[3.625rem] w-full items-center gap-2 border-b-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 sm:px-3.5">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <button onClick={() => setNavOpen(true)} className="shrink-0 rounded-lg p-2 text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)] lg:hidden" aria-label="Open Platform navigation">
               <Menu size={20} />
@@ -127,7 +127,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
             )}
           </nav>
         </div>
-        <main className="mx-auto max-w-[1480px] min-w-0 flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-3 py-4 sm:px-5 sm:py-5 lg:px-8 lg:py-6">
+        <main className="page-container min-w-0 flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-3 py-4 sm:px-5 sm:py-5 lg:px-8 lg:py-6">
           {children}
           <p className="pb-4 text-center text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
             {pathname.startsWith("/platform/ai-ops")

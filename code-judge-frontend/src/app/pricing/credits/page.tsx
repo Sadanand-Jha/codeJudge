@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
 import { LandingPageShell } from "@/components/marketing/landing/LandingPageShell";
+import LandingIllustration from "@/components/marketing/landing/LandingIllustration";
 import LandingReveal from "@/components/marketing/landing/LandingReveal";
 import LpHeader from "@/components/marketing/landing/LpHeader";
 import { PublicPackCta } from "@/components/pricing/PublicCheckoutCta";
@@ -137,79 +138,93 @@ export default async function AICreditsPricingPage() {
 
       <main id="top">
         <div className="landing-page-wrap">
-          <section className="pricing-hero pricing-credits-hero" aria-labelledby="credits-title" data-reveal>
-            <div className="pricing-hero-inner pricing-credits-hero-inner">
-              <div className="pricing-credits-hero-copy">
-                <span className="landing-eyebrow">
-                  <Sparkles size={15} aria-hidden />
-                  AI credit top-ups
-                </span>
-                <h1 id="credits-title">
-                  {content.credits_heading || (
-                    <>
-                      More AI.{" "}
-                      <span className="pricing-hero-gradient-word">Same plan</span>.
-                    </>
-                  )}
-                </h1>
-                <p className="pricing-hero-lead">
-                  {content.credits_subheading ||
-                    `${planList} already include monthly AI credits. When you need more, add a one-time pack — no separate AI subscription.`}
-                </p>
-                <div className="pricing-hero-actions">
-                  <a href="#packs" className="landing-button landing-button-primary">
-                    See credit packs <ArrowRight size={17} aria-hidden />
-                  </a>
-                  <Link href="/pricing" className="landing-button landing-button-outline">
-                    Compare monthly plans
-                  </Link>
-                </div>
-                <ul className="pricing-hero-meta" aria-label="Credit highlights">
-                  <li>
-                    <ShieldCheck size={14} aria-hidden />
-                    Works with any plan
-                  </li>
-                  {creditPacks.length > 0 ? (
-                    <li>
-                      <Coins size={14} aria-hidden />
-                      {creditRange}
-                    </li>
-                  ) : null}
-                  {validity > 0 ? (
-                    <li>
-                      <Sparkles size={14} aria-hidden />
-                      Valid for {validity} months
-                    </li>
-                  ) : null}
-                  <li>GST included</li>
-                </ul>
+          <section className="landing-hero pricing-landing-hero pricing-credits-landing-hero" aria-labelledby="credits-title" data-reveal>
+            <div className="landing-hero-aurora" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+              <i />
+            </div>
+            <div className="landing-hero-copy">
+              <span className="landing-eyebrow">
+                <Sparkles size={15} aria-hidden />
+                AI credit top-ups
+              </span>
+              <h1 id="credits-title">
+                {content.credits_heading || (
+                  <>
+                    More AI.{" "}
+                    <span className="landing-hero-gradient-word">Same plan</span>.
+                  </>
+                )}
+              </h1>
+              <p>
+                {content.credits_subheading ||
+                  `${planList} already include monthly AI credits. When you need more, add a one-time pack — no separate AI subscription.`}
+              </p>
+              <div className="landing-hero-actions">
+                <a href="#packs" className="landing-button landing-button-primary">
+                  See credit packs <ArrowRight size={17} aria-hidden />
+                </a>
+                <Link href="/pricing" className="landing-button landing-button-outline">
+                  Compare monthly plans
+                </Link>
               </div>
+              <ul className="pricing-hero-meta landing-pricing-meta" aria-label="Credit highlights">
+                <li>
+                  <ShieldCheck size={14} aria-hidden />
+                  Works with any plan
+                </li>
+                {creditPacks.length > 0 ? (
+                  <li>
+                    <Coins size={14} aria-hidden />
+                    {creditRange}
+                  </li>
+                ) : null}
+                {validity > 0 ? (
+                  <li>
+                    <Sparkles size={14} aria-hidden />
+                    Valid for {validity} months
+                  </li>
+                ) : null}
+                <li>GST included</li>
+              </ul>
+            </div>
 
+            <div className="landing-hero-art-wrap">
+              <div className="landing-fan-card landing-fan-card-yellow" aria-hidden="true" />
+              <div className="landing-fan-card landing-fan-card-rose" aria-hidden="true" />
               {featuredPack ? (
-                <aside
-                  className="pricing-pack-spotlight"
-                  aria-label={`${featuredPack.name}: ${featuredPack.credits} credits for ${formatPricingAmount(featuredPack.price)}`}
-                >
-                  <div className="pricing-pack-spotlight-top">
-                    <span>
-                      <Sparkles size={13} aria-hidden />
+                <div className="landing-hero-panel">
+                  <div className="landing-panel-intro">
+                    <span className="landing-panel-label">
+                      <Sparkles size={14} aria-hidden />
                       {featuredPack.name}
                     </span>
-                    <span>{featuredPack.validityMonths} months</span>
+                    <h2>{featuredPack.credits} AI credits</h2>
+                    <p>
+                      {formatPricingAmount(featuredPack.price)} one-time. Works with any plan.
+                    </p>
                   </div>
-                  <div className="pricing-pack-spotlight-coin">
-                    <Sparkles size={18} aria-hidden />
-                    <strong>{featuredPack.credits}</strong>
-                    <span>AI credits</span>
-                  </div>
-                  <div className="pricing-pack-spotlight-price">
-                    <b>{formatPricingAmount(featuredPack.price)}</b>
-                    <span>one-time</span>
-                  </div>
-                  <p className="pricing-pack-spotlight-note">Works with any plan.</p>
-                </aside>
+                  <ul className="pricing-glance-list">
+                    <li>
+                      <span>AI credits</span>
+                      <b>{featuredPack.credits}</b>
+                    </li>
+                    <li>
+                      <span>One-time price</span>
+                      <b>{formatPricingAmount(featuredPack.price)}</b>
+                    </li>
+                    <li>
+                      <span>Valid for</span>
+                      <b>{featuredPack.validityMonths} months</b>
+                    </li>
+                  </ul>
+                </div>
               ) : null}
+              <LandingIllustration variant="hero" />
             </div>
+            <p className="landing-hero-caption">Top up only when your included allowance runs low.</p>
           </section>
 
           <section className="landing-section landing-pricing pricing-plans" id="packs" data-reveal>

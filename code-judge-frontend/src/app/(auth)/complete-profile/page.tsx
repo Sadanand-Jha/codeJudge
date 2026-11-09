@@ -26,10 +26,10 @@ import { AuthShell } from "@/components/auth/AuthShell";
 import { AuthLoader } from "@/components/auth/AuthThemeChrome";
 
 const INPUT_CLASS =
-  "h-[50px] w-full rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] pl-11 pr-4 text-[15px] font-medium text-[var(--qs-ink)] outline-none transition-[border-color,box-shadow] placeholder:text-[#8b86a8] focus:border-[var(--qs-brand)] focus:ring-4 focus:ring-[var(--qs-brand)]/15";
+  "h-[3.125rem] w-full rounded-[0.875rem] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] pl-11 pr-4 text-[0.9375rem] font-medium text-[var(--qs-ink)] outline-none transition-[border-color,box-shadow] placeholder:text-[#8b86a8] focus:border-[var(--qs-brand)] focus:ring-4 focus:ring-[var(--qs-brand)]/15";
 
 const LABEL_CLASS =
-  "mb-2 block text-[11.5px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]";
+  "mb-2 block text-[0.71875rem] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]";
 
 function CompleteProfileContent() {
   const router = useRouter();
@@ -196,7 +196,7 @@ function CompleteProfileContent() {
 
   if (!hasHydrated || !authChecked) {
     return (
-      <div className="qs-ui flex min-h-screen items-center justify-center">
+      <div className="qs-ui flex min-h-dvh items-center justify-center">
         <AuthLoader />
       </div>
     );
@@ -226,8 +226,8 @@ function CompleteProfileContent() {
           : "Choose an avatar. You can change it later in settings."
       }
     >
-      <div className="mb-5 flex items-start gap-3 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-3">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]">
+      <div className="mb-5 flex items-start gap-3 rounded-[0.875rem] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-3">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[0.6875rem] bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]">
           <Sparkles className="h-4 w-4" />
         </span>
         <div className="min-w-0">
@@ -283,14 +283,14 @@ function CompleteProfileContent() {
                   setAccountType(id);
                   setSubmitError(null);
                 }}
-                className={`relative rounded-[16px] border-2 p-3 text-left transition-all duration-200 focus-visible:outline-none ${
+                className={`relative rounded-[1rem] border-2 p-3 text-left transition-all duration-200 focus-visible:outline-none ${
                   selected
                     ? "border-[var(--qs-brand)] bg-[var(--qs-brand)]/[0.08]"
                     : "border-[var(--qs-line)] bg-[var(--qs-bg)] hover:border-[var(--qs-brand)]/50"
                 }`}
               >
                 <span
-                  className={`grid h-9 w-9 place-items-center rounded-[11px] ${
+                  className={`grid h-9 w-9 place-items-center rounded-[0.6875rem] ${
                     selected
                       ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
                       : "bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]"
@@ -301,7 +301,7 @@ function CompleteProfileContent() {
                 <span className="mt-2 block text-sm font-extrabold text-[var(--qs-ink)]">
                   {title}
                 </span>
-                <span className="mt-0.5 block text-[11px] leading-[16px] text-[var(--qs-muted)]">
+                <span className="mt-0.5 block text-[0.6875rem] leading-[1rem] text-[var(--qs-muted)]">
                   {description}
                 </span>
                 {selected && (
@@ -318,7 +318,7 @@ function CompleteProfileContent() {
           Username
         </label>
         <div className="relative mb-2">
-          <AtSign className="pointer-events-none absolute left-[15px] top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)]" />
+          <AtSign className="pointer-events-none absolute left-[0.9375rem] top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)]" />
           <input
             id="complete-profile-username"
             type="text"
@@ -360,7 +360,7 @@ function CompleteProfileContent() {
           Referral code <span className="font-bold">(optional)</span>
         </label>
         <div className="relative mb-2">
-          <Gift className="pointer-events-none absolute left-[15px] top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)]" />
+          <Gift className="pointer-events-none absolute left-[0.9375rem] top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)]" />
           <input
             id="complete-profile-referral"
             type="text"
@@ -415,7 +415,7 @@ function CompleteProfileContent() {
               </span>
             </div>
             <div
-              className="mx-auto mb-5 grid max-w-[270px] grid-cols-3 gap-2.5"
+              className="mx-auto mb-5 grid max-w-[16.875rem] grid-cols-3 gap-2.5"
               role="radiogroup"
               aria-label="Choose your avatar"
             >
@@ -429,7 +429,7 @@ function CompleteProfileContent() {
                     aria-checked={selected}
                     aria-label={avatar.label}
                     onClick={() => setSelectedAvatarUrl(avatar.url)}
-                    className={`relative mx-auto h-[72px] w-[72px] overflow-hidden rounded-full border-2 p-1 transition-all duration-200 active:scale-95 focus-visible:outline-none ${
+                    className={`relative mx-auto h-[4.5rem] w-[4.5rem] overflow-hidden rounded-full border-2 p-1 transition-all duration-200 active:scale-95 focus-visible:outline-none ${
                       selected
                         ? "border-[var(--qs-brand)] ring-2 ring-[var(--qs-brand)]/20"
                         : "border-[var(--qs-line)] hover:border-[var(--qs-brand)]/60"
@@ -516,7 +516,7 @@ export default function CompleteProfilePage() {
   return (
     <Suspense
       fallback={
-        <div className="qs-ui flex min-h-screen items-center justify-center">
+        <div className="qs-ui flex min-h-dvh items-center justify-center">
           <AuthLoader />
         </div>
       }

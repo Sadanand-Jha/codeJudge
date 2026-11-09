@@ -100,7 +100,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
   if (!hasHydrated) {
     return (
       <AppLayout>
-        <div className="qs-ui flex min-h-screen items-center justify-center bg-[var(--qs-bg)]">
+        <div className="qs-ui flex min-h-dvh items-center justify-center bg-[var(--qs-bg)]">
           <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
         </div>
       </AppLayout>
@@ -110,7 +110,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
   if (!isAuthenticated) {
     return (
       <AppLayout>
-        <div className="qs-ui flex min-h-screen items-center justify-center bg-[var(--qs-bg)]">
+        <div className="qs-ui flex min-h-dvh items-center justify-center bg-[var(--qs-bg)]">
           <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
         </div>
       </AppLayout>
@@ -167,7 +167,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
               animate={{ x: 0 }}
               exit={{ x: -320 }}
               transition={{ type: "spring", stiffness: 380, damping: 34 }}
-              className="fixed inset-y-0 left-0 z-[80] w-[min(280px,calc(100vw-2rem))] border-r-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] lg:hidden"
+              className="fixed inset-y-0 left-0 z-[80] w-[min(17.5rem,calc(100vw-2rem))] border-r-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] lg:hidden"
             >
               <CreatorSidebar pathname={pathname} mobile onNavigate={() => setDrawerOpen(false)} />
             </motion.aside>
@@ -179,7 +179,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
         </aside>
 
         {/* Main content */}
-        <div data-studio="true" className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div data-studio="true" className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
           {isRoomsWorkspace ? (
             <Suspense fallback={null}>
               <CreatorRoomsNavbar />

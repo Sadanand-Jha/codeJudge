@@ -15,6 +15,7 @@ import {
 import { SecureLogo } from "@/components/common/SecureLogo";
 import { LandingPlanCard } from "@/components/pricing/LandingPlanCard";
 import { LandingPageShell } from "@/components/marketing/landing/LandingPageShell";
+import LandingIllustration from "@/components/marketing/landing/LandingIllustration";
 import LandingReveal from "@/components/marketing/landing/LandingReveal";
 import LpHeader from "@/components/marketing/landing/LpHeader";
 import { BASIC_TRIAL_CREDITS } from "@/lib/constants";
@@ -108,8 +109,14 @@ export default async function PricingPage() {
 
       <main id="top">
         <div className="landing-page-wrap">
-          <section className="pricing-hero" aria-labelledby="pricing-title" data-reveal>
-            <div className="pricing-hero-inner">
+          <section className="landing-hero pricing-landing-hero" aria-labelledby="pricing-title" data-reveal>
+            <div className="landing-hero-aurora" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+              <i />
+            </div>
+            <div className="landing-hero-copy">
               <span className="landing-eyebrow">
                 <Sparkles size={15} aria-hidden />
                 Plans &amp; pricing
@@ -118,15 +125,15 @@ export default async function PricingPage() {
                 {content.plans_heading || (
                   <>
                     Simple pricing for{" "}
-                    <span className="pricing-hero-gradient-word">every classroom</span>.
+                    <span className="landing-hero-gradient-word">every classroom</span>.
                   </>
                 )}
               </h1>
-              <p className="pricing-hero-lead">
+              <p>
                 {content.plans_subheading ||
                   "Essential is free forever. Elevate adds advanced tools, anti-cheat, analytics and monthly AI credits when you need more."}
               </p>
-              <div className="pricing-hero-actions">
+              <div className="landing-hero-actions">
                 <Link href={startHref} className="landing-button landing-button-primary">
                   {startLabel} <ArrowRight size={17} aria-hidden />
                 </Link>
@@ -134,7 +141,7 @@ export default async function PricingPage() {
                   Compare plans
                 </a>
               </div>
-              <ul className="pricing-hero-meta" aria-label="Pricing highlights">
+              <ul className="pricing-hero-meta landing-pricing-meta" aria-label="Pricing highlights">
                 <li>
                   <ShieldCheck size={14} aria-hidden />
                   No card required
@@ -161,6 +168,40 @@ export default async function PricingPage() {
                 <li>GST included</li>
               </ul>
             </div>
+
+            <div className="landing-hero-art-wrap">
+              <div className="landing-fan-card landing-fan-card-yellow" aria-hidden="true" />
+              <div className="landing-fan-card landing-fan-card-rose" aria-hidden="true" />
+              <div className="landing-hero-panel">
+                <div className="landing-panel-intro">
+                  <span className="landing-panel-label">
+                    <Sparkles size={14} aria-hidden />
+                    Compare at a glance
+                  </span>
+                  <h2>Pick the plan that fits your class.</h2>
+                  <p>Every plan includes the full quiz builder, access codes and results.</p>
+                </div>
+                <div className="landing-screen-frame">
+                  <div className="landing-screen-toolbar">
+                    <span><i /> Plans</span>
+                    <span>{catalog.plans.length} options</span>
+                    <span>GST included</span>
+                  </div>
+                  <ul className="pricing-glance-list">
+                    {catalog.plans.map((plan) => (
+                      <li key={plan.id}>
+                        <span>{plan.name}</span>
+                        <b>{plan.price === 0 ? "Free" : `${plan.price}`}</b>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <LandingIllustration variant="hero" />
+            </div>
+            <p className="landing-hero-caption">
+              Start free, then move up when your classroom needs more.
+            </p>
           </section>
 
           <section className="landing-section landing-pricing pricing-plans" id="pricing" data-reveal>

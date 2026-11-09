@@ -5,7 +5,7 @@
   --ct-hero4: #4a3f5e;
   width: 100%;
   margin: 0;
-  padding-bottom: 8px;
+  padding-bottom: 0.5rem;
 }
 
 :global([data-theme="dark"]) .root {
@@ -18,7 +18,6 @@
 .hero {
   position: relative;
   overflow: hidden;
-  min-height: 261px;
   background: var(--ct-hero);
 }
 
@@ -67,34 +66,35 @@
 .heroInner {
   position: relative;
   z-index: 2;
-  max-width: 1160px;
+  width: min(92%, 75rem);
+  max-width: 75rem;
   margin: 0 auto;
-  padding: 30px 28px 92px;
+  padding: 1.875rem 0 5.75rem;
 }
 
 .head {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 24px;
+  gap: 1.5rem;
   flex-wrap: wrap;
 }
 
 .titleRow {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 1.125rem;
   min-width: 0;
 }
 
 .icon {
   display: grid;
   flex: none;
-  width: 64px;
-  height: 64px;
+  width: 4rem;
+  height: 4rem;
   place-items: center;
-  border: 2px solid #1b1340;
-  border-radius: 18px;
+  border: 0.125rem solid #1b1340;
+  border-radius: 1.125rem;
   background: var(--qs-sun);
   color: #1b1340;
 }
@@ -106,10 +106,10 @@
 .title {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 0.875rem;
   flex-wrap: wrap;
   color: #fff;
-  font-size: clamp(30px, 4.4vw, 46px);
+  font-size: clamp(1.875rem, 4.4vw, 2.875rem);
   font-weight: 800;
   line-height: 1.05;
   letter-spacing: -0.045em;
@@ -117,40 +117,40 @@
 
 .pill {
   display: inline-block;
-  border: 2px solid #1b1340;
+  border: 0.125rem solid #1b1340;
   border-radius: 999px;
   background: var(--qs-sun);
   color: #1b1340;
-  padding: 5px 12px;
-  font-size: 11px;
+  padding: 0.3125rem 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .sub {
-  margin-top: 6px;
+  margin-top: 0.375rem;
   color: #cfc8ff;
-  font-size: 15.5px;
+  font-size: 0.96875rem;
 }
 
 .meta {
   display: flex;
-  gap: 12px;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
 .metric {
-  min-width: 96px;
-  border: 2px solid rgba(255, 255, 255, 0.5);
-  border-radius: 16px;
-  padding: 10px 18px;
+  min-width: 6rem;
+  border: 0.125rem solid rgba(255, 255, 255, 0.5);
+  border-radius: 1rem;
+  padding: 0.625rem 1.125rem;
   color: #fff;
 }
 
 .metric strong {
   display: block;
-  font-size: 26px;
+  font-size: 1.625rem;
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: -0.04em;
@@ -159,37 +159,37 @@
 
 .metric small {
   color: #cfc8ff;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
 .body {
   position: relative;
   z-index: 3;
-  max-width: 1160px;
-  margin: -56px auto 0;
-  padding: 0 28px;
+  width: min(92%, 75rem);
+  max-width: 75rem;
+  margin: -3.5rem auto 0;
 }
 
 .steps {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   flex-wrap: wrap;
-  margin-bottom: 18px;
+  margin-bottom: 1.125rem;
 }
 
 .step {
   display: flex;
   align-items: center;
-  gap: 9px;
-  height: 46px;
-  border: 2px solid var(--qs-ink);
+  gap: 0.5625rem;
+  min-height: 2.875rem;
+  border: 0.125rem solid var(--qs-ink);
   border-radius: 999px;
   background: var(--qs-surface);
   color: var(--qs-ink);
-  padding: 0 18px;
-  font-size: 14px;
+  padding: 0 1.125rem;
+  font-size: 0.875rem;
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.12s, box-shadow 0.12s, background 0.12s;
@@ -221,13 +221,13 @@
 
 .bar {
   position: sticky;
-  top: 2px;
+  top: 0.125rem;
   z-index: 30;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 26px;
+  gap: 0.875rem;
+  margin-bottom: 1.625rem;
   border: 2px solid var(--qs-ink);
   border-radius: 20px;
   background: var(--qs-surface);

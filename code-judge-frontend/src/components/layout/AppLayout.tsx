@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -249,6 +249,10 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   // center stage; it can be reopened anytime via the topbar toggle.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const studentSidebarRef = useRef<HTMLElement>(null);
+  const sidebarToggleRef = useRef<HTMLButtonElement>(null);
+  // Mobile uses sidebarOpen (drawer); desktop uses !sidebarCollapsed (rail).
+  const studentSidebarOpen = sidebarOpen || !sidebarCollapsed;
   const authModalOpen = useUIStore((s) => s.authModalOpen);
   const authModalRedirect = useUIStore((s) => s.authModalRedirect);
   const closeAuthModal = useUIStore((s) => s.closeAuthModal);
@@ -311,6 +315,22 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
     }
     setSidebarOpen(false);
   };
+
+  // Clicking anywhere outside the student sidebar (and outside its toggle)
+  // closes it, on both the mobile drawer and the desktop rail.
+  useEffect(() => {
+    if (!studentSidebarOpen) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (studentSidebarRef.current?.contains(target)) return;
+      if (sidebarToggleRef.current?.contains(target)) return;
+      setSidebarOpen(false);
+      setSidebarCollapsed(true);
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [studentSidebarOpen]);
 
   const handleLogout = async () => {
     try {
@@ -384,6 +404,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
     <div
       className={cn(
         "flex min-h-dvh w-full min-w-0 flex-col bg-ai-bg",
+        isStudioRoute && "fixed inset-0 h-auto min-h-0 overflow-hidden",
         usesDefaultHeader && "pt-14"
       )}
       data-ai-scope
@@ -418,6 +439,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
           <div className="flex items-center gap-2 min-w-0 flex-1">
             {/* Sidebar toggle button */}
             <button
+              ref={sidebarToggleRef}
               onClick={toggleSidebar}
               aria-label="Toggle navigation"
               aria-expanded={!sidebarCollapsed || sidebarOpen}
@@ -456,16 +478,17 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
       {/* ===== WORKSPACE (sidebar starts below the navbar) ===== */}
       <div
         className={cn(
-          "flex w-full min-w-0 flex-1",
-          !isStudioRoute && !sidebarCollapsed && "lg:pl-64"
+          "flex min-h-0 w-full min-w-0 flex-1",
+          !isStudioRoute && !sidebarCollapsed && "lg:pl-[16rem]"
         )}
       >
         {/* ===== STUDENT SIDEBAR (permanent on desktop, drawer on phones) ===== */}
         {!isStudioRoute && (
           <Sidebar
+            ref={studentSidebarRef}
             dataSidebar="true"
             className={cn(
-              "app-sidebar-rail fixed left-0 top-14 z-50 flex h-[calc(100dvh-3.5rem)] w-64 shrink-0 flex-col overflow-hidden border-r-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] transition-transform duration-200 ease-out",
+              "app-sidebar-rail fixed left-0 top-14 z-50 flex h-[calc(100dvh-3.5rem)] w-[min(16rem,calc(100vw-2rem))] shrink-0 flex-col overflow-hidden border-r-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] transition-transform duration-200 ease-out",
               sidebarOpen && "app-sidebar-mobile-open",
               sidebarCollapsed && "lg:hidden"
             )}
@@ -545,10 +568,10 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
         <div
           className={cn(
             "flex-1 w-0 min-w-0 flex flex-col",
-            isStudioRoute ? "h-[calc(100dvh-3.5rem)] overflow-hidden" : "min-h-[calc(100dvh-3.5rem)]"
+            isStudioRoute ? "h-full overflow-hidden" : "min-h-[calc(100dvh-3.5rem)]"
           )}
         >
-          <main className={cn("min-w-0 w-full flex-1", isStudioRoute && "min-h-0 flex flex-col")}>{children}</main>
+          <main className={cn("min-w-0 w-full flex-1", isStudioRoute && "h-full min-h-0 flex flex-col")}>{children}</main>
         </div>
       </div>
 

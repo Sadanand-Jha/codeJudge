@@ -111,7 +111,7 @@ export function SyllabusMultiImportDialog({
           </button>
         </header>
 
-        <div className="max-h-[calc(100vh-13rem)] space-y-4 overflow-y-auto p-5">
+        <div className="max-h-[calc(100dvh-13rem)] space-y-4 overflow-y-auto p-5">
           <div className="flex items-start gap-2 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5">
             <Layers className="mt-0.5 h-4 w-4 shrink-0 text-pink-500" />
             <p className="text-[11px] font-medium leading-5 text-[var(--qs-muted)]">
