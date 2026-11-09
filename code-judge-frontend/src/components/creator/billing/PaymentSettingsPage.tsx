@@ -275,7 +275,7 @@ function ModalShell({ onClose, label, children, wide }: {
         aria-modal="true"
         aria-label={label}
         className={cn(
-          "flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-[28px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[8px_8px_0_var(--qs-sun)] sm:rounded-[24px]",
+          "flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[2px_3px_0_var(--qs-sun)] sm:rounded-[24px] sm:border-2 sm:shadow-[8px_8px_0_var(--qs-sun)]",
           wide ? "sm:max-w-lg" : "sm:max-w-md"
         )}
       >
@@ -287,10 +287,10 @@ function ModalShell({ onClose, label, children, wide }: {
 
 function ModalHead({ title, sub, onClose }: { title: string; sub?: string; onClose: () => void }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b-2 border-[var(--qs-line)] px-5 py-4 ">
+    <div className="flex items-center justify-between gap-2 border-b border-[var(--qs-line)] px-3.5 py-3 sm:gap-3 sm:border-b-2 sm:px-5 sm:py-4">
       <div className="min-w-0">
-        <h3 className="qs-display text-[20px] font-extrabold text-[var(--qs-ink)]">{title}</h3>
-        {sub && <p className="mt-0.5 text-xs text-[var(--qs-muted)] ">{sub}</p>}
+        <h3 className="qs-display text-[14px] font-bold text-[var(--qs-ink)] sm:text-[20px] sm:font-extrabold">{title}</h3>
+        {sub && <p className="mt-0.5 text-[10.5px] text-[var(--qs-muted)] sm:text-xs">{sub}</p>}
       </div>
       <IconButton label="Close dialog" onClick={onClose}>
         <X className="h-4 w-4" />
@@ -301,7 +301,7 @@ function ModalHead({ title, sub, onClose }: { title: string; sub?: string; onClo
 
 function StepIndicator({ step, total, labels }: { step: number; total: number; labels: string[] }) {
   return (
-    <ol className="flex items-center gap-1.5 px-5 pt-4" aria-label="Progress">
+    <ol className="flex items-center gap-1.5 px-3.5 pt-2.5 sm:px-5 sm:pt-4" aria-label="Progress">
       {labels.map((l, i) => {
         const n = i + 1;
         const done = n < step;
@@ -761,7 +761,7 @@ export function PaymentSettingsPage({
             <section aria-labelledby="payout-accounts-h" className="rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-6">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 id="payout-accounts-h" className="qs-display text-[20px] font-extrabold text-[var(--qs-ink)]">Payout accounts</h2>
+                  <h2 id="payout-accounts-h" className="qs-display text-[14px] font-bold text-[var(--qs-ink)] sm:text-[20px] sm:font-extrabold">Payout accounts</h2>
                   <p className="mt-0.5 text-xs text-[var(--qs-muted)] ">Where your withdrawals are sent</p>
                 </div>
                 <BillButton variant="ghost" icon={<Plus className="h-4 w-4" />} onClick={() => setAddBankOpen(true)} className="shrink-0">
@@ -908,7 +908,7 @@ export function PaymentSettingsPage({
             {state === "error" ? <CardError onRetry={() => retry()} what="payout schedule" /> : (
             <div className="space-y-6">
               <section aria-labelledby="payout-schedule-h" className="rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-6">
-                <h2 id="payout-schedule-h" className="qs-display text-[20px] font-extrabold text-[var(--qs-ink)]">Payout schedule</h2>
+                <h2 id="payout-schedule-h" className="qs-display text-[14px] font-bold text-[var(--qs-ink)] sm:text-[20px] sm:font-extrabold">Payout schedule</h2>
                 <p className="mt-0.5 text-xs text-[var(--qs-muted)] ">How often you receive payouts</p>
 
                 <SegmentedControl
@@ -998,7 +998,7 @@ export function PaymentSettingsPage({
               </section>
 
               <section aria-labelledby="payout-limits-h" className="rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-6">
-                <h2 id="payout-limits-h" className="qs-display text-[20px] font-extrabold text-[var(--qs-ink)]">Payout limits</h2>
+                <h2 id="payout-limits-h" className="qs-display text-[14px] font-bold text-[var(--qs-ink)] sm:text-[20px] sm:font-extrabold">Payout limits</h2>
                 <dl className="mt-3 space-y-2.5">
                   {[
                     ["Minimum withdrawal", formatINR(WITHDRAWAL_MIN)],
@@ -1096,7 +1096,7 @@ export function PaymentSettingsPage({
           <section aria-labelledby="audit-h" className="rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h2 id="audit-h" className="qs-display text-[20px] font-extrabold text-[var(--qs-ink)]">Audit activity</h2>
+                <h2 id="audit-h" className="qs-display text-[14px] font-bold text-[var(--qs-ink)] sm:text-[20px] sm:font-extrabold">Audit activity</h2>
                 <p className="mt-0.5 text-xs text-[var(--qs-muted)] ">Security-sensitive financial actions</p>
               </div>
               <button

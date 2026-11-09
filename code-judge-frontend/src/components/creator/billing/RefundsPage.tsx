@@ -232,15 +232,15 @@ export function RefundsPage({ demoState }: { demoState?: "empty" | "error" }) {
               exit={{ scale: 0.96, opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl"
+              className="w-full max-w-md rounded-[14px] border-[1.5px] border-border bg-card p-3.5 shadow-2xl sm:rounded-2xl sm:border sm:p-6"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/10 text-rose-500">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-rose-500/10 text-rose-500 sm:h-10 sm:w-10 sm:rounded-xl">
                     <RotateCcw className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-[15px] font-bold text-text-primary">{details.id}</p>
+                    <p className="text-[13px] font-bold text-text-primary sm:text-[15px]">{details.id}</p>
                     <StatusBadge label={details.status} tone={(PAYOUT_STATUS_TONE[details.status] ?? "slate") as StatusTone} dot />
                   </div>
                 </div>
@@ -248,7 +248,7 @@ export function RefundsPage({ demoState }: { demoState?: "empty" | "error" }) {
                   <X className="h-4 w-4" />
                 </IconButton>
               </div>
-              <dl className="mt-5 space-y-0">
+              <dl className="mt-2.5 space-y-0 sm:mt-5">
                 {[
                   ["Amount", formatINR(details.amount)],
                   ["Student", details.student],
@@ -257,14 +257,14 @@ export function RefundsPage({ demoState }: { demoState?: "empty" | "error" }) {
                   ["Reason", details.reason],
                   ["Date", details.date],
                 ].map(([label, value], i, arr) => (
-                  <div key={label} className={i < arr.length - 1 ? "flex items-center justify-between border-b border-border/60 py-3" : "flex items-center justify-between py-3"}>
-                    <dt className="text-xs text-text-secondary">{label}</dt>
-                    <dd className="text-xs font-semibold text-text-primary">{value}</dd>
+                  <div key={label} className={i < arr.length - 1 ? "flex items-center justify-between border-b border-border/60 py-1.5 sm:py-3" : "flex items-center justify-between py-1.5 sm:py-3"}>
+                    <dt className="text-[10px] text-text-secondary sm:text-xs">{label}</dt>
+                    <dd className="text-[10px] font-semibold text-text-primary sm:text-xs">{value}</dd>
                   </div>
                 ))}
               </dl>
               {CAN_ACT_ON.includes(details.status) && (
-                <div className="mt-5 flex items-center gap-2.5">
+                <div className="mt-3 flex items-center gap-2 sm:mt-5 sm:gap-2.5">
                   <BillButton
                     className="flex-1"
                     icon={<Check className="h-4 w-4" />}

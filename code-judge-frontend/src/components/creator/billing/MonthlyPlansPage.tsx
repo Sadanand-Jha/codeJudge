@@ -71,21 +71,21 @@ function PlanCard({
     <article
       aria-labelledby={`studio-plan-${plan.slug}`}
       className={cn(
-        "relative flex flex-col rounded-[26px] border-2 border-[var(--qs-ink)] p-6",
+        "relative flex flex-col rounded-[14px] border-[1.5px] border-[var(--qs-ink)] p-3.5 sm:rounded-[26px] sm:border-2 sm:p-6",
         isHot
-          ? "bg-[var(--qs-brand)] pb-7 pt-9 text-[var(--qs-on-brand)] shadow-[8px_8px_0_var(--qs-sun)]"
+          ? "bg-[var(--qs-brand)] pb-4 pt-6 text-[var(--qs-on-brand)] shadow-[2px_3px_0_var(--qs-sun)] sm:pb-7 sm:pt-9 sm:shadow-[8px_8px_0_var(--qs-sun)]"
           : "bg-[var(--qs-surface)] text-[var(--qs-ink)]",
-        isCurrent && "shadow-[6px_6px_0_var(--qs-sun)]"
+        isCurrent && "shadow-[2px_3px_0_var(--qs-sun)] sm:shadow-[6px_6px_0_var(--qs-sun)]"
       )}
     >
       {isCurrent && (
-        <span className="absolute -top-4 left-1/2 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-[var(--qs-ok)] px-4 py-[5px] text-[12px] font-extrabold text-white">
-          <Check className="h-3 w-3" strokeWidth={3.5} />
+        <span className="absolute -top-3 left-1/2 flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-full bg-[var(--qs-ok)] px-2.5 py-[3px] text-[9.5px] font-bold uppercase tracking-[0.04em] text-white sm:-top-4 sm:gap-1.5 sm:px-4 sm:py-[5px] sm:text-[12px] sm:font-extrabold sm:normal-case sm:tracking-normal">
+          <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3" strokeWidth={3.5} />
           Current plan
         </span>
       )}
       {isHot && (
-        <span className="absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--qs-ink)] px-4 py-[5px] text-[12px] font-extrabold text-[var(--qs-bg)]">
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--qs-ink)] px-2.5 py-[3px] text-[9.5px] font-bold text-[var(--qs-bg)] sm:-top-4 sm:px-4 sm:py-[5px] sm:text-[12px] sm:font-extrabold">
           Most popular
         </span>
       )}
@@ -93,13 +93,13 @@ function PlanCard({
       <div className="flex items-center justify-between gap-2.5">
         <h2
           id={`studio-plan-${plan.slug}`}
-          className="text-[22px] font-extrabold tracking-tight"
+          className="text-[17px] font-bold tracking-tight sm:text-[22px] sm:font-extrabold"
         >
           {plan.name}
         </h2>
         <span
           className={cn(
-            "whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-extrabold tracking-wide",
+            "whitespace-nowrap rounded-full px-2 py-0.5 text-[9.5px] font-bold tracking-wide sm:px-2.5 sm:text-[11px] sm:font-extrabold",
             isHot
               ? "bg-[var(--qs-sun)] text-[#1A1240]"
               : "bg-[var(--qs-bg)] text-[var(--qs-muted)]"
@@ -111,7 +111,7 @@ function PlanCard({
 
       <p
         className={cn(
-          "mt-1.5 min-h-[42px] text-[14px] leading-6",
+          "mt-1 text-[11px] leading-[15px] sm:mt-1.5 sm:min-h-[42px] sm:text-[14px] sm:leading-6",
           isHot ? "text-[var(--qs-on-brand)]/85" : "text-[var(--qs-muted)]"
         )}
       >
@@ -120,7 +120,7 @@ function PlanCard({
       {plan.offer && (
         <p
           className={cn(
-            "mt-1 text-[12px] font-bold",
+            "mt-1 text-[10px] font-bold sm:text-[12px]",
             isHot ? "text-[var(--qs-sun)]" : "text-[var(--qs-brand)]"
           )}
         >
@@ -144,12 +144,12 @@ function PlanCard({
         </label>
       )}
 
-      <p className="mt-4 text-[44px] font-black leading-none tracking-tight">
+      <p className="mt-3 text-[32px] font-bold leading-[36px] tracking-tight sm:mt-4 sm:text-[44px] sm:font-black sm:leading-none">
         {amount === 0 ? "Free" : formatPricingAmount(amount, selectedPrice?.currency ?? plan.currency)}
         {discount > 0 && originalPrice && (
           <s
             className={cn(
-              "ml-2 align-middle text-[16px] font-bold tracking-normal",
+              "ml-2 align-middle text-[14px] font-bold tracking-normal sm:text-[16px]",
               isHot ? "text-[var(--qs-on-brand)]/70" : "text-[var(--qs-muted)]"
             )}
           >
@@ -158,7 +158,7 @@ function PlanCard({
         )}
         <span
           className={cn(
-            "ml-1.5 align-middle text-[13px] font-bold tracking-normal",
+            "ml-1.5 align-middle text-[12px] font-medium tracking-normal sm:text-[13px] sm:font-bold",
             isHot ? "text-[var(--qs-on-brand)]/80" : "text-[var(--qs-muted)]"
           )}
         >
@@ -168,7 +168,7 @@ function PlanCard({
 
       <p
         className={cn(
-          "mt-3 flex items-center gap-1.5 text-[13px] font-bold",
+          "mt-2 flex items-center gap-1.5 text-[10.5px] font-semibold sm:mt-3 sm:text-[13px] sm:font-bold",
           includedCredits
             ? isHot
               ? "text-[var(--qs-sun)]"
@@ -178,7 +178,7 @@ function PlanCard({
               : "text-[var(--qs-muted)]"
         )}
       >
-        <Sparkles className="h-3.5 w-3.5 shrink-0" />
+        <Sparkles className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
         {includedCredits
           ? `Includes ${plan.credits} AI credits / month`
           : "AI credits sold separately"}
@@ -186,23 +186,23 @@ function PlanCard({
 
       <ul
         className={cn(
-          "m-0 mb-6 mt-5 flex flex-1 list-none flex-col gap-[11px] border-t-2 border-dashed pt-[18px]",
+          "m-0 mb-3 mt-2.5 flex flex-1 list-none flex-col gap-1.5 border-t-[1.5px] border-dashed pt-2.5 sm:mb-6 sm:mt-5 sm:gap-[11px] sm:border-t-2 sm:pt-[18px]",
           isHot ? "border-white/35" : "border-[var(--qs-line)]"
         )}
       >
         {features.map((feature) => (
-          <li key={feature} className="flex items-start gap-2.5">
+          <li key={feature} className="flex items-start gap-2 sm:gap-2.5">
             <span
               className={cn(
-                "mt-px grid h-5 w-5 flex-none place-items-center rounded-full",
+                "mt-px grid h-4 w-4 flex-none place-items-center rounded-full sm:h-5 sm:w-5",
                 isHot
                   ? "bg-[var(--qs-sun)] text-[#1A1240]"
                   : "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
               )}
             >
-              <Check className="h-3 w-3" strokeWidth={3.5} />
+              <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3" strokeWidth={3.5} />
             </span>
-            <span className="text-[14px] font-medium leading-5">{feature}</span>
+            <span className="text-[11.5px] font-medium leading-4 sm:text-[14px] sm:leading-5">{feature}</span>
           </li>
         ))}
       </ul>
@@ -210,9 +210,9 @@ function PlanCard({
       {isCurrent ? (
         <span
           aria-disabled="true"
-          className="flex w-full cursor-default items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] py-[13px] text-[14px] font-extrabold text-[var(--qs-muted)]"
+          className="flex w-full cursor-default items-center justify-center gap-2 rounded-[10px] border-[1.5px] border-[var(--qs-line)] bg-[var(--qs-bg)] py-2.5 text-[12.5px] font-bold text-[var(--qs-muted)] sm:rounded-[14px] sm:border-2 sm:py-[13px] sm:text-[14px] sm:font-extrabold"
         >
-          <Check className="h-4 w-4" />
+          <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           Current plan
         </span>
       ) : (
@@ -221,14 +221,14 @@ function PlanCard({
           onClick={() => selectedPrice && onSelect(plan, selectedPrice.id)}
           disabled={!selectedPrice}
           className={cn(
-            "flex w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] py-[13px] text-[14px] font-extrabold transition-all",
+            "flex w-full items-center justify-center gap-2 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] py-2.5 text-[12.5px] font-bold transition-all sm:rounded-[14px] sm:border-2 sm:py-[13px] sm:text-[14px] sm:font-extrabold",
             isHot
               ? "bg-[var(--qs-sun)] text-[#1A1240] hover:brightness-105"
               : "bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:bg-[var(--qs-ink)] hover:text-[var(--qs-bg)]"
           )}
         >
           {plan.cta || `Upgrade to ${plan.name}`}
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </button>
       )}
     </article>
@@ -289,6 +289,21 @@ export function MonthlyPlansPage({
     !isTrialExpired &&
     !subscription?.isPaid &&
     !displayPlan;
+
+  const plansSubtitle =
+    isTrialActive && trialPlan
+      ? `Your ${trialPlan.trialDays}-day ${trialPlan.name} trial is active with ${BASIC_TRIAL_CREDITS} AI credits. Paid plans include monthly credits.`
+      : isTrialExpired && trialPlan
+        ? `Your ${trialPlan.name} trial has ended. Upgrade to keep creating quizzes without limits.`
+        : "Paid plans include monthly AI credits.";
+
+  const planCreditsLabel = isTrialActive
+    ? `${BASIC_TRIAL_CREDITS} trial AI credits`
+    : isTrialExpired
+      ? "Trial ended · upgrade for AI credits"
+      : displayPlan && displayPlan.credits > 0
+        ? `${displayPlan.credits.toLocaleString("en-IN")} AI credits / month`
+        : "No monthly credits";
 
   const deepLinkPlan =
     !dismissedInitialPlan && initialPlanSlug
@@ -440,37 +455,51 @@ export function MonthlyPlansPage({
   };
 
   return (
-    <div className="space-y-5 pb-2">
-      <PageHeader
-        title="Plans"
-        subtitle={
-          isTrialActive && trialPlan
-            ? `Your ${trialPlan.trialDays}-day ${trialPlan.name} trial is active with ${BASIC_TRIAL_CREDITS} AI credits. Paid plans include monthly credits.`
-            : isTrialExpired && trialPlan
-              ? `Your ${trialPlan.name} trial has ended. Upgrade to keep creating quizzes without limits.`
-              : "Paid plans include monthly AI credits."
-        }
-        actions={
-          <Link href="/creator/billing/credits" className={OUTLINE_BTN}>
-            <Coins className="h-4 w-4" />
-            Buy AI credits
-          </Link>
-        }
-      />
+    <div className="space-y-3 pb-2 sm:space-y-5">
+      <div className="hidden sm:block">
+        <PageHeader
+          title="Plans"
+          subtitle={plansSubtitle}
+          actions={
+            <Link href="/creator/billing/credits" className={OUTLINE_BTN}>
+              <Coins className="h-4 w-4" />
+              Buy AI credits
+            </Link>
+          }
+        />
+      </div>
+
+      <div className="flex items-start justify-between gap-2 sm:hidden">
+        <div className="min-w-0">
+          <h1 className="qs-display text-[21px] font-bold leading-[26px] text-[var(--qs-ink)]">Plans</h1>
+          <p className="mt-0.5 text-[11px] leading-[15px] text-[var(--qs-muted)]">{plansSubtitle}</p>
+        </div>
+        <Link
+          href="/creator/billing/credits"
+          className="flex h-[34px] shrink-0 items-center gap-1.5 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-[11.5px] font-semibold text-[var(--qs-ink)]"
+        >
+          <Coins className="h-3.5 w-3.5" />
+          Buy AI credits
+        </Link>
+      </div>
 
       <section
         aria-label="Current plan"
-        className="flex flex-wrap items-center justify-between gap-4 rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-5 py-4"
+        className="flex items-center gap-2.5 rounded-[14px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5 sm:flex-wrap sm:justify-between sm:gap-4 sm:rounded-[22px] sm:border-2 sm:px-5 sm:py-4"
       >
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]">
-            <CalendarClock className="h-5 w-5" />
+        <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
+          <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full border border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240] sm:h-11 sm:w-11 sm:border-2">
+            <CalendarClock className="h-4 w-4 sm:h-5 sm:w-5" />
           </span>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <span className={cn(PILL, "text-[var(--qs-brand)]")}>
               Current plan
             </span>
-            <p className="mt-1.5 truncate text-[15px] font-extrabold text-[var(--qs-ink)]">
+            <b className="ml-1 truncate text-[12.5px] font-bold text-[var(--qs-ink)] sm:hidden">{currentPlanName}</b>
+            <p className="mt-1 truncate text-[10.5px] text-[var(--qs-muted)] sm:hidden">
+              {planCreditsLabel} · {balance.purchasedCredits.toLocaleString("en-IN")} purchased credits
+            </p>
+            <p className="mt-1.5 hidden truncate text-[15px] font-extrabold text-[var(--qs-ink)] sm:block">
               {currentPlanName}
               {isTrial && trialEndsOn ? (
                 <span className="ml-1.5 font-semibold text-[var(--qs-muted)]">
@@ -490,35 +519,38 @@ export function MonthlyPlansPage({
         {isFreePlan ? (
           <Link
             href="#studio-plans"
-            className="inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2.5 text-[13px] font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:brightness-110 active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_var(--qs-sun)]"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3 py-2 text-[11.5px] font-bold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] transition-all hover:brightness-110 sm:rounded-[12px] sm:border-2 sm:px-4 sm:py-2.5 sm:text-[13px] sm:font-extrabold sm:shadow-[3px_3px_0_var(--qs-sun)]"
           >
-            Buy a plan to get started
+            Buy a plan
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         ) : (
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] font-semibold text-[var(--qs-muted)]">
-            <span className="inline-flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
-              {isTrialActive
-                ? `${BASIC_TRIAL_CREDITS} trial AI credits`
-                : isTrialExpired
-                  ? "Trial ended · upgrade for AI credits"
-                  : displayPlan && displayPlan.credits > 0
-                    ? `${displayPlan.credits.toLocaleString("en-IN")} AI credits / month`
-                    : "No monthly credits"}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Coins className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
-              {balance.purchasedCredits.toLocaleString("en-IN")} purchased credits
-            </span>
+          <>
             <Link
               href="/creator/billing/credits"
-              className="inline-flex items-center gap-1 text-[12px] font-extrabold text-[var(--qs-brand)] hover:underline"
+              className="flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] font-semibold text-[var(--qs-brand)] sm:hidden"
             >
-              Top up credits
-              <ArrowRight className="h-3.5 w-3.5" />
+              Top up
+              <ArrowRight className="h-3 w-3" />
             </Link>
-          </div>
+            <div className="hidden flex-wrap items-center gap-x-5 gap-y-2 text-[12px] font-semibold text-[var(--qs-muted)] sm:flex">
+              <span className="inline-flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
+                {planCreditsLabel}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Coins className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
+                {balance.purchasedCredits.toLocaleString("en-IN")} purchased credits
+              </span>
+              <Link
+                href="/creator/billing/credits"
+                className="inline-flex items-center gap-1 text-[12px] font-extrabold text-[var(--qs-brand)] hover:underline"
+              >
+                Top up credits
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          </>
         )}
       </section>
 
@@ -553,7 +585,7 @@ export function MonthlyPlansPage({
       ) : (
         <div
           id="studio-plans"
-          className="mx-auto grid w-full max-w-4xl items-stretch gap-6 lg:grid-cols-2"
+          className="mx-auto grid w-full max-w-4xl items-stretch gap-3 sm:gap-6 lg:grid-cols-2"
         >
           {visiblePlans.map((plan) => (
             <PlanCard
@@ -566,19 +598,19 @@ export function MonthlyPlansPage({
         </div>
       )}
 
-      <p className="flex flex-wrap items-center justify-center gap-1.5 text-center text-[12.5px] font-medium text-[var(--qs-muted)]">
-        <CalendarClock className="h-3.5 w-3.5" />
+      <p className="flex flex-wrap items-center justify-center gap-1.5 text-center text-[10.5px] font-medium text-[var(--qs-muted)] sm:text-[12.5px]">
+        <CalendarClock className="hidden h-3.5 w-3.5 sm:block" />
         Prices include GST. Plans activate immediately after payment.
       </p>
 
-      <section className="flex flex-wrap items-center justify-between gap-4 rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-5 py-5 text-[var(--qs-on-brand)] shadow-[5px_5px_0_var(--qs-sun)]">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--qs-sun)] text-[#1A1240]">
+      <section className="flex flex-col gap-2.5 rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3.5 py-3.5 text-[var(--qs-on-brand)] shadow-[2px_3px_0_var(--qs-sun)] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:rounded-[22px] sm:border-2 sm:px-5 sm:py-5 sm:shadow-[5px_5px_0_var(--qs-sun)]">
+        <div className="flex min-w-0 items-start gap-2.5 sm:gap-3">
+          <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full border border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240] sm:h-10 sm:w-10 sm:border-0">
             <Coins className="h-4 w-4" />
           </span>
           <div className="min-w-0">
-            <h2 className="text-[18px] font-extrabold">Need extra AI credits?</h2>
-            <p className="mt-0.5 text-[13px] text-[var(--qs-on-brand)]/85">
+            <h2 className="text-[14px] font-bold sm:text-[18px] sm:font-extrabold">Need extra AI credits?</h2>
+            <p className="mt-0.5 text-[10.5px] text-[var(--qs-on-brand)]/85 sm:text-[13px]">
               One-time packs work with every plan and stack on top of your
               monthly allowance.
             </p>
@@ -586,7 +618,7 @@ export function MonthlyPlansPage({
         </div>
         <Link
           href="/creator/billing/credits"
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-4 py-2.5 text-[13px] font-extrabold text-[#1A1240]"
+          className="inline-flex h-[34px] shrink-0 items-center justify-center gap-2 self-start rounded-[10px] border border-[var(--qs-ink)] bg-[var(--qs-sun)] px-3 text-[12px] font-semibold text-[#1A1240] sm:h-auto sm:rounded-[12px] sm:border-2 sm:px-4 sm:py-2.5 sm:text-[13px] sm:font-extrabold"
         >
           Explore AI credits
           <ArrowRight className="h-3.5 w-3.5" />

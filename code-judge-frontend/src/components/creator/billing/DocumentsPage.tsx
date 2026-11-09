@@ -213,26 +213,26 @@ export function DocumentsPage({ demoState }: { demoState?: "empty" | "error" }) 
               exit={{ scale: 0.96, opacity: 0, y: 10 }}
               transition={{ duration: 0.2 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-2xl"
+              className="w-full max-w-sm rounded-[14px] border-[1.5px] border-border bg-card p-3.5 shadow-2xl sm:rounded-2xl sm:border sm:p-6"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[15px] font-bold text-text-primary">Generate Statement</p>
-                  <p className="mt-0.5 text-xs text-text-secondary">Choose a month to generate.</p>
+                  <p className="text-[13px] font-bold text-text-primary sm:text-[15px]">Generate Statement</p>
+                  <p className="mt-0.5 text-[10.5px] text-text-secondary sm:text-xs">Choose a month to generate.</p>
                 </div>
                 <IconButton label="Close" onClick={() => setGenOpen(false)}>
                   <X className="h-4 w-4" />
                 </IconButton>
               </div>
-              <label className="mb-1.5 mt-5 block text-xs font-medium text-text-secondary">Month</label>
+              <label className="mb-1 mt-3 block text-[10.5px] font-medium text-text-secondary sm:mb-1.5 sm:mt-5 sm:text-xs">Month</label>
               <input
                 type="month"
                 value={genMonth}
                 max="2026-08"
                 onChange={(e) => setGenMonth(e.target.value)}
-                className="w-full rounded-xl border border-input-border bg-input-bg px-4 py-3 text-sm text-text-primary outline-none transition-all focus:border-accent focus:shadow-[0_0_0_3px_var(--input-focus-ring)]"
+                className="w-full rounded-[9px] border border-input-border bg-input-bg px-2.5 py-2 text-[11.5px] text-text-primary outline-none transition-all focus:border-accent focus:shadow-[0_0_0_3px_var(--input-focus-ring)] sm:rounded-xl sm:px-4 sm:py-3 sm:text-sm"
               />
-              <div className="mt-5 flex items-center justify-end gap-3">
+              <div className="mt-3 flex items-center justify-end gap-2 sm:mt-5 sm:gap-3">
                 <BillButton variant="ghost" onClick={() => setGenOpen(false)}>
                   Cancel
                 </BillButton>

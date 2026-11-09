@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
+  BarChart3,
   CalendarClock,
   Check,
   ChevronRight,
@@ -12,6 +13,7 @@ import {
   Database,
   FileText,
   Fuel,
+  List,
   Plus,
   Sparkles,
   TriangleAlert,
@@ -24,6 +26,7 @@ import { getUserTimeZone } from "@/lib/timezone";
 import { deriveQuizStatus, type EffectiveQuizStatus } from "@/lib/quizStatus";
 import { useData } from "@/lib/hooks/useData";
 import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
+import { ShareQuizDialog, WhatsAppIcon } from "@/components/creator/common/ShareQuizDialog";
 import { TrialOfferBanner } from "@/components/marketing/TrialOfferBanner";
 import { TimingModal } from "@/components/creator/dashboard/TimingModal";
 import { ErrorState, Skeleton } from "@/components/creator/billing/ui";
@@ -57,6 +60,7 @@ type QuizListRecord = Quiz & {
 interface QuizRow {
   id: string;
   title: string;
+  code: string;
   status: QuizStatus;
   questions: number;
   attempts: number;
@@ -91,6 +95,7 @@ function mapQuiz(quiz: QuizListRecord): QuizRow {
   return {
     id: String(quiz.id),
     title: quiz.name || "Untitled quiz",
+    code: quiz.code || "",
     status: deriveQuizStatus(quiz),
     questions: num(quiz.total_questions),
     attempts: num(quiz.attempts),
@@ -190,10 +195,10 @@ function DashPanel({
   return (
     <section className={cn("h-full rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5", className)}>
       {(title || action) && (
-        <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <header className="mb-1 flex flex-wrap items-baseline justify-between gap-3 sm:mb-4 sm:items-start">
           <div className="min-w-0">
-            {title && <h2 className="qs-display text-[19px] font-extrabold text-[var(--qs-ink)]">{title}</h2>}
-            {subtitle && <p className="mt-0.5 text-[13px] text-[var(--qs-muted)]">{subtitle}</p>}
+            {title && <h2 className="qs-display text-[14px] font-bold text-[var(--qs-ink)] sm:text-[19px] sm:font-extrabold">{title}</h2>}
+            {subtitle && <p className="mt-0.5 text-[10.5px] text-[var(--qs-muted)] sm:text-[13px]">{subtitle}</p>}
           </div>
           {action && <div className="shrink-0">{action}</div>}
         </header>
@@ -233,17 +238,17 @@ function StatTile({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.05 + index * 0.04 }}
-      className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3.5"
+      className="flex h-[54px] flex-col justify-center rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 sm:block sm:h-auto sm:rounded-[18px] sm:border-2 sm:px-4 sm:py-3.5"
     >
-      <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.11em] text-[var(--qs-muted)]">
-        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />
+      <p className="flex min-w-0 items-center gap-1.5 truncate text-[10.5px] font-medium text-[var(--qs-muted)] sm:gap-2 sm:text-[10px] sm:font-black sm:uppercase sm:tracking-[0.11em]">
+        <span className="hidden h-2.5 w-2.5 shrink-0 rounded-full sm:block" style={{ background: color }} />
         {label}
       </p>
-      <p className="qs-display mt-1.5 text-[30px] font-extrabold leading-none tracking-tight text-[var(--qs-ink)]">
+      <p className="qs-display text-[17px] font-bold leading-5 sm:mt-1.5 sm:text-[30px] sm:font-extrabold sm:leading-none sm:tracking-tight text-[var(--qs-ink)]">
         {value}
         {unit && <span className="ml-1.5 text-[13px] font-semibold tracking-normal text-[var(--qs-muted)]">{unit}</span>}
       </p>
-      <p className="mt-1 truncate text-[12px] text-[var(--qs-muted)]" title={hint}>
+      <p className="mt-1 hidden truncate text-[12px] text-[var(--qs-muted)] sm:block" title={hint}>
         {hint}
       </p>
     </motion.div>
@@ -269,7 +274,7 @@ const QUICK_ACTIONS: Array<{ title: string; sub: string; href: string; icon: Luc
 
 function QuickActions() {
   return (
-    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="hidden grid-cols-1 gap-3.5 sm:grid sm:grid-cols-2 xl:grid-cols-4">
       {QUICK_ACTIONS.map((action, index) => {
         const Icon = action.icon;
         const className =
@@ -412,6 +417,7 @@ function NoLiveCard({ draftCount }: { draftCount: number }) {
 }
 
 function LiveQuizCard({ quiz, onChangeTiming }: { quiz: QuizRow; onChangeTiming: () => void }) {
+  const [shareOpen, setShareOpen] = useState(false);
   const completed = Math.round((quiz.attempts * quiz.completionRate) / 100);
   const pending = Math.max(quiz.attempts - completed, 0);
   const notStarted = Math.max(quiz.participants - quiz.attempts, 0);
@@ -431,80 +437,188 @@ function LiveQuizCard({ quiz, onChangeTiming }: { quiz: QuizRow; onChangeTiming:
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className="relative flex h-full flex-col rounded-[20px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-5 transition-colors hover:border-[var(--qs-brand)]"
+      className="relative flex h-full flex-col rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3.5 shadow-[2px_3px_0_var(--qs-sun)] transition-colors sm:rounded-[20px] sm:border-2 sm:border-[var(--qs-line)] sm:p-5 sm:shadow-none sm:hover:border-[var(--qs-brand)]"
     >
-      <span className={cn(PILL, "w-fit text-[var(--qs-ok)]")}>
-        <span className="h-1.5 w-1.5 rounded-full bg-current" />
-        Live now
-      </span>
+      {/* Mobile summary */}
+      <div className="sm:hidden">
+        <div className="flex items-center justify-between gap-2">
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#D9F5E5] px-2 py-[3px] text-[10px] font-bold uppercase tracking-[0.04em] text-[#0B6B3A]">
+            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+            Live now
+          </span>
+          <span className="min-w-0 truncate text-[10.5px] text-[var(--qs-muted)]">
+            {quiz.endAt ? `Closes ${formatDateTimeIST(quiz.endAt)}` : "No end time · runs until you close it"}
+          </span>
+        </div>
 
-      <h2 className="qs-display mt-4 break-words text-[20px] font-extrabold leading-[1.25] text-[var(--qs-ink)]">
-        {quiz.title}
-      </h2>
+        <h2 className="mt-2.5 break-words text-[15px] font-bold leading-5 text-[var(--qs-ink)]">{quiz.title}</h2>
 
-      <p className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--qs-muted)]">
-        <Clock className="h-3.5 w-3.5" />
-        {quiz.endAt ? `Closes ${formatDateTimeIST(quiz.endAt)}` : "No end time — runs until you close it"}
-      </p>
-
-      <div className="my-4 flex flex-wrap items-center gap-2">
-        <span className="inline-flex shrink-0 items-center rounded-full border-2 border-[var(--qs-line)] px-3 py-[5px] text-[13px] font-bold text-[var(--qs-muted)]">
+        <p className="mt-2 text-[11px] text-[var(--qs-muted)]">
           {quiz.questions > 0 ? `${quiz.questions} ${quiz.questions === 1 ? "question" : "questions"}` : "No questions yet"}
-        </span>
-        <span className="inline-flex shrink-0 items-center rounded-full border-2 border-[var(--qs-line)] px-3 py-[5px] text-[13px] font-bold text-[var(--qs-muted)]">
+          {" · "}
           {quiz.attempts.toLocaleString("en-IN")} {quiz.attempts === 1 ? "attempt" : "attempts"}
-        </span>
-        <span className="inline-flex shrink-0 items-center rounded-full border-2 border-[var(--qs-line)] px-3 py-[5px] text-[13px] font-bold text-[var(--qs-muted)]">
-          {formatPct(quiz.completionRate)} completed
-        </span>
+          {" · "}
+          <b className="text-[var(--qs-ink)]">{formatPct(quiz.completionRate)} completed</b>
+        </p>
+
+        {segments.length > 0 && (
+          <div className="mt-2 flex flex-col gap-1.5">
+            <div className="flex h-2 overflow-hidden rounded-full bg-[var(--qs-line)]">
+              {segments.map(
+                (segment) =>
+                  segment.value > 0 && (
+                    <i
+                      key={segment.key}
+                      className="block h-full"
+                      style={{ width: `${(segment.value / tracked) * 100}%`, background: segment.color }}
+                    />
+                  )
+              )}
+            </div>
+            <p className="flex gap-2.5 overflow-hidden whitespace-nowrap text-[10px] text-[var(--qs-muted)]">
+              {segments.map((segment) => (
+                <span key={segment.key} className="inline-flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: segment.color }} />
+                  {segment.label}
+                </span>
+              ))}
+            </p>
+          </div>
+        )}
+
+        <div className="mt-3 grid grid-cols-4 gap-1.5">
+          <button
+            type="button"
+            onClick={onChangeTiming}
+            className="flex h-12 flex-col items-center justify-center gap-1 rounded-[10px] border border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[10px] font-semibold text-[var(--qs-on-brand)]"
+          >
+            <Clock className="h-4 w-4" />
+            Timing
+          </button>
+          <Link
+            href={`/creator/quizzes/${quiz.id}/analytics`}
+            className="flex h-12 flex-col items-center justify-center gap-1 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[10px] font-semibold text-[var(--qs-ink)]"
+          >
+            <BarChart3 className="h-4 w-4" />
+            Analytics
+          </Link>
+          <Link
+            href={`/creator/quizzes/${quiz.id}/responses`}
+            className="flex h-12 flex-col items-center justify-center gap-1 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[10px] font-semibold text-[var(--qs-ink)]"
+          >
+            <List className="h-4 w-4" />
+            Responses
+          </Link>
+          <button
+            type="button"
+            onClick={() => setShareOpen(true)}
+            aria-label={`Share ${quiz.title} on WhatsApp`}
+            className="flex h-12 flex-col items-center justify-center gap-1 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[10px] font-semibold text-[var(--qs-ink)]"
+          >
+            <WhatsAppIcon className="h-4 w-4 text-[#15803D]" />
+            WhatsApp
+          </button>
+        </div>
       </div>
 
-      {segments.length > 0 && (
-        <>
-          <div className="flex h-3.5 overflow-hidden rounded-full border-2 border-[var(--qs-ink)]">
-            {segments.map(
-              (segment) =>
-                segment.value > 0 && (
-                  <i
-                    key={segment.key}
-                    className="block h-full"
-                    style={{ width: `${(segment.value / tracked) * 100}%`, background: segment.color }}
-                  />
-                )
-            )}
-          </div>
-          <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5 text-[12px] font-medium text-[var(--qs-muted)]">
-            {segments.map((segment) => (
-              <span key={segment.key} className="inline-flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full" style={{ background: segment.color }} />
-                {segment.label}
-              </span>
-            ))}
-          </div>
-        </>
+      {/* Desktop / tablet summary */}
+      <div className="hidden sm:flex sm:flex-1 sm:flex-col">
+        <span className={cn(PILL, "w-fit text-[var(--qs-ok)]")}>
+          <span className="h-1.5 w-1.5 rounded-full bg-current" />
+          Live now
+        </span>
+
+        <h2 className="qs-display mt-4 break-words text-[20px] font-extrabold leading-[1.25] text-[var(--qs-ink)]">
+          {quiz.title}
+        </h2>
+
+        <p className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--qs-muted)]">
+          <Clock className="h-3.5 w-3.5" />
+          {quiz.endAt ? `Closes ${formatDateTimeIST(quiz.endAt)}` : "No end time — runs until you close it"}
+        </p>
+
+        <div className="my-4 flex flex-wrap items-center gap-2">
+          <span className="inline-flex shrink-0 items-center rounded-full border-2 border-[var(--qs-line)] px-3 py-[5px] text-[13px] font-bold text-[var(--qs-muted)]">
+            {quiz.questions > 0 ? `${quiz.questions} ${quiz.questions === 1 ? "question" : "questions"}` : "No questions yet"}
+          </span>
+          <span className="inline-flex shrink-0 items-center rounded-full border-2 border-[var(--qs-line)] px-3 py-[5px] text-[13px] font-bold text-[var(--qs-muted)]">
+            {quiz.attempts.toLocaleString("en-IN")} {quiz.attempts === 1 ? "attempt" : "attempts"}
+          </span>
+          <span className="inline-flex shrink-0 items-center rounded-full border-2 border-[var(--qs-line)] px-3 py-[5px] text-[13px] font-bold text-[var(--qs-muted)]">
+            {formatPct(quiz.completionRate)} completed
+          </span>
+        </div>
+
+        {segments.length > 0 && (
+          <>
+            <div className="flex h-3.5 overflow-hidden rounded-full border-2 border-[var(--qs-ink)]">
+              {segments.map(
+                (segment) =>
+                  segment.value > 0 && (
+                    <i
+                      key={segment.key}
+                      className="block h-full"
+                      style={{ width: `${(segment.value / tracked) * 100}%`, background: segment.color }}
+                    />
+                  )
+              )}
+            </div>
+            <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5 text-[12px] font-medium text-[var(--qs-muted)]">
+              {segments.map((segment) => (
+                <span key={segment.key} className="inline-flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: segment.color }} />
+                  {segment.label}
+                </span>
+              ))}
+            </div>
+          </>
+        )}
+
+        <div className="mt-auto flex flex-wrap items-center gap-2 border-t-2 border-[var(--qs-line)] pt-3.5">
+          <button
+            type="button"
+            onClick={onChangeTiming}
+            className="inline-flex items-center justify-center rounded-[10px] bg-[var(--qs-brand)] px-4 py-2 text-[13px] font-bold text-[var(--qs-on-brand)] transition-all hover:brightness-110"
+          >
+            Change timing
+          </button>
+          <Link
+            href={`/creator/quizzes/${quiz.id}/analytics`}
+            className="inline-flex items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] px-3.5 py-2 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+          >
+            Analytics
+          </Link>
+          <Link
+            href={`/creator/quizzes/${quiz.id}/responses`}
+            className="inline-flex items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] px-3.5 py-2 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+          >
+            Responses
+          </Link>
+          <button
+            type="button"
+            onClick={() => setShareOpen(true)}
+            aria-label={`Share ${quiz.title} on WhatsApp`}
+            className="inline-flex items-center justify-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-line)] px-3.5 py-2 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[#25d366] hover:bg-[#25d366]/10"
+          >
+            <WhatsAppIcon className="h-4 w-4 text-[#25d366]" />
+            Share on WhatsApp
+          </button>
+        </div>
+      </div>
+
+      {shareOpen && (
+        <ShareQuizDialog
+          quiz={{
+            id: quiz.id,
+            title: quiz.title,
+            code: quiz.code,
+            questions: quiz.questions,
+            status: quiz.status,
+            duration: quiz.durationMin,
+          }}
+          onClose={() => setShareOpen(false)}
+        />
       )}
-
-      <div className="mt-auto flex flex-wrap items-center gap-2 border-t-2 border-[var(--qs-line)] pt-3.5">
-        <button
-          type="button"
-          onClick={onChangeTiming}
-          className="inline-flex items-center justify-center rounded-[10px] bg-[var(--qs-brand)] px-4 py-2 text-[13px] font-bold text-[var(--qs-on-brand)] transition-all hover:brightness-110"
-        >
-          Change timing
-        </button>
-        <Link
-          href={`/creator/quizzes/${quiz.id}/analytics`}
-          className="inline-flex items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] px-3.5 py-2 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
-        >
-          Analytics
-        </Link>
-        <Link
-          href={`/creator/quizzes/${quiz.id}/responses`}
-          className="inline-flex items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] px-3.5 py-2 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
-        >
-          Responses
-        </Link>
-      </div>
     </motion.article>
   );
 }
@@ -589,7 +703,7 @@ function CreditsCard() {
     <article
       data-credit-card={low ? "low" : empty ? "empty" : "ok"}
       className={cn(
-        "flex h-full flex-col rounded-[24px] border-2 p-6 sm:p-8",
+        "hidden h-full flex-col rounded-[24px] border-2 p-6 sm:p-8 lg:flex",
         low
           ? "border-[var(--qs-credit-chip-border)] bg-[var(--qs-credit-card)]"
           : "border-[var(--qs-ink)] bg-[var(--qs-surface)]"
@@ -1021,10 +1135,13 @@ function RecentQuizzesPanel({ quizzes }: { quizzes: QuizRow[] }) {
    Recent activity & top students
    ============================================================ */
 
-function AttemptAvatar({ name }: { name: string }) {
+function AttemptAvatar({ name, className }: { name: string; className?: string }) {
   return (
     <span
-      className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-[var(--qs-ink)] text-[11px] font-extrabold text-white"
+      className={cn(
+        "grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-[var(--qs-ink)] text-[11px] font-extrabold text-white",
+        className
+      )}
       style={{ background: `hsl(${nameHue(name)} 55% 42%)` }}
     >
       {initials(name)}
@@ -1077,18 +1194,28 @@ function TopStudentsPanel({ attempts }: { attempts: CreatorRecentAttempt[] }) {
   );
 
   return (
-    <DashPanel title="Top students" subtitle="Best scores across recent attempts">
+    <DashPanel
+      title="Top students"
+      subtitle="Best scores, recent attempts"
+      className="rounded-[14px] border-[1.5px] p-3 pb-1 shadow-[2px_3px_0_var(--qs-sun)] sm:rounded-[22px] sm:border-2 sm:p-5 sm:shadow-none"
+    >
       {items.length === 0 ? (
         <EmptyHint text="No scores yet." hint="Ranked student scores appear once quizzes are attempted." />
       ) : (
-        <div className="space-y-1">
+        <div className="space-y-0 sm:space-y-1">
           {items.map((attempt, index) => {
             const pct = attemptPct(attempt) ?? 0;
             return (
-              <div key={attempt.id} className="flex items-center gap-3 py-2">
+              <div
+                key={attempt.id}
+                className={cn(
+                  "flex h-12 items-center gap-2 sm:h-auto sm:gap-3 sm:py-2",
+                  index < items.length - 1 && "border-b border-[#EFEBFB] sm:border-b-0"
+                )}
+              >
                 <span
                   className={cn(
-                    "grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 text-[12px] font-extrabold",
+                    "grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full border bg-[var(--qs-surface)] text-[11px] font-semibold sm:h-7 sm:w-7 sm:border-2 sm:text-[12px] sm:font-extrabold",
                     index === 0
                       ? "border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]"
                       : "border-[var(--qs-line)] text-[var(--qs-ink)]"
@@ -1096,16 +1223,18 @@ function TopStudentsPanel({ attempts }: { attempts: CreatorRecentAttempt[] }) {
                 >
                   {index + 1}
                 </span>
-                <AttemptAvatar name={attempt.studentName} />
+                <AttemptAvatar name={attempt.studentName} className="h-[30px] w-[30px] border-0 sm:border-2" />
                 <div className="min-w-0 flex-1">
-                  <b className="block truncate text-[13px] font-bold text-[var(--qs-ink)]">{attempt.studentName}</b>
-                  <small className="block truncate text-[11px] text-[var(--qs-muted)]">
+                  <b className="block truncate text-[12.5px] font-semibold text-[var(--qs-ink)] sm:text-[13px] sm:font-bold">
+                    {attempt.studentName}
+                  </b>
+                  <small className="block truncate text-[10.5px] text-[var(--qs-muted)] sm:text-[11px]">
                     {attempt.quizName || "a quiz"}
                   </small>
                 </div>
-                <div className="flex shrink-0 items-center gap-2.5 text-[13px] font-bold tabular-nums text-[var(--qs-ink)]">
-                  {Math.round(pct)}%
-                  <span className="h-1.5 w-16 overflow-hidden rounded-full bg-[var(--qs-line)]">
+                <div className="flex shrink-0 items-center gap-1.5 text-[12px] font-bold tabular-nums text-[var(--qs-ink)] sm:gap-2.5 sm:text-[13px]">
+                  <b className="w-[30px] text-right">{Math.round(pct)}%</b>
+                  <span className="h-[5px] w-[54px] overflow-hidden rounded-[3px] bg-[var(--qs-line)] sm:h-1.5 sm:w-16 sm:rounded-full">
                     <i className="block h-full bg-[var(--qs-brand)]" style={{ width: `${pct}%` }} />
                   </span>
                 </div>
@@ -1296,18 +1425,12 @@ export function CreatorDashboardPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
-          <h1 className="qs-display text-[28px] font-extrabold leading-[1.08] tracking-[-0.025em] text-[var(--qs-ink)] sm:text-[34px] lg:text-[38px]">
+          <h1 className="qs-display text-[20px] font-bold leading-[26px] tracking-normal text-[var(--qs-ink)] sm:text-[34px] sm:font-extrabold sm:leading-[1.08] sm:tracking-[-0.025em] lg:text-[38px]">
             {greeting}, {firstName}
           </h1>
-          <p className="mt-1.5 text-[14px] text-[var(--qs-muted)] sm:text-[15px]">
+          <p className="mt-0.5 text-[12px] text-[var(--qs-muted)] sm:mt-1.5 sm:text-[15px]">
             Here&apos;s what&apos;s happening with your quizzes.
           </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/creator/quizzes/create" className={BTN_PRI}>
-            <Plus className="h-4 w-4" />
-            Create quiz
-          </Link>
         </div>
       </div>
 
@@ -1334,11 +1457,13 @@ export function CreatorDashboardPage() {
                 <NoLiveCard draftCount={draftCount} />
               )}
             </div>
-            <CreditsCard />
+            <div className="hidden lg:block">
+              <CreditsCard />
+            </div>
           </div>
 
           {/* Stat tiles */}
-          <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+          <div className="grid grid-cols-4 gap-1.5 sm:gap-3.5 lg:grid-cols-4">
             {tiles.map((tile, index) => (
               <StatTile
                 key={tile.label}
@@ -1352,14 +1477,14 @@ export function CreatorDashboardPage() {
           </div>
 
           {/* Attempts, status mix, attention */}
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
+          <div className="hidden grid-cols-1 gap-5 lg:grid lg:grid-cols-2 xl:grid-cols-3">
             <AttemptsByQuizPanel quizzes={quizzes} />
             <StatusMixPanel quizzes={quizzes} />
             <NeedsAttentionPanel quizzes={quizzes} />
           </div>
 
           {/* Recent quizzes + activity */}
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+          <div className="hidden grid-cols-1 gap-5 xl:grid xl:grid-cols-3">
             <div className="min-w-0 xl:col-span-2">
               <RecentQuizzesPanel quizzes={quizzes} />
             </div>
@@ -1369,7 +1494,9 @@ export function CreatorDashboardPage() {
           {/* Top students + scheduled */}
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
             <TopStudentsPanel attempts={recentAttempts} />
-            <ScheduledPanel quizzes={quizzes} onReschedule={setTimingQuiz} />
+            <div className="hidden lg:block">
+              <ScheduledPanel quizzes={quizzes} onReschedule={setTimingQuiz} />
+            </div>
           </div>
         </>
       )}

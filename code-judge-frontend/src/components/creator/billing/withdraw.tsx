@@ -106,16 +106,16 @@ export function WithdrawDrawer({
             exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 340, damping: 34 }}
             onClick={(e) => e.stopPropagation()}
-            className="flex h-full w-full max-w-md flex-col border-l border-border bg-card shadow-2xl"
+            className="flex h-full w-full max-w-md flex-col border-border bg-card shadow-2xl sm:border-l"
             role="dialog"
             aria-modal="true"
             aria-label="Withdraw money"
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-border px-6 py-4">
+            <div className="flex items-center justify-between border-b border-border px-3.5 py-2.5 sm:px-6 sm:py-4">
               <div>
-                <p className="text-[15px] font-bold text-text-primary">Withdraw Money</p>
-                <p className="mt-0.5 flex items-center gap-1 text-[11px] text-text-muted">
+                <p className="text-[13px] font-bold text-text-primary sm:text-[15px]">Withdraw Money</p>
+                <p className="mt-0.5 flex items-center gap-1 text-[9.5px] text-text-muted sm:text-[11px]">
                   <Lock className="h-3 w-3" />
                   Secured by 256-bit encryption
                 </p>
@@ -127,7 +127,7 @@ export function WithdrawDrawer({
 
             {/* Stepper */}
             {step < 4 && (
-              <div className="flex items-center gap-2 px-6 pt-5">
+              <div className="flex items-center gap-2 px-3.5 pt-3 sm:px-6 sm:pt-5">
                 {[1, 2, 3].map((s) => (
                   <div key={s} className="flex flex-1 items-center gap-2">
                     <div
@@ -149,18 +149,18 @@ export function WithdrawDrawer({
             )}
 
             {/* Body */}
-            <div className="flex-1 overflow-y-auto px-6 py-6">
+            <div className="flex-1 overflow-y-auto px-3.5 py-3 sm:px-6 sm:py-6">
               <AnimatePresence mode="wait">
                 {/* STEP 1 — Amount */}
                 {step === 1 && (
                   <motion.div key="s1" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.2 }}>
-                    <h3 className="text-base font-semibold text-text-primary">Withdrawal Amount</h3>
+                    <h3 className="text-[13px] font-semibold text-text-primary sm:text-base">Withdrawal Amount</h3>
                     <p className="mt-1 text-xs text-text-secondary">
                       Available balance: <span className="font-bold text-emerald-500">{formatINR(available)}</span>
                     </p>
 
-                    <div className="mt-6">
-                      <div className="flex h-16 items-center overflow-hidden rounded-xl border border-border bg-input-bg focus-within:border-accent focus-within:shadow-[0_0_0_3px_var(--input-focus-ring)]">
+                    <div className="mt-3 sm:mt-6">
+                      <div className="flex h-12 items-center overflow-hidden rounded-[10px] border border-border bg-input-bg focus-within:border-accent focus-within:shadow-[0_0_0_3px_var(--input-focus-ring)] sm:h-16 sm:rounded-xl">
                         <span className="pl-4 text-xl font-bold text-text-secondary">₹</span>
                         <input
                           autoFocus

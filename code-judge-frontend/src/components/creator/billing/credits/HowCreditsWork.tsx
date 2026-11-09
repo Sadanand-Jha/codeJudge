@@ -24,10 +24,10 @@ export function HowCreditsWork({
   ];
 
   return (
-    <details className="group mt-8 rounded-[26px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-[22px] py-1.5 open:border-[var(--qs-ink)]">
-      <summary className="flex cursor-pointer list-none items-center justify-between py-3.5 [&::-webkit-details-marker]:hidden">
-        <span className="qs-display text-[21px] font-extrabold tracking-tight">How credits work</span>
-        <span className="text-sm font-bold text-[var(--qs-brand)]">
+    <details className="group mt-2.5 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-0 open:border-[var(--qs-ink)] sm:mt-8 sm:rounded-[26px] sm:border-2 sm:px-[22px] sm:py-1.5">
+      <summary className="flex cursor-pointer list-none items-center justify-between py-2.5 [&::-webkit-details-marker]:hidden sm:py-3.5">
+        <span className="qs-display text-[12.5px] font-bold tracking-tight sm:text-[21px] sm:font-extrabold">How credits work</span>
+        <span className="text-[11px] font-semibold text-[var(--qs-brand)] sm:text-sm sm:font-bold">
           <span className="group-open:hidden">Learn more</span>
           <span className="hidden group-open:inline">Hide</span>
         </span>

@@ -185,16 +185,16 @@ export function TimingModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-lg overflow-hidden rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[6px_6px_0_var(--qs-sun)]"
+        className="relative max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[2px_3px_0_var(--qs-sun)] sm:max-h-none sm:overflow-hidden sm:rounded-[22px] sm:border-2 sm:shadow-[6px_6px_0_var(--qs-sun)]"
       >
-        <div className="px-6 pb-6 pt-6">
+        <div className="px-3.5 pb-3.5 pt-3.5 sm:px-6 sm:pb-6 sm:pt-6">
           <div className="flex items-start gap-3.5">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240] shadow-[3px_3px_0_var(--qs-brand)]">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240] shadow-[2px_2px_0_var(--qs-brand)] sm:h-12 sm:w-12 sm:rounded-[14px] sm:border-2 sm:shadow-[3px_3px_0_var(--qs-brand)]">
               <CalendarClock className="h-5 w-5" />
             </span>
             <div className="min-w-0">
-              <h3 className="qs-display text-[19px] font-extrabold text-[var(--qs-ink)]">Change timing</h3>
-              <p className="mt-0.5 truncate text-[13px] text-[var(--qs-muted)]" title={quiz.title}>
+              <h3 className="qs-display text-[15px] font-bold text-[var(--qs-ink)] sm:text-[19px] sm:font-extrabold">Change timing</h3>
+              <p className="mt-0.5 truncate text-[10.5px] text-[var(--qs-muted)] sm:text-[13px]" title={quiz.title}>
                 {quiz.title}
               </p>
             </div>
@@ -274,14 +274,14 @@ export function TimingModal({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2.5 border-t-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-6 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--qs-line)] bg-[var(--qs-bg)] px-3.5 py-3 sm:gap-2.5 sm:border-t-2 sm:px-6 sm:py-4">
           {isLive ? (
             <button
               type="button"
               onClick={handleEndNow}
               disabled={ending || saving}
               className={cn(
-                "inline-flex items-center gap-2 rounded-[12px] border-2 px-4 py-2.5 text-[13px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                "inline-flex items-center gap-1.5 rounded-[9px] border px-2.5 py-2 text-[11.5px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 sm:gap-2 sm:rounded-[12px] sm:border-2 sm:px-4 sm:py-2.5 sm:text-[13px] sm:font-bold",
                 confirmEnd
                   ? "border-[var(--qs-ink)] bg-[var(--qs-bad)] text-white hover:brightness-110"
                   : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-bad)] hover:border-[var(--qs-bad)]"

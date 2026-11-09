@@ -18,6 +18,7 @@ import {
   FileText,
   Landmark,
   LifeBuoy,
+  Link2,
   MoreHorizontal,
   ReceiptIndianRupee,
   RefreshCw,
@@ -120,8 +121,8 @@ const STATUS_CHIP: Record<CreditTxnStatus, string> = {
 
 function StatusChip({ status }: { status: CreditTxnStatus }) {
   return (
-    <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border-2 px-3 py-1 text-[12.5px] font-extrabold", STATUS_CHIP[status])}>
-      <span className="h-[7px] w-[7px] rounded-full bg-current" aria-hidden="true" />
+    <span className={cn("mt-0.5 inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[9.5px] font-semibold sm:gap-1.5 sm:border-2 sm:px-3 sm:py-1 sm:text-[12.5px] sm:font-extrabold", STATUS_CHIP[status])}>
+      <span className="h-1 w-1 rounded-full bg-current sm:h-[7px] sm:w-[7px]" aria-hidden="true" />
       {STATUS_META[status].label}
     </span>
   );
@@ -201,19 +202,19 @@ function ExpiryLine({ txn, now }: { txn: CreditTransaction; now: number }) {
   const getValidity = useCreditValidity();
   if (txn.status !== "completed") return null;
   const exp = txnExpiry(txn, getValidity);
-  if (exp === null) return <p className="mt-0.5 text-[12.5px] font-medium text-[var(--qs-muted)]">Validity unavailable</p>;
+  if (exp === null) return <p className="mt-0.5 text-[10px] font-medium text-[var(--qs-muted)] sm:text-[12.5px]">Validity unavailable</p>;
   const left = daysLeft(exp, now);
-  if (left < 0) return <p className="mt-0.5 text-[12.5px] font-extrabold text-[var(--qs-bad)]">Expired</p>;
+  if (left < 0) return <p className="mt-0.5 text-[10px] font-bold text-[var(--qs-bad)] sm:text-[12.5px] sm:font-extrabold">Expired</p>;
   if (left <= 14) {
     return (
       <p className="mt-0.5">
-        <span className="inline-flex rounded-full bg-[var(--qs-sun)]/30 px-2 py-0.5 text-[11.5px] font-semibold text-[var(--qs-ink)]">
+        <span className="inline-flex rounded-full bg-[var(--qs-sun)]/30 px-1.5 py-0.5 text-[9.5px] font-semibold text-[var(--qs-ink)] sm:px-2 sm:text-[11.5px]">
           Expires {fmtDate(exp)}
         </span>
       </p>
     );
   }
-  return <p className="mt-0.5 text-[12.5px] font-medium text-[var(--qs-muted)]">Expires {fmtDate(exp)}</p>;
+  return <p className="mt-0.5 text-[10px] text-[var(--qs-muted)] sm:text-[12.5px] sm:font-medium">Expires {fmtDate(exp)}</p>;
 }
 
 function SummaryTile({
@@ -232,17 +233,17 @@ function SummaryTile({
   return (
     <div
       className={cn(
-        "min-w-0 rounded-[18px] border-2 border-[#1d1840] p-3.5 text-[#1d1840] shadow-[4px_4px_0_#1d1840] sm:px-4",
+        "min-w-0 rounded-[10px] border-[1.5px] border-[#1d1840] px-2 py-1.5 text-[#1d1840] shadow-[1px_2px_0_#1d1840] sm:rounded-[18px] sm:border-2 sm:p-3.5 sm:px-4 sm:shadow-[4px_4px_0_#1d1840]",
         highlight ? "bg-[var(--qs-sun)]" : "bg-white"
       )}
     >
-      <small className={cn("flex items-center gap-1.5 text-[13px] font-extrabold", highlight ? "text-[#5b4a10]" : "text-[#5b5680]")}>
-        <Icon className={cn("h-[15px] w-[15px] shrink-0", highlight ? "text-[#1d1840]" : "text-[var(--qs-brand)]")} aria-hidden="true" />
+      <small className={cn("flex items-center gap-1.5 text-[9.5px] font-semibold leading-3 sm:text-[13px] sm:font-extrabold", highlight ? "text-[#5b4a10]" : "text-[#5b5680]")}>
+        <Icon className={cn("hidden h-[15px] w-[15px] shrink-0 sm:block", highlight ? "text-[#1d1840]" : "text-[var(--qs-brand)]")} aria-hidden="true" />
         {label}
       </small>
-      <b className="mt-1.5 block break-words text-[24px] font-extrabold leading-[1.1] tracking-[-0.025em] sm:text-[28px]">{value}</b>
+      <b className="mt-0.5 block break-words text-[16px] font-bold leading-5 tracking-normal sm:mt-1.5 sm:text-[28px] sm:font-extrabold sm:leading-[1.1] sm:tracking-[-0.025em]">{value}</b>
       {hint && (
-        <em className={cn("mt-1 block text-[12.5px] font-semibold not-italic", highlight ? "text-[#5b4a10]" : "text-[#5b5680]")}>
+        <em className={cn("mt-0.5 hidden text-[9.5px] font-semibold not-italic sm:mt-1 sm:block sm:text-[12.5px]", highlight ? "text-[#5b4a10]" : "text-[#5b5680]")}>
           {hint}
         </em>
       )}
@@ -375,16 +376,16 @@ function DrawerShell({ txn, onClose, panelRef, onReceipt, onInvoice }: {
         role="dialog"
         aria-modal="true"
         aria-label={`Details for order ${txn.id}`}
-        className="absolute inset-x-3 bottom-3 top-auto flex max-h-[88vh] flex-col overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[0_24px_60px_rgba(26,18,64,0.24)] sm:inset-x-6 lg:inset-x-auto lg:bottom-0 lg:right-0 lg:top-0 lg:h-full lg:max-h-none lg:w-full lg:max-w-md lg:rounded-none lg:border-l-2 lg:border-t-0 lg:border-r-0 lg:border-b-0"
+        className="absolute inset-x-2 bottom-2 top-auto flex max-h-[88vh] flex-col overflow-hidden rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[0_24px_60px_rgba(26,18,64,0.24)] sm:inset-x-6 sm:bottom-3 sm:rounded-[26px] sm:border-2 lg:inset-x-auto lg:bottom-0 lg:right-0 lg:top-0 lg:h-full lg:max-h-none lg:w-full lg:max-w-md lg:rounded-none lg:border-l-2 lg:border-t-0 lg:border-r-0 lg:border-b-0"
       >
-        <div className="flex items-center justify-between border-b-2 border-[var(--qs-line)] px-5 py-4">
-          <p className="text-[15px] font-bold text-[var(--qs-ink)]">Transaction details</p>
+        <div className="flex items-center justify-between border-b border-[var(--qs-line)] px-3 py-2.5 sm:border-b-2 sm:px-5 sm:py-4">
+          <p className="text-[12.5px] font-bold text-[var(--qs-ink)] sm:text-[15px]">Transaction details</p>
           <button
             type="button"
             data-autofocus
             onClick={onClose}
             aria-label="Close transaction details"
-            className="grid h-9 w-9 place-items-center rounded-[11px] border-2 border-transparent text-[var(--qs-muted)] outline-none transition-colors hover:border-[var(--qs-ink)] hover:text-[var(--qs-ink)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
+            className="grid h-7 w-7 place-items-center rounded-[7px] border border-transparent text-[var(--qs-muted)] outline-none transition-colors hover:border-[var(--qs-ink)] hover:text-[var(--qs-ink)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40 sm:h-9 sm:w-9 sm:rounded-[11px] sm:border-2"
           >
             <X className="h-4 w-4" />
           </button>
@@ -587,9 +588,9 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
     setPage(1);
   };
 
-  const filterTriggerClass = "h-[42px] min-w-[150px] rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-3.5 pr-3 text-[14px] font-extrabold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)]/40 focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40";
+  const filterTriggerClass = "h-[36px] w-full min-w-0 rounded-[9px] border border-[var(--qs-line)] bg-[var(--qs-surface)] pl-2.5 pr-2 text-[11.5px] font-medium text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)]/40 focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40 sm:h-[42px] sm:min-w-[150px] sm:rounded-[12px] sm:border-2 sm:pl-3.5 sm:pr-3 sm:text-[14px] sm:font-extrabold";
   const buyHref = onBuyCredits ? undefined : "/creator/billing/credits";
-  const buyClass = "inline-flex items-center gap-2 rounded-[14px] border-2 border-[#1d1840] bg-[var(--qs-sun)] px-[22px] py-[13px] text-[15px] font-extrabold text-[#1d1840] shadow-[0_4px_0_#1d1840] transition-transform duration-100 active:translate-y-0.5 active:shadow-[0_2px_0_#1d1840] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80";
+  const buyClass = "inline-flex shrink-0 items-center gap-1 rounded-[9px] border-[1.5px] border-[#1d1840] bg-[var(--qs-sun)] px-2.5 py-2 text-[12px] font-semibold text-[#1d1840] shadow-[1px_2px_0_#1d1840] transition-transform duration-100 active:translate-y-0.5 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 sm:gap-2 sm:rounded-[14px] sm:border-2 sm:px-[22px] sm:py-[13px] sm:text-[15px] sm:font-extrabold sm:shadow-[0_4px_0_#1d1840] sm:active:shadow-[0_2px_0_#1d1840]";
 
   const handleReceipt = (txn: CreditTransaction) => {
     if (onDownloadReceipt) return onDownloadReceipt(txn);
@@ -656,7 +657,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
 
   return (
     <CreditValidityContext.Provider value={getValidity}>
-      <div className="mx-auto w-full max-w-[1040px] space-y-[22px]">
+      <div className="mx-auto w-full max-w-[1040px] space-y-2.5 sm:space-y-[22px]">
         {state === "loading" && (
           <div className="flex min-h-[50vh] items-center justify-center" role="status" aria-label="Loading transactions">
             <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
@@ -671,15 +672,15 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
           <>
             <section
               aria-label="Transactions summary"
-              className="relative overflow-hidden rounded-[28px] border-2 border-[#1d1840] bg-[var(--qs-brand)] p-[22px] text-white shadow-[8px_8px_0_var(--qs-sun)] sm:p-[34px]"
+              className="relative overflow-hidden rounded-[14px] border-[1.5px] border-[#1d1840] bg-[var(--qs-brand)] p-3.5 text-white shadow-[2px_3px_0_var(--qs-sun)] sm:rounded-[28px] sm:border-2 sm:p-[34px] sm:shadow-[8px_8px_0_var(--qs-sun)]"
             >
-              <div aria-hidden className="pointer-events-none absolute -right-[70px] -top-[90px] h-[280px] w-[280px] rounded-full bg-white/[0.08]" />
-              <div className="relative flex flex-wrap items-end justify-between gap-5">
-                <div>
-                  <h1 className="qs-display text-[36px] font-extrabold leading-[1.02] tracking-[-0.035em] sm:text-[50px]">
+              <div aria-hidden className="pointer-events-none absolute -right-[70px] -top-[90px] hidden h-[280px] w-[280px] rounded-full bg-white/[0.08] sm:block" />
+              <div className="relative flex items-center justify-between gap-2 sm:flex-wrap sm:items-end sm:gap-5">
+                <div className="min-w-0">
+                  <h1 className="qs-display text-[20px] font-bold leading-[26px] tracking-normal sm:text-[50px] sm:font-extrabold sm:leading-[1.02] sm:tracking-[-0.035em]">
                     Transactions
                   </h1>
-                  <p className="mt-2 text-[15px] font-semibold text-white/85 sm:text-base">
+                  <p className="mt-0.5 text-[10.5px] leading-[14px] text-white/80 sm:mt-2 sm:text-base sm:font-semibold">
                     Credit-pack and monthly plan payments on your account.
                   </p>
                 </div>
@@ -689,7 +690,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
                   <button type="button" onClick={onBuyCredits} className={buyClass}>Buy credits</button>
                 )}
               </div>
-              <div className="relative mt-7 grid grid-cols-2 gap-3.5 min-[900px]:grid-cols-4">
+              <div className="relative mt-2.5 grid grid-cols-2 gap-1.5 sm:mt-7 sm:gap-3.5 min-[900px]:grid-cols-4">
                 <SummaryTile label="Total purchases" value={String(stats.count)} icon={ShoppingCart} />
                 <SummaryTile label="Credits purchased" value={`+${stats.credits}`} icon={Coins} />
                 <SummaryTile label="Total spent" value={formatINR(stats.spent)} icon={ReceiptIndianRupee} />
@@ -701,6 +702,9 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
                   icon={Wallet}
                 />
               </div>
+              <p className="relative mt-2 text-[10.5px] text-white/70 sm:hidden">
+                {nextExpiry ? `Next expiry: ${fmtDate(nextExpiry.exp)}` : "No active credits"}
+              </p>
             </section>
 
             {expiringSoon && (
@@ -720,22 +724,32 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
 
             <section
               aria-label="Transaction list"
-              className="overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]"
+              className="min-w-0 overflow-hidden rounded-[14px] border-[1.5px] border-[var(--qs-line)] bg-[var(--qs-surface)] sm:rounded-[22px] sm:border-2"
             >
-              <div className="grid gap-3 p-5">
+              <div className="grid min-w-0 gap-2 p-2.5 sm:gap-3 sm:p-5">
                 <label htmlFor="txn-search" className="sr-only">Search transactions</label>
-                <div className="flex h-[46px] items-center gap-2.5 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3.5 text-[var(--qs-muted)] transition-colors focus-within:border-[var(--qs-brand)]">
-                  <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  <input
-                    id="txn-search"
-                    value={query}
-                    onChange={(e) => { setQuery(e.target.value); setPage(1); }}
-                    placeholder="Search by pack name or order ID"
-                    aria-label="Search transactions"
-                    className="min-w-0 flex-1 border-0 bg-transparent text-[14.5px] font-semibold text-[var(--qs-ink)] outline-none placeholder:text-[var(--qs-muted)] placeholder:font-medium"
-                  />
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <div className="flex h-[38px] flex-1 items-center gap-2 rounded-[9px] border border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 text-[var(--qs-muted)] transition-colors focus-within:border-[var(--qs-brand)] sm:h-[46px] sm:gap-2.5 sm:rounded-[14px] sm:border-2 sm:px-3.5">
+                    <Search className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden="true" />
+                    <input
+                      id="txn-search"
+                      value={query}
+                      onChange={(e) => { setQuery(e.target.value); setPage(1); }}
+                      placeholder="Search by pack name or order"
+                      aria-label="Search transactions"
+                      className="min-w-0 flex-1 border-0 bg-transparent text-[11.5px] font-medium text-[var(--qs-ink)] outline-none placeholder:text-[var(--qs-muted)] sm:text-[14.5px] sm:font-semibold"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={exportCsv}
+                    aria-label="Export CSV"
+                    className="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-[9px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] sm:ml-auto sm:h-[42px] sm:w-auto sm:rounded-[12px] sm:border-2 sm:border-[var(--qs-ink)] sm:px-3.5 sm:text-[14px] sm:font-extrabold sm:shadow-[0_3px_0_var(--qs-ink)] sm:transition-transform sm:duration-100 sm:active:translate-y-0.5 sm:active:shadow-none sm:focus-visible:outline-none sm:focus-visible:ring-2 sm:focus-visible:ring-[var(--qs-brand)]/40"
+                  >
+                    <Download className="h-4 w-4" aria-hidden="true" /> <span className="hidden sm:inline">Export CSV</span>
+                  </button>
                 </div>
-                <div className="flex flex-wrap items-center gap-2.5">
+                <div className="grid min-w-0 grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:gap-2.5">
                   <QsSelect
                     id="txn-status"
                     value={status}
@@ -768,13 +782,6 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
                       { value: "newest", label: "Newest first" }, { value: "oldest", label: "Oldest first" }, { value: "amount", label: "Amount high to low" },
                     ]}
                   />
-                  <button
-                    type="button"
-                    onClick={exportCsv}
-                    className="ml-auto inline-flex h-[42px] shrink-0 items-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-3.5 text-[14px] font-extrabold text-[var(--qs-ink)] shadow-[0_3px_0_var(--qs-ink)] transition-transform duration-100 active:translate-y-0.5 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
-                  >
-                    <Download className="h-4 w-4" aria-hidden="true" /> Export CSV
-                  </button>
                 </div>
               </div>
 
@@ -892,108 +899,87 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
                     </table>
                   </div>
 
-                  <ul className="divide-y divide-[var(--qs-line)] sm:hidden">
-                    {pageItems.map((txn) => {
-                      const MethodIcon = METHOD_ICON[txn.methodKind];
-                      return (
-                        <li key={txn.id}>
-                          <div
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => openDrawer(txn)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" || e.key === " ") {
-                                if ((e.target as HTMLElement).closest("button")) return;
-                                e.preventDefault();
-                                openDrawer(txn);
-                              }
-                            }}
-                            aria-label={`Open details for ${txn.packName}, order ${txn.id}`}
-                            className="cursor-pointer p-4 outline-none transition-colors hover:bg-[var(--qs-brand)]/[0.04] focus-visible:bg-[var(--qs-brand)]/[0.04] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--qs-brand)]/40"
-                          >
-                            <div className="flex items-start gap-3.5">
-                              <span className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-[13px] border-2 border-[var(--qs-line)] bg-[var(--qs-brand)]/[0.06] text-[var(--qs-brand)]" aria-hidden="true">
-                                <Coins className="h-5 w-5" />
-                              </span>
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-[16px] font-extrabold tracking-[-0.01em] text-[var(--qs-ink)]">{txn.packName}</p>
-                                <p className="mt-0.5 text-[12.5px] font-medium leading-[1.45] text-[var(--qs-muted)] [overflow-wrap:anywhere]">
-                                  {fmtDateTime(txn.timestamp)}
-                                  <br />Order #{txn.id}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
-                              <div>
-                                <p className="text-[12px] font-extrabold text-[var(--qs-muted)]">Payment method</p>
-                                <p className="mt-1 flex items-center gap-1.5 text-[13.5px] font-bold text-[var(--qs-ink)]">
-                                  <MethodIcon className="h-4 w-4 text-[var(--qs-muted)]" aria-hidden="true" />
-                                  {txn.methodLabel}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-[12px] font-extrabold text-[var(--qs-muted)]">Credits</p>
-                                <p className="mt-1 text-[15px] font-extrabold tabular-nums text-[var(--qs-brand)]">+{txn.credits}</p>
-                                <ExpiryLine txn={txn} now={now} />
-                              </div>
-                              <div>
-                                <p className="text-[12px] font-extrabold text-[var(--qs-muted)]">Amount</p>
-                                <p className="mt-1 text-[15px] font-extrabold tabular-nums text-[var(--qs-ink)]">{formatINR(txn.price)}</p>
-                                <p className="mt-0.5 text-[12px] font-medium text-[var(--qs-muted)]">incl. GST</p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-[12px] font-extrabold text-[var(--qs-muted)]">Status</p>
-                                <div className="mt-1 flex justify-end"><StatusChip status={txn.status} /></div>
-                              </div>
-                            </div>
-
-                            <div className="mt-4 flex items-center gap-2">
-                              {txn.status === "failed" ? (
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); handleRetry(txn); }}
-                                  aria-label={`Retry payment for ${txn.packName}`}
-                                  className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[11px] border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)] text-[13px] font-extrabold text-[var(--qs-on-brand)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
-                                >
-                                  <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" /> Retry payment
-                                </button>
-                              ) : txn.status === "pending" ? (
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); toast.info({ title: "Payment pending", description: `Order ${txn.id} is still being confirmed.` }); }}
-                                  aria-label={`Check status for ${txn.packName}`}
-                                  className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[11px] border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/25 text-[13px] font-extrabold text-[var(--qs-ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
-                                >
-                                  <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Check status
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); handleReceipt(txn); }}
-                                  aria-label={`Download receipt for ${txn.packName}`}
-                                  className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[11px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[13px] font-extrabold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-ink)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
-                                >
-                                  <Download className="h-3.5 w-3.5" aria-hidden="true" /> Receipt
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); openDrawer(txn); }}
-                                aria-label={`More actions for ${txn.packName}`}
-                                className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] border-2 border-transparent text-[var(--qs-muted)] outline-none transition-colors hover:border-[var(--qs-ink)] hover:text-[var(--qs-ink)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
-                              >
-                                <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
-                              </button>
+                  <ul className="flex list-none flex-col gap-1.5 p-2 sm:hidden">
+                    {pageItems.map((txn) => (
+                      <li key={txn.id} className="min-w-0">
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => openDrawer(txn)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              if ((e.target as HTMLElement).closest("button")) return;
+                              e.preventDefault();
+                              openDrawer(txn);
+                            }
+                          }}
+                          aria-label={`Open details for ${txn.packName}, order ${txn.id}`}
+                          className="flex min-w-0 cursor-pointer items-start gap-2 rounded-[12px] border border-[var(--qs-line)] bg-[var(--qs-surface)] p-2 outline-none transition-colors hover:bg-[var(--qs-brand)]/[0.04] focus-visible:bg-[var(--qs-brand)]/[0.04] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--qs-brand)]/40"
+                        >
+                          <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-[10px] border border-dashed border-[var(--qs-brand)]/30 bg-[var(--qs-brand)]/[0.07] text-[var(--qs-brand)]" aria-hidden="true">
+                            <Link2 className="h-3.5 w-3.5" />
+                          </span>
+                          <div className="flex min-w-0 flex-1 flex-col">
+                            <p className="break-words text-[13px] font-bold leading-[17px] text-[var(--qs-ink)]">{txn.packName}</p>
+                            <p className="mt-0.5 break-words text-[10px] leading-[14px] text-[var(--qs-muted)]">
+                              {fmtDateTime(txn.timestamp)} · {txn.methodLabel}
+                            </p>
+                            <p className="mt-px break-words text-[10px] leading-[14px] text-[var(--qs-muted)] [overflow-wrap:anywhere]">Order #{txn.id}</p>
+                            <ExpiryLine txn={txn} now={now} />
+                          </div>
+                          <div className="flex shrink-0 flex-col items-end gap-px">
+                            <b className="text-[13px] font-bold tabular-nums text-[var(--qs-brand)]">+{txn.credits}</b>
+                            <b className="text-[13px] font-bold tabular-nums text-[var(--qs-ink)]">{formatINR(txn.price)}</b>
+                            <span className="text-[9px] leading-3 text-[var(--qs-muted)]">incl. GST</span>
+                            <div className="mt-1">
+                              <StatusChip status={txn.status} />
                             </div>
                           </div>
-                        </li>
-                      );
-                    })}
+                          <div className="flex shrink-0 flex-col gap-1">
+                            {txn.status === "failed" ? (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); handleRetry(txn); }}
+                                aria-label={`Retry payment for ${txn.packName}`}
+                                className="grid h-7 w-7 place-items-center rounded-[8px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-brand)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
+                              >
+                                <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+                              </button>
+                            ) : txn.status === "pending" ? (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); toast.info({ title: "Payment pending", description: `Order ${txn.id} is still being confirmed.` }); }}
+                                aria-label={`Check status for ${txn.packName}`}
+                                className="grid h-7 w-7 place-items-center rounded-[8px] border border-[var(--qs-line)] bg-[var(--qs-sun)]/25 text-[var(--qs-ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
+                              >
+                                <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); handleReceipt(txn); }}
+                                aria-label={`Download receipt for ${txn.packName}`}
+                                className="grid h-7 w-7 place-items-center rounded-[8px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-brand)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
+                              >
+                                <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); openDrawer(txn); }}
+                              aria-label={`More actions for ${txn.packName}`}
+                              className="grid h-7 w-7 place-items-center rounded-[8px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40"
+                            >
+                              <MoreHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
+                            </button>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
                   </ul>
 
-                  <div className="flex flex-col gap-3 border-t-2 border-[var(--qs-line)] px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-[13.5px] font-bold tabular-nums text-[var(--qs-muted)]" aria-live="polite">
+                  <div className="flex items-center justify-between gap-2 border-t border-[var(--qs-line)] px-2.5 py-2.5 sm:gap-3 sm:border-t-2 sm:px-5 sm:py-3.5">
+                    <p className="text-[10.5px] font-semibold tabular-nums text-[var(--qs-muted)] sm:text-[13.5px] sm:font-bold" aria-live="polite">
                       Showing {from}–{to} of {filtered.length}
                     </p>
                     <nav className="flex items-center gap-2" aria-label="Transactions pagination">
@@ -1002,7 +988,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
                         disabled={safePage <= 1}
                         onClick={() => setPage(safePage - 1)}
                         aria-label="Previous page"
-                        className="grid h-[34px] w-[34px] place-items-center rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[14px] font-extrabold text-[var(--qs-muted)] outline-none transition-colors hover:border-[var(--qs-ink)] hover:text-[var(--qs-ink)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40 disabled:cursor-not-allowed disabled:opacity-45"
+                        className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[11.5px] font-semibold text-[var(--qs-muted)] sm:h-[34px] sm:w-[34px] sm:rounded-[10px] sm:border-2 sm:text-[14px] sm:font-extrabold outline-none transition-colors hover:border-[var(--qs-ink)] hover:text-[var(--qs-ink)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40 disabled:cursor-not-allowed disabled:opacity-45"
                       >
                         <ChevronLeft className="h-4 w-4" aria-hidden="true" />
                       </button>
@@ -1014,10 +1000,10 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
                           aria-label={`Page ${n}`}
                           aria-current={n === safePage ? "page" : undefined}
                           className={cn(
-                            "h-[34px] min-w-[34px] rounded-[10px] px-2 text-[14px] font-extrabold tabular-nums outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40",
+                            "h-7 min-w-7 rounded-[7px] px-1.5 text-[11.5px] font-semibold tabular-nums outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40 sm:h-[34px] sm:min-w-[34px] sm:rounded-[10px] sm:px-2 sm:text-[14px] sm:font-extrabold",
                             n === safePage
-                              ? "border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-white shadow-[0_3px_0_var(--qs-ink)]"
-                              : "border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-ink)] hover:text-[var(--qs-ink)]"
+                              ? "border border-[var(--qs-ink)] bg-[var(--qs-brand)] text-white sm:border-2 sm:shadow-[0_3px_0_var(--qs-ink)]"
+                              : "border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-ink)] hover:text-[var(--qs-ink)] sm:border-2"
                           )}
                         >
                           {n}
@@ -1028,7 +1014,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
                         disabled={safePage >= totalPages}
                         onClick={() => setPage(safePage + 1)}
                         aria-label="Next page"
-                        className="grid h-[34px] w-[34px] place-items-center rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[14px] font-extrabold text-[var(--qs-muted)] outline-none transition-colors hover:border-[var(--qs-ink)] hover:text-[var(--qs-ink)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40 disabled:cursor-not-allowed disabled:opacity-45"
+                        className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[11.5px] font-semibold text-[var(--qs-muted)] sm:h-[34px] sm:w-[34px] sm:rounded-[10px] sm:border-2 sm:text-[14px] sm:font-extrabold outline-none transition-colors hover:border-[var(--qs-ink)] hover:text-[var(--qs-ink)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40 disabled:cursor-not-allowed disabled:opacity-45"
                       >
                         <ChevronRight className="h-4 w-4" aria-hidden="true" />
                       </button>

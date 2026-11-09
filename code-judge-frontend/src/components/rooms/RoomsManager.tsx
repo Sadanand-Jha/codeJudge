@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   Archive,
   ArchiveRestore,
+  ArrowUpDown,
   Clock,
   Copy,
   Download,
@@ -14,7 +15,6 @@ import {
   FileSpreadsheet,
   MoreVertical,
   Plus,
-  Search,
   Settings2,
   Users,
 } from "lucide-react";
@@ -29,8 +29,6 @@ import type { RoomMenuItem } from "@/components/quiz/creator/settings/audience/R
 import CreateRoomModal from "@/components/quiz/creator/settings/audience/CreateRoomModal";
 import AddStudentsModal from "@/components/quiz/creator/settings/audience/AddStudentsModal";
 import DuplicateRoomModal from "./DuplicateRoomModal";
-import RoomUpdatesSummary from "./RoomUpdatesSummary";
-import RoomStudentSearch from "./RoomStudentSearch";
 import Select from "@/components/ui/Select";
 
 type FilterTab = "all" | "active" | "archived" | "recent";
@@ -80,7 +78,6 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
   const addStudents = useRoomStore((s) => s.addStudents);
   const { user } = useAuthStore();
 
-  const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterTab>("all");
   const [sort, setSort] = useState<SortKey>("updated");
   const [createOpen, setCreateOpen] = useState(false);
@@ -142,12 +139,10 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
   };
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
     let list = ownedRooms.filter((r) => {
       if (filter === "active" && r.archived) return false;
       if (filter === "archived" && !r.archived) return false;
       if (filter === "recent" && (r.archived || !isWithinWindow(r.updatedAt, RECENT_WINDOW_MS))) return false;
-      if (q && !`${r.name} ${r.description ?? ""}`.toLowerCase().includes(q)) return false;
       return true;
     });
     list = [...list].sort((a, b) => {
@@ -156,7 +151,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
     return list;
-  }, [ownedRooms, filter, query, sort]);
+  }, [ownedRooms, filter, sort]);
 
   const editRoom = editTarget ? ownedRooms.find((r) => r.id === editTarget) : null;
   const duplicateRoomTarget = duplicateTarget ? ownedRooms.find((r) => r.id === duplicateTarget) : null;
@@ -270,16 +265,51 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
   }
 
   const statCards = [
-    { label: "Rooms", value: stats.rooms, sub: "total", color: "var(--qs-brand)" },
-    { label: "Students", value: stats.students, sub: "across rooms", color: "var(--qs-blue)" },
-    { label: "Active Rooms", value: stats.active, sub: "usable", color: "var(--qs-ok)" },
-    { label: "Archived", value: stats.archived, sub: "hidden", color: "var(--qs-warn)" },
+    { label: "Rooms", short: "Rooms", value: stats.rooms, sub: "total", color: "var(--qs-brand)" },
+    { label: "Students", short: "Students", value: stats.students, sub: "across rooms", color: "var(--qs-blue)" },
+    { label: "Active Rooms", short: "Active", value: stats.active, sub: "usable", color: "var(--qs-ok)" },
+    { label: "Archived", short: "Archived", value: stats.archived, sub: "hidden", color: "var(--qs-warn)" },
   ];
 
   return (
     <div className="qs-ui min-h-full bg-[var(--qs-bg)]">
       <div className="mx-auto max-w-[1280px] px-4 py-4 pb-20 sm:px-6 sm:py-6">
-        <header className="relative mb-6 overflow-hidden rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-5 py-6 text-[var(--qs-on-brand)] shadow-[6px_6px_0_var(--qs-sun)] sm:px-8 sm:py-8">
+        {/* Mobile header */}
+        <header className="mb-3 rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3.5 py-3.5 text-[var(--qs-on-brand)] shadow-[2px_3px_0_var(--qs-sun)] md:hidden">
+          <div className="flex items-center justify-end gap-2">
+            <span className="inline-flex h-[26px] shrink-0 items-center rounded-full bg-[var(--qs-surface)] px-2.5 text-[11.5px] font-bold text-[var(--qs-ink)]">
+              {stats.rooms}/{MAX_ROOMS_PER_CREATOR} rooms
+            </span>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <h1 className="min-w-0 truncate text-[21px] font-bold leading-tight">
+              {basePath === "/creator/rooms" ? "My Classrooms" : "My Rooms"}
+            </h1>
+            <button
+              type="button"
+              onClick={() => {
+                setCreateTab("manual");
+                setCreateOpen(true);
+              }}
+              disabled={ownedRooms.length >= MAX_ROOMS_PER_CREATOR}
+              title={
+                ownedRooms.length >= MAX_ROOMS_PER_CREATOR
+                  ? `You can have at most ${MAX_ROOMS_PER_CREATOR} rooms`
+                  : "Create a new room"
+              }
+              className="inline-flex h-[38px] shrink-0 items-center gap-1.5 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[#3B1FA8] px-3 text-[12.5px] font-semibold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Plus className="h-[15px] w-[15px]" strokeWidth={3} />
+              Create Room
+            </button>
+          </div>
+          <p className="mt-2 text-[11.5px] leading-4 text-[#EAE5FF]">
+            Organize students into reusable groups and manage quiz access from one place.
+          </p>
+        </header>
+
+        {/* Desktop header */}
+        <header className="relative mb-6 hidden overflow-hidden rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-5 py-6 text-[var(--qs-on-brand)] shadow-[6px_6px_0_var(--qs-sun)] sm:px-8 sm:py-8 md:block">
           <div aria-hidden className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full border-[24px] border-[var(--qs-sun)]/15" />
           <div className="relative flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
             <div className="min-w-0 max-w-2xl">
@@ -328,43 +358,30 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
         )}
 
         {/* Stats */}
-        <div className="mb-5 grid grid-cols-2 gap-2.5 sm:gap-3.5 lg:grid-cols-4">
+        <div className="mb-3 grid grid-cols-4 gap-1.5 md:mb-5 md:gap-3.5">
           {statCards.map((kpi) => (
             <div
               key={kpi.label}
               className={cn(
-                "rounded-[16px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3 shadow-[3px_3px_0_var(--qs-sun)] sm:rounded-[18px] sm:p-4 sm:px-[18px]"
+                "flex h-[54px] flex-col justify-center rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 md:h-auto md:rounded-[18px] md:border-2 md:border-[var(--qs-ink)] md:p-4 md:px-[18px] md:shadow-[3px_3px_0_var(--qs-sun)]"
               )}
             >
-              <small className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-muted)] sm:gap-2 sm:text-xs sm:tracking-[0.08em]">
-                <span className="h-2 w-2 shrink-0 rounded-full sm:h-2.5 sm:w-2.5" style={{ background: kpi.color }} />
-                {kpi.label}
+              <small className="order-2 flex items-center gap-1.5 text-[10.5px] font-normal leading-3.5 text-[var(--qs-muted)] md:order-1 md:gap-2 md:text-xs md:font-extrabold md:uppercase md:tracking-[0.08em]">
+                <span className="hidden h-2.5 w-2.5 shrink-0 rounded-full md:block" style={{ background: kpi.color }} />
+                <span className="md:hidden">{kpi.short}</span>
+                <span className="hidden md:inline">{kpi.label}</span>
               </small>
-              <b className="mt-1.5 block text-[24px] font-extrabold leading-[1.1] text-[var(--qs-ink)] sm:mt-2 sm:text-[32px] lg:text-[36px]">
+              <b className="order-1 text-[17px] font-bold leading-5 text-[var(--qs-ink)] md:order-2 md:mt-2 md:text-[32px] md:font-extrabold md:leading-[1.1] lg:text-[36px]">
                 {kpi.value}
-                <span className="ml-1 text-xs font-medium text-[var(--qs-muted)] sm:text-sm">{kpi.sub}</span>
+                <span className="hidden text-xs font-medium text-[var(--qs-muted)] md:ml-1 md:inline md:text-sm">{kpi.sub}</span>
               </b>
             </div>
           ))}
         </div>
 
-        <RoomUpdatesSummary rooms={ownedRooms} basePath={basePath} />
-
-        <RoomStudentSearch rooms={ownedRooms} basePath={basePath} />
-
         {/* Filter bar */}
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2.5">
-          <div className="relative w-full sm:w-auto sm:min-w-[220px] sm:flex-[0_1_290px]">
-            <Search className="absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--qs-muted)]" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search rooms…"
-              aria-label="Search rooms"
-              className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-[11px] pl-10 pr-3.5 text-[15px] leading-5 text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] sm:py-2.5 sm:text-sm"
-            />
-          </div>
-          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-1">
+        <div className="mb-3 flex flex-col gap-3 md:mb-5 md:flex-row md:flex-wrap md:items-center md:gap-2.5">
+          <div className="flex w-full min-w-0 items-center gap-1.5 overflow-x-auto scrollbar-none md:w-auto md:flex-1 md:flex-wrap md:gap-2">
             {FILTERS.map((f) => {
               const active = filter === f.id;
               return (
@@ -374,23 +391,42 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
                   aria-pressed={active}
                   onClick={() => setFilter(f.id)}
                   className={cn(
-                    "rounded-full border-2 px-[13px] py-1.5 text-[13px] leading-[18px] font-extrabold uppercase tracking-[0.06em] transition-colors",
+                    "shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[12px] font-medium leading-3.5 transition-colors md:border-2 md:px-[13px] md:text-[13px] md:font-extrabold md:uppercase md:leading-[18px] md:tracking-[0.06em]",
                     active
                       ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
-                      : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
+                      : "border-[#CFC7F0] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] md:border-[var(--qs-line)] md:text-[var(--qs-ink)]"
                   )}
                 >
-                  {f.label}
-                  <i className={cn("ml-1.5 not-italic", active ? "opacity-70" : "text-[var(--qs-muted)]")}>{filterCounts[f.id]}</i>
+                  <span className="md:hidden">{f.id === "recent" ? "Recent" : f.label}</span>
+                  <span className="hidden md:inline">{f.label}</span>
+                  <i className={cn("ml-1 not-italic md:ml-1.5", active ? "opacity-70" : "text-[var(--qs-muted)]")}>{filterCounts[f.id]}</i>
                 </button>
               );
             })}
+            <div className="relative ml-auto shrink-0 md:hidden">
+              <span aria-hidden className="grid h-8 w-9 place-items-center rounded-[10px] text-[var(--qs-ink)]">
+                <ArrowUpDown className="h-4 w-4" />
+              </span>
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortKey)}
+                aria-label="Sort rooms"
+                title={`Sort: ${SORTS.find((s) => s.id === sort)?.label ?? ""}`}
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              >
+                {SORTS.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    Sort: {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           <Select
             value={sort}
             onChange={(e) => setSort(e.target.value as SortKey)}
             aria-label="Sort rooms"
-            className="w-full shrink-0 cursor-pointer rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-[11px] text-sm font-extrabold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)] focus:border-[var(--qs-brand)] sm:w-auto sm:py-[9px]"
+            className="hidden w-full shrink-0 cursor-pointer rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-[11px] text-sm font-extrabold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)] focus:border-[var(--qs-brand)] sm:w-auto sm:py-[9px] md:block"
           >
             {SORTS.map((s) => (
               <option key={s.id} value={s.id}>
@@ -401,15 +437,20 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
         </div>
 
         {/* Rooms table */}
-        <div className="relative mb-4 mr-1 sm:mr-4">
-          <div aria-hidden className="absolute left-1 top-1 -bottom-1 -right-1 rounded-[18px] bg-[var(--qs-sun)] sm:left-4 sm:top-4 sm:-bottom-4 sm:-right-4 sm:rounded-[30px]" />
-          <div className="relative overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] sm:rounded-[26px]">
-            <header className="flex flex-col gap-2 bg-[var(--qs-bg)] px-4 pb-3 pt-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-3 sm:px-[26px] sm:pb-4 sm:pt-5">
-              <div>
-                <h2 className="text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-2xl">Rooms</h2>
-                <p className="mt-0.5 text-[13px] leading-[1.4] text-[var(--qs-muted)] sm:text-sm">Reusable student groups — open a room to manage its students.</p>
+        <div className="relative mb-4 mr-1 md:mr-4">
+          <div aria-hidden className="absolute left-0.5 top-0.5 -bottom-0.5 -right-0.5 rounded-[14px] bg-[var(--qs-sun)] md:left-4 md:top-4 md:-bottom-4 md:-right-4 md:rounded-[30px]" />
+          <div className="relative overflow-hidden rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] md:rounded-[26px] md:border-2">
+            <header className="flex flex-col gap-1 bg-[var(--qs-bg)] px-3.5 pb-2.5 pt-3.5 md:flex-row md:flex-wrap md:items-start md:justify-between md:gap-3 md:px-[26px] md:pb-4 md:pt-5">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-2 md:block">
+                  <h2 className="text-[15px] font-bold tracking-tight text-[var(--qs-ink)] md:text-2xl md:font-extrabold">Rooms</h2>
+                  <p className="text-[10.5px] font-medium text-[var(--qs-muted)] md:hidden">
+                    {filtered.length} of {stats.rooms}
+                  </p>
+                </div>
+                <p className="mt-0.5 text-[10.5px] leading-3.5 text-[var(--qs-muted)] md:text-sm md:leading-[1.4]">Reusable student groups — open a room to manage its students.</p>
               </div>
-              <p className="text-[13px] font-medium text-[var(--qs-muted)] sm:text-sm">
+              <p className="hidden text-[13px] font-medium text-[var(--qs-muted)] md:block md:text-sm">
                 {filtered.length} of {stats.rooms}
               </p>
             </header>
@@ -428,48 +469,50 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
             ) : (
               <>
                 {/* Mobile cards */}
-                <div className="space-y-2.5 border-t-2 border-[var(--qs-line)] p-3 sm:p-4 md:hidden">
+                <div className="space-y-1.5 border-t border-[var(--qs-line)] p-3 md:hidden">
                   {filtered.map((room) => {
                     const count = room.memberCount ?? room.students.length;
                     return (
                       <div
                         key={room.id}
                         onClick={() => router.push(`${basePath}/${room.id}`)}
-                        className="cursor-pointer rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 transition-colors active:bg-[var(--qs-bg)]"
+                        className="flex cursor-pointer items-center gap-2.5 rounded-[12px] border border-[var(--qs-line)] bg-[var(--qs-surface)] py-2.5 pl-2.5 pr-1 transition-colors active:bg-[var(--qs-bg)]"
                       >
-                        <div className="flex items-start gap-3">
-                          <span className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
-                            <Users className="h-5 w-5" strokeWidth={2.5} />
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-start justify-between gap-2">
-                              <p className="truncate text-[16px] font-extrabold text-[var(--qs-ink)]">{room.name}</p>
-                              <span
-                                className={cn(
-                                  "shrink-0 rounded-[8px] border-2 border-current px-2 py-[2px] text-[11px] font-extrabold uppercase tracking-[0.05em]",
-                                  room.archived ? "text-[#a85d00]" : "text-[var(--qs-ok)]"
-                                )}
-                              >
-                                {room.archived ? "Archived" : "Active"}
-                              </span>
-                            </div>
-                            <p className="mt-0.5 truncate text-xs text-[var(--qs-muted)]">
-                              {room.description || "No description"}
+                        <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] border border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+                          <Users className="h-4 w-4" strokeWidth={2.5} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <p className="min-w-0 flex-1 truncate text-[13px] font-semibold leading-4 text-[var(--qs-ink)]">
+                              {room.name}
                             </p>
-                            <p className="mt-1 flex min-w-0 items-center gap-1.5 truncate text-[12px] font-medium text-[var(--qs-muted)]">
-                              <Clock className="h-3 w-3 shrink-0" />
-                              <b className="font-extrabold text-[var(--qs-ink)]">{count}</b> students · {timeAgo(room.updatedAt)}
-                            </p>
+                            <span
+                              className={cn(
+                                "shrink-0 rounded-[6px] px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.04em]",
+                                room.archived ? "bg-[#FFEBC2] text-[#8A4B00]" : "bg-[#D9F5E5] text-[#0B6B3A]"
+                              )}
+                            >
+                              {room.archived ? "Archived" : "Active"}
+                            </span>
                           </div>
-                          <button
-                            type="button"
-                            aria-label={`Actions for ${room.name}`}
-                            onClick={(e) => openActionMenu(e, room.id, room.archived)}
-                            className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-line)]"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </button>
+                          <p className="truncate text-[10.5px] leading-3.5 text-[var(--qs-muted)]">
+                            {room.description || "No description"}
+                          </p>
+                          <p className="flex min-w-0 items-center gap-1 text-[10.5px] leading-3.5 text-[var(--qs-muted)]">
+                            <Clock className="h-[11px] w-[11px] shrink-0" />
+                            <span className="truncate">
+                              {count} students · {timeAgo(room.updatedAt)}
+                            </span>
+                          </p>
                         </div>
+                        <button
+                          type="button"
+                          aria-label={`Actions for ${room.name}`}
+                          onClick={(e) => openActionMenu(e, room.id, room.archived)}
+                          className="grid h-10 w-9 shrink-0 place-items-center rounded-[10px] text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-line)]"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
                       </div>
                     );
                   })}
@@ -539,7 +582,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
               </>
             )}
 
-            <div className="border-t-2 border-[var(--qs-line)] px-4 py-3 text-[13px] font-medium text-[var(--qs-muted)] sm:px-[26px] sm:py-3.5 sm:text-sm">
+            <div className="border-t-0 px-3 py-2.5 text-[10.5px] font-medium text-[var(--qs-muted)] md:border-t-2 md:border-[var(--qs-line)] md:px-[26px] md:py-3.5 md:text-sm">
               Showing {filtered.length} of {stats.rooms} rooms
             </div>
           </div>
