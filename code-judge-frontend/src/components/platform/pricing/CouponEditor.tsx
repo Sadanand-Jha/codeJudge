@@ -12,6 +12,7 @@ import {
   type PlatformVersion,
 } from "@/services/platform";
 import { BTN, BTN_DANGER, BTN_PRI, DraftBadge, Field, INPUT, VersionHistory } from "./admin-ui";
+import Select from "@/components/ui/Select";
 
 type CouponDraft = Partial<CouponUpdate>;
 
@@ -259,11 +260,11 @@ export function CouponEditor({
           <input className={INPUT} value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="SAVE20" />
         </Field>
         <Field label="Type">
-          <select className={INPUT} value={type} onChange={(event) => setType(event.target.value as PlatformCoupon["type"])}>
+          <Select className={INPUT} value={type} onChange={(event) => setType(event.target.value as PlatformCoupon["type"])}>
             <option value="percent">Percent off</option>
             <option value="flat">Flat ₹ off</option>
             <option value="free_days">Free days</option>
-          </select>
+          </Select>
         </Field>
         <Field label={type === "percent" ? "Percent (1–100)" : type === "flat" ? "Flat amount" : "Free days"}>
           <input className={INPUT} type="number" min={1} max={type === "percent" ? 100 : undefined} step={1} value={value} onChange={(event) => setValue(event.target.value)} />

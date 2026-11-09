@@ -23,6 +23,7 @@ import { useAuthStore } from "@/store/authStore";
 import { leaveRoom, type EnrolledRoom } from "@/services/rooms";
 import { ConfirmModal } from "@/components/creator/quiz-studio/components/timing/ConfirmModal";
 import { useStudentRooms } from "./StudentRoomsProvider";
+import Select from "@/components/ui/Select";
 
 type RoomFilter = "all" | "active" | "archived";
 type RoomSort = "recent" | "name" | "members";
@@ -316,7 +317,7 @@ export default function StudentRoomsPage() {
                   );
                 })}
               </div>
-              <select
+              <Select
                 value={sort}
                 onChange={(event) => setSort(event.target.value as RoomSort)}
                 aria-label="Sort rooms"
@@ -327,7 +328,7 @@ export default function StudentRoomsPage() {
                     Sort: {item.label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div className="relative mb-4 mr-1">

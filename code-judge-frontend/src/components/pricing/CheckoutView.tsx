@@ -38,6 +38,7 @@ import {
   type PaymentBrand,
 } from "@/config/checkout";
 import type { PricingCreditPack } from "@/types/pricing";
+import Select from "@/components/ui/Select";
 
 type PaymentMethodId = "upi" | "card" | "netbanking" | "wallet";
 type CheckoutPhase = "form" | "processing" | "success" | "failed";
@@ -671,13 +672,14 @@ export function CheckoutView({ packs, initialPackId }: CheckoutViewProps) {
             Select your bank
           </label>
           <div className="qco-select-wrap">
-            <select
+            <Select
               id="qco-bank"
               value={bank}
               onChange={(event) => {
                 setBank(event.target.value);
                 clearFieldError("bank");
               }}
+              showChevron={false}
               className={cn("qco-input qco-select", errors.bank && "is-invalid")}
               aria-invalid={Boolean(errors.bank)}
               aria-describedby={errors.bank ? "qco-bank-error" : "qco-bank-help"}
@@ -688,7 +690,7 @@ export function CheckoutView({ packs, initialPackId }: CheckoutViewProps) {
                   {item}
                 </option>
               ))}
-            </select>
+            </Select>
             <ChevronDown size={16} aria-hidden="true" />
           </div>
           {errors.bank ? (

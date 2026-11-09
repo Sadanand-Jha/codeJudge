@@ -2,6 +2,7 @@
 
 import type { LanguageOption } from "@/types/editor";
 import { CP_LANGUAGE_OPTIONS } from "@/constants/languages";
+import Select from "@/components/ui/Select";
 
 interface LanguageSelectorProps {
   languageId: number;
@@ -15,9 +16,11 @@ export default function LanguageSelector({ languageId, options, onChange }: Lang
 
   return (
     <div className="relative">
-      <select
+      <Select
         value={languageId}
         onChange={(e) => onChange(Number(e.target.value))}
+        showChevron={false}
+        tone="dark"
         className="appearance-none bg-[#252525] hover:bg-[#2d2d2d] text-gray-200 text-xs font-medium px-3 py-1.5 pr-8 rounded border border-[#333] hover:border-[#444] outline-none focus:border-blue-500 transition-all cursor-pointer min-w-[140px]"
       >
         {languageOptions.map((opt) => (
@@ -25,7 +28,7 @@ export default function LanguageSelector({ languageId, options, onChange }: Lang
             {opt.label}
           </option>
         ))}
-      </select>
+      </Select>
       <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
         <svg
           className="w-3 h-3 text-gray-400"

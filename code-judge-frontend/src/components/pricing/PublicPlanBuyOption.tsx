@@ -4,6 +4,7 @@ import { useState } from "react";
 import { PublicPlanCta } from "@/components/pricing/PublicCheckoutCta";
 import type { PricingPlan } from "@/types/pricing";
 import { formatBillingPeriod, formatPricingAmount } from "@/services/pricing";
+import Select from "@/components/ui/Select";
 
 export function PublicPlanBuyOption({
   plan,
@@ -42,7 +43,7 @@ export function PublicPlanBuyOption({
       {plan.prices.length > 1 && (
         <label className="mt-2 block text-xs font-semibold text-[var(--qs-muted)]">
           Billing period
-          <select
+          <Select
             className="mt-1 w-full rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2 text-sm text-[var(--qs-ink)]"
             value={selectedPrice?.id ?? ""}
             onChange={(event) => setPriceId(Number(event.target.value))}
@@ -52,7 +53,7 @@ export function PublicPlanBuyOption({
                 {formatBillingPeriod(price.billingPeriod, price.customDays)} · {formatPricingAmount(price.amount, price.currency)}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
       )}
       <PublicPlanCta

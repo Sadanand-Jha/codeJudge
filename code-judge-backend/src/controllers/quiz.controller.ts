@@ -2261,7 +2261,17 @@ function areStudentResultsAvailable(result: any): boolean {
   // Students can see their result one hour after the quiz end time. The quiz
   // status alone is not enough — an early end still respects the same delay.
   if (!result?.endtime) return false;
-  return new Date(result.endtime).getTime() + RESULT_VISIBILITY_DELAY_MS <= Date.now();
+  const endMs = new Date(result.endtime).getTime();
+  if (!Number.isFinite(endMs)) return false;
+  return endMs + RESULT_VISIBILITY_DELAY_MS <= Date.now();
+}
+
+/** ISO timestamp at which the attempt result/review unlocks, if scheduled. */
+function getResultAvailableAt(result: any): string | null {
+  if (!result?.endtime) return null;
+  const endMs = new Date(result.endtime).getTime();
+  if (!Number.isFinite(endMs)) return null;
+  return new Date(endMs + RESULT_VISIBILITY_DELAY_MS).toISOString();
 }
 
 interface ResultAccess {
@@ -2270,23 +2280,19 @@ interface ResultAccess {
 }
 
 /**
- * Owners and accepted collaborators can always view results immediately.
- * Students can view marks once results are released, but the question-wise
- * breakdown is only available when the owner has shared it for the attempt.
+ * Student result access is strictly time-gated for everyone using these
+ * endpoints: marks and the question-wise review only become available one
+ * hour after the quiz ends. Ownership/collaboration does not bypass the
+ * delay here; teacher-side result tools use the platform endpoints instead.
+ * Even after release, the question-wise breakdown still respects
+ * `result_details_visible` for the attempt.
  */
-async function resolveResultAccess(result: any, viewerId: number): Promise<ResultAccess> {
+function resolveResultAccess(result: any): ResultAccess {
   if (isAttemptInProgress(result)) return { canView: false, canViewDetails: false };
-  if (Number(result?.createdby) === Number(viewerId)) {
-    return { canView: true, canViewDetails: true };
-  }
-  const quizId = Number(result?.quiz_id);
-  if (Number.isInteger(quizId) && quizId > 0) {
-    const isCollaborator = await quizService.isAcceptedCollaborator(Number(viewerId), quizId);
-    if (isCollaborator) return { canView: true, canViewDetails: true };
-  }
+  const canView = areStudentResultsAvailable(result);
   return {
-    canView: areStudentResultsAvailable(result),
-    canViewDetails: result?.result_details_visible !== false,
+    canView,
+    canViewDetails: canView && result?.result_details_visible !== false,
   };
 }
 
@@ -2325,11 +2331,12 @@ export const getQuizResult = async (req: Request, res: Response) => {
       return;
     }
 
-    const access = await resolveResultAccess(result, Number(userId));
+    const access = resolveResultAccess(result);
     if (!access.canView) {
       res.status(403).json({
         success: false,
         message: "Results will be available 1 hour after the quiz ends",
+        available_at: getResultAvailableAt(result),
       });
       return;
     }
@@ -2376,11 +2383,12 @@ export const getQuizReview = async (req: Request, res: Response) => {
       });
       return;
     }
-    const access = await resolveResultAccess(result, Number(userId));
+    const access = resolveResultAccess(result);
     if (!access.canView) {
       res.status(403).json({
         success: false,
         message: "Answer review will be available 1 hour after the quiz ends",
+        available_at: getResultAvailableAt(result),
       });
       return;
     }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import SidebarWidget from "./SidebarWidget";
+import Select from "@/components/ui/Select";
 
 interface SubmitWidgetProps {
   problemId: string;
@@ -39,7 +40,7 @@ export default function SubmitWidget({
           <label htmlFor="language" className="text-sm text-[#333] whitespace-nowrap">
             Language:
           </label>
-          <select
+          <Select
             id="language"
             name="language"
             value={selectedLanguage}
@@ -51,7 +52,7 @@ export default function SubmitWidget({
                 {lang.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div className="flex items-center gap-2">

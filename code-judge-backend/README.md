@@ -20,6 +20,7 @@ Detailed documentation lives in [docs/](./docs/).
 - [Platform plan management](./docs/PLATFORM_PLAN_MANAGEMENT.md) - how plans are created, edited, published, archived, and priced from `/platform`
 - [Country-wise plan pricing](./docs/COUNTRY_WISE_PRICING.md) - country detection, regional Elevate prices, checkout snapshots, and troubleshooting
 - [Razorpay billing flow](./docs/RAZORPAY_BILLING_FLOW.md) - order creation, checkout, verification, webhooks, and subscription activation
+- [AI credits and recent usage](./docs/AI_CREDITS_README.md) - credit grants, token-based debits, expiry, FIFO allocation, refunds, and the Recent AI usage section
 
 **Quiz and AI**
 

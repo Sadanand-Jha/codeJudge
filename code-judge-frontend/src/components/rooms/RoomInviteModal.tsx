@@ -40,6 +40,7 @@ import {
   formatPasswordExpiry,
   formatPasswordExpiryRelative,
 } from "@/utils/passwordExpiry";
+import Select from "@/components/ui/Select";
 
 interface RoomInviteModalProps {
   open: boolean;
@@ -236,7 +237,7 @@ export default function RoomInviteModal({
                     >
                       New password expires after
                     </label>
-                    <select
+                    <Select
                       id="invite-expiry"
                       value={expiryMinutes === null ? "never" : String(expiryMinutes)}
                       onChange={(event) => {
@@ -254,7 +255,7 @@ export default function RoomInviteModal({
                           {option.label}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                     <p className="mt-1.5 text-[11px] font-medium text-[var(--qs-muted)]">
                       Times are shown in your timezone.
                     </p>

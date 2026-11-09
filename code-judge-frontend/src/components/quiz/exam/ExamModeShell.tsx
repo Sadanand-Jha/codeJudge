@@ -89,7 +89,9 @@ export default function ExamModeShell({
 }: ExamModeShellProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [examActive, setExamActive] = useState(false);
-  const [showRegistration, setShowRegistration] = useState(false);
+  const [showRegistration, setShowRegistration] = useState(
+    () => !antiCheatEnabled && registrationFields.length > 0,
+  );
   const [registrationValues, setRegistrationValues] = useState<Record<string, string>>({});
   const registrationComplete =
     registrationFields.length > 0 && registrationFields.every((name) => registrationValues[name]?.trim());
@@ -100,6 +102,7 @@ export default function ExamModeShell({
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
   const lastViolationRef = useRef<number>(0);
+  const autoEnterTriedRef = useRef(false);
   const violationCountRef = useRef(0);
   const violationTypesRef = useRef<ViolationType[]>([]);
   const attemptIdRef = useRef<string | null>(attemptId);
@@ -404,21 +407,33 @@ export default function ExamModeShell({
     };
   }, []);
 
-  // Auto-enter exam mode on mount (for preview)
+  // Auto-enter exam mode on mount. Previews always do; live attempts skip the
+  // intro screen when proctoring is disabled. Registration details are
+  // collected first when the quiz requires them.
   useEffect(() => {
-    if (autoEnter && !examActive && !terminated) {
-      const timer = window.setTimeout(() => void enterExamMode(), 0);
-      return () => window.clearTimeout(timer);
+    if (!autoEnter && antiCheatEnabled) return;
+    if (examActive || terminated) return;
+    if (showRegistration) {
+      if (autoEnterTriedRef.current) return;
+      autoEnterTriedRef.current = true;
+      acquireThemeLock();
+      return;
     }
-  }, [autoEnter, examActive, terminated, enterExamMode]);
+    if (autoEnterTriedRef.current) return;
+    const timer = window.setTimeout(() => {
+      autoEnterTriedRef.current = true;
+      void enterExamMode();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [autoEnter, antiCheatEnabled, examActive, terminated, showRegistration, enterExamMode, acquireThemeLock]);
 
   // Registration gate — shown after "Enter Exam Mode" when the creator
   // collects registration details. The attempt (and its timer) starts only
   // once this form is submitted.
   if (!examActive && showRegistration) {
     return (
-      <div className="qs-ui relative mx-auto flex min-h-[70vh] w-full max-w-3xl items-center justify-center overflow-hidden p-3 sm:p-6">
-        <div className="qs-shadow w-full">
+      <div className="qs-ui relative flex min-h-dvh w-full items-center justify-center overflow-x-hidden p-3 sm:p-6">
+        <div className="qs-shadow w-full max-w-3xl">
         <div className="qs-card overflow-hidden p-4 sm:p-8">
           <div className="mx-auto max-w-xl">
             <div className="text-center">
@@ -462,6 +477,10 @@ export default function ExamModeShell({
                   type="button"
                   onClick={() => {
                     releaseThemeLock();
+                    if (!antiCheatEnabled) {
+                      onExitPreview();
+                      return;
+                    }
                     setShowRegistration(false);
                   }}
                   disabled={entering}
@@ -494,11 +513,12 @@ export default function ExamModeShell({
     );
   }
 
-  // If examActive, render as fullscreen overlay; otherwise show entry screen
-  if (!examActive) {
+  // Proctored attempts get an intro screen. Without proctoring the quiz starts
+  // directly — the shell shows a loader (or start error) while it does.
+  if (!examActive && antiCheatEnabled) {
     return (
-      <div className="qs-ui relative mx-auto flex min-h-[70vh] w-full max-w-3xl items-center justify-center overflow-hidden p-3 sm:p-6">
-        <div className="qs-shadow w-full">
+      <div className="qs-ui relative flex min-h-dvh w-full items-center justify-center overflow-x-hidden p-3 sm:p-6">
+        <div className="qs-shadow w-full max-w-3xl">
         <div className="qs-card overflow-hidden p-4 sm:p-8">
           <div className="mx-auto max-w-xl text-center">
             <div className="relative mx-auto flex h-14 w-14 items-center justify-center sm:h-16 sm:w-16">
@@ -512,38 +532,32 @@ export default function ExamModeShell({
               />
               <ShieldCheck className="absolute -bottom-1.5 -right-1.5 h-6 w-6 rounded-full border-2 border-[var(--qs-surface)] bg-[var(--qs-ok)] p-1 text-[var(--qs-on-brand)]" />
             </div>
-            <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--qs-brand)]">{antiCheatEnabled ? "Secure launch sequence" : "Ready when you are"}</p>
-            <h1 className="mt-1 text-xl font-black tracking-tight text-[var(--qs-ink)] sm:text-2xl">{antiCheatEnabled ? "You&apos;re entering Exam Mode" : "Ready to start?"}</h1>
+            <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--qs-brand)]">Secure launch sequence</p>
+            <h1 className="mt-1 text-xl font-black tracking-tight text-[var(--qs-ink)] sm:text-2xl">You&apos;re entering Exam Mode</h1>
             <p className="mt-1 truncate text-xs font-semibold text-[var(--qs-muted)]">{quizName}</p>
-            <p className="mt-1.5 text-xs text-[var(--qs-muted)] sm:mt-2 sm:text-sm">{antiCheatEnabled ? (isLive ? "Your attempt will be monitored to keep the exam fair. Stay in fullscreen until you submit." : "This preview simulates the student exam experience. Your current quiz will open in a distraction-free exam environment.") : "This quiz runs without proctoring. You can switch tabs or windows while attempting."}</p>
+            <p className="mt-1.5 text-xs text-[var(--qs-muted)] sm:mt-2 sm:text-sm">{isLive ? "Your attempt will be monitored to keep the exam fair. Stay in fullscreen until you submit." : "This preview simulates the student exam experience. Your current quiz will open in a distraction-free exam environment."}</p>
 
-            {antiCheatEnabled ? (
-              <div className="mt-4 space-y-1.5 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 text-left sm:mt-6 sm:space-y-2 sm:p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--qs-muted)] sm:text-xs">Before you continue</p>
-                <ul className="space-y-1.5 text-xs text-[var(--qs-muted)] sm:space-y-2 sm:text-sm">
-                  <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Fullscreen starts automatically as soon as you enter the exam.</li>
-                  <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Switching tabs/windows may be recorded as a violation.</li>
-                  <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Copying, cutting or pasting is blocked and recorded as a violation.</li>
-                  <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Answers from AI tools or other outside help during a quiz may be unreliable or deliberately misleading.</li>
-                  <li className="flex gap-2 rounded-lg border-2 border-[var(--qs-bad)]/40 bg-[var(--qs-badbg)] p-2.5 text-[var(--qs-bad)]">
-                    <PhoneOff className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    <span>
-                      <span className="font-extrabold">Silence your phone before starting.</span>{" "}
-                      Turn off call volume and notifications (silent / Do Not Disturb).
-                      Volume buttons are monitored, so you may not be able to silence
-                      an incoming call during the test.
-                    </span>
-                  </li>
-                  <li className="hidden gap-2 sm:flex"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)]" /> Leaving fullscreen (Esc) may be recorded as a violation.</li>
-                  <li className="hidden gap-2 sm:flex"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)]" /> Your progress will be preserved during temporary warnings.</li>
-                  <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> After {maxViolations} violations {isLive ? "your attempt will be submitted automatically and flagged for review" : "the session will be terminated"}.</li>
-                </ul>
-              </div>
-            ) : (
-              <div className="mt-4 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 text-left text-xs text-[var(--qs-muted)] sm:mt-6 sm:text-sm">
-                Your answers are saved as you go. The timer starts when you begin.
-              </div>
-            )}
+            <div className="mt-4 space-y-1.5 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 text-left sm:mt-6 sm:space-y-2 sm:p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--qs-muted)] sm:text-xs">Before you continue</p>
+              <ul className="space-y-1.5 text-xs text-[var(--qs-muted)] sm:space-y-2 sm:text-sm">
+                <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Fullscreen starts automatically as soon as you enter the exam.</li>
+                <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Switching tabs/windows may be recorded as a violation.</li>
+                <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Copying, cutting or pasting is blocked and recorded as a violation.</li>
+                <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Answers from AI tools or other outside help during a quiz may be unreliable or deliberately misleading.</li>
+                <li className="flex gap-2 rounded-lg border-2 border-[var(--qs-bad)]/40 bg-[var(--qs-badbg)] p-2.5 text-[var(--qs-bad)]">
+                  <PhoneOff className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    <span className="font-extrabold">Silence your phone before starting.</span>{" "}
+                    Turn off call volume and notifications (silent / Do Not Disturb).
+                    Volume buttons are monitored, so you may not be able to silence
+                    an incoming call during the test.
+                  </span>
+                </li>
+                <li className="hidden gap-2 sm:flex"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)]" /> Leaving fullscreen (Esc) may be recorded as a violation.</li>
+                <li className="hidden gap-2 sm:flex"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)]" /> Your progress will be preserved during temporary warnings.</li>
+                <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> After {maxViolations} violations {isLive ? "your attempt will be submitted automatically and flagged for review" : "the session will be terminated"}.</li>
+              </ul>
+            </div>
 
             <div className="mt-4 flex flex-col gap-2 sm:mt-6 sm:flex-row sm:justify-center">
               <button
@@ -559,7 +573,7 @@ export default function ExamModeShell({
                 className="b b-pri w-full gap-2 sm:w-auto sm:px-6"
               >
                 {entering ? <QuizLoader size={16} /> : <Maximize2 className="h-4 w-4" />}
-                {entering ? "Checking eligibility…" : antiCheatEnabled ? "Enter Exam Mode" : "Start Quiz"}
+                {entering ? "Checking eligibility…" : "Enter Exam Mode"}
               </button>
               <button onClick={onExitPreview} className="b b-ghost w-full sm:w-auto sm:px-6">
                 Cancel
@@ -578,6 +592,34 @@ export default function ExamModeShell({
     );
   }
 
+  if (!examActive) {
+    return (
+      <div className="qs-ui relative flex min-h-dvh w-full items-center justify-center overflow-x-hidden p-3 sm:p-6">
+        <div className="qs-shadow w-full max-w-3xl">
+          <div className="qs-card overflow-hidden p-6 text-center sm:p-8">
+            {entryError ? (
+              <>
+                <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[var(--qs-badbg)] text-[var(--qs-bad)]">
+                  <AlertCircle className="h-6 w-6" />
+                </span>
+                <h1 className="mt-4 text-xl font-black tracking-tight text-[var(--qs-ink)]">Quiz could not be started</h1>
+                <p className="mx-auto mt-1.5 max-w-md text-sm text-[var(--qs-muted)]">{entryError}</p>
+                <button onClick={onExitPreview} className="b b-pri mt-5 w-full sm:w-auto sm:px-6">
+                  Back to quizzes
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="flex justify-center text-[var(--qs-brand)]"><QuizLoader size={28} /></div>
+                <p className="mt-3 text-sm font-semibold text-[var(--qs-muted)]">Preparing your quiz…</p>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={containerRef}
@@ -585,7 +627,7 @@ export default function ExamModeShell({
     >
       {/* Exam command bar */}
       {!hideChrome && (
-      <header className="exam-command-bar relative flex h-40 shrink-0 items-center justify-between gap-2 overflow-hidden border-b-2 border-[var(--qs-ink)] bg-[#241F4A] px-3 text-white sm:h-[11.25rem] sm:px-5">
+      <header className="exam-command-bar relative flex h-24 shrink-0 items-center justify-between gap-2 overflow-hidden border-b-2 border-[var(--qs-ink)] bg-[#241F4A] px-3 text-white sm:h-28 sm:px-5">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
           <div className="absolute inset-0 bg-[#2A2358]" />
           <div className="absolute left-0 top-0 h-full w-[38%] bg-[#4A3F5E]" style={{ clipPath: "polygon(0 0, 100% 0, 0 100%)" }} />

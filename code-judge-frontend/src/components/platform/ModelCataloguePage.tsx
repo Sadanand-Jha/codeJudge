@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { Drawer, KeyValueList } from "@/components/platform/ai-ops/primitives";
 import { Skeleton, TableSkeleton } from "@/components/platform/ui";
+import Select from "@/components/ui/Select";
 
 const MODELS_ENDPOINT = "/api/openrouter/models";
 const OPENROUTER_MODELS_URL = "https://openrouter.ai/models";
@@ -459,14 +460,15 @@ function CatalogueSelect({
         className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--qs-muted)]"
         aria-hidden="true"
       />
-      <select
+      <Select
         aria-label={label}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        showChevron={false}
         className="h-11 w-full cursor-pointer appearance-none rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-9 pr-9 text-[12.5px] font-bold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)] focus:border-[var(--qs-brand)]"
       >
         {children}
-      </select>
+      </Select>
       <ChevronDown
         size={14}
         className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--qs-muted)]"

@@ -31,6 +31,7 @@ import {
   getSectionAvailableMarks,
   getSectionMarks,
 } from "./types";
+import Select from "@/components/ui/Select";
 
 const CATEGORY_BADGE: Record<string, string> = {
   objective: "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]",
@@ -545,7 +546,7 @@ export function SectionCard({
 
                                   return (
                                     <div key={cfg.id} className="flex items-center gap-2 rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-2">
-                                      <select
+                                      <Select
                                         value={cfg.type}
                                         onChange={(e) => updateNestedConfigRow(group.id, cfg.id, { type: e.target.value as QuestionType })}
                                         className="h-8 flex-1 rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 text-[11px] font-bold text-[var(--qs-ink)] outline-none focus:border-[var(--qs-brand)]"
@@ -553,7 +554,7 @@ export function SectionCard({
                                         {QUESTION_TYPES.filter((qt) => qt.id !== "NESTED").map((qt) => (
                                           <option key={qt.id} value={qt.id}>{qt.label}</option>
                                         ))}
-                                      </select>
+                                      </Select>
                                       {typeMeta && (
                                         <span className={cn("shrink-0 rounded-md border-2 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide", CATEGORY_BADGE[typeMeta.category] ?? CATEGORY_BADGE.other)}>
                                           {typeMeta.category}
@@ -643,7 +644,7 @@ export function SectionCard({
                                           <div className="flex-1 min-w-0 space-y-2">
                                             {/* Type + Marks row */}
                                             <div className="flex items-center gap-2">
-                                              <select
+                                              <Select
                                                 value={child.type}
                                                 onChange={(e) => setSubQuestionType(group.id, child.id, e.target.value as QuestionType)}
                                                 className="h-8 rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 text-[11px] font-bold text-[var(--qs-ink)] outline-none focus:border-[var(--qs-brand)]"
@@ -651,7 +652,7 @@ export function SectionCard({
                                                 {QUESTION_TYPES.filter((qt) => qt.id !== "NESTED").map((qt) => (
                                                   <option key={qt.id} value={qt.id}>{qt.label}</option>
                                                 ))}
-                                              </select>
+                                              </Select>
                                               <div className="flex items-center gap-1">
                                                 <span className="text-[10px] text-[var(--qs-muted)]">Marks:</span>
                                                 <input

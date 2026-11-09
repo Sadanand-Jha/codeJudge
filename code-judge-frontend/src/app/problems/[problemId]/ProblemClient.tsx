@@ -43,6 +43,7 @@ import CodeAssistantPanel from "@/components/editor/CodeAssistantPanel";
 import { useAIEditorStore } from "@/store/aiEditorStore";
 import { useTheme } from "@/context/ThemeContext";
 import { STORAGE_KEYS } from "@/utils/storageKeys";
+import Select from "@/components/ui/Select";
 
 type TabType =
   | "description"
@@ -647,7 +648,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-2">
                             <span className="hidden sm:flex h-2 w-2 shrink-0 rounded-full bg-gradient-to-r from-[#EC4899] to-[#7C3AED]" />
-                            <select
+                            <Select
                               value={language}
                               onChange={(e) => setLanguage(e.target.value)}
                               className="problem-solve-lang-select h-8 w-auto min-w-[112px] pl-3 pr-8 text-[12px] font-semibold bg-[#161B22] border border-border rounded-lg text-white focus:outline-none focus:border-accent"
@@ -656,7 +657,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
                               <option value="javascript">JavaScript</option>
                               <option value="python">Python</option>
                               <option value="java">Java</option>
-                            </select>
+                            </Select>
                           </div>
 
                           <div className="flex shrink-0 items-center gap-1.5">

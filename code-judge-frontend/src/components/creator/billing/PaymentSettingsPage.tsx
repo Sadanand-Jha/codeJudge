@@ -39,6 +39,7 @@ import type {
   PaymentNotificationSetting,
   PayoutSchedule,
 } from "./types";
+import Select from "@/components/ui/Select";
 
 /* ============================================
    Data
@@ -957,16 +958,17 @@ export function PaymentSettingsPage({
                     <label htmlFor="sched-dom" className="mb-1.5 block text-xs font-semibold text-[var(--qs-ink)] ">
                       Day of month
                     </label>
-                    <select
+                    <Select
                       id="sched-dom"
                       value={sched.monthlyDay}
                       onChange={(e) => setSched((s) => ({ ...s, monthlyDay: e.target.value }))}
+                      showChevron={false}
                       className={cn(INPUT, "appearance-none pr-10", FOCUS)}
                     >
                       {MONTHLY_DAYS.map((d) => (
                         <option key={d} value={d}>{d === "last" ? "Last day" : `Day ${d}`}</option>
                       ))}
-                    </select>
+                    </Select>
                     <ChevronDown className="pointer-events-none absolute bottom-3.5 right-3.5 h-4 w-4 text-[var(--qs-muted)]" aria-hidden="true" />
                   </div>
                 )}
@@ -1411,10 +1413,10 @@ function AddBankModal({ onClose, onAdded }: {
               <label htmlFor="ba-type" className="mb-1.5 block text-[13px] font-semibold text-[var(--qs-ink)] ">
                 Account type
               </label>
-              <select id="ba-type" value={accType} onChange={(e) => setAccType(e.target.value)} className={cn(INPUT, "appearance-none pr-10", FOCUS)}>
+              <Select id="ba-type" value={accType} onChange={(e) => setAccType(e.target.value)} showChevron={false} className={cn(INPUT, "appearance-none pr-10", FOCUS)}>
                 <option>Savings</option>
                 <option>Current</option>
-              </select>
+              </Select>
               <ChevronDown className="pointer-events-none absolute bottom-3.5 right-3.5 h-4 w-4 text-[var(--qs-muted)]" aria-hidden="true" />
             </div>
             <BillButton

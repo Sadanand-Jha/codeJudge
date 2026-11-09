@@ -20,6 +20,7 @@ import {
 import { EXAMS, LANGUAGES, AVAILABLE_TESTS_POOL } from "./mockData";
 import { SectionHeading, GhostButton, PrimaryButton } from "./ui";
 import { cn } from "@/lib/helpers";
+import Select from "@/components/ui/Select";
 
 const STEPS = [
   { id: "basic", label: "Basic Information", icon: FileText },
@@ -203,7 +204,7 @@ export function CreateTestSeries() {
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div>
                     <label className="mb-1.5 block text-xs font-bold text-text-primary">Language</label>
-                    <select
+                    <Select
                       value={language}
                       onChange={(e) => setLanguage(e.target.value)}
                       className="h-12 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary focus:border-pink-500/50 focus:outline-none"
@@ -213,7 +214,7 @@ export function CreateTestSeries() {
                           {l.label}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                   <div>
                     <label className="mb-1.5 block text-xs font-bold text-text-primary">Difficulty</label>

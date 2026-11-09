@@ -79,8 +79,15 @@ const normalizeWhitespace = (value: string) => value.replace(/\s+/g, " ").trim()
  * The bundled serif font covers arrows, minus signs, dashes and most math
  * symbols. A handful of rarer signs are not in its cmap, so map them to plain
  * readable ASCII instead of letting jsPDF emit a missing-glyph box.
+ * The Unicode hyphens (U+2010/U+2011) and the invisible soft hyphen (U+00AD)
+ * are common in AI-generated text; the bundled font has no glyph for U+2011
+ * or U+00AD, so jsPDF renders them as nothing and silently glues words
+ * together ("first-order" -> "firstorder").
  */
 const PDF_GLYPH_REPLACEMENTS: Record<string, string> = {
+  "\u2010": "-",
+  "\u2011": "-",
+  "\u00ad": "-",
   "\u2208": " in ",
   "\u2209": " not in ",
   "\u2282": " subset of ",
@@ -91,8 +98,11 @@ const PDF_GLYPH_REPLACEMENTS: Record<string, string> = {
   "\u21d0": " <= ",
 };
 
-const pdfSafeText = (value: string): string =>
-  value.replace(/[\u2208\u2209\u2282\u2286\u222a\u2207\u21d2\u21d0]/g, (char) => PDF_GLYPH_REPLACEMENTS[char] ?? char);
+export const pdfSafeText = (value: string): string =>
+  value.replace(
+    /[\u2010\u2011\u00ad\u2208\u2209\u2282\u2286\u222a\u2207\u21d2\u21d0]/g,
+    (char) => PDF_GLYPH_REPLACEMENTS[char] ?? char
+  );
 
 const styleOf = (run: Run): FontStyle =>
   run.bold && run.italic ? "bolditalic" : run.bold ? "bold" : run.italic ? "italic" : "normal";
@@ -627,8 +637,8 @@ const renderBlocks = (state: PdfState, blocks: Block[], x: number, width: number
 
 const fitText = (doc: jsPDF, text: string, maxWidth: number, size: number, style: FontStyle) => {
   setFont(doc, FONT, style, size);
-  if (doc.getTextWidth(text) <= maxWidth) return text;
-  let value = text;
+  let value = pdfSafeText(text);
+  if (doc.getTextWidth(value) <= maxWidth) return value;
   while (value.length > 4 && doc.getTextWidth(`${value}\u2026`) > maxWidth) {
     value = value.slice(0, -1);
   }
@@ -648,14 +658,14 @@ const drawHeader = (state: PdfState, maxMarks: number) => {
   const { doc, header } = state;
   if (header.instituteName.trim()) {
     setFont(doc, FONT, "bold", 16, INK);
-    doc.text(header.instituteName.trim().toUpperCase(), PAGE_WIDTH / 2, state.y + 6, { align: "center" });
+    doc.text(pdfSafeText(header.instituteName.trim().toUpperCase()), PAGE_WIDTH / 2, state.y + 6, { align: "center" });
     state.y += 13.5;
   } else {
     state.y += 2;
   }
 
   setFont(doc, FONT, "bold", 14, INK);
-  const titleLines = doc.splitTextToSize(resolvedHeading(header), CONTENT_WIDTH) as string[];
+  const titleLines = doc.splitTextToSize(pdfSafeText(resolvedHeading(header)), CONTENT_WIDTH) as string[];
   titleLines.forEach((line) => {
     doc.text(line, PAGE_WIDTH / 2, state.y + 4.5, { align: "center" });
     state.y += 6.8;
@@ -783,7 +793,7 @@ const drawSection = (
   doc.setLineWidth(0.35);
   doc.rect(MARGIN, top, CONTENT_WIDTH, bannerHeight, "FD");
   setFont(doc, FONT, "bold", 12, INK);
-  const sectionName = displayOr(name, "Questions").toUpperCase();
+  const sectionName = displayOr(pdfSafeText(name), "Questions").toUpperCase();
   doc.text(`SECTION ${label.toUpperCase()} \u2014 ${sectionName}`, MARGIN + 3, top + 5.4);
   const totalLabel = uniformMarks
     ? `${count} \u00d7 ${marksPerQuestion} = ${markTotal} marks`
@@ -792,7 +802,7 @@ const drawSection = (
   state.y = top + bannerHeight + 5;
   if (instruction?.trim()) {
     setFont(doc, FONT, "italic", 10.5, MUTED);
-    const lines = doc.splitTextToSize(instruction.trim(), CONTENT_WIDTH) as string[];
+    const lines = doc.splitTextToSize(pdfSafeText(instruction.trim()), CONTENT_WIDTH) as string[];
     lines.forEach((line, index) => {
       if (index < lines.length - 1) {
         drawJustifiedText(doc, line, MARGIN, state.y, CONTENT_WIDTH, 10.5, "italic", MUTED);

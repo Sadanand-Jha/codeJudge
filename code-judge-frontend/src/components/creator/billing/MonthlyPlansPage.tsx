@@ -35,6 +35,7 @@ import { InvoiceV2Dialog } from "./InvoiceV2Dialog";
 import { TrialRequestPanel } from "./TrialRequestPanel";
 import type { PurchasePhase } from "./credits/OrderSummaryDialog";
 import { PageHeader } from "./ui";
+import Select from "@/components/ui/Select";
 
 const OUTLINE_BTN =
   "inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]";
@@ -129,7 +130,7 @@ function PlanCard({
       {plan.prices.length > 1 && (
         <label className={cn("mt-3 block text-xs font-bold", isHot ? "text-[var(--qs-on-brand)]/85" : "text-[var(--qs-muted)]")}>
           Billing period
-          <select
+          <Select
             className="mt-1 w-full rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2 text-sm text-[var(--qs-ink)]"
             value={selectedPrice?.id ?? ""}
             onChange={(event) => setSelectedPriceId(Number(event.target.value))}
@@ -139,7 +140,7 @@ function PlanCard({
                 {formatBillingPeriod(price.billingPeriod, price.customDays)} · {formatPricingAmount(price.amount, price.currency)}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
       )}
 

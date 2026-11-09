@@ -355,6 +355,8 @@ export default function AttemptReviewExperience({
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+  const [availableAt, setAvailableAt] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [detailsHidden, setDetailsHidden] = useState(false);
   const [ratingState, setRatingState] = useState<QuizRatingState | null>(null);
@@ -375,6 +377,7 @@ export default function AttemptReviewExperience({
       setLoading(true);
       setPending(false);
       setPendingMessage(null);
+      setAvailableAt(null);
       setError(null);
       setDetailsHidden(false);
       try {
@@ -418,6 +421,11 @@ export default function AttemptReviewExperience({
         if (!cancelled) {
           const status = (err as { response?: { status?: number } })?.response?.status;
           if (status === 403) {
+            const unlockAt = (err as { response?: { data?: { available_at?: unknown } } })
+              ?.response?.data?.available_at;
+            if (typeof unlockAt === "string" && Number.isFinite(new Date(unlockAt).getTime())) {
+              setAvailableAt(unlockAt);
+            }
             setPending(true);
             setPendingMessage(getApiErrorMessage(err, "Results are being prepared."));
           } else {
@@ -433,7 +441,32 @@ export default function AttemptReviewExperience({
     return () => {
       cancelled = true;
     };
-  }, [attemptId, playQuizSound]);
+  }, [attemptId, playQuizSound, reloadKey]);
+
+  // When the backend tells us exactly when results unlock, refresh the review
+  // automatically at that moment instead of making the student reload by hand.
+  useEffect(() => {
+    if (!pending || !availableAt) return;
+    const unlockMs = new Date(availableAt).getTime();
+    if (!Number.isFinite(unlockMs)) return;
+    const delay = unlockMs - Date.now();
+    if (delay <= 0 || delay > 2_147_483_647) return;
+    const timer = window.setTimeout(() => setReloadKey((key) => key + 1), delay + 1_000);
+    return () => window.clearTimeout(timer);
+  }, [pending, availableAt]);
+
+  const unlockLabel = useMemo(() => {
+    if (!availableAt) return null;
+    const unlockDate = new Date(availableAt);
+    if (Number.isNaN(unlockDate.getTime())) return null;
+    return unlockDate.toLocaleString(undefined, {
+      timeZone: getUserTimeZone(),
+      day: "numeric",
+      month: "short",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }, [availableAt]);
 
   useEffect(() => {
     if (!resolvedRatingQuizId) return;
@@ -497,7 +530,11 @@ export default function AttemptReviewExperience({
     return (
       <QuizStateScreen
         title="Results are being prepared"
-        text={pendingMessage ?? "Your answers are saved. Results will be available 1 hour after the quiz ends."}
+        text={
+          unlockLabel
+            ? `Your result and answer review will unlock on ${unlockLabel} (1 hour after the quiz ends). This page will refresh automatically.`
+            : pendingMessage ?? "Your answers are saved. Results will be available 1 hour after the quiz ends."
+        }
         action={
           <Link href="/quiz" className="b b-pri gap-2">
             <ArrowLeft className="h-4 w-4" /> Back to quiz home

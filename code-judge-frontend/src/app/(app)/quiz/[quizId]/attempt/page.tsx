@@ -424,13 +424,15 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   if (error && !quiz) return <StatusScreen text={error} />;
   if (!quiz) return <StatusScreen text="This quiz could not be loaded." />;
 
+  const antiCheatEnabled = quiz.anti_cheat_enabled === true;
+
   return (
     <ExamModeShell
       quizName={quiz.name}
       progressLabel={questions.length ? `Q ${index + 1} / ${questions.length}` : ""}
       timeLeft={timeLeft}
       isLive
-      antiCheatEnabled={quiz.anti_cheat_enabled === true}
+      antiCheatEnabled={antiCheatEnabled}
       attemptId={attemptId !== null ? String(attemptId) : null}
       onEnterExam={handleEnterExam}
       onExitPreview={() => router.replace("/quiz")}
@@ -440,7 +442,6 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       entryError={error}
       onTerminate={handleTerminate}
       registrationFields={skipRegistration ? [] : quiz.registration_fields ?? []}
-      overlapHeader
       hideChrome={isMobile}
     >
       {submitting && <SubmissionProgressOverlay complete={submissionComplete} soundEnabled={soundEnabled} onSound={playQuizSound} onHome={handleGoHome} />}
@@ -625,7 +626,9 @@ e90c·5d17·a2f6·83b0</pre>
                         </div>
                         <p className="mt-5 flex items-center gap-2 text-[13px] leading-5 text-[var(--qs-muted)]">
                           <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--qs-ok)]" />
-                          Your answers are saved as you go. Stay in fullscreen until you submit.
+                          {antiCheatEnabled
+                            ? "Your answers are saved as you go. Stay in fullscreen until you submit."
+                            : "Your answers are saved as you go."}
                         </p>
                       </motion.section>
                     </AnimatePresence>
@@ -683,21 +686,22 @@ e90c·5d17·a2f6·83b0</pre>
                       </p>
                     </section>
 
-                    <section className="relative overflow-hidden rounded-[24px] border-2 border-[var(--qs-ink)] bg-[#241F4A] p-6 text-white shadow-[6px_6px_0_var(--qs-sun)]">
-                      <pre aria-hidden="true" className="pointer-events-none absolute bottom-2 right-3 select-none text-right font-mono text-[11px] leading-[1.9] tracking-[0.06em] text-white/10">3f9a·c21e
-7b04·d8e1
-4be7·0a95</pre>
+                    <section className="relative overflow-hidden rounded-[24px] border-2 border-[var(--qs-ink)] bg-[#241F4A] p-6 text-[#FFFFFF] shadow-[6px_6px_0_var(--qs-sun)]">
                       <div className="relative flex items-center justify-between gap-3">
                         <span className="grid h-10 w-10 place-items-center rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1C1840]">
                           <ShieldCheck className="h-5 w-5" />
                         </span>
                         <span className="rounded-full border-2 border-[var(--qs-sun)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.06em] leading-none text-[var(--qs-sun)]">
-                          {autoSubmitted ? "Submitted" : "Protected"}
+                          {autoSubmitted ? "Submitted" : antiCheatEnabled ? "Protected" : "Autosaved"}
                         </span>
                       </div>
-                      <h3 className="qs-display relative mt-4 text-[20px] font-extrabold">Secure session</h3>
+                      <h3 className="qs-display relative mt-4 text-[20px] font-extrabold text-[#FFFFFF]">
+                        {autoSubmitted ? "Attempt submitted" : antiCheatEnabled ? "Secure session" : "Quiz session"}
+                      </h3>
                       <p className="mt-1.5 text-sm leading-6 text-[#DCD6F7]">
-                        This attempt is monitored in fullscreen. Your responses are saved as you go.
+                        {antiCheatEnabled
+                          ? "This attempt is monitored in fullscreen. Your responses are saved as you go."
+                          : "This quiz is not proctored. Your responses are saved as you go."}
                       </p>
                     </section>
                   </aside>

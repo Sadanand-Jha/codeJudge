@@ -24,6 +24,7 @@ import {
   BarChart3,
   X,
 } from "lucide-react";
+import Select from "@/components/ui/Select";
 
 type AttemptStatus = "Completed" | "Submitted" | "Timed Out" | "Left Early";
 type AttemptVisibility = "Public" | "College" | "Classroom";
@@ -587,7 +588,7 @@ function FieldSelect({
     return (
       <label className="space-y-1">
         <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-text-muted">{label}</span>
-        <select
+        <Select
           value={value}
           onChange={(event) => onChange(event.target.value)}
           className="w-full rounded-xl border border-border bg-card px-2.5 py-2 text-xs text-text-primary outline-none transition-all focus:border-accent/30 focus:ring-1 focus:ring-accent/20"
@@ -597,7 +598,7 @@ function FieldSelect({
               {option}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
     );
   }
@@ -902,7 +903,7 @@ function MobileFilterBottomSheet({ subject, setSubject, dateRange, setDateRange,
               <div className="space-y-3">
                 <div>
                   <label className="block text-[9px] font-semibold uppercase tracking-wider text-text-muted mb-1">Subject</label>
-                  <select
+                  <Select
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                     className="w-full h-10 rounded-lg border border-border bg-card px-3 text-xs text-text-primary outline-none"
@@ -910,12 +911,12 @@ function MobileFilterBottomSheet({ subject, setSubject, dateRange, setDateRange,
                     {allSubjects.map(option => (
                       <option key={option} value={option}>{option}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 <div>
                   <label className="block text-[9px] font-semibold uppercase tracking-wider text-text-muted mb-1">Date Range</label>
-                  <select
+                  <Select
                     value={dateRange}
                     onChange={(e) => setDateRange(e.target.value)}
                     className="w-full h-10 rounded-lg border border-border bg-card px-3 text-xs text-text-primary outline-none"
@@ -923,12 +924,12 @@ function MobileFilterBottomSheet({ subject, setSubject, dateRange, setDateRange,
                     {["All time", "Last 7 days", "Last 30 days", "Last 90 days"].map(option => (
                       <option key={option} value={option}>{option}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 <div>
                   <label className="block text-[9px] font-semibold uppercase tracking-wider text-text-muted mb-1">Status</label>
-                  <select
+                  <Select
                     value={status}
                     onChange={(e) => setStatus(e.target.value)}
                     className="w-full h-10 rounded-lg border border-border bg-card px-3 text-xs text-text-primary outline-none"
@@ -936,12 +937,12 @@ function MobileFilterBottomSheet({ subject, setSubject, dateRange, setDateRange,
                     {STATUS_OPTIONS.map(option => (
                       <option key={option} value={option}>{option}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 <div>
                   <label className="block text-[9px] font-semibold uppercase tracking-wider text-text-muted mb-1">Score</label>
-                  <select
+                  <Select
                     value={score}
                     onChange={(e) => setScore(e.target.value)}
                     className="w-full h-10 rounded-lg border border-border bg-card px-3 text-xs text-text-primary outline-none"
@@ -949,12 +950,12 @@ function MobileFilterBottomSheet({ subject, setSubject, dateRange, setDateRange,
                     {SCORE_OPTIONS.map(option => (
                       <option key={option} value={option}>{option}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 <div>
                   <label className="block text-[9px] font-semibold uppercase tracking-wider text-text-muted mb-1">Sort By</label>
-                  <select
+                  <Select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                     className="w-full h-10 rounded-lg border border-border bg-card px-3 text-xs text-text-primary outline-none"
@@ -962,7 +963,7 @@ function MobileFilterBottomSheet({ subject, setSubject, dateRange, setDateRange,
                     {SORT_OPTIONS.map(option => (
                       <option key={option} value={option}>{option}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 <button

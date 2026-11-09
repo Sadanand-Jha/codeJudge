@@ -39,6 +39,7 @@ import {
 } from "@/components/creator/billing/ui";
 import { useToast } from "@/hooks/useToast";
 import { useFileUploadAccess } from "@/hooks/useFileUploadAccess";
+import Select from "@/components/ui/Select";
 
 type AiTab = "files" | "topic" | "chat";
 
@@ -138,9 +139,10 @@ function SelectField({
     <div>
       <label className="mb-1.5 block text-xs font-medium text-text-secondary">{label}</label>
       <div className="relative">
-        <select
+        <Select
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          showChevron={false}
           className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-2.5 pr-9 text-[13px] text-text-primary outline-none transition-colors focus:border-pink-500/40 dark:focus:border-ai-accent/40"
         >
           {options.map((o) => (
@@ -148,7 +150,7 @@ function SelectField({
               {o}
             </option>
           ))}
-        </select>
+        </Select>
         <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
       </div>
     </div>
