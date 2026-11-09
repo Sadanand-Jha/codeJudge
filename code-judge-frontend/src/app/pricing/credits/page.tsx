@@ -253,7 +253,7 @@ export default async function AICreditsPricingPage() {
                     <p className="landing-plan-description">{pack.blurb}</p>
 
                     <div className="pricing-plan-price-row">
-                      <div className="landing-plan-price">
+                      <div  className="landing-plan-price">
                         <b>{formatPricingAmount(pack.price)}</b>
                         <span>one-time</span>
                       </div>

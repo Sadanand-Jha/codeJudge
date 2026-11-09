@@ -80,7 +80,7 @@ export function VBars({
                 !i.c && (peak && i.v === max && i.v > 0 ? "bg-[var(--qs-sun)]" : "bg-[var(--qs-brand)]")
               )}
               style={{
-                height: i.v === 0 ? "6px" : `calc(${(i.v / max) * 84}%)`,
+                height: i.v === 0 ? "0.375rem" : `calc(${(i.v / max) * 84}%)`,
                 background: i.c,
               }}
             />

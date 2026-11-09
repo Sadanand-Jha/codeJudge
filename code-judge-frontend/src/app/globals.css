@@ -1049,6 +1049,15 @@ button.cf-btn:hover {
   color: var(--text-secondary);
 }
 
+.katex svg {
+  stroke-width: 0.0625rem !important;
+}
+
+/* Match the fluid rem scale used by the generated full-round utility. */
+.rounded-full {
+  border-radius: 9999rem;
+}
+
 /* ============================================
    Toast Notification System — Premium Animations
    ============================================ */

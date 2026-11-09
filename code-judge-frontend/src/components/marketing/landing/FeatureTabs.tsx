@@ -76,7 +76,7 @@ const FEATURE_TABS: FeatureTab[] = [
     preview: (
       <>
         <span className="pl ok">● Live now</span>
-        <h3 style={{ fontSize: 26, margin: "10px 0 8px" }}>
+        <h3 style={{ fontSize: "1.625rem", margin: "0.625rem 0 0.5rem" }}>
           Operating system Unit 1, 2 class quiz
         </h3>
         <div className="ms">
