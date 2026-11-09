@@ -250,6 +250,7 @@
 }
 
 @media (max-height: 700px) and (min-width: 901px) {
+  .wrap,
   .wrapFit {
     padding-top: clamp(3rem, 8vh, 4.5rem);
     padding-bottom: 0.75rem;
@@ -291,6 +292,23 @@
 
   .footer {
     margin-top: 1rem;
+  }
+}
+
+@media (max-height: 620px) and (min-width: 901px) {
+  .wrap,
+  .wrapFit {
+    padding-top: 2rem;
+    padding-bottom: 0.25rem;
+    gap: 1rem;
+  }
+
+  .mini {
+    margin-top: 0.75rem;
+  }
+
+  .card {
+    padding: 1rem 1.25rem;
   }
 }
 

@@ -183,11 +183,11 @@
 .checkPath {
   fill: none;
   stroke: currentColor;
-  stroke-width: 3;
+  stroke-width: 0.1875rem;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
+  stroke-dasharray: 0.0625rem;
+  stroke-dashoffset: 0.0625rem;
 }
 
 .checkPathDrawn {
