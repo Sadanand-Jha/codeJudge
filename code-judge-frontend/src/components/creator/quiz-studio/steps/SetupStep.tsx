@@ -5,7 +5,8 @@ import { motion } from "framer-motion";
 import { ArrowRight, BookOpen, Check, Clock, FileText, ShieldCheck, Star, Target } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
-import { SyllabusSearchSelect } from "@/components/creator/syllabus/SyllabusSearchSelect";
+import { SubjectField } from "@/components/creator/syllabus/SubjectField";
+import { useSyllabusImportAccess } from "@/hooks/useSyllabusImportAccess";
 import { generateQuizCode as fetchQuizCode } from "@/services/quiz";
 import { useQuizReferenceStore } from "@/store/quizReferenceStore";
 import { useAuthStore } from "@/store/authStore";
@@ -32,6 +33,7 @@ const FIELD_CLS =
 
 export function SetupStep() {
   const { state, updateInfo, editMode } = useStudio();
+  const { hasPaidPlan } = useSyllabusImportAccess();
   const [choice, setChoice] = useState<"scratch" | null>("scratch");
 
   const info = state.info;
@@ -129,24 +131,18 @@ export function SetupStep() {
                 />
               </div>
 
-              {/* Subject */}
-              <div className="flex flex-col gap-2">
-                <SyllabusSearchSelect
-                  type="syllabus"
-                  label="Subject"
-                  placeholder="Search syllabi (Physics, Chemistry, Maths…)"
-                  required
-                  value={info.subjectId ? Number(info.subjectId) || null : null}
-                  selectedLabel={info.subject || null}
-                  allowCustom
-                  onChange={(item) =>
-                    updateInfo({
-                      subject: item?.name ?? "",
-                      subjectId: item?.id ? item.id : "",
-                    })
-                  }
-                />
-              </div>
+              {/* Subject (paid plans only; free plans have no subject field) */}
+              {hasPaidPlan && (
+                <div className="flex flex-col gap-2">
+                  <SubjectField
+                    subject={info.subject}
+                    subjectId={info.subjectId}
+                    required
+                    placeholder="Search syllabi (Physics, Chemistry, Maths…)"
+                    onChange={(patch) => updateInfo(patch)}
+                  />
+                </div>
+              )}
 
               {/* Difficulty — segmented control */}
               <fieldset className="flex flex-col gap-2">

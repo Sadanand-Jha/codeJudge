@@ -8,6 +8,7 @@ import { loadQuizState, saveQuizDetails, computeQuestionsSignature, getSyncedSig
 import { useQuizProblemsStore } from "@/store/quizProblemsStore";
 import { useToast } from "@/hooks/useToast";
 import { toZonedDateTimeParts } from "@/lib/timezone";
+import { useSyllabusImportAccess } from "@/hooks/useSyllabusImportAccess";
 
 export type QuizStatus = "draft" | "scheduled" | "registration_open" | "live" | "ended" | "completed";
 
@@ -58,9 +59,9 @@ function deriveQuizStatus(opts: {
  * Returns a human-readable message describing the first missing requirement,
  * or `null` when everything needed is in place.
  */
-function validateQuizStart(details: QuizDetails): string | null {
+function validateQuizStart(details: QuizDetails, subjectRequired: boolean): string | null {
   if (!details.name.trim()) return "Quiz name is required.";
-  if (!details.subject.trim()) return "Subject is required.";
+  if (subjectRequired && !details.subject.trim()) return "Subject is required.";
   if (details.registrationEnabled) {
     if (!details.registrationStart) return "Registration start time is required.";
     if (!details.registrationEnd) return "Registration end time is required.";
@@ -124,6 +125,7 @@ export function QuizSettingsProvider({
   children: ReactNode;
 }) {
   const toast = useToast();
+  const { hasPaidPlan } = useSyllabusImportAccess();
   const [quiz, setQuiz] = useState<QuizBasic | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -202,7 +204,7 @@ export function QuizSettingsProvider({
       return;
     }
 
-    const message = validateQuizStart(details);
+    const message = validateQuizStart(details, hasPaidPlan);
     if (message) {
       setStartValidationError(message);
       toast.error({ title: "Cannot start quiz", description: message });
@@ -246,7 +248,7 @@ export function QuizSettingsProvider({
 
     setStartValidationError(null);
     setConfirmingStart(true);
-  }, [quiz, details, code, toast, hydrateProblems]);
+  }, [quiz, details, code, toast, hydrateProblems, hasPaidPlan]);
 
   /**
    * Confirm the quiz start: persist the current settings, then publish the

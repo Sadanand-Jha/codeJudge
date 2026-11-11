@@ -20,7 +20,8 @@ import {
   X,
   Sparkles,
 } from "lucide-react";
-import { SyllabusSearchSelect } from "@/components/creator/syllabus/SyllabusSearchSelect";
+import { SubjectField } from "@/components/creator/syllabus/SubjectField";
+import { useSyllabusImportAccess } from "@/hooks/useSyllabusImportAccess";
 import { QuizDetails, DEFAULT_QUIZ_DETAILS, VISIBILITY_OPTIONS, DIFFICULTY_OPTIONS } from "./types";
 
 interface QuizDetailsFormProps {
@@ -70,6 +71,7 @@ function FieldLabel({ children, icon }: { children: React.ReactNode; icon?: Reac
 export default function QuizDetailsForm({ onContinue, initialDetails }: QuizDetailsFormProps) {
   const [details, setDetails] = useState<QuizDetails>(initialDetails || DEFAULT_QUIZ_DETAILS);
   const [tagInput, setTagInput] = useState("");
+  const { hasPaidPlan } = useSyllabusImportAccess();
 
   const update = (patch: Partial<QuizDetails>) => setDetails((d) => ({ ...d, ...patch }));
 
@@ -163,23 +165,17 @@ export default function QuizDetailsForm({ onContinue, initialDetails }: QuizDeta
 
               {/* Subject + Topic */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <FieldLabel icon={<GraduationCap className="w-3 h-3" />}>Subject</FieldLabel>
-                  <SyllabusSearchSelect
-                    type="syllabus"
-                    theme="dark"
-                    placeholder="Search syllabi..."
-                    value={details.subjectId ? Number(details.subjectId) || null : null}
-                    selectedLabel={details.subject || null}
-                    allowCustom
-                    onChange={(item) =>
-                      update({
-                        subject: item?.name ?? "",
-                        subjectId: item?.id ? item.id : "",
-                      })
-                    }
-                  />
-                </div>
+                {hasPaidPlan && (
+                  <div>
+                    <FieldLabel icon={<GraduationCap className="w-3 h-3" />}>Subject</FieldLabel>
+                    <SubjectField
+                      theme="dark"
+                      subject={details.subject}
+                      subjectId={details.subjectId}
+                      onChange={(patch) => update(patch)}
+                    />
+                  </div>
+                )}
                 <div>
                   <FieldLabel icon={<Hash className="w-3 h-3" />}>Topic</FieldLabel>
                   <input

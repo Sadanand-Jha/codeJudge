@@ -19,7 +19,8 @@ country_pricing_configs  (versioned overlay: country -> currency + amount)
     |
 GET /api/v1/pricing  (public catalog)
     |
-    |  detect country (trusted proxy IP -> signed SSR header -> mobile -> default)
+    |  saved-currency lock (subscribers) -> ?country= (dev only) -> trusted proxy IP
+    |  -> signed SSR header -> mobile -> PRICING_DEFAULT_COUNTRY -> fallback row
     |  replace the monthly price of plans with slug "pro" / "elevate"
     v
 Marketing pages (SSR)              Creator billing (client)
@@ -110,26 +111,47 @@ safe to run on databases that already contain admin-edited prices.
 
 ## 3. How a request's country is chosen
 
-`resolveCountryPricing` in `src/services/countryPricing.service.ts` detects the
-country in this priority order:
+`resolveCountryPricing` in `src/services/countryPricing.service.ts` decides the
+price in this priority order. The first step that yields a country or a locked
+currency wins:
 
-1. **Trusted proxy headers.** `cf-ipcountry` (Cloudflare) or
-   `x-vercel-ip-country` (Vercel) are only accepted when the direct peer address
-   is listed in `GEO_TRUSTED_PROXY_IPS`. This prevents clients from spoofing the
-   header. Pseudo codes `XX`, `T1`, and `A1` are rejected.
-2. **Signed frontend SSR header.** The Next.js server can forward
+0. **Saved-currency lock.** A signed-in user who already has a subscription with
+   `billing_currency` keeps that currency and country, regardless of IP, mobile,
+   or dev overrides. The lookup (`findBillingCurrencyLock`) reads the latest
+   subscription in status `active`, `past_due`, `paused`, `canceled`, or
+   `expired`. It then uses the current active price for that currency and
+   country (`findCurrentPriceByCurrency`), reported as `source: "locked"`. If
+   that currency has no active row (for example, it was disabled in
+   `/platform`), a warning is logged and detection continues. Checkout never
+   fails because of this.
+1. **Dev override `?country=XX`.** Accepted only outside production
+   (`isProductionRuntime()` checks `NODE_ENV`, `VERCEL_ENV`, and `VERCEL`).
+   Reported as `source: "dev_override"`. In production the parameter is
+   ignored.
+2. **Trusted proxy headers.** `cf-ipcountry` (Cloudflare) or
+   `x-vercel-ip-country` (Vercel) are only accepted when the direct TCP peer
+   (`req.socket.remoteAddress`, never `X-Forwarded-For`) is in
+   `GEO_TRUSTED_PROXY_IPS`. Entries can be exact IPs or CIDR ranges, IPv4 or
+   IPv6 (`src/utils/trustedProxy.ts`). Malformed entries are skipped with a
+   warning, and an empty list disables header trust. Pseudo codes `XX`, `T1`,
+   and `A1` are rejected.
+3. **Signed frontend SSR header.** The Next.js server can forward
    `x-pricing-country`, `x-pricing-timestamp`, and `x-pricing-signature`. The
    signature is `HMAC-SHA256(`${country}:${timestamp}`)` using
-   `PRICING_GEO_SHARED_SECRET`; the timestamp must be within 300 seconds.
-   Signature comparison is timing-safe.
-3. **Mobile calling code** for authenticated users (only when no IP country was
-   found). `users.mobile` must be E.164; a fixed calling-code table maps it to a
-   country (`+91` -> IN, `+44` -> GB, and so on). North American `+1` is
-   intentionally not mapped because it cannot identify a single country.
-4. **`PRICING_DEFAULT_COUNTRY`** when nothing was detected (useful for local
-   development). It is reported with `source: "default"`.
-5. **Fallback row** (`is_fallback = true`) when there is no detected country or
-   no current/active row for it.
+   `PRICING_GEO_SHARED_SECRET` (at least 32 chars); the timestamp must be within
+   300 seconds. Signature comparison is timing-safe.
+4. **Mobile calling code** for authenticated users (only when no IP or dev
+   override country was found). `users.mobile` must be E.164; a fixed
+   calling-code table maps it to a country (`+91` -> IN, `+44` -> GB, and so on).
+   North American `+1` is intentionally not mapped because it cannot identify a
+   single country. Reported as `source: "mobile"`.
+5. **`PRICING_DEFAULT_COUNTRY`** when nothing was detected (useful for local
+   development). Reported as `source: "default"`.
+6. **Fallback row** (`is_fallback = true`) when there is no detected country or
+   no current/active row for it. Reported as `source: "fallback"`.
+
+Because the saved-currency lock (step 0) runs in `resolveCountryPricing`, it
+applies to both the public catalog and checkout.
 
 The resolved selection is:
 
@@ -145,7 +167,7 @@ The resolved selection is:
   configId: number;
   isFallback: boolean;
   checkoutAvailable: boolean;
-  source: "ip" | "mobile" | "default" | "fallback";
+  source: "locked" | "dev_override" | "ip" | "mobile" | "default" | "fallback";
 }
 ```
 
@@ -275,9 +297,16 @@ UI: Platform console -> **Pricing** -> **Countries** tab
    and `pricing_version` on the order; the subscription stores
    `billing_country`, `billing_currency`, `billing_price_minor`,
    `pricing_config_id`, and `pricing_version`.
-7. A reusable pending order is only reused when its price/currency/country
-   snapshot still matches the current resolution; otherwise it is discarded and
-   recreated.
+7. A reusable pending order (`findReusablePendingOrder`) is only reused when
+   `reusableOrderIsCurrent` confirms its price/currency/country snapshot still
+   matches the live resolution; otherwise it is discarded
+   (`discardStalePendingOrder`) and recreated.
+
+After a payment is captured, `cardCountryMismatch` compares the card's issuing
+country (Razorpay payment entity) with `orders.pricing_country`. For an INR
+order, an international card is also flagged. Mismatches are **logged and
+flagged only**; they never reject a payment. Payments without a card (UPI,
+netbanking, wallet) are not checked.
 
 Existing subscriptions keep their historical snapshot; repricing only affects
 new orders. Renaming or re-benefiting plans does not change country prices.
@@ -322,9 +351,21 @@ Backend:
 | --- | --- |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Required for `checkoutAvailable` to be `true` and for checkout |
 | `RAZORPAY_SUPPORTED_CURRENCIES` | Comma-separated allow-list of currencies enabled on the Razorpay account; default `INR` |
-| `GEO_TRUSTED_PROXY_IPS` | Comma-separated exact peer IPs allowed to supply country headers |
+| `GEO_TRUSTED_PROXY_IPS` | Comma-separated exact IPs or CIDR ranges (IPv4/IPv6) of the direct peers allowed to supply country headers and `CF-Connecting-IP`. Empty disables header trust |
 | `PRICING_GEO_SHARED_SECRET` | HMAC secret (at least 32 chars) shared with the frontend SSR proxy |
 | `PRICING_DEFAULT_COUNTRY` | Optional ISO country used when no signal is available (for example `IN` locally) |
+| `NODE_ENV`, `VERCEL_ENV`, `VERCEL` | Control whether the dev `?country=` override is allowed. Must not be production on local/staging |
+
+Client IP for logs and rate limiting (`src/utils/getClientIp.ts`): if the direct
+peer is in `GEO_TRUSTED_PROXY_IPS`, `CF-Connecting-IP` is used; otherwise
+`req.ip` (with the `::ffff:` prefix stripped). Set `GEO_TRUSTED_PROXY_IPS` to the
+Cloudflare/ingress addresses so rate limits do not bucket every visitor behind
+one edge IP.
+
+The template is `.env.example` in the backend root. It lists `NODE_ENV`,
+`GEO_TRUSTED_PROXY_IPS`, `PRICING_GEO_SHARED_SECRET`, `PRICING_DEFAULT_COUNTRY`,
+and `RAZORPAY_SUPPORTED_CURRENCIES`. `VERCEL` and `VERCEL_ENV` are set by the
+Vercel platform, not in `.env`.
 
 Frontend (server-only, never `NEXT_PUBLIC_`):
 
@@ -397,6 +438,11 @@ GROUP BY pricing_country, currency;
 | Price shows USD 4.99 instead of the local price | No active/current row for the detected country, so the fallback row is used; check `countryPricing.isFallback` and `source` | Create/activate the country row, or check country detection |
 | Country detection always reports `fallback` behind a proxy | The ingress peer IP is not in `GEO_TRUSTED_PROXY_IPS`, so `cf-ipcountry` / `x-vercel-ip-country` are ignored | Add the exact proxy IPs, or configure the signed SSR header |
 | Signed SSR header is ignored | `PRICING_FRONTEND_TRUSTED_GEO_HEADER` unset, secret shorter than 32 chars, clock skew over 300 seconds, or secrets do not match | Align both secrets and header configuration |
+| Subscriber still sees an old currency after a country price change or a move | Saved-currency lock (`billing_currency` on the latest subscription) takes priority over detection, by design | Expected. Existing subscribers keep their currency; the lock is not released by a price change |
+| Subscriber's locked currency disappears from the catalog | No active/current row for that currency and country (for example, the row was deactivated) | Re-enable the row, or accept detection fallback. A warning `locked currency has no active price` is logged |
+| `?country=` has no effect | Running with `NODE_ENV=production` or `VERCEL` set, or the user has a saved-currency lock (which wins) | Expected in production. Test with a non-production runtime and a user without a lock |
+| Rate limits look like one visitor behind Cloudflare | `CF-Connecting-IP` not trusted because the peer is not in `GEO_TRUSTED_PROXY_IPS` | Add the edge/ingress IPs or CIDR range |
+| Payment marked with card-country mismatch in logs | Card issuer country differs from `pricing_country`, or an international card on an INR order | Informational only. No action needed unless it is a pattern of abuse |
 | CTA disabled / `checkoutAvailable: false` | Razorpay keys missing or resolved currency not in `RAZORPAY_SUPPORTED_CURRENCIES` | Add the keys and enable the currency in the Razorpay account and allow-list |
 | Checkout returns `503 CURRENCY_NOT_ENABLED` | Same as above, re-checked at order time | Same as above |
 | Admin plan card shows a different price than the creator page | The plan editor shows the base `plan_prices` monthly amount; only the Countries tab and public catalog apply the country override | Compare on the Countries tab or via `/api/v1/pricing` |
@@ -443,8 +489,17 @@ Backend:
 - `src/controllers/pricing.controller.ts` - public catalog handler and cache
   headers.
 - `src/routes/v1/pricing.routes.ts` - public pricing routes.
-- `src/services/billing.service.ts` - checkout resolution and order
-  snapshots.
+- `src/services/billing.service.ts` - checkout resolution, reusable-order check,
+  and order snapshots.
+- `src/repositories/billing.repository.ts` - order/subscription snapshot columns
+  and reusable pending order lookup.
+- `src/utils/trustedProxy.ts` - `GEO_TRUSTED_PROXY_IPS` parsing (exact IP and
+  CIDR) and trusted-peer checks.
+- `src/utils/getClientIp.ts` - client IP for logs and rate limiting.
+- `src/config/razorpay.ts` - `isRazorpayConfigured()`, which feeds
+  `checkoutAvailable`.
+- `src/services/billing/razorpay.client.ts` - Razorpay API client used by
+  checkout and webhooks.
 - `src/__tests__/countryPricing.test.ts` - resolution unit tests.
 
 Frontend:

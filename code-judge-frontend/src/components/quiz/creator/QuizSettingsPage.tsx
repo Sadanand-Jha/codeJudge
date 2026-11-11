@@ -29,7 +29,8 @@ import { QuizDetails, DEFAULT_QUIZ_DETAILS, VISIBILITY_OPTIONS, QuizVisibility }
 import { saveQuizDetails, clearQuizState } from "@/utils/quizStorage";
 import { getQuizVisibilityOptions, createQuiz, updateQuizStatus } from "@/services/quiz";
 import { generateQuizCode } from "@/utils/quizCode";
-import { SyllabusSearchSelect } from "@/components/creator/syllabus/SyllabusSearchSelect";
+import { SubjectField } from "@/components/creator/syllabus/SubjectField";
+import { useSyllabusImportAccess } from "@/hooks/useSyllabusImportAccess";
 import { SettingsCard, SettingsInput, Toggle, SettingsRow } from "@/components/ui/settings";
 import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/helpers";
@@ -310,10 +311,12 @@ export default function QuizSettingsPage({
     details.availabilityEnd <= details.availabilityStart
   );
 
+  const { hasPaidPlan } = useSyllabusImportAccess();
+
   const errors = useMemo(() => {
     const e: Partial<Record<string, string>> = {};
     if (!details.name.trim()) e.name = "Quiz name is required.";
-    if (!details.subject.trim()) e.subject = "Subject is required.";
+    if (hasPaidPlan && !details.subject.trim()) e.subject = "Subject is required.";
     if (details.registrationEnabled) {
       if (!details.registrationStart) e.registrationStart = "Registration start time is required.";
       if (!details.registrationEnd) e.registrationEnd = "Registration end time is required.";
@@ -325,13 +328,14 @@ export default function QuizSettingsPage({
       if (availabilityEndInvalid) e.availabilityEnd = "End date/time cannot be before or equal to start.";
     }
     return e;
-  }, [details, registrationEndInvalid, availabilityEndInvalid]);
+  }, [details, registrationEndInvalid, availabilityEndInvalid, hasPaidPlan]);
 
   /* ---- Progress for sidebar status ---- */
   const progress = useMemo(() => {
     let score = 0;
     if (details.name.trim()) score += 15;
-    if (details.subject.trim()) score += 15;
+    // Free plans have no subject field, so they don't lose these points.
+    if (!hasPaidPlan || details.subject.trim()) score += 15;
     if (details.visibility) score += 10;
     if (details.tags.length > 0) score += 5;
     if (details.availabilityMode === "scheduled") {
@@ -348,7 +352,7 @@ export default function QuizSettingsPage({
     }
     if (details.resultVisibility) score += 5;
     return Math.min(100, score);
-  }, [details]);
+  }, [details, hasPaidPlan]);
 
   /* ---- Save & Continue ---- */
   const capitalizeWords = (str: string) =>
@@ -737,24 +741,18 @@ export default function QuizSettingsPage({
                 </div>
 
                 <div className="grid gap-6 sm:grid-cols-2">
-                  <div>
-                    <SyllabusSearchSelect
-                      type="syllabus"
-                      label="Subject"
-                      placeholder="Search syllabi..."
-                      required
-                      value={details.subjectId ? Number(details.subjectId) || null : null}
-                      selectedLabel={details.subject || null}
-                      allowCustom
-                      onChange={(item) =>
-                        update({
-                          subject: item?.name ?? "",
-                          subjectId: item?.id ? item.id : "",
-                        })
-                      }
-                    />
-                    {attempted && errors.subject && <FieldError message={errors.subject} />}
-                  </div>
+                  {hasPaidPlan && (
+                    <div>
+                      <SubjectField
+                        subject={details.subject}
+                        subjectId={details.subjectId}
+                        required
+                        placeholder="Search syllabi..."
+                        onChange={(patch) => update(patch)}
+                      />
+                      {attempted && errors.subject && <FieldError message={errors.subject} />}
+                    </div>
+                  )}
                   <div>
                     <label className="mb-2 block text-sm font-medium text-text-primary">Topics</label>
                     <div className="rounded-xl border border-input-border bg-input-bg px-4 py-3">
