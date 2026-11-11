@@ -84,7 +84,7 @@ const SHARE_BTN = cn(
 );
 
 const LABEL =
-  "block text-[11px] font-extrabold uppercase tracking-[0.05em] text-[var(--qs-muted)]";
+  "block text-[13px] font-extrabold uppercase tracking-[0.05em] text-[var(--qs-muted)]";
 
 const subscribeNoop = () => () => {};
 const getOrigin = () => window.location.origin;
@@ -134,7 +134,7 @@ function StatRow({
     >
       <span
         className={cn(
-          "text-[10px] font-medium leading-3 md:text-[13.5px] md:font-bold",
+          "text-[12px] font-medium leading-3 md:text-[13.5px] md:font-bold",
           highlight ? "text-white/80" : "text-[var(--qs-muted)]"
         )}
       >
@@ -299,11 +299,11 @@ export function CreatorReferAndEarnPage() {
   return (
     <div className="mx-auto flex w-full max-w-[980px] flex-col gap-3 pb-4 md:gap-[22px] md:pb-6">
       <header className="min-w-0">
-        <h1 className="qs-display text-[21px] font-bold leading-[1.15] tracking-[-0.02em] text-[var(--qs-ink)] md:text-[34px] md:font-extrabold md:leading-[1.05] md:tracking-[-0.03em] lg:text-[40px]">
+        <h1 className="qs-display text-[28px] font-extrabold leading-[1.15] tracking-[-0.01em] text-[var(--qs-ink)] md:text-[34px] md:leading-[1.05] md:tracking-[-0.03em] lg:text-[40px]">
           <span className="md:hidden">Referrals</span>
           <span className="hidden md:inline">Refer &amp; Earn</span>
         </h1>
-        <p className="mt-0.5 text-[11px] leading-[15px] text-[var(--qs-muted)] md:mt-1.5 md:text-[15.5px] md:font-medium">
+        <p className="mt-1 text-[14px] leading-5 text-[var(--qs-muted)] md:mt-1.5 md:text-[15.5px] md:font-medium">
           Invite fellow educators and earn AI credits together.
         </p>
         {loadError && (
@@ -325,20 +325,20 @@ export function CreatorReferAndEarnPage() {
 
       {/* Mobile hero */}
       <section className="rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] p-3.5 text-[var(--qs-on-brand)] shadow-[2px_3px_0_var(--qs-sun)] md:hidden">
-        <span className="inline-flex items-center gap-1 rounded-[10px] bg-[var(--qs-ink)] px-2.5 py-1 text-[9.5px] font-bold uppercase tracking-[0.04em] text-[var(--qs-sun)]">
+        <span className="inline-flex items-center gap-1 rounded-[10px] bg-[var(--qs-ink)] px-2.5 py-1 text-[12px] font-bold uppercase tracking-[0.04em] text-[var(--qs-sun)]">
           <Sparkles className="h-3 w-3 fill-current" />
           Give 50, get 50
         </span>
-        <h2 className="mt-2 text-[22px] font-bold leading-[26px]">
+        <h2 className="mt-2.5 text-[24px] font-extrabold leading-[29px]">
           Share the love,
           <br />
           <span className="text-[var(--qs-sun)]">earn 50 credits</span>
         </h2>
-        <p className="mt-1.5 text-[11.5px] leading-4 text-[#EAE5FF]">
+        <p className="mt-2 text-[14px] leading-5 text-[#EAE5FF]">
           When a new educator buys their first monthly plan using your link, you both get 50 AI
           credits each.
         </p>
-        <span className="mt-2 inline-flex items-center rounded-[15px] bg-[var(--qs-sun)] px-3 py-1 text-[11px] font-semibold text-[var(--qs-ink)]">
+        <span className="mt-2.5 inline-flex items-center rounded-[15px] bg-[var(--qs-sun)] px-3 py-1.5 text-[12px] font-bold text-[var(--qs-ink)]">
           New users only · on first monthly plan
         </span>
         <div className="mt-2 grid grid-cols-2 gap-2">
@@ -347,8 +347,8 @@ export function CreatorReferAndEarnPage() {
               <Star className="h-3.5 w-3.5 fill-[var(--qs-ink)]" />
             </span>
             <div className="min-w-0">
-              <p className="text-[9.5px] font-semibold leading-3">You get on their first plan</p>
-              <p className="mt-px text-[11px] font-semibold">
+              <p className="text-[12px] font-semibold leading-3">You get on their first plan</p>
+              <p className="mt-px text-[13px] font-semibold">
                 <b className="text-[20px] font-bold">50</b> AI credits
               </p>
             </div>
@@ -358,10 +358,10 @@ export function CreatorReferAndEarnPage() {
               <Star className="h-3.5 w-3.5 fill-[var(--qs-ink)]" />
             </span>
             <div className="min-w-0">
-              <p className="text-[9.5px] font-semibold leading-3">
+              <p className="text-[12px] font-semibold leading-3">
                 Your invitee gets on their first plan
               </p>
-              <p className="mt-px text-[11px] font-semibold">
+              <p className="mt-px text-[13px] font-semibold">
                 <b className="text-[20px] font-bold">50</b> AI credits
               </p>
             </div>
@@ -381,7 +381,7 @@ export function CreatorReferAndEarnPage() {
         />
 
         <div className="relative min-w-0">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--qs-ink)] px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.04em] text-[var(--qs-sun)]">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--qs-ink)] px-3 py-1.5 text-[13px] font-extrabold uppercase tracking-[0.04em] text-[var(--qs-sun)]">
             <Sparkles className="h-3 w-3 fill-current" />
             Give 50, get 50
           </span>
@@ -427,10 +427,10 @@ export function CreatorReferAndEarnPage() {
       </motion.section>
 
       <section className={CARD}>
-        <h3 className="text-[14px] font-bold leading-4 text-[var(--qs-ink)] md:text-[19px] md:font-extrabold md:tracking-[-0.015em]">
+        <h3 className="text-[16px] font-extrabold leading-5 text-[var(--qs-ink)] md:text-[19px] md:font-extrabold md:tracking-[-0.015em]">
           Your referral link
         </h3>
-        <p className="mt-0.5 text-[10.5px] leading-3.5 font-medium text-[var(--qs-muted)] md:text-[13.5px]">
+        <p className="mt-0.5 text-[13px] leading-3.5 font-medium text-[var(--qs-muted)] md:text-[13.5px]">
           Send it to someone new. Credits arrive after their first monthly plan purchase.
         </p>
 
@@ -450,7 +450,7 @@ export function CreatorReferAndEarnPage() {
               }
               aria-label="Referral link"
               onFocus={(event) => event.currentTarget.select()}
-              className="min-w-0 flex-1 border-0 bg-transparent text-[11.5px] font-medium text-[var(--qs-ink)] outline-none md:py-3 md:text-[14.5px] md:font-bold"
+              className="min-w-0 flex-1 border-0 bg-transparent text-[14px] font-medium text-[var(--qs-ink)] outline-none md:py-3 md:text-[14.5px] md:font-bold"
             />
           </label>
           <button
@@ -459,7 +459,7 @@ export function CreatorReferAndEarnPage() {
             disabled={shareDisabled}
             className={cn(
               copied ? BTN_CTA_DONE : BTN_CTA,
-              "max-md:min-h-[38px] max-md:rounded-[10px] max-md:px-3 max-md:text-[12.5px] max-md:font-semibold",
+              "max-md:min-h-[38px] max-md:rounded-[10px] max-md:px-3 max-md:text-[14px] max-md:font-semibold",
               shareDisabled && "cursor-not-allowed opacity-50"
             )}
           >
@@ -553,8 +553,8 @@ export function CreatorReferAndEarnPage() {
                 {index + 1}
               </span>
               <div className="min-w-0">
-                <p className="text-[12.5px] font-semibold text-[var(--qs-ink)]">{step.title}</p>
-                <p className="mt-0.5 text-[10.5px] leading-3.5 text-[var(--qs-muted)]">{step.body}</p>
+                <p className="text-[14px] font-semibold text-[var(--qs-ink)]">{step.title}</p>
+                <p className="mt-0.5 text-[13px] leading-3.5 text-[var(--qs-muted)]">{step.body}</p>
               </div>
             </div>
           ))}
@@ -563,10 +563,10 @@ export function CreatorReferAndEarnPage() {
 
       <section className="grid items-start gap-3 md:gap-[22px] lg:grid-cols-[1fr_1.25fr]">
         <div className={CARD}>
-          <h3 className="text-[14px] font-bold leading-4 text-[var(--qs-ink)] md:text-[19px] md:font-extrabold md:tracking-[-0.015em]">
+          <h3 className="text-[16px] font-extrabold leading-5 text-[var(--qs-ink)] md:text-[19px] md:font-extrabold md:tracking-[-0.015em]">
             Your rewards
           </h3>
-          <p className="mt-0.5 text-[10.5px] leading-3.5 font-medium text-[var(--qs-muted)] md:text-[13.5px]">
+          <p className="mt-0.5 text-[13px] leading-3.5 font-medium text-[var(--qs-muted)] md:text-[13.5px]">
             A quick look at how your invites are doing.
           </p>
           <div className="mt-2.5 grid grid-cols-3 gap-1.5 md:mt-4 md:grid-cols-1 md:gap-3">
@@ -581,10 +581,10 @@ export function CreatorReferAndEarnPage() {
         </div>
 
         <div className={CARD}>
-          <h3 className="text-[14px] font-bold leading-4 text-[var(--qs-ink)] md:text-[19px] md:font-extrabold md:tracking-[-0.015em]">
+          <h3 className="text-[16px] font-extrabold leading-5 text-[var(--qs-ink)] md:text-[19px] md:font-extrabold md:tracking-[-0.015em]">
             Recent referrals
           </h3>
-          <p className="mt-0.5 text-[10.5px] leading-3.5 font-medium text-[var(--qs-muted)] md:text-[13.5px]">
+          <p className="mt-0.5 text-[13px] leading-3.5 font-medium text-[var(--qs-muted)] md:text-[13.5px]">
             Credits show up once a new friend buys their first monthly plan.
           </p>
           {isLoading ? (
@@ -615,7 +615,7 @@ export function CreatorReferAndEarnPage() {
                   </div>
                   <span
                     className={cn(
-                      "ml-auto shrink-0 rounded-full px-2.5 py-1 text-[11.5px] font-extrabold",
+                      "ml-auto shrink-0 rounded-full px-2.5 py-1 text-[14px] font-extrabold",
                       entry.status === "qualified" &&
                         "bg-[#dcf5ea] text-[#187a52]",
                       entry.status === "pending" &&
@@ -636,10 +636,10 @@ export function CreatorReferAndEarnPage() {
           ) : (
             <div className="mt-2 flex min-h-[76px] flex-col items-center justify-center rounded-[12px] border-[1.5px] border-dashed border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2.5 text-center md:mt-3 md:min-h-0 md:rounded-[16px] md:border-2 md:px-4 md:py-9">
               <Users className="h-5 w-5 text-[var(--qs-muted)] md:h-6 md:w-6" />
-              <p className="mt-0.5 text-[11.5px] font-extrabold text-[var(--qs-ink)] md:mt-2 md:text-sm">
+              <p className="mt-0.5 text-[14px] font-extrabold text-[var(--qs-ink)] md:mt-2 md:text-sm">
                 {loadError ? "Couldn't load referrals" : "No referrals yet"}
               </p>
-              <p className="mt-0.5 text-[10.5px] text-[var(--qs-muted)] md:mt-1 md:text-[12.5px]">
+              <p className="mt-0.5 text-[13px] text-[var(--qs-muted)] md:mt-1 md:text-[14px]">
                 {loadError
                   ? "Use the retry button above to try again."
                   : "Share your link to start earning credits."}
@@ -649,7 +649,7 @@ export function CreatorReferAndEarnPage() {
         </div>
       </section>
 
-      <p className="flex items-start justify-start gap-1.5 text-left text-[10px] font-medium leading-3.5 text-[var(--qs-muted)] md:justify-center md:gap-2 md:text-center md:text-[12px] md:leading-[1.4]">
+      <p className="flex items-start justify-start gap-1.5 text-left text-[12px] font-medium leading-3.5 text-[var(--qs-muted)] md:justify-center md:gap-2 md:text-center md:text-[12px] md:leading-[1.4]">
         <ShieldCheck className="mt-px h-3 w-3 shrink-0 md:h-3.5 md:w-3.5" />
         <span>
           Valid only for new users on their first monthly plan purchase. Existing accounts and
@@ -689,7 +689,7 @@ export function CreatorReferAndEarnPage() {
                   >
                     Share on WhatsApp
                   </h3>
-                  <p className="mt-0.5 text-[12.5px] font-medium text-[var(--qs-muted)]">
+                  <p className="mt-0.5 text-[14px] font-medium text-[var(--qs-muted)]">
                     Preview and edit your message before sending.
                   </p>
                 </div>
@@ -723,7 +723,7 @@ export function CreatorReferAndEarnPage() {
                 onChange={(event) => setWaMessage(event.target.value)}
                 className="min-h-[92px] w-full resize-y rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 text-sm font-medium leading-[1.45] text-[var(--qs-ink)] outline-none focus:border-[var(--qs-brand)]"
               />
-              <p className="mt-1 text-right text-[11.5px] font-semibold text-[var(--qs-muted)]">
+              <p className="mt-1 text-right text-[14px] font-semibold text-[var(--qs-muted)]">
                 {waMessage.length}/240
               </p>
 
@@ -758,7 +758,7 @@ export function CreatorReferAndEarnPage() {
               </p>
 
               <div className="mt-4 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-brand)]/5 p-3.5">
-                <p className="mb-2 text-[11.5px] font-extrabold text-[var(--qs-brand)]">
+                <p className="mb-2 text-[14px] font-extrabold text-[var(--qs-brand)]">
                   Preview
                 </p>
                 <div className="ml-auto max-w-[92%] rounded-[14px_14px_4px_14px] border-2 border-[var(--qs-ink)] bg-[#dcf5ea] px-3 pt-2.5 pb-1.5 text-[13.5px] leading-[1.45] text-[var(--qs-ink)] shadow-[3px_3px_0_var(--qs-ink)]">
@@ -772,7 +772,7 @@ export function CreatorReferAndEarnPage() {
                   >
                     {referralLink}
                   </a>
-                  <time className="mt-0.5 block text-right text-[10.5px] font-semibold text-[var(--qs-muted)]">
+                  <time className="mt-0.5 block text-right text-[13px] font-semibold text-[var(--qs-muted)]">
                     now ✓✓
                   </time>
                 </div>

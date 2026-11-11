@@ -45,7 +45,7 @@ function CurrentPlanCard({ plan }: { plan: PricingPlan }) {
     <article
       aria-current="true"
       aria-label={`${plan.name} plan — current plan`}
-      className="relative flex flex-col rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] px-3.5 pb-3.5 pt-3.5 text-[var(--qs-ink)] shadow-[2px_3px_0_var(--qs-sun)] max-[900px]:order-first sm:rounded-[26px] sm:border-2 sm:px-[26px] sm:pb-7 sm:pt-7 sm:shadow-none"
+      className="relative flex flex-col rounded-[16px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] px-4 pb-5 pt-5 text-[var(--qs-ink)] shadow-[2px_3px_0_var(--qs-sun)] max-[900px]:order-first sm:rounded-[26px] sm:border-2 sm:px-[26px] sm:pb-7 sm:pt-7 sm:shadow-none"
     >
       <span className="absolute -top-4 left-1/2 hidden -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-[var(--qs-ok)] px-4 py-[5px] text-[13px] font-extrabold text-white sm:flex">
         <Sparkles className="h-3 w-3" />
@@ -65,35 +65,35 @@ function CurrentPlanCard({ plan }: { plan: PricingPlan }) {
         </span>
       </div>
 
-      <div className="mt-0.5 flex items-baseline justify-between gap-2 sm:mt-0 sm:block">
-        <p className="my-1 text-[30px] font-bold leading-9 tracking-tight sm:my-5 sm:mb-2.5 sm:text-[64px] sm:font-black sm:leading-none">
+      <div className="mt-1 flex items-baseline justify-between gap-2 sm:mt-0 sm:block">
+        <p className="my-2 text-[32px] font-bold leading-10 tracking-tight sm:my-5 sm:mb-2.5 sm:text-[64px] sm:font-black sm:leading-none">
           {formatPricingAmount(plan.price, plan.currency)}
           <span className="ml-1 text-[12px] font-medium text-[var(--qs-muted)] sm:ml-2 sm:text-base sm:font-bold">/ month</span>
         </p>
-        <p className="text-[11.5px] font-semibold sm:text-base sm:font-bold">
+        <p className="text-[12px] font-semibold sm:text-base sm:font-bold">
           {included ? `${plan.credits} AI credits included` : "No monthly credits"}
         </p>
       </div>
-      <p className="mb-2 mt-0.5 text-[10.5px] leading-[14px] text-[var(--qs-muted)] sm:mb-[18px] sm:mt-3 sm:min-h-[46px] sm:text-base sm:leading-normal">
+      <p className="mb-3 mt-1 text-[12px] leading-[17px] text-[var(--qs-muted)] sm:mb-[18px] sm:mt-3 sm:min-h-[46px] sm:text-base sm:leading-normal">
         {included
           ? "Your plan includes credits every month. Add a pack only when you need extra."
           : "Your current plan. Buy a credit pack only when you need AI credits."}
       </p>
 
-      <ul className="m-0 mb-2.5 flex flex-1 list-none flex-col gap-1.5 border-t border-dashed border-[var(--qs-line)] pt-2 sm:mb-[26px] sm:gap-[11px] sm:border-t-2 sm:pt-[18px]">
+      <ul className="m-0 mb-4 flex flex-1 list-none flex-col gap-2 border-t border-dashed border-[var(--qs-line)] pt-3 sm:mb-[26px] sm:gap-[11px] sm:border-t-2 sm:pt-[18px]">
         {features.map((feature) => (
           <li key={feature} className="flex items-start gap-2 sm:gap-2.5">
             <span className="mt-px grid h-4 w-4 flex-none place-items-center rounded-full bg-[var(--qs-brand)] text-[var(--qs-on-brand)] sm:h-5 sm:w-5">
               <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3" strokeWidth={3.5} />
             </span>
-            <span className="text-[11.5px] font-medium leading-4 sm:text-sm sm:leading-5">{feature}</span>
+            <span className="text-[12px] font-medium leading-[18px] sm:text-sm sm:leading-5">{feature}</span>
           </li>
         ))}
       </ul>
 
       <Link
         href="/creator/billing/plans"
-        className="flex w-full items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] py-2.5 text-[12.5px] font-semibold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none sm:gap-2 sm:rounded-[14px] sm:border-2 sm:py-[15px] sm:text-base sm:font-extrabold sm:shadow-[3px_3px_0_var(--qs-sun)]"
+        className="flex min-h-11 w-full items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] py-3 text-[13px] font-semibold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none sm:gap-2 sm:rounded-[14px] sm:border-2 sm:py-[15px] sm:text-base sm:font-extrabold sm:shadow-[3px_3px_0_var(--qs-sun)]"
       >
         Compare monthly plans
         <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -118,10 +118,10 @@ export function CreditPackCard({
   return (
     <article
       className={cn(
-        "relative flex flex-col rounded-[14px] border-[1.5px] border-[var(--qs-ink)] px-3.5 pb-3.5 shadow-[2px_3px_0_var(--qs-sun)] sm:rounded-[26px] sm:border-2 sm:px-[26px] sm:pb-7 sm:shadow-none",
+        "relative flex flex-col rounded-[16px] border-[1.5px] border-[var(--qs-ink)] px-4 pb-5 shadow-[2px_3px_0_var(--qs-sun)] sm:rounded-[26px] sm:border-2 sm:px-[26px] sm:pb-7 sm:shadow-none",
         hot
-          ? "bg-[var(--qs-brand)] pt-4 text-[var(--qs-on-brand)] max-[900px]:-order-1 sm:pt-10 sm:shadow-[10px_10px_0_var(--qs-sun)]"
-          : "bg-[var(--qs-surface)] pt-3.5 text-[var(--qs-ink)] sm:pt-7"
+          ? "bg-[var(--qs-brand)] pt-6 text-[var(--qs-on-brand)] max-[900px]:-order-1 sm:pt-10 sm:shadow-[10px_10px_0_var(--qs-sun)]"
+          : "bg-[var(--qs-surface)] pt-5 text-[var(--qs-ink)] sm:pt-7"
       )}
     >
       {hot && (
@@ -139,16 +139,16 @@ export function CreditPackCard({
         )}
       </div>
 
-      <div className="mt-0.5 flex items-center justify-between gap-2 sm:mt-0 sm:block">
-        <p className="my-1 text-[30px] font-bold leading-9 tracking-tight sm:my-5 sm:mb-2.5 sm:text-[64px] sm:font-black sm:leading-none">
+      <div className="mt-1 flex items-center justify-between gap-2 sm:mt-0 sm:block">
+        <p className="my-2 text-[32px] font-bold leading-10 tracking-tight sm:my-5 sm:mb-2.5 sm:text-[64px] sm:font-black sm:leading-none">
           {formatPricingAmount(pack.price, "INR")}
-          <span className="ml-1 text-[12px] font-semibold sm:hidden">{pack.credits} credits</span>
+          <span className="ml-1 text-[12.5px] font-semibold sm:hidden">{pack.credits} credits</span>
         </p>
         <button
           type="button"
           onClick={() => onSelect(pack)}
           className={cn(
-            "h-9 shrink-0 rounded-[9px] border-[1.5px] border-[var(--qs-ink)] px-2.5 text-[12px] font-semibold sm:hidden",
+            "h-10 shrink-0 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] px-3 text-[12.5px] font-semibold sm:hidden",
             hot ? "bg-[var(--qs-sun)] text-[#1A1240]" : "bg-[var(--qs-surface)] text-[var(--qs-ink)] border-[var(--qs-line)]"
           )}
         >
@@ -160,7 +160,7 @@ export function CreditPackCard({
       </div>
       <p
         className={cn(
-          "mb-2 mt-0.5 text-[10.5px] leading-[14px] sm:mb-[18px] sm:mt-3 sm:min-h-[46px] sm:text-base sm:leading-normal",
+          "mb-3 mt-1 text-[12px] leading-[17px] sm:mb-[18px] sm:mt-3 sm:min-h-[46px] sm:text-base sm:leading-normal",
           hot ? "opacity-[0.88]" : "text-[var(--qs-muted)]"
         )}
       >
@@ -169,7 +169,7 @@ export function CreditPackCard({
 
       <ul
         className={cn(
-          "m-0 mb-2.5 flex flex-1 list-none flex-col content-start gap-1.5 border-t border-dashed pt-2 sm:mb-[26px] sm:gap-[11px] sm:border-t-2 sm:pt-[18px]",
+          "m-0 mb-4 flex flex-1 list-none flex-col content-start gap-2 border-t border-dashed pt-3 sm:mb-[26px] sm:gap-[11px] sm:border-t-2 sm:pt-[18px]",
           hot ? "border-white/35" : "border-[var(--qs-line)]"
         )}
       >
@@ -183,7 +183,7 @@ export function CreditPackCard({
             >
               <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3" strokeWidth={3.5} />
             </span>
-            <span className="text-[11.5px] font-medium leading-4 sm:text-sm sm:leading-5">{feature}</span>
+            <span className="text-[12px] font-medium leading-[18px] sm:text-sm sm:leading-5">{feature}</span>
           </li>
         ))}
       </ul>
@@ -250,7 +250,7 @@ export function CreditPacks({
 
       <div
         className={cn(
-          "grid items-start gap-2.5 sm:gap-6",
+          "grid items-start gap-4 sm:gap-6",
           showCurrentPlan && "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]"
         )}
       >
@@ -267,7 +267,7 @@ export function CreditPacks({
         )}
 
         <section aria-label="AI credit packs">
-          <div className="grid items-stretch gap-2.5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-2">
+          <div className="grid items-stretch gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-2">
             {packs.map((pack) => (
               <CreditPackCard key={pack.id} pack={pack} basePack={basePack} onSelect={onSelect} />
             ))}
@@ -275,7 +275,7 @@ export function CreditPacks({
         </section>
       </div>
 
-      <p className="mt-3 flex items-center justify-center gap-1.5 text-[10.5px] font-medium text-[var(--qs-muted)] sm:mt-7 sm:text-[13px]">
+      <p className="mt-5 flex items-center justify-center gap-1.5 text-[11px] font-medium text-[var(--qs-muted)] sm:mt-7 sm:text-[13px]">
         <Lock className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
         Secure payments via UPI, Cards &amp; Net Banking
       </p>

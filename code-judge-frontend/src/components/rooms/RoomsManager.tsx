@@ -15,6 +15,7 @@ import {
   FileSpreadsheet,
   MoreVertical,
   Plus,
+  Search,
   Settings2,
   Users,
 } from "lucide-react";
@@ -83,6 +84,8 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
 
   const [filter, setFilter] = useState<FilterTab>("all");
   const [sort, setSort] = useState<SortKey>("updated");
+  const [roomQuery, setRoomQuery] = useState("");
+  const [studentQuery, setStudentQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [createTab, setCreateTab] = useState<"manual" | "import">("manual");
   const [editTarget, setEditTarget] = useState<string | null>(null);
@@ -142,10 +145,21 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
   };
 
   const filtered = useMemo(() => {
+    const roomNeedle = roomQuery.trim().toLowerCase();
+    const studentNeedle = studentQuery.trim().toLowerCase();
     let list = ownedRooms.filter((r) => {
       if (filter === "active" && r.archived) return false;
       if (filter === "archived" && !r.archived) return false;
       if (filter === "recent" && (r.archived || !isWithinWindow(r.updatedAt, RECENT_WINDOW_MS))) return false;
+      if (roomNeedle && !`${r.name} ${r.description ?? ""}`.toLowerCase().includes(roomNeedle)) return false;
+      if (
+        studentNeedle &&
+        !r.students.some((student) =>
+          `${student.username ?? ""} ${student.rollNumber ?? ""}`.toLowerCase().includes(studentNeedle)
+        )
+      ) {
+        return false;
+      }
       return true;
     });
     list = [...list].sort((a, b) => {
@@ -154,7 +168,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
     return list;
-  }, [ownedRooms, filter, sort]);
+  }, [ownedRooms, filter, sort, roomQuery, studentQuery]);
 
   const editRoom = editTarget ? ownedRooms.find((r) => r.id === editTarget) : null;
   const duplicateRoomTarget = duplicateTarget ? ownedRooms.find((r) => r.id === duplicateTarget) : null;
@@ -253,17 +267,17 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
             <div className="app-skeleton mt-4 h-9 w-64 max-w-full rounded" />
             <div className="app-skeleton mt-2 h-4 w-80 max-w-full rounded" />
           </div>
-          <div className="mb-4 grid grid-cols-2 gap-2.5 sm:mb-5 sm:gap-3.5 lg:grid-cols-4">
+          <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-5 md:grid-cols-4 md:gap-3.5">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">
-                <div className="app-skeleton h-3 w-16 rounded sm:w-20" />
-                <div className="app-skeleton mt-3 h-6 w-12 rounded sm:h-7 sm:w-14" />
+              <div key={i} className="rounded-[16px] border border-[var(--qs-line)] border-b-4 border-b-[var(--qs-sun)] bg-[var(--qs-surface)] p-3.5">
+                <div className="app-skeleton h-7 w-14 rounded sm:h-7 sm:w-14" />
+                <div className="app-skeleton mt-2 h-4 w-16 rounded" />
               </div>
             ))}
           </div>
-          <div className="rounded-[26px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">
+          <div className="rounded-[20px] border border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="app-skeleton mt-2 h-9 rounded first:mt-0" />
+              <div key={i} className="app-skeleton mt-3 h-[72px] rounded-[16px] first:mt-0" />
             ))}
           </div>
         </div>
@@ -282,14 +296,18 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
     <div className="qs-ui min-h-full bg-[var(--qs-bg)]">
       <div className="mx-auto max-w-[1280px] px-4 py-4 pb-20 sm:px-6 sm:py-6">
         {/* Mobile header */}
-        <header className="mb-3 rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3.5 py-3.5 text-[var(--qs-on-brand)] shadow-[2px_3px_0_var(--qs-sun)] md:hidden">
-          <div className="flex items-center justify-end gap-2">
-            <span className="inline-flex h-[26px] shrink-0 items-center rounded-full bg-[var(--qs-surface)] px-2.5 text-[11.5px] font-bold text-[var(--qs-ink)]">
+        <header className="mb-3 rounded-[16px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] p-3.5 text-[var(--qs-on-brand)] shadow-[2px_3px_0_var(--qs-sun)] md:hidden">
+          <div className="flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-[10px] bg-[var(--qs-sun)] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.04em] text-[#1A1240]">
+              <Users className="h-3 w-3" />
+              Creator Studio · Student groups
+            </span>
+            <span className="inline-flex h-7 shrink-0 items-center rounded-full bg-[var(--qs-surface)] px-3 text-[12px] font-bold text-[var(--qs-ink)]">
               {stats.rooms}/{MAX_ROOMS_PER_CREATOR} rooms
             </span>
           </div>
-          <div className="mt-2 flex items-center justify-between gap-2">
-            <h1 className="min-w-0 truncate text-[21px] font-bold leading-tight">
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <h1 className="min-w-0 truncate text-[24px] font-extrabold leading-tight">
               {basePath === "/creator/rooms" ? "My Classrooms" : "My Rooms"}
             </h1>
             <button
@@ -304,13 +322,13 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
                   ? `You can have at most ${MAX_ROOMS_PER_CREATOR} rooms`
                   : "Create a new room"
               }
-              className="inline-flex h-[38px] shrink-0 items-center gap-1.5 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[#3B1FA8] px-3 text-[12.5px] font-semibold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-12 shrink-0 items-center gap-1.5 rounded-[12px] border-[1.5px] border-[var(--qs-ink)] bg-[#3B1FA8] px-3.5 text-[14px] font-bold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] transition-transform active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Plus className="h-[15px] w-[15px]" strokeWidth={3} />
+              <Plus className="h-4 w-4" strokeWidth={3} />
               Create Room
             </button>
           </div>
-          <p className="mt-2 text-[11.5px] leading-4 text-[#EAE5FF]">
+          <p className="mt-2 text-[13px] font-medium leading-5 text-[#EAE5FF]">
             Organize students into reusable groups and manage quiz access from one place.
           </p>
         </header>
@@ -365,25 +383,51 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
         )}
 
         {/* Stats */}
-        <div className="mb-3 grid grid-cols-4 gap-1.5 md:mb-5 md:gap-3.5">
+        <div className="mb-3 grid grid-cols-2 gap-3 md:mb-5 md:grid-cols-4 md:gap-3.5">
           {statCards.map((kpi) => (
             <div
               key={kpi.label}
               className={cn(
-                "flex h-[54px] flex-col justify-center rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 md:h-auto md:rounded-[18px] md:border-2 md:border-[var(--qs-ink)] md:p-4 md:px-[18px] md:shadow-[3px_3px_0_var(--qs-sun)]"
+                "flex h-auto flex-col justify-center rounded-[16px] border border-[var(--qs-line)] border-b-4 border-b-[var(--qs-sun)] bg-[var(--qs-surface)] p-3.5 shadow-[0_6px_16px_rgba(27,24,64,0.10)] md:rounded-[18px] md:border-2 md:border-[var(--qs-ink)] md:border-b-2 md:border-b-[var(--qs-ink)] md:p-4 md:shadow-[3px_3px_0_var(--qs-sun)]"
               )}
             >
-              <small className="order-2 flex items-center gap-1.5 text-[10.5px] font-normal leading-3.5 text-[var(--qs-muted)] md:order-1 md:gap-2 md:text-xs md:font-extrabold md:uppercase md:tracking-[0.08em]">
+              <small className="order-2 flex items-center gap-1.5 text-[14px] font-semibold leading-4 text-[var(--qs-muted)] md:order-1 md:gap-2 md:text-xs md:font-extrabold md:uppercase md:tracking-[0.08em]">
                 <span className="hidden h-2.5 w-2.5 shrink-0 rounded-full md:block" style={{ background: kpi.color }} />
                 <span className="md:hidden">{kpi.short}</span>
                 <span className="hidden md:inline">{kpi.label}</span>
               </small>
-              <b className="order-1 text-[17px] font-bold leading-5 text-[var(--qs-ink)] md:order-2 md:mt-2 md:text-[32px] md:font-extrabold md:leading-[1.1] lg:text-[36px]">
+              <b className="order-1 text-[28px] font-extrabold leading-[1.1] text-[var(--qs-ink)] md:order-2 md:mt-2 md:text-[32px] md:leading-[1.1] lg:text-[36px]">
                 {kpi.value}
                 <span className="hidden text-xs font-medium text-[var(--qs-muted)] md:ml-1 md:inline md:text-sm">{kpi.sub}</span>
               </b>
             </div>
           ))}
+        </div>
+
+        {/* Search */}
+        <div className="mb-3 grid grid-cols-2 gap-2 md:hidden">
+          <label className="relative block min-w-0">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--qs-muted)]" />
+            <input
+              type="search"
+              value={studentQuery}
+              onChange={(event) => setStudentQuery(event.target.value)}
+              placeholder="Search students"
+              aria-label="Search students"
+              className="h-[52px] w-full rounded-[16px] border border-[var(--qs-line)] bg-[var(--qs-surface)] pl-10 pr-3 text-[16px] font-semibold text-[var(--qs-ink)] outline-none transition-colors placeholder:font-semibold placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] focus:shadow-[0_0_0_3px_rgba(106,61,240,0.2)]"
+            />
+          </label>
+          <label className="relative block min-w-0">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--qs-muted)]" />
+            <input
+              type="search"
+              value={roomQuery}
+              onChange={(event) => setRoomQuery(event.target.value)}
+              placeholder="Search rooms"
+              aria-label="Search rooms"
+              className="h-[52px] w-full rounded-[16px] border border-[var(--qs-line)] bg-[var(--qs-surface)] pl-10 pr-3 text-[16px] font-semibold text-[var(--qs-ink)] outline-none transition-colors placeholder:font-semibold placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] focus:shadow-[0_0_0_3px_rgba(106,61,240,0.2)]"
+            />
+          </label>
         </div>
 
         {/* Filter bar */}
@@ -398,20 +442,20 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
                   aria-pressed={active}
                   onClick={() => setFilter(f.id)}
                   className={cn(
-                    "shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[12px] font-medium leading-3.5 transition-colors md:border-2 md:px-[13px] md:text-[13px] md:font-extrabold md:uppercase md:leading-[18px] md:tracking-[0.06em]",
+                    "inline-flex h-11 shrink-0 items-center whitespace-nowrap rounded-[22px] border px-[18px] text-[15px] font-bold leading-4 transition-colors active:scale-[0.97] md:h-auto md:rounded-full md:border-2 md:px-[13px] md:py-1.5 md:text-[13px] md:font-extrabold md:uppercase md:leading-[18px] md:tracking-[0.06em]",
                     active
                       ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
-                      : "border-[#CFC7F0] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] md:border-[var(--qs-line)] md:text-[var(--qs-ink)]"
+                      : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] md:text-[var(--qs-ink)]"
                   )}
                 >
                   <span className="md:hidden">{f.id === "recent" ? "Recent" : f.label}</span>
                   <span className="hidden md:inline">{f.label}</span>
-                  <i className={cn("ml-1 not-italic md:ml-1.5", active ? "opacity-70" : "text-[var(--qs-muted)]")}>{filterCounts[f.id]}</i>
+                  <i className={cn("ml-1.5 not-italic text-[13px] md:ml-1.5", active ? "opacity-80" : "text-[var(--qs-muted)]")}>{filterCounts[f.id]}</i>
                 </button>
               );
             })}
             <div className="relative ml-auto shrink-0 md:hidden">
-              <span aria-hidden className="grid h-8 w-9 place-items-center rounded-[10px] text-[var(--qs-ink)]">
+              <span aria-hidden className="grid h-11 w-11 place-items-center rounded-[12px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)]">
                 <ArrowUpDown className="h-4 w-4" />
               </span>
               <select
@@ -444,18 +488,18 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
         </div>
 
         {/* Rooms table */}
-        <div className="relative mb-4 mr-1 md:mr-4">
-          <div aria-hidden className="absolute left-0.5 top-0.5 -bottom-0.5 -right-0.5 rounded-[14px] bg-[var(--qs-sun)] md:left-4 md:top-4 md:-bottom-4 md:-right-4 md:rounded-[30px]" />
-          <div className="relative overflow-hidden rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] md:rounded-[26px] md:border-2">
-            <header className="flex flex-col gap-1 bg-[var(--qs-bg)] px-3.5 pb-2.5 pt-3.5 md:flex-row md:flex-wrap md:items-start md:justify-between md:gap-3 md:px-[26px] md:pb-4 md:pt-5">
+        <div className="relative mb-4 md:mr-4">
+          <div aria-hidden className="absolute left-0.5 top-0.5 -bottom-0.5 -right-0.5 hidden rounded-[14px] bg-[var(--qs-sun)] md:block md:left-4 md:top-4 md:-bottom-4 md:-right-4 md:rounded-[30px]" />
+          <div className="relative overflow-hidden rounded-[20px] border border-[var(--qs-line)] border-b-4 border-b-[var(--qs-sun)] bg-[var(--qs-surface)] md:rounded-[26px] md:border-2 md:border-[var(--qs-ink)] md:border-b-2">
+            <header className="flex flex-col gap-1 bg-[var(--qs-bg)] px-4 pb-3 pt-4 md:flex-row md:flex-wrap md:items-start md:justify-between md:gap-3 md:px-[26px] md:pb-4 md:pt-5">
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2 md:block">
-                  <h2 className="text-[15px] font-bold tracking-tight text-[var(--qs-ink)] md:text-2xl md:font-extrabold">Rooms</h2>
-                  <p className="text-[10.5px] font-medium text-[var(--qs-muted)] md:hidden">
+                  <h2 className="text-[18px] font-extrabold tracking-tight text-[var(--qs-ink)] md:text-2xl">Rooms</h2>
+                  <p className="text-[13px] font-semibold text-[var(--qs-muted)] md:hidden">
                     {filtered.length} of {stats.rooms}
                   </p>
                 </div>
-                <p className="mt-0.5 text-[10.5px] leading-3.5 text-[var(--qs-muted)] md:text-sm md:leading-[1.4]">Reusable student groups — open a room to manage its students.</p>
+                <p className="mt-0.5 text-[13px] leading-5 text-[var(--qs-muted)] md:text-sm md:leading-[1.4]">Reusable student groups — open a room to manage its students.</p>
               </div>
               <p className="hidden text-[13px] font-medium text-[var(--qs-muted)] md:block md:text-sm">
                 {filtered.length} of {stats.rooms}
@@ -476,37 +520,37 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
             ) : (
               <>
                 {/* Mobile cards */}
-                <div className="space-y-1.5 border-t border-[var(--qs-line)] p-3 md:hidden">
+                <div className="space-y-3 border-t border-[var(--qs-line)] p-4 md:hidden">
                   {filtered.map((room) => {
                     const count = room.memberCount ?? room.students.length;
                     return (
                       <div
                         key={room.id}
                         onClick={() => router.push(`${basePath}/${room.id}`)}
-                        className="flex cursor-pointer items-center gap-2.5 rounded-[12px] border border-[var(--qs-line)] bg-[var(--qs-surface)] py-2.5 pl-2.5 pr-1 transition-colors active:bg-[var(--qs-bg)]"
+                        className="flex cursor-pointer items-center gap-3 rounded-[16px] border border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 transition-colors active:bg-[var(--qs-bg)]"
                       >
-                        <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] border border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
-                          <Users className="h-4 w-4" strokeWidth={2.5} />
+                        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] border border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+                          <Users className="h-5 w-5" strokeWidth={2.5} />
                         </span>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
-                            <p className="min-w-0 flex-1 truncate text-[13px] font-semibold leading-4 text-[var(--qs-ink)]">
+                            <p className="min-w-0 flex-1 truncate text-[16px] font-extrabold leading-5 text-[var(--qs-ink)]">
                               {room.name}
                             </p>
                             <span
                               className={cn(
-                                "shrink-0 rounded-[6px] px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.04em]",
+                                "shrink-0 rounded-[8px] px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.02em]",
                                 room.archived ? "bg-[#FFEBC2] text-[#8A4B00]" : "bg-[#D9F5E5] text-[#0B6B3A]"
                               )}
                             >
                               {room.archived ? "Archived" : "Active"}
                             </span>
                           </div>
-                          <p className="truncate text-[10.5px] leading-3.5 text-[var(--qs-muted)]">
+                          <p className="mt-0.5 truncate text-[14px] font-medium leading-5 text-[var(--qs-muted)]">
                             {room.description || "No description"}
                           </p>
-                          <p className="flex min-w-0 items-center gap-1 text-[10.5px] leading-3.5 text-[var(--qs-muted)]">
-                            <Clock className="h-[11px] w-[11px] shrink-0" />
+                          <p className="flex min-w-0 items-center gap-1 text-[14px] font-medium leading-5 text-[var(--qs-muted)]">
+                            <Clock className="h-3.5 w-3.5 shrink-0" />
                             <span className="truncate">
                               {count} students · {timeAgo(room.updatedAt)}
                             </span>
@@ -516,9 +560,9 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
                           type="button"
                           aria-label={`Actions for ${room.name}`}
                           onClick={(e) => openActionMenu(e, room.id, room.archived)}
-                          className="grid h-10 w-9 shrink-0 place-items-center rounded-[10px] text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-line)]"
+                          className="grid h-11 w-10 shrink-0 place-items-center rounded-[12px] text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-line)]"
                         >
-                          <MoreVertical className="h-4 w-4" />
+                          <MoreVertical className="h-5 w-5" />
                         </button>
                       </div>
                     );

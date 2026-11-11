@@ -292,8 +292,8 @@ export function TestsPage() {
     <div className="w-full min-w-0 space-y-5 pb-10">
       <div className="flex flex-wrap items-start gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-3xl">Tests</h1>
-          <p className="mt-1 text-sm text-[var(--qs-muted)]">Generate a question paper and it is saved to your account automatically.</p>
+          <h1 className="text-[28px] font-extrabold leading-[1.15] tracking-tight text-[var(--qs-ink)] sm:text-3xl">Tests</h1>
+          <p className="mt-1.5 text-[14px] font-medium leading-5 text-[var(--qs-muted)]">Generate a question paper and it is saved to your account automatically.</p>
         </div>
       </div>
 

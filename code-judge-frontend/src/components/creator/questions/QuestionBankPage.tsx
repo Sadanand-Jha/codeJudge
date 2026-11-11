@@ -294,7 +294,7 @@ function QuestionPreviewDrawer({
 
           {question.hint && (
             <div className="rounded-[12px] border-2 border-dashed border-[var(--qs-line)] p-3.5">
-              <p className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]">
+              <p className="flex items-center gap-1.5 text-[12px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]">
                 <HelpCircle className="h-3.5 w-3.5" />
                 Hint
               </p>
@@ -393,7 +393,7 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-[26px] font-black tracking-tight text-[var(--qs-ink)]">Question Bank</h1>
+          <h1 className="text-[28px] font-extrabold tracking-tight text-[var(--qs-ink)]">Question Bank</h1>
           <p className="mt-1 text-sm font-medium text-[var(--qs-muted)]">
             Your reusable question library — organized by subject, topic and difficulty.
           </p>
@@ -474,11 +474,11 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
               <span className="absolute right-4 top-3.5 grid h-[30px] w-[30px] place-items-center rounded-[9px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
                 <Database className="h-4 w-4" />
               </span>
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]">
+              <p className="text-[12px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]">
                 Total questions
               </p>
-              <p className="mt-2.5 text-[27px] font-black leading-none text-[var(--qs-ink)]">{questions.length}</p>
-              <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">
+              <p className="mt-2.5 text-[28px] font-extrabold leading-none text-[var(--qs-ink)]">{questions.length}</p>
+              <p className="mt-1.5 text-[14px] font-medium text-[var(--qs-muted)]">
                 across {new Set(questions.map((question) => question.subject)).size} subjects
               </p>
             </div>
@@ -486,29 +486,29 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
               <span className="absolute right-4 top-3.5 grid h-[30px] w-[30px] place-items-center rounded-[9px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
                 <ClipboardCheck className="h-4 w-4" />
               </span>
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]">
+              <p className="text-[12px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]">
                 Approved questions
               </p>
-              <p className="mt-2.5 text-[27px] font-black leading-none text-[var(--qs-ink)]">{approvedCount}</p>
-              <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">of library approved for use</p>
+              <p className="mt-2.5 text-[28px] font-extrabold leading-none text-[var(--qs-ink)]">{approvedCount}</p>
+              <p className="mt-1.5 text-[14px] font-medium text-[var(--qs-muted)]">of library approved for use</p>
             </div>
             <div className="relative rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 shadow-[4px_4px_0_var(--qs-sun)]">
               <span className="absolute right-4 top-3.5 grid h-[30px] w-[30px] place-items-center rounded-[9px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
                 <Gauge className="h-4 w-4" />
               </span>
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]">
+              <p className="text-[12px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]">
                 Difficulty split
               </p>
-              <p className="mt-2.5 text-[27px] font-black leading-none text-[var(--qs-ink)]">
+              <p className="mt-2.5 text-[28px] font-extrabold leading-none text-[var(--qs-ink)]">
                 {easyCount} E · {mediumCount} M · {hardCount} H
               </p>
-              <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">Easy · Medium · Hard</p>
+              <p className="mt-1.5 text-[14px] font-medium text-[var(--qs-muted)]">Easy · Medium · Hard</p>
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
+            <div className="overflow-hidden rounded-[20px] border border-[var(--qs-line)] border-b-4 border-b-[var(--qs-sun)] bg-[var(--qs-surface)] shadow-[0_6px_16px_rgba(27,24,64,0.10)] lg:rounded-[22px] lg:border-2 lg:border-b-2 lg:border-[var(--qs-line)] lg:shadow-none">
             <div className="flex flex-wrap items-center gap-3 p-4">
-              <label className="flex h-10 w-full max-w-[290px] items-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3">
+              <label className="flex h-[52px] w-full max-w-[290px] items-center gap-2.5 rounded-[16px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 transition-colors focus-within:border-[var(--qs-brand)] focus-within:shadow-[0_0_0_3px_rgba(106,61,240,0.2)]">
                 <Search className="h-4 w-4 shrink-0 text-[var(--qs-muted)]" />
                 <input
                   value={query}
@@ -518,7 +518,7 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                   }}
                   placeholder="Search questions, subjects or tags…"
                   aria-label="Search questions"
-                  className="w-full bg-transparent text-[13px] font-medium text-[var(--qs-ink)] outline-none placeholder:text-[var(--qs-muted)]"
+                  className="w-full bg-transparent text-[16px] font-semibold text-[var(--qs-ink)] outline-none placeholder:font-semibold placeholder:text-[var(--qs-muted)]"
                 />
               </label>
 
@@ -539,7 +539,7 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                         setPage(1);
                       }}
                       className={cn(
-                        "whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-extrabold transition-colors",
+                        "whitespace-nowrap rounded-full px-4 py-2.5 text-[15px] font-bold transition-colors active:scale-[0.97]",
                         active
                           ? "bg-[var(--qs-ink)] text-[var(--qs-bg)]"
                           : "text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"
@@ -564,7 +564,7 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                         setPage(1);
                       }}
                       className={cn(
-                        "rounded-[8px] border-2 px-3 py-1.5 text-xs font-extrabold transition-colors",
+                        "rounded-[12px] border px-4 py-2.5 text-[14px] font-bold transition-colors active:scale-[0.97]",
                         active
                           ? "border-[var(--qs-brand)] bg-[var(--qs-poly-1)] text-[var(--qs-brand)]"
                           : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
@@ -598,7 +598,7 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                             <th
                               key={heading}
                               className={cn(
-                                "whitespace-nowrap border-b-2 border-[var(--qs-line)] px-4 py-3.5 text-[11px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]",
+                                "whitespace-nowrap border-b-2 border-[var(--qs-line)] px-4 py-3.5 text-[12px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]",
                                 heading === "Approved" && "text-right"
                               )}
                             >
@@ -670,7 +670,7 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                   </table>
                 </div>
 
-                <div className="space-y-2.5 p-4 md:hidden">
+                <div className="space-y-3.5 p-4 md:hidden">
                   {paged.map((question) => (
                     <div
                       key={question.id}
@@ -683,20 +683,20 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                           setPreview(question);
                         }
                       }}
-                      className="cursor-pointer rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 transition-colors active:bg-[var(--qs-poly-0)]"
+                      className="cursor-pointer rounded-[20px] border border-[var(--qs-line)] border-b-4 border-b-[var(--qs-sun)] bg-[var(--qs-surface)] p-4 shadow-[0_6px_16px_rgba(27,24,64,0.10)] transition-colors active:bg-[var(--qs-poly-0)]"
                     >
                       <div className="min-w-0">
-                        <p className="text-sm font-bold leading-snug text-[var(--qs-ink)]">{question.text}</p>
-                        <p className="mt-1 text-[11px] font-medium text-[var(--qs-muted)]">
+                        <p className="text-[16px] font-extrabold leading-[1.35] text-[var(--qs-ink)]">{question.text}</p>
+                        <p className="mt-1.5 text-[14px] font-semibold text-[var(--qs-muted)]">
                           {question.subject} · {TYPE_LABEL[question.type]} · Updated {question.updated}
                         </p>
                       </div>
-                      <div className="mt-3 flex items-center justify-between border-t-2 border-[var(--qs-line)] pt-3">
+                      <div className="mt-3.5 flex items-center justify-between border-t border-[var(--qs-line)] pt-3">
                         <div className="flex flex-wrap gap-1">
                           {question.tags.map((tag) => (
                             <span
                               key={tag}
-                              className="rounded-[6px] border-2 border-[var(--qs-line)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--qs-muted)]"
+                              className="rounded-[8px] border border-[var(--qs-line)] px-2 py-0.5 text-[12px] font-bold text-[var(--qs-muted)]"
                             >
                               {tag}
                             </span>
@@ -704,7 +704,7 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
                           <DifficultyPill difficulty={question.difficulty} />
-                          <span className="text-[11px] font-bold text-[var(--qs-muted)]">
+                          <span className="text-[12px] font-bold text-[var(--qs-muted)]">
                             Approved {question.usedIn}
                           </span>
                         </div>

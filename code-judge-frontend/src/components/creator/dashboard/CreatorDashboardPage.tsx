@@ -196,8 +196,8 @@ function DashPanel({
       {(title || action) && (
         <header className="mb-1 flex flex-wrap items-baseline justify-between gap-3 sm:mb-4 sm:items-start">
           <div className="min-w-0">
-            {title && <h2 className="qs-display text-[14px] font-bold text-[var(--qs-ink)] sm:text-[19px] sm:font-extrabold">{title}</h2>}
-            {subtitle && <p className="mt-0.5 text-[10.5px] text-[var(--qs-muted)] sm:text-[13px]">{subtitle}</p>}
+            {title && <h2 className="qs-display text-[16px] font-extrabold text-[var(--qs-ink)] sm:text-[19px]">{title}</h2>}
+            {subtitle && <p className="mt-0.5 text-[13px] text-[var(--qs-muted)] sm:text-[13px]">{subtitle}</p>}
           </div>
           {action && <div className="shrink-0">{action}</div>}
         </header>
@@ -237,15 +237,15 @@ function StatTile({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.05 + index * 0.04 }}
-      className="flex h-[54px] flex-col justify-center rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 sm:block sm:h-auto sm:rounded-[18px] sm:border-2 sm:px-4 sm:py-3.5"
+      className="flex h-auto flex-col justify-center rounded-[16px] border border-[var(--qs-line)] border-b-4 border-b-[var(--qs-sun)] bg-[var(--qs-surface)] p-3.5 shadow-[0_6px_16px_rgba(27,24,64,0.10)] sm:block sm:h-auto sm:rounded-[18px] sm:border-2 sm:border-[var(--qs-line)] sm:border-b-2 sm:border-b-[var(--qs-line)] sm:p-4 sm:shadow-none"
     >
-      <p className="flex min-w-0 items-center gap-1.5 truncate text-[10.5px] font-medium text-[var(--qs-muted)] sm:gap-2 sm:text-[10px] sm:font-black sm:uppercase sm:tracking-[0.11em]">
+      <p className="flex min-w-0 items-center gap-1.5 truncate text-[14px] font-semibold text-[var(--qs-muted)] sm:gap-2 sm:text-[10px] sm:font-black sm:uppercase sm:tracking-[0.11em]">
         <span className="hidden h-2.5 w-2.5 shrink-0 rounded-full sm:block" style={{ background: color }} />
         {label}
       </p>
-      <p className="qs-display text-[17px] font-bold leading-5 sm:mt-1.5 sm:text-[30px] sm:font-extrabold sm:leading-none sm:tracking-tight text-[var(--qs-ink)]">
+      <p className="qs-display text-[28px] font-extrabold leading-[1.1] tracking-tight sm:mt-1.5 sm:text-[30px] sm:font-extrabold sm:leading-none sm:tracking-tight text-[var(--qs-ink)]">
         {value}
-        {unit && <span className="ml-1.5 text-[13px] font-semibold tracking-normal text-[var(--qs-muted)]">{unit}</span>}
+        {unit && <span className="ml-1.5 text-[14px] font-semibold tracking-normal text-[var(--qs-muted)]">{unit}</span>}
       </p>
       <p className="mt-1 hidden truncate text-[12px] text-[var(--qs-muted)] sm:block" title={hint}>
         {hint}
@@ -429,23 +429,23 @@ function LiveQuizCard({ quiz, onChangeTiming }: { quiz: QuizRow; onChangeTiming:
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className="relative flex h-full flex-col rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3.5 shadow-[2px_3px_0_var(--qs-sun)] transition-colors sm:rounded-[20px] sm:border-2 sm:border-[var(--qs-line)] sm:p-5 sm:shadow-none sm:hover:border-[var(--qs-brand)]"
+      className="relative flex h-full flex-col rounded-[20px] border border-[var(--qs-line)] border-b-4 border-b-[var(--qs-sun)] bg-[var(--qs-surface)] p-4 shadow-[0_6px_16px_rgba(27,24,64,0.10)] transition-colors sm:rounded-[20px] sm:border-2 sm:border-[var(--qs-line)] sm:border-b-2 sm:border-b-[var(--qs-line)] sm:p-5 sm:shadow-none sm:hover:border-[var(--qs-brand)]"
     >
       {/* Mobile summary */}
       <div className="sm:hidden">
         <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#D9F5E5] px-2 py-[3px] text-[10px] font-bold uppercase tracking-[0.04em] text-[#0B6B3A]">
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-[10px] bg-[#D9F5E5] px-3 py-1 text-[12px] font-extrabold uppercase tracking-[0.02em] text-[#0B6B3A]">
             <span className="h-1.5 w-1.5 rounded-full bg-current" />
             Live now
           </span>
-          <span className="min-w-0 truncate text-[10.5px] text-[var(--qs-muted)]">
-            {quiz.endAt ? `Closes ${formatDateTimeIST(quiz.endAt)}` : "No end time · runs until you close it"}
+          <span className="min-w-0 truncate text-[13px] font-semibold text-[var(--qs-muted)]">
+            {quiz.endAt ? `Closes ${formatDateTimeIST(quiz.endAt)}` : "Runs until you close it"}
           </span>
         </div>
 
-        <h2 className="mt-2.5 break-words text-[15px] font-bold leading-5 text-[var(--qs-ink)]">{quiz.title}</h2>
+        <h2 className="mt-3 break-words text-[18px] font-extrabold leading-[1.3] text-[var(--qs-ink)]">{quiz.title}</h2>
 
-        <p className="mt-2 text-[11px] text-[var(--qs-muted)]">
+        <p className="mt-2 text-[14px] font-semibold leading-5 text-[var(--qs-muted)]">
           {quiz.questions > 0 ? `${quiz.questions} ${quiz.questions === 1 ? "question" : "questions"}` : "No questions yet"}
           {" · "}
           {quiz.attempts.toLocaleString("en-IN")} {quiz.attempts === 1 ? "attempt" : "attempts"}
@@ -454,7 +454,7 @@ function LiveQuizCard({ quiz, onChangeTiming }: { quiz: QuizRow; onChangeTiming:
         </p>
 
         {segments.length > 0 && (
-          <div className="mt-2 flex flex-col gap-1.5">
+          <div className="mt-2.5 flex flex-col gap-2">
             <div className="flex h-2 overflow-hidden rounded-full bg-[var(--qs-line)]">
               {segments.map(
                 (segment) =>
@@ -467,7 +467,7 @@ function LiveQuizCard({ quiz, onChangeTiming }: { quiz: QuizRow; onChangeTiming:
                   )
               )}
             </div>
-            <p className="flex gap-2.5 overflow-hidden whitespace-nowrap text-[10px] text-[var(--qs-muted)]">
+            <p className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] font-semibold text-[var(--qs-muted)]">
               {segments.map((segment) => (
                 <span key={segment.key} className="inline-flex items-center gap-1">
                   <span className="h-1.5 w-1.5 rounded-full" style={{ background: segment.color }} />
@@ -478,36 +478,36 @@ function LiveQuizCard({ quiz, onChangeTiming }: { quiz: QuizRow; onChangeTiming:
           </div>
         )}
 
-        <div className="mt-3 grid grid-cols-4 gap-1.5">
+        <div className="mt-3.5 grid grid-cols-4 gap-2">
           <button
             type="button"
             onClick={onChangeTiming}
-            className="flex h-12 flex-col items-center justify-center gap-1 rounded-[10px] border border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[10px] font-semibold text-[var(--qs-on-brand)]"
+            className="flex h-[60px] flex-col items-center justify-center gap-0.5 rounded-[14px] border border-[var(--qs-brand)] bg-[var(--qs-brand)] text-[12px] font-bold text-[var(--qs-on-brand)] transition-transform active:scale-[0.97]"
           >
-            <Clock className="h-4 w-4" />
+            <Clock className="h-[22px] w-[22px]" strokeWidth={2} />
             Timing
           </button>
           <Link
             href={`/creator/quizzes/${quiz.id}/analytics`}
-            className="flex h-12 flex-col items-center justify-center gap-1 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[10px] font-semibold text-[var(--qs-ink)]"
+            className="flex h-[60px] flex-col items-center justify-center gap-0.5 rounded-[14px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[12px] font-bold text-[var(--qs-ink)] transition-transform active:scale-[0.97]"
           >
-            <BarChart3 className="h-4 w-4" />
+            <BarChart3 className="h-[22px] w-[22px]" strokeWidth={2} />
             Analytics
           </Link>
           <Link
             href={`/creator/quizzes/${quiz.id}/responses`}
-            className="flex h-12 flex-col items-center justify-center gap-1 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[10px] font-semibold text-[var(--qs-ink)]"
+            className="flex h-[60px] flex-col items-center justify-center gap-0.5 rounded-[14px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[12px] font-bold text-[var(--qs-ink)] transition-transform active:scale-[0.97]"
           >
-            <List className="h-4 w-4" />
+            <List className="h-[22px] w-[22px]" strokeWidth={2} />
             Responses
           </Link>
           <button
             type="button"
             onClick={() => setShareOpen(true)}
             aria-label={`Share ${quiz.title} on WhatsApp`}
-            className="flex h-12 flex-col items-center justify-center gap-1 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[10px] font-semibold text-[var(--qs-ink)]"
+            className="flex h-[60px] flex-col items-center justify-center gap-0.5 rounded-[14px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[12px] font-bold text-[#1a9d52] transition-transform active:scale-[0.97]"
           >
-            <WhatsAppIcon className="h-4 w-4 text-[#15803D]" />
+            <WhatsAppIcon className="h-[22px] w-[22px]" />
             WhatsApp
           </button>
         </div>
@@ -1201,13 +1201,13 @@ function TopStudentsPanel({ attempts }: { attempts: CreatorRecentAttempt[] }) {
               <div
                 key={attempt.id}
                 className={cn(
-                  "flex h-12 items-center gap-2 sm:h-auto sm:gap-3 sm:py-2",
+                  "flex h-14 items-center gap-2.5 sm:h-auto sm:gap-3 sm:py-2",
                   index < items.length - 1 && "border-b border-[#EFEBFB] sm:border-b-0"
                 )}
               >
                 <span
                   className={cn(
-                    "grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full border bg-[var(--qs-surface)] text-[11px] font-semibold sm:h-7 sm:w-7 sm:border-2 sm:text-[12px] sm:font-extrabold",
+                    "grid h-6 w-6 shrink-0 place-items-center rounded-full border bg-[var(--qs-surface)] text-[12px] font-bold sm:h-7 sm:w-7 sm:border-2 sm:font-extrabold",
                     index === 0
                       ? "border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]"
                       : "border-[var(--qs-line)] text-[var(--qs-ink)]"
@@ -1215,18 +1215,18 @@ function TopStudentsPanel({ attempts }: { attempts: CreatorRecentAttempt[] }) {
                 >
                   {index + 1}
                 </span>
-                <AttemptAvatar name={attempt.studentName} className="h-[30px] w-[30px] border-0 sm:border-2" />
+                <AttemptAvatar name={attempt.studentName} className="h-8 w-8 border-0 sm:border-2" />
                 <div className="min-w-0 flex-1">
-                  <b className="block truncate text-[12.5px] font-semibold text-[var(--qs-ink)] sm:text-[13px] sm:font-bold">
+                  <b className="block truncate text-[14px] font-bold text-[var(--qs-ink)] sm:text-[13px]">
                     {attempt.studentName}
                   </b>
-                  <small className="block truncate text-[10.5px] text-[var(--qs-muted)] sm:text-[11px]">
+                  <small className="block truncate text-[13px] text-[var(--qs-muted)] sm:text-[11px]">
                     {attempt.quizName || "a quiz"}
                   </small>
                 </div>
-                <div className="flex shrink-0 items-center gap-1.5 text-[12px] font-bold tabular-nums text-[var(--qs-ink)] sm:gap-2.5 sm:text-[13px]">
-                  <b className="w-[30px] text-right">{Math.round(pct)}%</b>
-                  <span className="h-[5px] w-[54px] overflow-hidden rounded-[3px] bg-[var(--qs-line)] sm:h-1.5 sm:w-16 sm:rounded-full">
+                <div className="flex shrink-0 items-center gap-1.5 text-[14px] font-bold tabular-nums text-[var(--qs-ink)] sm:gap-2.5 sm:text-[13px]">
+                  <b className="w-[34px] text-right">{Math.round(pct)}%</b>
+                  <span className="h-1.5 w-[54px] overflow-hidden rounded-full bg-[var(--qs-line)] sm:w-16">
                     <i className="block h-full bg-[var(--qs-brand)]" style={{ width: `${pct}%` }} />
                   </span>
                 </div>
@@ -1417,10 +1417,10 @@ export function CreatorDashboardPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
-          <h1 className="qs-display text-[20px] font-bold leading-[26px] tracking-normal text-[var(--qs-ink)] sm:text-[34px] sm:font-extrabold sm:leading-[1.08] sm:tracking-[-0.025em] lg:text-[38px]">
+          <h1 className="qs-display text-[26px] font-extrabold leading-[1.15] tracking-[-0.01em] text-[var(--qs-ink)] sm:text-[34px] sm:leading-[1.08] sm:tracking-[-0.025em] lg:text-[38px]">
             {greeting}, {firstName}
           </h1>
-          <p className="mt-0.5 text-[12px] text-[var(--qs-muted)] sm:mt-1.5 sm:text-[15px]">
+          <p className="mt-1 text-[14px] font-medium text-[var(--qs-muted)] sm:mt-1.5 sm:text-[15px] sm:font-normal">
             Here&apos;s what&apos;s happening with your quizzes.
           </p>
         </div>
@@ -1455,7 +1455,7 @@ export function CreatorDashboardPage() {
           </div>
 
           {/* Stat tiles */}
-          <div className="grid grid-cols-4 gap-1.5 sm:gap-3.5 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-3.5">
             {tiles.map((tile, index) => (
               <StatTile
                 key={tile.label}

@@ -169,28 +169,28 @@ export function PublishStep({
             </div>
           </div>
 
-          <dl className="mt-5 grid grid-cols-3 gap-2.5">
+          <dl className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
             {rows.map((r) => {
               const Icon = r.icon;
               return (
                 <div
                   key={r.label}
-                  className="flex min-h-[88px] min-w-0 flex-col justify-between gap-2 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-3"
+                  className="flex min-h-[64px] min-w-0 flex-row items-center justify-between gap-3 rounded-[14px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3 sm:min-h-[88px] sm:flex-col sm:items-stretch sm:justify-between sm:border-2 sm:px-3"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
                     <span
                       className={cn(
-                        "grid h-6 w-6 flex-none place-items-center rounded-[8px]",
+                        "grid h-7 w-7 flex-none place-items-center rounded-[8px] sm:h-6 sm:w-6",
                         TILE_TONE_CLASSES[r.tone]
                       )}
                     >
-                      <Icon className="h-3.5 w-3.5" />
+                      <Icon className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                     </span>
-                    <dt className="min-w-0 truncate text-[9px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+                    <dt className="min-w-0 truncate text-[12px] font-extrabold uppercase tracking-[0.04em] text-[var(--qs-muted)] sm:text-[10px] sm:tracking-[0.08em]">
                       {r.label}
                     </dt>
                   </div>
-                  <dd className="break-words text-[12px] font-bold leading-snug text-[var(--qs-ink)]">{r.value}</dd>
+                  <dd className="max-w-[58%] break-words text-right text-[14px] font-bold leading-snug text-[var(--qs-ink)] sm:max-w-none sm:text-left sm:text-[12px]">{r.value}</dd>
                 </div>
               );
             })}

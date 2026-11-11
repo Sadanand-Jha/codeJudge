@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { CreatorSidebar } from "./CreatorSidebar";
 import CreatorNavbar from "./CreatorNavbar";
+import CreatorMobileNav from "./CreatorMobileNav";
 import CreatorRoomsNavbar from "@/components/rooms/CreatorRoomsNavbar";
 import AppLayout from "@/components/layout/AppLayout";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
@@ -134,11 +135,12 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
             className={
               isFullBleedStudio
                 ? "flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
-                : "px-3 py-4 sm:px-5 sm:py-5 lg:px-8 lg:py-6 flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
+                : "px-3 pt-4 pb-28 sm:px-5 sm:pt-5 lg:px-8 lg:py-6 flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
             }
           >
             {children}
           </main>
+          {!isFullBleedStudio && <CreatorMobileNav />}
         </div>
       </div>
     </AppLayout>

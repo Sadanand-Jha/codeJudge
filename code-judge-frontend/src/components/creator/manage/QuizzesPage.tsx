@@ -182,7 +182,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
       {/* Header */}
       <div className="flex items-center justify-between gap-3 xl:items-end">
         <div className="min-w-0">
-          <h1 className="qs-display text-[21px] font-extrabold leading-[1.08] tracking-[-0.025em] text-[var(--qs-ink)] sm:text-[27px] lg:text-[30px]">
+          <h1 className="qs-display text-[28px] font-extrabold leading-[1.15] tracking-[-0.01em] text-[var(--qs-ink)] sm:text-[27px] lg:text-[30px]">
             My Quizzes
           </h1>
           <p className="mt-1.5 hidden text-[11px] text-[var(--qs-muted)] sm:text-[12px] lg:block">
@@ -192,25 +192,25 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
         <div className="flex shrink-0 items-center gap-2">
           <Link
             href="/creator/quizzes/create"
-            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3.5 text-[13px] font-semibold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] transition-all active:translate-x-[1px] active:translate-y-[1px] active:shadow-none lg:h-auto lg:rounded-[12px] lg:border-2 lg:px-4 lg:py-2.5 lg:font-bold lg:shadow-[3px_3px_0_var(--qs-sun)]"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] px-[18px] text-[16px] font-bold text-[var(--qs-on-brand)] shadow-[0_3px_0_rgba(27,24,64,0.35)] transition-transform active:scale-[0.97] lg:h-auto lg:rounded-[12px] lg:border-2 lg:px-4 lg:py-2.5 lg:text-[13px] lg:shadow-[3px_3px_0_var(--qs-sun)]"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-5 w-5 lg:h-4 lg:w-4" />
             Create quiz
           </Link>
         </div>
       </div>
 
       {/* AI callout — compact single row on mobile */}
-      <section className="flex h-[46px] items-center gap-2 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] px-1.5 lg:hidden">
-        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-[7px] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
-          <WandSparkles className="h-3.5 w-3.5" strokeWidth={2.4} />
+      <section className="flex min-h-16 items-center gap-3 rounded-[16px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] p-2.5 pl-3 lg:hidden">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+          <WandSparkles className="h-5 w-5" strokeWidth={2.4} />
         </span>
-        <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-[var(--qs-ink)]">
+        <span className="min-w-0 flex-1 truncate text-[16px] font-bold text-[var(--qs-ink)]">
           Build quizzes with AI
         </span>
         <Link
           href="/creator/quizzes/create"
-          className="inline-flex h-7 shrink-0 items-center justify-center rounded-[8px] bg-[var(--qs-brand)] px-2.5 text-[12px] font-semibold text-[var(--qs-on-brand)]"
+          className="inline-flex h-11 shrink-0 items-center justify-center rounded-[12px] bg-[var(--qs-brand)] px-[18px] text-[15px] font-bold text-[var(--qs-on-brand)] transition-transform active:scale-[0.97]"
         >
           Generate
         </Link>
@@ -248,7 +248,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
         <>
           <TilesSkeleton />
           <ToolbarSkeleton />
-          <div className="flex flex-col gap-2 lg:hidden">
+          <div className="flex flex-col gap-3.5 lg:hidden">
             {Array.from({ length: 6 }).map((_, i) => (
               <QuizRowSkeleton key={i} />
             ))}
@@ -297,7 +297,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
       {status === "ready" && data && (
         <>
           {/* Stat tiles — the Live tile is the page's one bold element */}
-          <div className="grid grid-cols-4 gap-1.5 lg:gap-[18px]">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-[18px]">
             <StatTile
               label="Total quizzes"
               mobileLabel="Quizzes"
@@ -334,18 +334,18 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
           </div>
 
           {/* Search + filter chips */}
-          <div className="flex flex-col gap-2.5 lg:gap-3 lg:rounded-[18px] lg:border-2 lg:border-[var(--qs-line)] lg:bg-[var(--qs-surface)] lg:p-3 xl:flex-row xl:items-center">
+          <div className="flex flex-col gap-3.5 lg:gap-3 lg:rounded-[18px] lg:border-2 lg:border-[var(--qs-line)] lg:bg-[var(--qs-surface)] lg:p-3 xl:flex-row xl:items-center">
             <label className="relative block w-full min-w-0 lg:flex-1 xl:max-w-xs">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)] lg:left-3.5" />
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)] lg:left-3.5 lg:h-4 lg:w-4" />
               <input
                 type="search"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search quizzes..."
-                className="h-[42px] w-full rounded-[10px] border border-[#CFC7F0] bg-[var(--qs-surface)] pl-9 pr-3 text-[13px] font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] lg:h-11 lg:rounded-[12px] lg:border-2 lg:border-[var(--qs-line)] lg:pl-10"
+                className="h-[52px] w-full rounded-[16px] border border-[var(--qs-line)] bg-[var(--qs-surface)] pl-11 pr-4 text-[16px] font-semibold text-[var(--qs-ink)] outline-none transition-colors placeholder:font-semibold placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] focus:shadow-[0_0_0_3px_rgba(106,61,240,0.2)] lg:h-11 lg:rounded-[12px] lg:border-2 lg:pl-10 lg:text-[13px] lg:font-medium"
               />
             </label>
-            <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto scrollbar-none lg:gap-2">
+            <div className="flex min-w-0 flex-1 items-center gap-2.5 overflow-x-auto scrollbar-none lg:gap-2">
               {TABS.map((tab) => {
                 const active = filter === tab.id;
                 return (
@@ -355,17 +355,17 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                     onClick={() => setFilter(tab.id)}
                     aria-pressed={active}
                     className={cn(
-                      "inline-flex h-8 shrink-0 items-center gap-1 rounded-full border px-3 text-[12px] font-medium transition-colors lg:h-9 lg:gap-2 lg:border-2 lg:px-3.5 lg:text-[13px] lg:font-bold",
+                      "inline-flex h-11 shrink-0 items-center gap-1 rounded-[22px] border px-[18px] text-[15px] font-bold transition-colors active:scale-[0.97] lg:h-9 lg:gap-2 lg:border-2 lg:px-3.5 lg:text-[13px]",
                       active
                         ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
-                        : "border-[#CFC7F0] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
+                        : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
                     )}
                   >
                     <span className="lg:hidden">{tab.id === "completed" ? "Done" : tab.label}</span>
                     <span className="hidden lg:inline">{tab.label}</span>
                     <span
                       className={cn(
-                        "rounded-full px-0 text-[11px] font-semibold tabular-nums lg:px-1.5 lg:font-extrabold",
+                        "rounded-full px-0 text-[13px] font-bold tabular-nums lg:px-1.5 lg:font-extrabold",
                         active ? "bg-transparent lg:bg-[var(--qs-bg)]/15" : "bg-transparent text-current lg:bg-[var(--qs-line)]/50 lg:text-[var(--qs-muted)]"
                       )}
                     >
@@ -397,7 +397,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
             </div>
           ) : (
             <>
-              <ul className="flex flex-col gap-2 lg:hidden">
+              <ul className="flex flex-col gap-3.5 lg:hidden">
                 {filtered.map((quiz, index) => (
                   <MobileQuizRow
                     key={quiz.id}
@@ -547,13 +547,13 @@ function StatTile({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, delay: index * 0.04 }}
       className={cn(
-        "flex h-[54px] flex-col justify-center rounded-[10px] border px-2.5 lg:h-auto lg:rounded-[18px] lg:border-2 lg:px-4 lg:py-4",
+        "flex h-auto flex-col justify-center rounded-[16px] border p-3.5 lg:h-auto lg:rounded-[18px] lg:border-2 lg:px-4 lg:py-4",
         highlight ? "border-[var(--qs-ink)] bg-[var(--qs-sun)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
       )}
     >
       <p
         className={cn(
-          "order-2 flex items-center gap-2 text-[10.5px] font-normal lg:order-1 lg:text-[11px] lg:font-extrabold lg:uppercase lg:tracking-[0.08em]",
+          "order-2 flex items-center gap-2 text-[14px] font-semibold lg:order-1 lg:text-[11px] lg:font-extrabold lg:uppercase lg:tracking-[0.08em]",
           highlight ? "text-[#1A1240]/80 lg:text-[#1A1240]" : "text-[var(--qs-muted)]"
         )}
       >
@@ -566,7 +566,7 @@ function StatTile({
       </p>
       <p
         className={cn(
-          "qs-display order-1 text-[17px] font-bold leading-5 tracking-tight lg:order-2 lg:mt-2 lg:text-[34px] lg:font-extrabold lg:leading-none",
+          "qs-display order-1 text-[28px] font-extrabold leading-[1.1] tracking-tight lg:order-2 lg:mt-2 lg:text-[34px] lg:leading-none",
           highlight ? "text-[#1A1240]" : "text-[var(--qs-ink)]"
         )}
       >
@@ -574,7 +574,7 @@ function StatTile({
         {unit && (
           <span
             className={cn(
-              "ml-0.5 text-[10px] font-normal lg:ml-1.5 lg:text-[13px] lg:font-semibold",
+              "ml-1 text-[14px] font-semibold lg:ml-1.5 lg:text-[13px]",
               highlight ? "text-[#1A1240]/70" : "text-[var(--qs-muted)]"
             )}
           >
@@ -622,21 +622,18 @@ function MobileQuizRow({
   onGoTo: (page: "edit" | "analytics" | "responses") => void;
 }) {
   const [shareOpen, setShareOpen] = useState(false);
-  const isLive = quiz.status === "live";
   const tag = MOBILE_TAG[quiz.status];
   const duration = shortDuration(quiz.duration);
-  const meta = [
-    `${quiz.questions} Q`,
+  const metaItems = [
+    `${quiz.questions} ${quiz.questions === 1 ? "question" : "questions"}`,
     duration,
     `${quiz.attempts.toLocaleString("en-IN")} ${quiz.attempts === 1 ? "attempt" : "attempts"}`,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  ].filter((item): item is string => Boolean(item));
 
   const actions = [
-    { label: `Edit ${quiz.title}`, icon: Pencil, primary: true, onClick: () => onGoTo("edit") },
-    { label: `Analytics for ${quiz.title}`, icon: BarChart3, primary: false, onClick: () => onGoTo("analytics") },
-    { label: `Responses for ${quiz.title}`, icon: ListChecks, primary: false, onClick: () => onGoTo("responses") },
+    { label: "Edit", ariaLabel: `Edit ${quiz.title}`, icon: Pencil, primary: true, onClick: () => onGoTo("edit") },
+    { label: "Analytics", ariaLabel: `Analytics for ${quiz.title}`, icon: BarChart3, primary: false, onClick: () => onGoTo("analytics") },
+    { label: "Results", ariaLabel: `Responses for ${quiz.title}`, icon: ListChecks, primary: false, onClick: () => onGoTo("responses") },
   ];
 
   return (
@@ -644,26 +641,23 @@ function MobileQuizRow({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.025, 0.18), duration: 0.25 }}
-      className={cn(
-        "flex items-center gap-1.5 rounded-[14px] border bg-[var(--qs-surface)] pl-3.5 pr-1.5 shadow-[2px_3px_0_var(--qs-sun)]",
-        isLive ? "border-[1.5px] border-[var(--qs-ink)] shadow-[2px_2px_0_var(--qs-sun)]" : "border-[var(--qs-line)]"
-      )}
+      className="rounded-[20px] border border-[var(--qs-line)] border-b-4 border-b-[var(--qs-sun)] bg-[var(--qs-surface)] p-4 shadow-[0_6px_16px_rgba(27,24,64,0.10)]"
     >
-      <div className="min-w-0 flex-1 py-2.5">
-        <p className="line-clamp-2 text-[13px] font-semibold leading-4 text-[var(--qs-ink)]">{quiz.title}</p>
-        <p className="mt-1.5 flex items-center gap-1.5 overflow-hidden whitespace-nowrap text-[10.5px] text-[var(--qs-muted)]">
-          <span
-            className={cn(
-              "shrink-0 rounded-[6px] px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.04em]",
-              tag.className
-            )}
-          >
-            {tag.label}
-          </span>
-          <span className="truncate">{meta}</span>
-        </p>
+      <h3 className="line-clamp-2 text-[18px] font-extrabold leading-[1.3] text-[var(--qs-ink)]">{quiz.title}</h3>
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-[14px] font-semibold text-[var(--qs-muted)]">
+        <span
+          className={cn(
+            "shrink-0 rounded-[10px] px-3 py-1 text-[13px] font-extrabold uppercase tracking-[0.02em]",
+            tag.className
+          )}
+        >
+          {tag.label}
+        </span>
+        {metaItems.map((item) => (
+          <span key={item}>{item}</span>
+        ))}
       </div>
-      <div className="flex shrink-0 items-center">
+      <div className="mt-3.5 grid grid-cols-4 gap-2">
         {actions.map((action) => {
           const Icon = action.icon;
           return (
@@ -671,19 +665,16 @@ function MobileQuizRow({
               key={action.label}
               type="button"
               onClick={action.onClick}
-              aria-label={action.label}
-              className="grid h-[38px] w-[38px] place-items-center"
+              aria-label={action.ariaLabel}
+              className={cn(
+                "flex h-[60px] flex-col items-center justify-center gap-0.5 rounded-[14px] border text-[12px] font-bold transition-transform active:scale-[0.97]",
+                action.primary
+                  ? "border-[var(--qs-brand)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
+                  : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)]"
+              )}
             >
-              <span
-                className={cn(
-                  "grid h-8 w-8 place-items-center rounded-[9px] border",
-                  action.primary
-                    ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
-                    : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)]"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-              </span>
+              <Icon className="h-[22px] w-[22px]" strokeWidth={2} />
+              {action.label}
             </button>
           );
         })}
@@ -691,11 +682,10 @@ function MobileQuizRow({
           type="button"
           onClick={() => setShareOpen(true)}
           aria-label={`Share ${quiz.title} on WhatsApp`}
-          className="grid h-[38px] w-[38px] place-items-center"
+          className="flex h-[60px] flex-col items-center justify-center gap-0.5 rounded-[14px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[12px] font-bold text-[#1a9d52] transition-transform active:scale-[0.97]"
         >
-          <span className="grid h-8 w-8 place-items-center rounded-[9px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[#15803D]">
-            <WhatsAppIcon className="h-4 w-4" />
-          </span>
+          <WhatsAppIcon className="h-[22px] w-[22px]" />
+          Share
         </button>
       </div>
 
@@ -862,9 +852,9 @@ function QuizCardItem({
 
 function TilesSkeleton() {
   return (
-    <div className="grid grid-cols-4 gap-1.5 lg:gap-[18px]">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-[18px]">
       {Array.from({ length: 4 }).map((_, i) => (
-        <Skeleton key={i} className="h-[54px] rounded-[10px] lg:h-[104px] lg:rounded-[18px]" />
+        <Skeleton key={i} className="h-[92px] rounded-[16px] lg:h-[104px] lg:rounded-[18px]" />
       ))}
     </div>
   );
@@ -872,25 +862,25 @@ function TilesSkeleton() {
 
 function ToolbarSkeleton() {
   return (
-    <div className="flex flex-col gap-2.5 lg:gap-3 lg:rounded-[18px] lg:border-2 lg:border-[var(--qs-line)] lg:bg-[var(--qs-surface)] lg:p-3 xl:flex-row xl:items-center">
-      <Skeleton className="h-[42px] rounded-[10px] lg:h-11 lg:rounded-[12px] xl:w-80" />
-      <Skeleton className="h-8 flex-1 rounded-full lg:h-9" />
+    <div className="flex flex-col gap-3.5 lg:gap-3 lg:rounded-[18px] lg:border-2 lg:border-[var(--qs-line)] lg:bg-[var(--qs-surface)] lg:p-3 xl:flex-row xl:items-center">
+      <Skeleton className="h-[52px] rounded-[16px] lg:h-11 lg:rounded-[12px] xl:w-80" />
+      <Skeleton className="h-11 flex-1 rounded-[22px] lg:h-9 lg:rounded-full" />
     </div>
   );
 }
 
 function QuizRowSkeleton() {
   return (
-    <div className="flex h-[66px] items-center gap-1.5 rounded-[14px] border border-[var(--qs-line)] bg-[var(--qs-surface)] pl-3.5 pr-1.5 shadow-[2px_3px_0_var(--qs-sun)]">
-      <div className="min-w-0 flex-1 space-y-1.5">
-        <Skeleton className="h-3.5 w-3/4 rounded" />
-        <Skeleton className="h-3 w-1/2 rounded" />
+    <div className="rounded-[20px] border border-[var(--qs-line)] border-b-4 border-b-[var(--qs-sun)] bg-[var(--qs-surface)] p-4">
+      <Skeleton className="h-5 w-3/4 rounded" />
+      <div className="mt-2 flex gap-3">
+        <Skeleton className="h-6 w-16 rounded-[10px]" />
+        <Skeleton className="h-5 w-24 rounded" />
       </div>
-      <div className="flex shrink-0 gap-1.5">
-        <Skeleton className="h-8 w-8 rounded-[9px]" />
-        <Skeleton className="h-8 w-8 rounded-[9px]" />
-        <Skeleton className="h-8 w-8 rounded-[9px]" />
-        <Skeleton className="h-8 w-8 rounded-[9px]" />
+      <div className="mt-3.5 grid grid-cols-4 gap-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-[60px] rounded-[14px]" />
+        ))}
       </div>
     </div>
   );
