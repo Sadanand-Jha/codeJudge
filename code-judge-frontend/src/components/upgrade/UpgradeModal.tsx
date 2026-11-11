@@ -503,7 +503,7 @@ function UpgradeModalContent({
             <div className="min-w-0">
               <div className="qs-cinema-eyebrow hidden items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.16em] sm:flex">
                 <span aria-hidden className="qs-cinema-dot" />
-                Now showing · {detail.eyebrow ?? "AI features"}
+                {detail.eyebrow ?? "AI features"}
               </div>
               <h2
                 id="upgrade-modal-title"
