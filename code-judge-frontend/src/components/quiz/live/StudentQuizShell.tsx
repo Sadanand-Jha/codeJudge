@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/helpers";
@@ -225,12 +226,14 @@ export function QuizStateScreen({
   text,
   action,
   loading = false,
+  illustration,
 }: {
   icon?: React.ReactNode;
   title?: string;
   text: string;
   action?: React.ReactNode;
   loading?: boolean;
+  illustration?: "owl";
 }) {
   if (loading) {
     return (
@@ -238,7 +241,19 @@ export function QuizStateScreen({
         role="status"
         className="qs-ui flex min-h-[calc(100dvh-3.5rem)] flex-col items-center justify-center gap-5 bg-[var(--qs-bg)] px-4 text-center"
       >
-        <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
+        {illustration === "owl" ? (
+          <Image
+            src="/images/quiz/cheerful-owl-study-champion.png"
+            alt=""
+            width={480}
+            height={320}
+            priority
+            sizes="(max-width: 640px) 190px, 220px"
+            className="h-auto w-[190px] select-none sm:w-[220px]"
+          />
+        ) : (
+          <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
+        )}
         {text && <p className="max-w-sm text-sm leading-6 text-[var(--qs-muted)]">{text}</p>}
         {action}
       </div>

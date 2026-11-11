@@ -520,6 +520,7 @@ export default function AttemptReviewExperience({
     return (
       <QuizStateScreen
         loading
+        illustration="owl"
         title="Preparing your review"
         text="Checking your answers and building the full review…"
       />
