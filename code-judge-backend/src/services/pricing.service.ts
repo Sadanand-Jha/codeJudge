@@ -206,7 +206,7 @@ export class PricingService {
         currency: primaryPrice?.currency ?? String(row.currency ?? "INR"),
         prices: regionalElevate ? monthlyPrices : prices,
         quizzes: entitlementNumber(entitlements, "max_quizzes"),
-        rooms: entitlementNumber(entitlements, "max_rooms", 1),
+        rooms: entitlementNumber(entitlements, "max_rooms", 5),
         credits: entitlementNumber(entitlements, "ai_credits_per_month"),
         features: stringArray(row.features),
         sortOrder: numberValue(row.sort_order),

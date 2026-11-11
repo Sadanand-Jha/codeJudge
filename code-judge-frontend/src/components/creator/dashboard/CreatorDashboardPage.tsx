@@ -17,7 +17,6 @@ import {
   Plus,
   Sparkles,
   TriangleAlert,
-  WandSparkles,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
@@ -261,20 +260,13 @@ function StatTile({
 
 const QUICK_ACTIONS: Array<{ title: string; sub: string; href: string; icon: LucideIcon; comingSoon?: boolean }> = [
   { title: "New quiz", sub: "Build one by hand", href: "/creator/quizzes/create", icon: Plus },
-  {
-    title: "Generate with AI",
-    sub: WHOLE_QUIZ_AI_ENABLED ? "From files, topics or prompts" : "Coming soon",
-    href: "/creator/quizzes/ai-generate",
-    icon: WandSparkles,
-    comingSoon: !WHOLE_QUIZ_AI_ENABLED,
-  },
   { title: "Paper builder", sub: "Print-ready papers", href: "/creator/tests/create", icon: FileText },
   { title: "Question bank", sub: "Reuse your problems", href: "/creator/question-bank", icon: Database },
 ];
 
 function QuickActions() {
   return (
-    <div className="hidden grid-cols-1 gap-3.5 sm:grid sm:grid-cols-2 xl:grid-cols-4">
+    <div className="hidden grid-cols-1 gap-3.5 sm:grid sm:grid-cols-2 xl:grid-cols-3">
       {QUICK_ACTIONS.map((action, index) => {
         const Icon = action.icon;
         const className =

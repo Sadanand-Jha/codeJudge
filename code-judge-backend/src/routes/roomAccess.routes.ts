@@ -3,7 +3,6 @@
 // authenticated users join with the code + password they received.
 import { Router } from "express";
 import { authenticate } from "../middleware/auth.ts";
-import { requirePaidPlan } from "../middleware/requirePaidPlan.ts";
 import { roomJoinRateLimit } from "../middleware/roomJoinRateLimit.ts";
 import {
   roomCreateSchema,
@@ -27,7 +26,7 @@ const router = Router();
 
 router.use(authenticate);
 
-router.post("/", requirePaidPlan, validate(roomCreateSchema), createRoomWithCredentials);
+router.post("/", validate(roomCreateSchema), createRoomWithCredentials);
 router.post("/join/form", roomJoinRateLimit, validate(roomJoinSchema), previewRoomJoin);
 router.post("/join", roomJoinRateLimit, validate(roomJoinSchema), joinRoom);
 router.get("/enrolled", getEnrolledRooms);

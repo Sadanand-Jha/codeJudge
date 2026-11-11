@@ -49,7 +49,7 @@ const PLANS: SeedPlan[] = [
       { key: "max_questions_per_quiz", value: 30 },
       { key: "max_participants_per_quiz", value: -1 },
       { key: "max_monthly_attempts", value: -1 },
-      { key: "max_rooms", value: 1 },
+      { key: "max_rooms", value: 5 },
       { key: "ai_credits_per_month", value: 0 },
       { key: "pdf_download", value: true },
       { key: "answer_key_pdf", value: true },

@@ -2,7 +2,6 @@
 // and their members under /api/v1/user/rooms.
 import { Router } from "express";
 import { authenticate } from "../../middleware/auth.ts";
-import { requirePaidPlan } from "../../middleware/requirePaidPlan.ts";
 import { roomDocumentSignatureRateLimit } from "../../middleware/letterheadRateLimit.ts";
 import { createRoom, listRooms, getRoom, searchUser, searchUsers, addMember, removeMember, updateMemberStatus, updateRoom, getRoomsForStudent } from "../../controllers/room.controller.ts";
 import {
@@ -33,7 +32,7 @@ router.get("/by-student/:username", getRoomsForStudent);
 // Alias for frontend: GET /my-rooms should return owned rooms (same as GET /)
 router.get("/my-rooms", listRooms);
 
-router.post("/", requirePaidPlan, createRoom);
+router.post("/", createRoom);
 router.get("/", listRooms);
 
 // Room documents. Only the room owner can upload or delete; owners and members

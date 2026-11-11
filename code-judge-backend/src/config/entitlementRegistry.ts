@@ -70,7 +70,7 @@ export const ENTITLEMENT_REGISTRY: EntitlementDefinition[] = [
     description: "Maximum active rooms the account can run at the same time.",
     type: "number",
     category: "participants",
-    default: 1,
+    default: 5,
     unit: "rooms",
   },
   {
