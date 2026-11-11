@@ -1226,6 +1226,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
             duration: state.info.duration,
             status: payload.status,
             audienceMode: payload.audienceMode,
+            subject: payload.subject,
             subjectId: payload.subjectId,
             examId: payload.examId,
             difficulty: payload.difficultyId,

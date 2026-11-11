@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { BookOpen, Upload } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { useSyllabusImportAccess } from "@/hooks/useSyllabusImportAccess";
 
 interface ImportSyllabusNoticeProps {
   className?: string;
@@ -10,6 +11,8 @@ interface ImportSyllabusNoticeProps {
 }
 
 export function ImportSyllabusNotice({ className, compact = false }: ImportSyllabusNoticeProps) {
+  const router = useRouter();
+  const { requestImport } = useSyllabusImportAccess();
   return (
     <div
       className={cn(
@@ -32,8 +35,9 @@ export function ImportSyllabusNotice({ className, compact = false }: ImportSylla
           Add at least one syllabus to select subjects, chapters, and topics.
         </p>
       </div>
-      <Link
-        href="/creator/syllabus"
+      <button
+        type="button"
+        onClick={() => requestImport(() => router.push("/creator/syllabus"))}
         className={cn(
           "inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-[11px] font-bold text-text-primary transition-colors hover:border-pink-500/40 hover:text-pink-500",
           !compact && "mt-3"
@@ -41,7 +45,7 @@ export function ImportSyllabusNotice({ className, compact = false }: ImportSylla
       >
         <Upload className="h-3 w-3" />
         Import syllabus
-      </Link>
+      </button>
     </div>
   );
 }

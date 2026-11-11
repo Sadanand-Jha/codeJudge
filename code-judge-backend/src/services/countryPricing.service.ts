@@ -1,10 +1,13 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { isIP } from "node:net";
 import type { Request } from "express";
 import { isRazorpayConfigured } from "../config/razorpay.ts";
 import * as countryPricingRepository from "../repositories/countryPricing.repository.ts";
+import type { CountryPriceRow } from "../repositories/countryPricing.repository.ts";
+import { isTrustedPeer } from "../utils/trustedProxy.ts";
 
-type CountrySignal = "ip" | "mobile" | "default" | "fallback";
+// "locked" = price taken from the subscriber's saved billing currency.
+// "dev_override" = ?country= query, only outside production.
+type CountrySignal = "ip" | "mobile" | "default" | "fallback" | "dev_override" | "locked";
 
 export interface CountryPricingSelection {
   countryCode: string | null;
@@ -39,37 +42,82 @@ function normalizeCountry(value: unknown): string | null {
     : null;
 }
 
-function normalizeIp(value: string): string {
-  const ip = value.trim().toLowerCase();
-  return ip.startsWith("::ffff:") ? ip.slice(7) : ip;
+function firstHeader(value: string | string[] | undefined): string | null {
+  return typeof value === "string" ? value : null;
 }
 
-function trustedProxyAddresses(): Set<string> {
-  return new Set(
-    (process.env.GEO_TRUSTED_PROXY_IPS ?? "")
-      .split(",")
-      .map((value) => value.trim())
-      .filter((value) => isIP(normalizeIp(value)) !== 0)
-      .map(normalizeIp)
+/**
+ * True for any deployment that must never accept ?country=. NODE_ENV is the
+ * primary switch; the Vercel checks are a second guard in case NODE_ENV is unset.
+ */
+export function isProductionRuntime(env: NodeJS.ProcessEnv = process.env): boolean {
+  return (
+    env.NODE_ENV === "production" ||
+    env.VERCEL_ENV === "production" ||
+    env.VERCEL === "1"
   );
 }
 
-function firstHeader(value: string | string[] | undefined): string | null {
-  return typeof value === "string" ? value : null;
+/**
+ * Dev-only ?country= override. Returns null in production regardless of input,
+ * so the query parameter is simply ignored there.
+ */
+export function countryFromDevOverride(
+  request: Pick<Request, "query"> | undefined,
+  env: NodeJS.ProcessEnv = process.env
+): string | null {
+  if (!request || isProductionRuntime(env)) return null;
+  const raw = request.query?.country;
+  return normalizeCountry(typeof raw === "string" ? raw : null);
 }
 
 export function countryFromTrustedProxyHeaders(input: {
   peerAddress: string | null;
   cloudflareCountry?: unknown;
   vercelCountry?: unknown;
-  trustedProxyIps?: Set<string>;
+  isTrustedPeer?: (peerAddress: string) => boolean;
 }): string | null {
   const peer = input.peerAddress;
-  const trusted = input.trustedProxyIps ?? trustedProxyAddresses();
-  if (!peer || !trusted.has(normalizeIp(peer))) return null;
+  const trusted = input.isTrustedPeer ?? isTrustedPeer;
+  if (!peer || !trusted(peer)) return null;
   return normalizeCountry(
     input.cloudflareCountry ?? input.vercelCountry
   );
+}
+
+export interface CardCountrySignal {
+  country?: string | null;
+  international?: boolean | null;
+}
+
+export interface CardCountryMismatch {
+  reason: "card_country" | "international_card";
+  cardCountry: string | null;
+}
+
+/**
+ * Compares the card's issuing country (from the Razorpay payment entity) with
+ * the country used to price the order. Returns null when there is no card
+ * (UPI, netbanking, wallet) or no basis for comparison (unknown pricing country).
+ * Callers log and flag only; this never rejects a payment.
+ */
+export function cardCountryMismatch(
+  pricingCountry: string | null,
+  card: CardCountrySignal | null | undefined
+): CardCountryMismatch | null {
+  if (!card || !pricingCountry) return null;
+  const cardCountry = normalizeCountry(card.country ?? null);
+  if (cardCountry) {
+    return cardCountry === pricingCountry
+      ? null
+      : { reason: "card_country", cardCountry };
+  }
+  // Razorpay does not guarantee an ISO country on the card entity. An
+  // international card for an INR-priced order is still worth flagging.
+  if (pricingCountry === "IN" && card.international === true) {
+    return { reason: "international_card", cardCountry: null };
+  }
+  return null;
 }
 
 export function verifySignedFrontendCountry(input: {
@@ -203,17 +251,63 @@ export function isRazorpayCurrencySupported(currency: string): boolean {
     supportedRazorpayCurrencies().has(currency.toUpperCase());
 }
 
+function selectionFromPrice(
+  price: CountryPriceRow,
+  countryCode: string | null,
+  source: CountrySignal,
+  isFallback: boolean
+): CountryPricingSelection {
+  return {
+    countryCode,
+    countryName: displayCountry(countryCode),
+    currency: price.currency,
+    amount: price.amountMajor,
+    amountMinor: price.amountMinor,
+    minorUnitExponent: price.minorUnitExponent,
+    version: price.version,
+    configId: price.id,
+    isFallback,
+    checkoutAvailable: isRazorpayCurrencySupported(price.currency),
+    source,
+  };
+}
+
 export async function resolveCountryPricing(
   userId: string | null,
   request?: Request
 ): Promise<CountryPricingSelection> {
+  // Saved-currency lock: a subscriber who has paid before keeps the currency of
+  // their last subscription (billing_currency), regardless of travel or VPN.
+  // The lock wins over the dev override so the behavior can be tested locally.
+  if (userId) {
+    const lock = await countryPricingRepository.findBillingCurrencyLock(userId);
+    if (lock) {
+      const locked = await countryPricingRepository.findCurrentPriceByCurrency(
+        lock.currency,
+        lock.country
+      );
+      if (locked) {
+        return selectionFromPrice(locked, locked.countryCode, "locked", locked.isFallback);
+      }
+      // The locked currency has no active price row (for example, it was disabled
+      // in /platform). Fall through to detection and log, rather than failing checkout.
+      console.warn("Country pricing: locked currency has no active price", {
+        currency: lock.currency,
+        country: lock.country,
+      });
+    }
+  }
+
+  const devOverride = countryFromDevOverride(request);
   const ipCountry =
     (request ? countryFromTrustedProxy(request) : null) ??
     (request ? countryFromSignedFrontend(request) : null);
-  const mobileCountry = !ipCountry && userId
+  const mobileCountry = !ipCountry && !devOverride && userId
     ? countryFromMobile(await countryPricingRepository.findUserMobile(userId))
     : null;
-  const detected = choosePricingCountry({ ipCountry, mobileCountry });
+  const detected = devOverride
+    ? { countryCode: devOverride, source: "dev_override" as CountrySignal }
+    : choosePricingCountry({ ipCountry, mobileCountry });
   const defaultCountry = detected.countryCode
     ? null
     : normalizeCountry(process.env.PRICING_DEFAULT_COUNTRY);
@@ -230,19 +324,12 @@ export async function resolveCountryPricing(
   if (!price) {
     throw new Error("No active country pricing fallback is configured.");
   }
-  return {
-    countryCode: detectedCountry,
-    countryName: displayCountry(detectedCountry),
-    currency: price.currency,
-    amount: price.amountMajor,
-    amountMinor: price.amountMinor,
-    minorUnitExponent: price.minorUnitExponent,
-    version: price.version,
-    configId: price.id,
-    isFallback: price.isFallback || !regionalPrice,
-    checkoutAvailable: isRazorpayCurrencySupported(price.currency),
-    source: detectedSource,
-  };
+  return selectionFromPrice(
+    price,
+    detectedCountry,
+    detectedSource,
+    price.isFallback || !regionalPrice
+  );
 }
 
 export function getCurrencyMinorUnitExponent(currency: string): number {

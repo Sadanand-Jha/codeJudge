@@ -186,6 +186,7 @@ export const quizSchema = z.object({
   audienceMode: z.enum(["public", "private", "classroom"]).optional(),
   difficulty: z.union([z.string(), z.number().int().positive()]).optional(),
   difficultyId: z.number().int().positive().optional(),
+  subject: z.string().trim().max(255, "Subject name must be at most 255 characters").optional(),
   subjectId: z.number().int().positive().optional(),
   examId: z.number().int().positive().optional(),
   duration: z.number().int().positive().optional(),

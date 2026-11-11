@@ -398,6 +398,7 @@ export default function QuizSettingsPage({
         name,
         description,
         subject,
+        subjectId: details.subjectId ? Number(details.subjectId) : undefined,
         topic,
         code: generateQuizCode(),
         difficulty: details.difficulty,
@@ -744,8 +745,12 @@ export default function QuizSettingsPage({
                       required
                       value={details.subjectId ? Number(details.subjectId) || null : null}
                       selectedLabel={details.subject || null}
+                      allowCustom
                       onChange={(item) =>
-                        update({ subject: item?.name ?? "", subjectId: item?.id ?? "" })
+                        update({
+                          subject: item?.name ?? "",
+                          subjectId: item?.id ? item.id : "",
+                        })
                       }
                     />
                     {attempted && errors.subject && <FieldError message={errors.subject} />}

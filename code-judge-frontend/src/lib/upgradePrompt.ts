@@ -48,10 +48,16 @@ function readCount(value: unknown): number | undefined {
   return Math.trunc(count);
 }
 
+const PLAN_REQUIRED_CODES = new Set([
+  "FEATURE_LOCKED",
+  "MONTHLY_PLAN_REQUIRED",
+  "PLAN_REQUIRED",
+  "PLAN_EXPIRED",
+]);
+
 /**
- * Opens the upgrade modal only for credit exhaustion responses. Other
- * entitlement failures (plan limits, locked features) keep their existing
- * inline messaging.
+ * Opens the upgrade modal for credit exhaustion and paid-plan failures.
+ * Other entitlement failures keep their existing inline messaging.
  */
 export function showUpgradeModalForError(payload: unknown): boolean {
   if (!payload || typeof payload !== "object") return false;
@@ -65,10 +71,27 @@ export function showUpgradeModalForError(payload: unknown): boolean {
       (entry): entry is string =>
         typeof entry === "string" && entry.length > 0
     );
-  if (code !== "NO_AI_CREDITS") return false;
+  if (!code) return false;
   const message = details
     .map((entry) => entry.message)
     .find((entry): entry is string => typeof entry === "string" && entry.length > 0);
+
+  if (PLAN_REQUIRED_CODES.has(code)) {
+    showUpgradeModal({
+      code,
+      message,
+      tab: "plans",
+      eyebrow: "Plan required",
+      title: "Upgrade to unlock this feature",
+      titleAccent: "unlock",
+      description:
+        message ??
+        "This feature is available on paid plans. Choose a monthly plan to continue.",
+    });
+    return true;
+  }
+
+  if (code !== "NO_AI_CREDITS") return false;
   const requiredCredits = details
     .map((entry) => readCount(entry.limit))
     .find((entry): entry is number => entry !== undefined);

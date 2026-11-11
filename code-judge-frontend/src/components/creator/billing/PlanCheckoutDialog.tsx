@@ -26,21 +26,7 @@ import {
 } from "@/services/billing";
 import { trackCheckoutEvent } from "@/services/analytics";
 import type { PurchasePhase } from "./credits/OrderSummaryDialog";
-import { QS_DIALOG_PANEL, QS_ROW, QS_SQ_BTN } from "./credits/styles";
-
-function formatCreditRate(paise: number, currency: string): string {
-  const amount = paise / 100;
-  try {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${currency} ${amount.toFixed(2)}`;
-  }
-}
+import { QS_DIALOG_PANEL, QS_ROW } from "./credits/styles";
 
 export interface PlanPurchaseReceipt {
   transactionId: string;
@@ -51,6 +37,7 @@ export interface PlanPurchaseReceipt {
   expiresAt: string | null;
 }
 
+// Result-state body. Mobile text is kept at 12px minimum for legibility.
 function PhaseShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center py-4 text-center" role="status" aria-live="polite">
@@ -110,6 +97,16 @@ export function PlanCheckoutDialog({
     };
   }, [plan.billingPeriod, plan.slug]);
 
+  // Escape closes the dialog like the other subscription modals, but never mid-payment.
+  useEffect(() => {
+    if (busy) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [busy, onClose]);
+
   const activeBundle = selection === "bundle" ? suggestion : null;
   const validTill = receipt ? formatTrialEnd(receipt.expiresAt) : null;
   const planCredits = Math.max(0, plan.credits);
@@ -125,7 +122,7 @@ export function PlanCheckoutDialog({
           Math.min(100, Math.round((planCredits / suggestion.credits) * 100))
         )
       : 100;
-  const bundleExtraRupees = suggestion
+  const bundleExtraAmount = suggestion
     ? Math.max(0, suggestion.amountPaise - plan.price * 100) / 100
     : 0;
   const bundleRegularRatePaise =
@@ -166,7 +163,7 @@ export function PlanCheckoutDialog({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.18 }}
-      className="fixed inset-0 z-[70] flex overflow-y-auto bg-[#1A1240]/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[70] flex overflow-y-auto bg-[rgba(26,16,51,0.62)] p-4 backdrop-blur-sm"
       onClick={() => !busy && onClose()}
     >
       <motion.div
@@ -179,7 +176,7 @@ export function PlanCheckoutDialog({
         aria-label={`Upgrade to ${plan.name}`}
         className={cn(
           QS_DIALOG_PANEL,
-          "m-auto max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain"
+          "qs-ui m-auto max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain"
         )}
         style={
           suggestion && phase === "summary" ? { maxWidth: 780 } : undefined
@@ -187,7 +184,7 @@ export function PlanCheckoutDialog({
         onClick={(event) => event.stopPropagation()}
       >
         <header className="mb-2.5 flex items-center justify-between gap-2 sm:mb-3 sm:gap-3">
-          <h2 className="text-[18px] font-bold tracking-tight sm:text-[26px] sm:font-black">
+          <h2 className="text-[18px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-[26px]">
             {phase === "success" ? "Plan activated" : "Confirm plan"}
           </h2>
           <button
@@ -195,7 +192,7 @@ export function PlanCheckoutDialog({
             onClick={onClose}
             disabled={busy}
             aria-label="Close"
-            className={cn(QS_SQ_BTN, "disabled:opacity-40")}
+            className="b b-close b-ghost"
           >
             <X className="h-4 w-4" strokeWidth={3} />
           </button>
@@ -203,9 +200,9 @@ export function PlanCheckoutDialog({
 
         {phase === "summary" && (
           <>
-            <div className="mt-2 flex items-center justify-between gap-2 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-2 text-[11px] sm:mt-3 sm:gap-3 sm:rounded-[14px] sm:border-2 sm:px-4 sm:py-2.5 sm:text-sm">
-              <span className="font-medium text-[var(--qs-muted)] sm:font-semibold">Current balance</span>
-              <strong className="text-[12px] font-bold tabular-nums sm:text-base sm:font-extrabold">
+            <div className="mt-2 flex items-center justify-between gap-2 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-2 text-[12px] sm:mt-3 sm:gap-3 sm:rounded-[14px] sm:border-2 sm:px-4 sm:py-2.5 sm:text-sm">
+              <span className="font-semibold text-[var(--qs-muted)]">Current balance</span>
+              <strong className="font-extrabold tabular-nums text-[var(--qs-ink)]">
                 {balance.toLocaleString("en-IN")} credits
               </strong>
             </div>
@@ -213,9 +210,9 @@ export function PlanCheckoutDialog({
             {suggestion ? (
               <>
                 <div className="mt-3 grid gap-2.5 sm:mt-6 sm:gap-4 sm:grid-cols-[1fr_1.18fr] sm:items-stretch">
-                  <article className="flex flex-col rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 sm:rounded-[20px] sm:border-2 sm:p-4">
+                  <article className="flex flex-col rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 sm:rounded-[20px] sm:p-4">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-[14px] font-bold leading-tight tracking-normal sm:text-[20px] sm:font-extrabold sm:tracking-[-0.015em]">
+                      <h3 className="text-[15px] font-extrabold leading-tight tracking-[-0.015em] text-[var(--qs-ink)] sm:text-[20px]">
                         {plan.name}
                       </h3>
                       <span className="whitespace-nowrap rounded-full bg-[var(--qs-bg)] px-2.5 py-1 text-[11px] font-extrabold text-[var(--qs-muted)]">
@@ -223,20 +220,20 @@ export function PlanCheckoutDialog({
                       </span>
                     </div>
                     {(plan.description ?? plan.tagline) && (
-                      <p className="mt-1 text-[10.5px] leading-[14px] text-[var(--qs-muted)] sm:mt-1.5 sm:text-[13.5px] sm:font-medium sm:leading-[1.4]">
+                      <p className="mt-1 text-[12px] leading-[1.4] text-[var(--qs-muted)] sm:mt-1.5 sm:text-[13.5px] sm:font-medium">
                         {plan.description ?? plan.tagline}
                       </p>
                     )}
                     {plan.offer && (
-                      <p className="mt-1.5 text-[10px] font-semibold text-[var(--qs-brand)] sm:mt-3 sm:text-[12px] sm:font-bold">
+                      <p className="mt-1.5 text-[12px] font-bold text-[var(--qs-brand)] sm:mt-3">
                         {plan.offer}
                       </p>
                     )}
                     <div className="mt-1 flex flex-wrap items-baseline gap-2">
-                      <span className="text-[24px] font-bold leading-7 tracking-normal sm:text-[38px] sm:font-extrabold sm:leading-none sm:tracking-[-0.03em]">
+                      <span className="text-[26px] font-extrabold leading-none tracking-[-0.03em] text-[var(--qs-ink)] sm:text-[38px]">
                         {formatPricingAmount(plan.price, plan.currency)}
                       </span>
-                      <span className="text-[10.5px] font-medium text-[var(--qs-muted)] sm:text-[13px] sm:font-bold">
+                      <span className="text-[12px] font-semibold text-[var(--qs-muted)] sm:text-[13px]">
                         / {formatBillingPeriod(plan.billingPeriod ?? "monthly", plan.customDays).toLowerCase()}
                       </span>
                     </div>
@@ -255,25 +252,25 @@ export function PlanCheckoutDialog({
                       </div>
                     </div>
                     <hr className="my-3 border-0 border-t-2 border-dashed border-[var(--qs-line)]" />
-                    <ul className="grid gap-1.5 text-[11px] font-medium sm:gap-2 sm:text-[13.5px] sm:font-semibold">
+                    <ul className="grid gap-1.5 text-[12px] font-semibold text-[var(--qs-ink)] sm:gap-2 sm:text-[13.5px]">
                       <li className="flex items-center gap-2.5">
-                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--qs-okbg)] text-[var(--qs-ok)]">
                           <Check className="h-3 w-3" strokeWidth={2.6} />
                         </span>
                         {planCredits.toLocaleString("en-IN")} AI credits every month
                       </li>
                       <li className="flex items-center gap-2.5">
-                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--qs-okbg)] text-[var(--qs-ok)]">
                           <Check className="h-3 w-3" strokeWidth={2.6} />
                         </span>
                         Activates immediately
                       </li>
                     </ul>
-                    <div className="mt-auto pt-2.5 sm:pt-4">
+                    <div className="mt-auto pt-3 sm:pt-4">
                       <button
                         type="button"
                         onClick={choosePlan}
-                        className="flex w-full items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] px-2.5 py-2.5 text-[12px] font-semibold sm:gap-2 sm:rounded-[14px] sm:border-2 sm:px-4 sm:py-3 sm:text-[15px] sm:font-extrabold text-[var(--qs-ink)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_3px_0_var(--qs-ink)] active:translate-y-0.5 active:shadow-none"
+                        className="b b-full"
                       >
                         Continue with monthly
                         <ArrowRight className="h-3.5 w-3.5" />
@@ -281,20 +278,20 @@ export function PlanCheckoutDialog({
                     </div>
                   </article>
 
-                  <article className="relative order-first flex flex-col rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] p-2.5 text-[var(--qs-on-brand)] shadow-[2px_3px_0_var(--qs-sun)] sm:order-none sm:rounded-[20px] sm:border-2 sm:p-4 sm:shadow-[6px_6px_0_var(--qs-sun)]">
-                    <span className="absolute -top-3.5 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-[var(--qs-ink)] px-3.5 py-[5px] text-[12px] font-extrabold text-[var(--qs-sun)]">
+                  <article className="relative order-first flex flex-col rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] p-3 text-[var(--qs-on-brand)] shadow-[3px_4px_0_var(--qs-sun)] sm:order-none sm:rounded-[20px] sm:p-4 sm:shadow-[6px_6px_0_var(--qs-sun)]">
+                    <span className="absolute -top-3.5 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-ink)] px-3 py-[4px] text-[11px] font-extrabold uppercase tracking-[0.05em] text-[var(--qs-sun)]">
                       <Sparkles className="h-3 w-3" />
                       {suggestion.badge}
                     </span>
                     <div className="flex flex-wrap items-start justify-between gap-2">
-                      <h3 className="text-[14px] font-bold leading-tight tracking-normal sm:text-[20px] sm:font-extrabold sm:tracking-[-0.015em]">
+                      <h3 className="text-[15px] font-extrabold leading-tight tracking-[-0.015em] sm:text-[20px]">
                         {suggestion.title}
                       </h3>
                       <span className="whitespace-nowrap rounded-full bg-[var(--qs-sun)] px-2.5 py-1 text-[11px] font-extrabold text-[#1A1240]">
                         Save {formatPricingAmount(suggestion.savingsPaise / 100, plan.currency)}
                       </span>
                     </div>
-                    <p className="mt-1 text-[10.5px] leading-[14px] text-white/80 sm:mt-1.5 sm:text-[13.5px] sm:font-medium sm:leading-[1.4]">
+                    <p className="mt-1 text-[12px] leading-[1.4] text-white/85 sm:mt-1.5 sm:text-[13.5px] sm:font-medium">
                       {suggestion.description}
                     </p>
                     {plan.offer && (
@@ -303,13 +300,13 @@ export function PlanCheckoutDialog({
                       </p>
                     )}
                     <div className="mt-1 flex flex-wrap items-baseline gap-2">
-                      <span className="text-[24px] font-bold leading-7 tracking-normal sm:text-[38px] sm:font-extrabold sm:leading-none sm:tracking-[-0.03em]">
+                      <span className="text-[26px] font-extrabold leading-none tracking-[-0.03em] sm:text-[38px]">
                         {formatPricingAmount(suggestion.amountPaise / 100, plan.currency)}
                       </span>
                       <s className="text-[15px] font-bold text-[var(--qs-sun)]">
                         {formatPricingAmount(suggestion.compareAtPaise / 100, plan.currency)}
                       </s>
-                      <span className="text-[13px] font-bold text-white/80">today</span>
+                      <span className="text-[13px] font-bold text-white/85">today</span>
                     </div>
                     <div className="mt-3">
                       <div className="flex justify-between gap-2 text-[12px] font-bold text-[var(--qs-sun)]">
@@ -326,7 +323,7 @@ export function PlanCheckoutDialog({
                       </div>
                     </div>
                     <hr className="my-3 border-0 border-t-2 border-dashed border-white/35" />
-                    <ul className="grid gap-1.5 text-[11px] font-medium sm:gap-2 sm:text-[13.5px] sm:font-semibold">
+                    <ul className="grid gap-1.5 text-[12px] font-semibold sm:gap-2 sm:text-[13.5px]">
                       <li className="flex items-center gap-2.5">
                         <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--qs-sun)] text-[#1A1240]">
                           <Check className="h-3 w-3" strokeWidth={2.6} />
@@ -346,25 +343,25 @@ export function PlanCheckoutDialog({
                         <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--qs-sun)] text-[#1A1240]">
                           <Check className="h-3 w-3" strokeWidth={2.6} />
                         </span>
-                        {formatCreditRate(suggestion.perCreditPaise, plan.currency)} per
+                        {formatPricingAmount(suggestion.perCreditPaise / 100, plan.currency)} per
                         credit, not{" "}
-                        {formatCreditRate(bundleRegularRatePaise, plan.currency)}
+                        {formatPricingAmount(bundleRegularRatePaise / 100, plan.currency)}
                       </li>
                     </ul>
-                    <div className="mt-auto pt-2.5 sm:pt-4">
+                    <div className="mt-auto pt-3 sm:pt-4">
                       <button
                         type="button"
                         onClick={chooseBundle}
-                        className="flex w-full items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2.5 py-2.5 text-[12px] font-semibold sm:gap-2 sm:rounded-[14px] sm:border-2 sm:px-4 sm:py-3 sm:text-[15px] sm:font-extrabold text-[#1A1240] shadow-[0_4px_0_var(--qs-ink)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_6px_0_var(--qs-ink)] active:translate-y-0.5 active:shadow-none"
+                        className="flex w-full items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-3 py-3 text-[14px] font-extrabold text-[#1A1240] shadow-[0_4px_0_var(--qs-ink)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_6px_0_var(--qs-ink)] active:translate-y-0.5 active:shadow-none sm:text-[15px]"
                       >
                         Buy bundle ·{" "}
                         {formatPricingAmount(suggestion.amountPaise / 100, plan.currency)}
                         <ArrowRight className="h-3.5 w-3.5" />
                       </button>
-                      <p className="mt-2 text-center text-[12px] font-semibold text-white/85">
+                      <p className="mt-2 text-center text-[12px] font-semibold text-white/90">
                         Just{" "}
                         <b className="font-extrabold text-[var(--qs-sun)]">
-                          {formatPricingAmount(bundleExtraRupees, plan.currency)}
+                          {formatPricingAmount(bundleExtraAmount, plan.currency)}
                         </b>{" "}
                         more than {plan.name} to add the {suggestion.pack.name}
                       </p>
@@ -375,7 +372,7 @@ export function PlanCheckoutDialog({
                   <CalendarClock className="h-4 w-4 shrink-0 text-[var(--qs-brand)]" />
                   Your plan activates immediately; the credit pack keeps its own validity.
                 </p>
-                <p className="mt-1.5 text-center text-xs font-medium text-[var(--qs-muted)]">
+                <p className="mt-1.5 text-center text-[12px] font-medium text-[var(--qs-muted)]">
                   Secure payments via Razorpay
                 </p>
               </>
@@ -383,42 +380,42 @@ export function PlanCheckoutDialog({
               <>
                 <div className={cn(QS_ROW, "border-t-2 border-[var(--qs-line)]")}>
                   <div>
-                    <b className="block text-[12px] font-bold sm:text-[15px] sm:font-extrabold">{plan.name}</b>
-                    <small className="text-sm text-[var(--qs-muted)]">
+                    <b className="block text-[13px] font-extrabold text-[var(--qs-ink)] sm:text-[15px]">{plan.name}</b>
+                    <small className="text-[12px] text-[var(--qs-muted)] sm:text-sm">
                       {formatBillingPeriod(plan.billingPeriod ?? "monthly", plan.customDays)} plan
                     </small>
                   </div>
-                  <strong className="text-[18px] font-bold tabular-nums sm:text-[24px] sm:font-black">
+                  <strong className="text-[18px] font-extrabold tabular-nums text-[var(--qs-ink)] sm:text-[24px]">
                     {formatPricingAmount(plan.price, plan.currency)}
                   </strong>
                 </div>
                 <div className={cn(QS_ROW, "border-t-2 border-[var(--qs-line)]")}>
-                  <span className="flex items-center gap-1.5 text-sm font-semibold text-[var(--qs-muted)]">
+                  <span className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--qs-muted)] sm:text-sm">
                     <Sparkles className="h-4 w-4" />
                     Monthly credits
                   </span>
-                  <span className="font-bold tabular-nums">
+                  <span className="font-bold tabular-nums text-[var(--qs-ink)]">
                     {plan.credits.toLocaleString("en-IN")}
                   </span>
                 </div>
                 <div className={cn(QS_ROW, "border-t-2 border-[var(--qs-line)]")}>
-                  <span className="text-sm font-bold">Balance after activation</span>
-                  <b className="text-[16px] font-bold tabular-nums text-[var(--qs-ok)] sm:text-[22px] sm:font-black">
+                  <span className="text-[13px] font-bold text-[var(--qs-ink)] sm:text-sm">Balance after activation</span>
+                  <b className="text-[16px] font-extrabold tabular-nums text-[var(--qs-ok)] sm:text-[22px]">
                     {(balance + plan.credits).toLocaleString("en-IN")}
                   </b>
                 </div>
-                <p className="mt-1.5 mb-2 flex items-start gap-1.5 rounded-[9px] border border-[var(--qs-line)] px-2 py-2 text-[10px] font-medium sm:mt-2 sm:mb-3 sm:gap-2 sm:rounded-[12px] sm:border-2 sm:px-3 sm:py-2.5 sm:text-xs sm:font-semibold text-[var(--qs-muted)]">
+                <p className="mb-2 mt-2 flex items-start gap-2 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2.5 text-[12px] font-medium text-[var(--qs-muted)] sm:mb-3 sm:text-[13px]">
                   <CalendarClock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--qs-brand)]" />
                   Your plan activates immediately and stays active for its billing period.
                 </p>
                 <button
                   type="button"
                   onClick={choosePlan}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] py-2.5 text-[13px] font-bold text-[var(--qs-on-brand)] shadow-[2px_3px_0_var(--qs-sun)] sm:gap-2 sm:rounded-[14px] sm:border-2 sm:py-[15px] sm:text-base sm:font-extrabold sm:shadow-[4px_4px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
+                  className="b b-pri lg b-full"
                 >
                   <Lock className="h-4 w-4" /> Pay {formatPricingAmount(plan.price, plan.currency)}
                 </button>
-                <p className="mt-3.5 text-center text-xs font-medium text-[var(--qs-muted)]">
+                <p className="mt-3 text-center text-[12px] font-medium text-[var(--qs-muted)]">
                   Secure payments via Razorpay
                 </p>
               </>
@@ -429,8 +426,8 @@ export function PlanCheckoutDialog({
         {phase === "processing" && (
           <PhaseShell>
             <Loader2 className="h-8 w-8 animate-spin text-[var(--qs-brand)]" />
-            <p className="mt-3 text-sm font-bold">{processingNote}</p>
-            <p className="mt-1 text-xs text-[var(--qs-muted)]">Do not close this window.</p>
+            <p className="mt-3 text-sm font-bold text-[var(--qs-ink)]">{processingNote}</p>
+            <p className="mt-1 text-[12px] text-[var(--qs-muted)]">Do not close this window.</p>
           </PhaseShell>
         )}
 
@@ -439,19 +436,19 @@ export function PlanCheckoutDialog({
             <span className="grid h-12 w-12 place-items-center rounded-full bg-[var(--qs-okbg)] text-[var(--qs-ok)]">
               <BadgeCheck className="h-6 w-6" />
             </span>
-            <p className="mt-3 text-sm font-bold">{receipt.planName} is now active</p>
-            <p className="mt-1 text-xs text-[var(--qs-muted)]">
+            <p className="mt-3 text-sm font-extrabold text-[var(--qs-ink)]">{receipt.planName} is now active</p>
+            <p className="mt-1 text-[12px] text-[var(--qs-muted)]">
               {receipt.credits.toLocaleString("en-IN")} credits added
               {validTill ? ` · valid till ${validTill}` : ""}
             </p>
-            <p className="mt-1 text-xs tabular-nums text-[var(--qs-muted)]">
+            <p className="mt-1 text-[12px] tabular-nums text-[var(--qs-muted)]">
               Transaction {receipt.transactionId} · Balance {receipt.newBalance.toLocaleString("en-IN")}
             </p>
             {onViewInvoice && (
               <button
                 type="button"
                 onClick={() => onViewInvoice(receipt.orderId)}
-                className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] py-2.5 text-[12px] font-semibold sm:mt-4 sm:rounded-[14px] sm:border-2 sm:py-3 sm:text-sm sm:font-bold transition-colors hover:border-[var(--qs-brand)]"
+                className="b b-full mt-3"
               >
                 <FileText className="h-4 w-4" />
                 View invoice
@@ -460,7 +457,7 @@ export function PlanCheckoutDialog({
             <button
               type="button"
               onClick={onClose}
-              className="mt-2.5 w-full rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] py-2.5 text-[13px] font-bold sm:mt-3 sm:rounded-[14px] sm:border-2 sm:py-[15px] sm:text-base sm:font-extrabold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
+              className="b b-pri lg b-full mt-2.5"
             >
               Done
             </button>
@@ -472,14 +469,10 @@ export function PlanCheckoutDialog({
             <span className="grid h-12 w-12 place-items-center rounded-full bg-[var(--qs-badbg)] text-[var(--qs-bad)]">
               <AlertCircle className="h-6 w-6" />
             </span>
-            <p className="mt-3 text-sm font-bold">Payment failed</p>
-            <p className="mt-1 max-w-xs text-xs leading-5 text-[var(--qs-muted)]">{phaseError}</p>
+            <p className="mt-3 text-sm font-extrabold text-[var(--qs-ink)]">Payment failed</p>
+            <p className="mt-1 max-w-xs text-[12px] leading-5 text-[var(--qs-muted)]">{phaseError}</p>
             <div className="mt-5 flex w-full gap-2">
-              <button
-                type="button"
-                onClick={onBack}
-                className="flex-1 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] py-2.5 text-[12px] font-semibold sm:rounded-[14px] sm:border-2 sm:py-3 sm:text-sm sm:font-bold transition-colors hover:border-[var(--qs-brand)]"
-              >
+              <button type="button" onClick={onBack} className="b flex-1">
                 Back
               </button>
               <button
@@ -490,7 +483,7 @@ export function PlanCheckoutDialog({
                     bundleId: activeBundle?.bundleId,
                   })
                 }
-                className="flex-1 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] py-2.5 text-[12px] font-bold sm:rounded-[14px] sm:border-2 sm:py-3 sm:text-sm sm:font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
+                className="b b-pri flex-1"
               >
                 Try again
               </button>
@@ -503,23 +496,15 @@ export function PlanCheckoutDialog({
             <span className="grid h-12 w-12 place-items-center rounded-full bg-[var(--qs-line)] text-[var(--qs-muted)]">
               <Info className="h-6 w-6" />
             </span>
-            <p className="mt-3 text-sm font-bold">Payment cancelled</p>
-            <p className="mt-1 max-w-xs text-xs leading-5 text-[var(--qs-muted)]">
+            <p className="mt-3 text-sm font-extrabold text-[var(--qs-ink)]">Payment cancelled</p>
+            <p className="mt-1 max-w-xs text-[12px] leading-5 text-[var(--qs-muted)]">
               No amount was charged. You can resume whenever you are ready.
             </p>
             <div className="mt-5 flex w-full gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] py-2.5 text-[12px] font-semibold sm:rounded-[14px] sm:border-2 sm:py-3 sm:text-sm sm:font-bold transition-colors hover:border-[var(--qs-brand)]"
-              >
+              <button type="button" onClick={onClose} className="b flex-1">
                 Close
               </button>
-              <button
-                type="button"
-                onClick={onBack}
-                className="flex-1 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] py-2.5 text-[12px] font-bold sm:rounded-[14px] sm:border-2 sm:py-3 sm:text-sm sm:font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
-              >
+              <button type="button" onClick={onBack} className="b b-pri flex-1">
                 Resume
               </button>
             </div>
@@ -527,8 +512,8 @@ export function PlanCheckoutDialog({
         )}
 
         {phase !== "processing" && phase !== "success" && (
-          <p className="mt-3 flex items-center justify-center gap-1.5 border-t-2 border-[var(--qs-line)] pt-3 text-[11px] font-medium text-[var(--qs-muted)]">
-            <ShieldCheck className="h-3.5 w-3.5" />
+          <p className="mt-3 flex items-center justify-center gap-1.5 border-t-2 border-[var(--qs-line)] pt-3 text-center text-[12px] font-medium text-[var(--qs-muted)]">
+            <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
             Plans and credits are activated only after backend payment verification
           </p>
         )}

@@ -5,6 +5,7 @@ import multer from "multer";
 import { authenticate } from "../../../middleware/auth.ts";
 import { requireAiCredits } from "../../../middleware/requireAiCredits.ts";
 import { requireActiveAiUser } from "../../../middleware/requireActiveAiUser.ts";
+import { requirePaidPlan } from "../../../middleware/requirePaidPlan.ts";
 import {
   createCustomSyllabus,
   deleteCustomSyllabus,
@@ -88,6 +89,7 @@ router.get("/search", searchCustomSyllabus);
 router.get("/import/cost", getSyllabusImportCost);
 router.post(
   "/import",
+  requirePaidPlan,
   requireActiveAiUser,
   requireAiCredits,
   uploadSyllabus,

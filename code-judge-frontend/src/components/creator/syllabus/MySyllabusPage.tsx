@@ -19,6 +19,7 @@ import {
 import { cn } from "@/lib/helpers";
 import { toast } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiError";
+import { useSyllabusImportAccess } from "@/hooks/useSyllabusImportAccess";
 import {
   deleteSyllabus,
   getSyllabus,
@@ -63,6 +64,7 @@ function formatUpdated(value: string): string {
 }
 
 export function MySyllabusPage({ onboarding = false }: MySyllabusPageProps) {
+  const { requestImport } = useSyllabusImportAccess();
   const [syllabi, setSyllabi] = useState<SyllabusSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -150,8 +152,10 @@ export function MySyllabusPage({ onboarding = false }: MySyllabusPageProps) {
   };
 
   const openImport = (target: SyllabusSummary | null = null) => {
-    setReimportTarget(target);
-    setImportOpen(true);
+    requestImport(() => {
+      setReimportTarget(target);
+      setImportOpen(true);
+    });
   };
 
   const handleImportReady = (job: SyllabusImportJob) => {

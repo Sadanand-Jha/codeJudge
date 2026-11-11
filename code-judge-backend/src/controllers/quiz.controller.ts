@@ -422,6 +422,7 @@ export const createQuiz = async (req: Request, res: Response) => {
       endtime: body.endtime ? new Date(body.endtime) : undefined,
       visibility: visibilityId ?? undefined,
       difficulty: difficultyId ?? undefined,
+      subject: typeof body.subject === "string" ? body.subject : undefined,
       subjectId: subjectId ?? undefined,
       examId: examId ?? undefined,
       duration: body.timeLimit ?? undefined,

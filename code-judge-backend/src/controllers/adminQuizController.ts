@@ -360,6 +360,7 @@ export const createQuiz = async (req: Request, res: Response) => {
       visibility: visibilityId ?? undefined,
       audienceMode: body.audienceMode,
       difficulty: difficultyId ?? undefined,
+      subject: typeof body.subject === "string" ? body.subject : undefined,
       subjectId: subjectId ?? undefined,
       examId: examId ?? undefined,
       duration: body.timeLimit ?? undefined,

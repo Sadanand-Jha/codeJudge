@@ -138,8 +138,12 @@ export function SetupStep() {
                   required
                   value={info.subjectId ? Number(info.subjectId) || null : null}
                   selectedLabel={info.subject || null}
+                  allowCustom
                   onChange={(item) =>
-                    updateInfo({ subject: item?.name ?? "", subjectId: item?.id ?? "" })
+                    updateInfo({
+                      subject: item?.name ?? "",
+                      subjectId: item?.id ? item.id : "",
+                    })
                   }
                 />
               </div>

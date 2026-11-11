@@ -31,6 +31,13 @@ export interface RazorpayPayment {
   email?: string | null;
   contact?: string | null;
   error_description?: string | null;
+  // Present for card payments only. `country` is read defensively: Razorpay
+  // documents `international` reliably, but an ISO country is not guaranteed.
+  card?: {
+    country?: string | null;
+    international?: boolean | null;
+    issuer?: string | null;
+  } | null;
   created_at: number;
 }
 

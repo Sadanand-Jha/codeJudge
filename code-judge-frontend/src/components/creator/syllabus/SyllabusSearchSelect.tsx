@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import { Check, ChevronDown, Search, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Check, ChevronDown, Plus, Search, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { useSyllabusImportAccess } from "@/hooks/useSyllabusImportAccess";
 import {
   searchSyllabus,
   type SyllabusSearchItem,
@@ -31,6 +32,8 @@ interface SyllabusSearchSelectProps {
   selectedLabel?: string | null;
   selectedLabels?: Record<number, string> | null;
   allowClear?: boolean;
+  /** Let teachers type a subject name that is not in the syllabus list. */
+  allowCustom?: boolean;
 }
 
 const fieldLight =
@@ -56,8 +59,12 @@ export function SyllabusSearchSelect({
   selectedLabel,
   selectedLabels,
   allowClear = true,
+  allowCustom = false,
 }: SyllabusSearchSelectProps) {
   const dark = theme === "dark";
+  const router = useRouter();
+  const { requestImport } = useSyllabusImportAccess();
+  const customEnabled = allowCustom && type === "syllabus" && !multiple;
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SyllabusSearchItem[]>([]);
@@ -143,11 +150,21 @@ export function SyllabusSearchSelect({
       ? singleItem && singleItem.id === value
         ? singleItem.name
         : selectedLabel || `#${value}`
-      : null;
+      : selectedLabel?.trim() || null;
 
-  const selectedCount = multiple ? values.length : value != null ? 1 : 0;
+  const selectedCount = multiple
+    ? values.length
+    : value != null || Boolean(selectedLabel?.trim())
+      ? 1
+      : 0;
   const defaultPlaceholder =
-    type === "syllabus" ? "Select syllabus" : type === "chapter" ? "Select chapter" : "Select topic";
+    type === "syllabus"
+      ? customEnabled
+        ? "Type or pick a subject"
+        : "Select syllabus"
+      : type === "chapter"
+        ? "Select chapter"
+        : "Select topic";
 
   const choose = (item: SyllabusSearchItem) => {
     if (multiple) {
@@ -166,6 +183,26 @@ export function SyllabusSearchSelect({
     }
     setSingleItem(item);
     onChange?.(item);
+    setOpen(false);
+  };
+
+  const chooseCustom = () => {
+    const name = query.trim();
+    if (!customEnabled || !name) return;
+    setSingleItem(null);
+    onChange?.({
+      type: "syllabus",
+      id: 0,
+      scope: "teacher",
+      name,
+      subject: name,
+      syllabusId: 0,
+      syllabusName: name,
+      chapterId: null,
+      chapterName: null,
+      owned: true,
+    });
+    setQuery("");
     setOpen(false);
   };
 
@@ -190,7 +227,11 @@ export function SyllabusSearchSelect({
     } else if (event.key === "Enter") {
       event.preventDefault();
       const item = grouped.flat[active];
-      if (item) choose(item);
+      if (item) {
+        choose(item);
+      } else if (customEnabled && query.trim()) {
+        chooseCustom();
+      }
     }
   };
 
@@ -362,7 +403,11 @@ export function SyllabusSearchSelect({
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={onInputKeyDown}
-                placeholder={`Search ${type === "syllabus" ? "syllabi" : `${type}s`}…`}
+                placeholder={
+                  customEnabled
+                    ? "Type a subject name or search…"
+                    : `Search ${type === "syllabus" ? "syllabi" : `${type}s`}…`
+                }
                 aria-label={`Search ${type}`}
                 className={cn(
                   "h-10 w-full bg-transparent text-xs outline-none",
@@ -383,6 +428,37 @@ export function SyllabusSearchSelect({
               aria-multiselectable={multiple}
               className="max-h-72 overflow-y-auto p-1.5"
             >
+              {customEnabled && query.trim() && (
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={false}
+                  onClick={chooseCustom}
+                  className={cn(
+                    "mb-1 flex w-full items-start gap-2 rounded-lg border border-dashed px-2.5 py-2 text-left transition-colors",
+                    dark
+                      ? "border-white/20 text-white hover:bg-white/5"
+                      : "border-border-hover text-text-primary hover:bg-card-hover"
+                  )}
+                >
+                  <span className="mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-[5px] border border-transparent bg-gradient-to-br from-pink-500 to-violet-600 text-white">
+                    <Plus className="h-3 w-3" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-semibold">
+                      Use “{query.trim()}”
+                    </span>
+                    <span
+                      className={cn(
+                        "mt-0.5 block truncate text-[10px] font-medium",
+                        dark ? "text-white/45" : "text-text-muted"
+                      )}
+                    >
+                      Add this as your subject
+                    </span>
+                  </span>
+                </button>
+              )}
               {error ? (
                 <p className={cn("px-3 py-6 text-center text-xs", dark ? "text-red-300" : "text-red-600")}>
                   {error}
@@ -395,20 +471,23 @@ export function SyllabusSearchSelect({
                 ) : results.length === 0 && !query.trim() ? (
                   <div className="px-3 py-5 text-center">
                     <p className={cn("text-xs font-bold", dark ? "text-white" : "text-text-primary")}>
-                      No syllabus imported yet
+                      {customEnabled ? "No subject saved yet" : "No syllabus imported yet"}
                     </p>
                     <p className={cn("mt-1 text-[11px]", dark ? "text-white/45" : "text-text-muted")}>
-                      Import your syllabus to select subjects, chapters, and topics.
+                      {customEnabled
+                        ? "Type a subject name above, or import a syllabus for chapters and topics."
+                        : "Import your syllabus to select subjects, chapters, and topics."}
                     </p>
-                    <Link
-                      href="/creator/syllabus"
+                    <button
+                      type="button"
+                      onClick={() => requestImport(() => router.push("/creator/syllabus"))}
                       className={cn(
                         "mt-2 inline-flex items-center justify-center rounded-lg px-2.5 py-1.5 text-[11px] font-bold",
                         dark ? "bg-white/10 text-white hover:bg-white/15" : "bg-pink-500/10 text-pink-600 hover:bg-pink-500/15"
                       )}
                     >
                       Import syllabus
-                    </Link>
+                    </button>
                   </div>
                 ) : (
                   <p className={cn("px-3 py-6 text-center text-xs", dark ? "text-white/45" : "text-text-muted")}>

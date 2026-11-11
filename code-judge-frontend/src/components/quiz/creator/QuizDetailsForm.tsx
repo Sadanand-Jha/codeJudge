@@ -171,8 +171,12 @@ export default function QuizDetailsForm({ onContinue, initialDetails }: QuizDeta
                     placeholder="Search syllabi..."
                     value={details.subjectId ? Number(details.subjectId) || null : null}
                     selectedLabel={details.subject || null}
+                    allowCustom
                     onChange={(item) =>
-                      update({ subject: item?.name ?? "", subjectId: item?.id ?? "" })
+                      update({
+                        subject: item?.name ?? "",
+                        subjectId: item?.id ? item.id : "",
+                      })
                     }
                   />
                 </div>

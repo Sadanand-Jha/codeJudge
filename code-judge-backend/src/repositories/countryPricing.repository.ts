@@ -49,6 +49,56 @@ export async function findFallbackPrice(): Promise<CountryPriceRow | null> {
   return result.rows[0] ? mapCountryPrice(result.rows[0]) : null;
 }
 
+/**
+ * Returns the billing currency and country of the subscriber's most recent
+ * paid subscription, or null. billing_currency is written only when a payment
+ * is verified and the subscription is activated, so NULL means never paid.
+ * Trials ('trialing') and rows that were never activated are excluded by status.
+ */
+export async function findBillingCurrencyLock(
+  userId: string
+): Promise<{ currency: string; country: string | null } | null> {
+  const result = await pool.query(
+    `SELECT billing_currency, billing_country
+     FROM subscriptions
+     WHERE user_id = $1
+       AND billing_currency IS NOT NULL
+       AND status IN ('active', 'past_due', 'paused', 'canceled', 'expired')
+     ORDER BY id DESC
+     LIMIT 1`,
+    [userId]
+  );
+  const row = result.rows[0];
+  if (!row) return null;
+  return {
+    currency: String(row.billing_currency).trim(),
+    country: row.billing_country == null ? null : String(row.billing_country).trim(),
+  };
+}
+
+/**
+ * Returns the current active price for a currency, preferring the row for the
+ * given country (the country the subscriber was billed under), then any country
+ * row, then the fallback row.
+ */
+export async function findCurrentPriceByCurrency(
+  currency: string,
+  preferredCountry: string | null
+): Promise<CountryPriceRow | null> {
+  const result = await pool.query(
+    `SELECT id, country_code, currency, amount_major, amount_minor,
+            minor_unit_exponent, version, is_fallback, is_active
+     FROM country_pricing_configs
+     WHERE currency = $1 AND is_current = TRUE AND is_active = TRUE
+     ORDER BY (country_code IS NOT DISTINCT FROM $2) DESC,
+              (country_code IS NULL) ASC,
+              id DESC
+     LIMIT 1`,
+    [currency, preferredCountry]
+  );
+  return result.rows[0] ? mapCountryPrice(result.rows[0]) : null;
+}
+
 export async function findUserMobile(userId: string): Promise<string | null> {
   const result = await pool.query(`SELECT mobile FROM users WHERE id = $1 LIMIT 1`, [userId]);
   return result.rows[0]?.mobile == null ? null : String(result.rows[0].mobile);

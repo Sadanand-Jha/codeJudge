@@ -8,6 +8,7 @@ import {
 } from "../../repositories/quiz.repository.ts";
 import { assertQuizCreationAllowed } from "../quizCreationLimits.ts";
 import { assertQuestionsCanBeAdded } from "../quizQuestionLimits.ts";
+import { ensureTeacherSubject } from "../customSyllabus.service.ts";
 
 export class QuizService {
   private repository: QuizRepository;
@@ -87,6 +88,7 @@ export class QuizService {
     endtime?: Date;
     visibility?: number;
     difficulty?: number;
+    subject?: string;
     subjectId?: number;
     examId?: number;
     duration?: number;
@@ -102,7 +104,13 @@ export class QuizService {
     registrationFields?: string[];
   }): Promise<any> {
     await assertQuizCreationAllowed(data.createdby);
-    return this.repository.createQuiz(data);
+    const { subject, ...rest } = data;
+    const payload = { ...rest };
+    if (!payload.subjectId && subject?.trim()) {
+      const resolved = await ensureTeacherSubject(data.createdby, subject);
+      payload.subjectId = resolved.id;
+    }
+    return this.repository.createQuiz(payload);
   }
 
   async createQuizProblem(data: {
@@ -131,7 +139,20 @@ export class QuizService {
   }
 
   async updateQuiz(quizId: number, data: any): Promise<any> {
-    return this.repository.updateQuiz(quizId, data);
+    const { subject, ...rest } = data ?? {};
+    const payload = { ...rest };
+    if (
+      !payload.subjectId &&
+      typeof subject === "string" &&
+      subject.trim()
+    ) {
+      const existing = await this.repository.getQuizById(String(quizId));
+      if (existing?.createdby) {
+        const resolved = await ensureTeacherSubject(existing.createdby, subject);
+        payload.subjectId = resolved.id;
+      }
+    }
+    return this.repository.updateQuiz(quizId, payload);
   }
 
   async deleteQuiz(quizId: number): Promise<boolean> {

@@ -51,6 +51,7 @@ import {
 import { invalidateEntitlements } from "./entitlement.service.ts";
 import { qualifyReferralForFirstPlanTx } from "./referral.service.ts";
 import {
+  cardCountryMismatch,
   isRazorpayCurrencySupported,
   resolveCountryPricing,
 } from "./countryPricing.service.ts";
@@ -944,7 +945,20 @@ async function completeOrderTx(
     throw new BillingError(409, "ORDER_NOT_PAYABLE", "This order can no longer be paid.");
   }
 
-  if (payment) validateGatewayPayment(order, payment);
+  if (payment) {
+    validateGatewayPayment(order, payment);
+    // Log and flag only. A card-country mismatch never blocks activation, since
+    // VPNs, travel and cross-border cards are legitimate. Review via logs.
+    const cardMismatch = cardCountryMismatch(order.pricingCountry, payment.card);
+    if (cardMismatch) {
+      console.warn("billing.card_country_mismatch", {
+        orderNo: order.orderNo,
+        paymentId: payment.id,
+        pricingCountry: order.pricingCountry,
+        ...cardMismatch,
+      });
+    }
+  }
 
   let startsAt = now;
   let expiresAt = addDays(now, Math.max(1, order.validityDays));

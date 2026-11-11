@@ -526,6 +526,7 @@ export async function updateQuiz(quizId: string, data: Partial<{
   visibility: number;
   audienceMode: "public" | "private" | "classroom";
   difficulty: number;
+  subject?: string;
   subjectId: number;
   examId: number;
   duration: number;

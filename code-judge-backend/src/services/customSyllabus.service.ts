@@ -308,6 +308,80 @@ export async function getSyllabusTree(
   };
 }
 
+export interface TeacherSubject {
+  id: number;
+  name: string;
+  subject: string;
+}
+
+/**
+ * Resolve a free-text subject name typed by a teacher into a teacher-owned
+ * `subjects` row, creating it when it does not exist yet. This lets quizzes
+ * keep a real `subject_id` even when the teacher has not imported a syllabus.
+ */
+export async function ensureTeacherSubject(
+  userId: number | string,
+  rawName: string
+): Promise<TeacherSubject> {
+  const teacherId = numericUserId(userId);
+  const name = String(rawName ?? "").trim();
+  if (!name) {
+    throw new SyllabusServiceError(400, "Enter a subject name.", "INVALID_SUBJECT");
+  }
+  if (name.length > 255) {
+    throw new SyllabusServiceError(
+      400,
+      "Subject name must be 255 characters or fewer.",
+      "INVALID_SUBJECT"
+    );
+  }
+
+  const findSubject = async (): Promise<TeacherSubject | null> => {
+    const result = await pool.query(
+      `SELECT id, name, subject_name
+         FROM subjects
+        WHERE owned_by = $1
+          AND deleted_at IS NULL
+          AND (lower(btrim(name)) = lower(btrim($2))
+            OR lower(btrim(subject_name)) = lower(btrim($2)))
+        ORDER BY id ASC
+        LIMIT 1`,
+      [teacherId, name]
+    );
+    const row = result.rows[0];
+    if (!row) return null;
+    return {
+      id: Number(row.id),
+      name: String(row.name ?? row.subject_name),
+      subject: String(row.subject_name ?? row.name),
+    };
+  };
+
+  const existing = await findSubject();
+  if (existing) return existing;
+
+  try {
+    const created = await pool.query(
+      `INSERT INTO subjects (subject_name, name, owned_by, status)
+       VALUES ($1, $1, $2, 'active')
+       RETURNING id, name, subject_name`,
+      [name, teacherId]
+    );
+    const row = created.rows[0];
+    return {
+      id: Number(row.id),
+      name: String(row.name ?? row.subject_name),
+      subject: String(row.subject_name ?? row.name),
+    };
+  } catch (error) {
+    if ((error as { code?: string })?.code === "23505") {
+      const raced = await findSubject();
+      if (raced) return raced;
+    }
+    throw error;
+  }
+}
+
 export async function createTeacherSyllabus(
   userId: number | string,
   rawInput: unknown
