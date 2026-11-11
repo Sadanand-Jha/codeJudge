@@ -208,11 +208,6 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
         <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-[var(--qs-ink)]">
           Build quizzes with AI
         </span>
-        {!WHOLE_QUIZ_AI_ENABLED && (
-          <span className="shrink-0 rounded-[6px] bg-[var(--qs-warnbg)] px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.04em] text-[var(--qs-warn)]">
-            Soon
-          </span>
-        )}
         <Link
           href="/creator/quizzes/create"
           className="inline-flex h-7 shrink-0 items-center justify-center rounded-[8px] bg-[var(--qs-brand)] px-2.5 text-[12px] font-semibold text-[var(--qs-on-brand)]"
@@ -230,11 +225,6 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
           <div className="min-w-0 flex-1">
             <p className="flex flex-wrap items-center gap-2 text-[12px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-brand)]">
               AI service
-              {!WHOLE_QUIZ_AI_ENABLED && (
-                <span className="rounded-full border-2 border-[#a85d00]/30 bg-[#fff3d6] px-2 py-0.5 text-[10px] tracking-[0.06em] text-[#a85d00]">
-                  Coming soon
-                </span>
-              )}
             </p>
             <h2 className="qs-display mt-1 text-[20px] font-extrabold text-[var(--qs-ink)]">
               Build your next quiz with AI

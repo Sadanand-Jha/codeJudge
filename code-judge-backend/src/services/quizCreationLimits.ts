@@ -2,13 +2,13 @@
 // (creator studio, user API, cloning). Limits are enforced here so no client
 // can bypass them; the frontend only surfaces the error when a limit is hit.
 //
-// The total-quizzes cap is now resolved from the user's subscription
+// The monthly-quizzes cap is now resolved from the user's subscription
 // entitlements (`max_quizzes`, -1 = unlimited) instead of a hardcoded number.
 // Daily and cooldown caps remain fixed anti-abuse rules.
 import { pool } from "../config/database.ts";
 import { assertLimit } from "./entitlement.service.ts";
 
-/** Free-plan fallback for the entitlement-backed total-quizzes cap. */
+/** Free-plan fallback for the entitlement-backed monthly-quizzes cap. */
 export const MAX_QUIZZES_PER_USER = 10;
 
 /** Maximum quizzes a single user may create per UTC calendar day. */
@@ -40,7 +40,7 @@ export class QuizCreationLimitError extends Error {
 }
 
 interface QuizCreationStats {
-  total: number;
+  thisMonth: number;
   today: number;
   lastCreatedAt: Date | null;
 }
@@ -48,7 +48,9 @@ interface QuizCreationStats {
 async function getQuizCreationStats(userId: number): Promise<QuizCreationStats> {
   const result = await pool.query(
     `SELECT
-       COUNT(*)::int AS total,
+       COUNT(*) FILTER (
+         WHERE created_at >= date_trunc('month', NOW())
+       )::int AS this_month,
        COUNT(*) FILTER (
          WHERE created_at >= date_trunc('day', NOW())
        )::int AS today,
@@ -58,12 +60,12 @@ async function getQuizCreationStats(userId: number): Promise<QuizCreationStats> 
     [userId]
   );
   const row = result.rows[0] as {
-    total: number;
+    this_month: number;
     today: number;
     last_created_at: string | Date | null;
   };
   return {
-    total: row.total,
+    thisMonth: row.this_month,
     today: row.today,
     lastCreatedAt: row.last_created_at ? new Date(row.last_created_at) : null,
   };
@@ -78,8 +80,9 @@ export async function assertQuizCreationAllowed(userId: number): Promise<void> {
   const stats = await getQuizCreationStats(userId);
 
   // Plan-based cap: throws EntitlementLimitError (mapped to 403 + upgrade
-  // prompt by controllers). The free plan defaults to MAX_QUIZZES_PER_USER.
-  await assertLimit(userId, "max_quizzes", stats.total);
+  // prompt by controllers). The free plan defaults to MAX_QUIZZES_PER_USER
+  // creations per calendar month.
+  await assertLimit(userId, "max_quizzes", stats.thisMonth);
 
   if (stats.today >= MAX_QUIZZES_PER_DAY) {
     throw new QuizCreationLimitError(

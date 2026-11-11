@@ -39,12 +39,12 @@ export const UNLIMITED = -1;
 export const ENTITLEMENT_REGISTRY: EntitlementDefinition[] = [
   {
     key: "max_quizzes",
-    label: "Total quizzes",
-    description: "Maximum quizzes the account can own at any time.",
+    label: "Quizzes per month",
+    description: "Maximum quizzes the account can create per calendar month.",
     type: "number",
     category: "quizzes",
     default: 10,
-    unit: "quizzes",
+    unit: "quizzes / month",
   },
   {
     key: "max_questions_per_quiz",
