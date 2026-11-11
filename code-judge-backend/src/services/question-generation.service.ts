@@ -21,7 +21,7 @@
  */
 import ExcelJS from "exceljs";
 import { chatWithAI, streamChatWithAI } from "./ai.service.js";
-import type { LiveUsage } from "./ai.service.js";
+import type { ChatContentPart, ChatMessageInput, LiveUsage } from "./ai.service.js";
 import {
   extractTextWithDocling,
   isDoclingAvailable,
@@ -449,20 +449,61 @@ const normalizeOptionPairs = (
   return { options, optionsHtml: hasHtml ? optionsHtml : undefined };
 };
 
+/** Files sent to the model as-is (no local/Docling text extraction). */
+const DIRECT_PDF_EXTENSIONS = new Set(["pdf"]);
+const DIRECT_IMAGE_MIME: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
+};
+
+const fileExtension = (name: string): string => name.split(".").pop()?.toLowerCase() ?? "";
+
+/** Build an inline content part for a PDF or image; null for anything else. */
+const directContentPart = (file: UploadedFileInput): ChatContentPart | null => {
+  const ext = fileExtension(file.name);
+  const base64 = file.buffer.toString("base64");
+  if (DIRECT_PDF_EXTENSIONS.has(ext)) {
+    return {
+      type: "file",
+      file: { filename: file.name, file_data: `data:application/pdf;base64,${base64}` },
+    };
+  }
+  const mime = DIRECT_IMAGE_MIME[ext];
+  if (mime) {
+    return { type: "image_url", image_url: { url: `data:${mime};base64,${base64}`, detail: "high" } };
+  }
+  return null;
+};
+
+/** True when the provider rejected the inline file/image input itself. */
+const isUnsupportedInputError = (error: unknown): boolean => {
+  const err = error as { status?: number; message?: string; name?: string };
+  if (err?.name === "AbortError") return false;
+  if (err?.status === 400 || err?.status === 404 || err?.status === 415 || err?.status === 422) return true;
+  return /unsupported|modalit|file input|image input|pdf/i.test(err?.message ?? "");
+};
+
 /**
  * Main entry point — generate quiz questions from uploaded files.
  *
  * Pipeline:
- *   1. Check whether Docling Serve is reachable (memoized health check).
- *   2. `extractFileText()` per file → wrap each as `--- filename ---\n<text>`.
- *   3. Join, truncate to 200k chars, and build the generation prompt from the
- *      options (`numberOfQuestions`, `questionTypes`, `difficulty`,
- *      `bloomsLevel`, and the optional `include*` extras).
- *   4. Make a single non-streaming `chatWithAI(prompt)` call.
+ *   1. PDFs and images are attached directly to the model request as inline
+ *      base64 content — the model reads them itself, nothing is extracted.
+ *   2. Other formats (Word, PowerPoint, Excel, text…) are converted to text
+ *      (Docling / local decode) and included in the prompt.
+ *   3. Build the generation prompt from the options (`numberOfQuestions`,
+ *      `questionTypes`, `difficulty`, `bloomsLevel`, and the optional
+ *      `include*` extras), then make a single `chatWithAI` /
+ *      `streamChatWithAI` call.
+ *   4. If the provider rejects the inline files, PDFs are converted to text
+ *      and the request is retried once.
  *   5. `parseQuestionsJSON()` on the reply and return
  *      `{ questions, extractedText, usage }`.
  *
- * Throws if there are no files, no extractable text, or the model reply
+ * Throws if there are no files, no readable material, or the model reply
  * contains no valid questions.
  */
 export const generateQuestionsFromFiles = async (
@@ -473,17 +514,26 @@ export const generateQuestionsFromFiles = async (
     throw new Error("At least one file is required");
   }
 
+  const directFiles = files.filter((file) => directContentPart(file) !== null);
+  const textFiles = files.filter((file) => directContentPart(file) === null);
+  const attachments = directFiles
+    .map((file) => directContentPart(file))
+    .filter((part): part is ChatContentPart => part !== null);
+
   const doclingAvailable = await isDoclingAvailable();
 
-  const extracted: string[] = [];
-  for (const file of files) {
-    const text = await extractFileText(file, doclingAvailable);
-    if (text.trim()) {
-      extracted.push(`--- ${file.name} ---\n${text.trim()}`);
+  const extractTextParts = async (list: UploadedFileInput[]): Promise<string[]> => {
+    const parts: string[] = [];
+    for (const file of list) {
+      const text = await extractFileText(file, doclingAvailable);
+      if (text.trim()) parts.push(`--- ${file.name} ---\n${text.trim()}`);
     }
-  }
+    return parts;
+  };
 
-  if (extracted.length === 0) {
+  const extracted = await extractTextParts(textFiles);
+
+  if (extracted.length === 0 && attachments.length === 0) {
     throw new Error(
       "Could not read readable text from the uploaded file(s). Please upload a text-based file (.txt, .md, .csv, .xlsx)."
     );
@@ -522,8 +572,19 @@ export const generateQuestionsFromFiles = async (
   const extrasLine =
     extras.length > 0 ? ` Each question may also include ${extras.join(", ")}.` : "";
 
-  const prompt = `You are a quiz generator. Based strictly on the study material below,
-generate exactly ${clamp(request.numberOfQuestions, 1, 25)} quiz questions.
+  const materialIntro =
+    attachments.length > 0
+      ? `The study material is attached as ${attachments.length} file(s) that you must read directly.`
+      : "";
+
+  const buildPrompt = (materialText: string, hasAttachments: boolean): string => {
+    const sourceLine = hasAttachments
+      ? "the attached study material (and any study material below)"
+      : "the study material below";
+    const materialBlock = materialText
+      ? `\n\nSTUDY MATERIAL:\n${materialText}`
+      : "";
+    return `You are a quiz generator. Based strictly on ${sourceLine}, generate exactly ${clamp(request.numberOfQuestions, 1, 25)} quiz questions.
 
 Question types to use (mixed): ${questionTypeList}.
 Target difficulty: ${difficultyList}.
@@ -559,36 +620,59 @@ Rules:
 - All options must be distinct: never repeat an option, never use two options with the same numeric value (e.g. "5" and "5" or "0" and "0.0"), and never use the correct answer as a distractor.
 - For true/false use options ["True", "False"].
 - Do not invent facts not present in the material.${scopeBlock}
+${materialIntro ? `\n${materialIntro}` : ""}${materialBlock}`;
+  };
 
-STUDY MATERIAL:
-${truncated}`;
+  const runModel = async (
+    materialText: string,
+    parts: ChatContentPart[]
+  ): Promise<{ content: string; usage?: LiveUsage }> => {
+    const prompt = buildPrompt(materialText, parts.length > 0);
+    const messages: ChatMessageInput[] | string =
+      parts.length > 0
+        ? [{ role: "user", content: [{ type: "text", text: prompt }, ...parts] }]
+        : prompt;
 
-  let content = "";
-  let usage: LiveUsage | undefined;
-  let reasoning = "";
-  if (request.onReasoning || request.onContent || request.signal) {
-    for await (const chunk of streamChatWithAI(prompt, request.signal)) {
-      if (chunk.reasoning) {
-        reasoning += chunk.reasoning;
-        request.onReasoning?.(chunk.reasoning);
+    let content = "";
+    let usage: LiveUsage | undefined;
+    if (request.onReasoning || request.onContent || request.signal) {
+      for await (const chunk of streamChatWithAI(messages, request.signal)) {
+        if (chunk.reasoning) request.onReasoning?.(chunk.reasoning);
+        if (chunk.content) {
+          content += chunk.content;
+          request.onContent?.(chunk.content);
+        }
+        if (chunk.usage) {
+          usage = chunk.usage;
+          request.onUsage?.(chunk.usage);
+        }
       }
-      if (chunk.content) {
-        content += chunk.content;
-        request.onContent?.(chunk.content);
-      }
-      if (chunk.usage) {
-        usage = chunk.usage;
-        request.onUsage?.(chunk.usage);
-      }
+    } else {
+      const response = await chatWithAI(messages, request.signal);
+      content = response.content;
+      usage = response.usage;
     }
-  } else {
-    const response = await chatWithAI(prompt, request.signal);
-    content = response.content;
-    usage = response.usage;
-    reasoning = response.reasoning ?? "";
+    return { content, usage };
+  };
+
+  let generated: { content: string; usage?: LiveUsage };
+  try {
+    generated = await runModel(truncated, attachments);
+  } catch (error) {
+    if (attachments.length === 0 || !isUnsupportedInputError(error)) throw error;
+    // The configured model cannot read inline files: fall back to text for
+    // the PDFs/images only, then retry once.
+    console.warn("Model rejected inline files; falling back to extracted text", {
+      message: (error as Error).message,
+    });
+    const fallbackParts = await extractTextParts(directFiles);
+    const combined = [...extracted, ...fallbackParts].join("\n\n");
+    const combinedTruncated = combined.length > 200_000 ? combined.slice(0, 200_000) : combined;
+    if (!combinedTruncated.trim()) throw error;
+    generated = await runModel(combinedTruncated, []);
   }
 
-  const questions = parseQuestionsJSON(content).map((question) => {
+  const questions = parseQuestionsJSON(generated.content).map((question) => {
     if (!scopeCatalog) return question;
     const resolved = resolveQuestionScopeIds(question, scopeCatalog, {
       chapterId: request.chapterId != null ? Number(request.chapterId) : null,
@@ -596,5 +680,5 @@ ${truncated}`;
     });
     return { ...question, subjectId: scopeCatalog.subjectId, ...resolved };
   });
-  return { questions, extractedText: truncated, usage };
+  return { questions, extractedText: truncated, usage: generated.usage };
 };

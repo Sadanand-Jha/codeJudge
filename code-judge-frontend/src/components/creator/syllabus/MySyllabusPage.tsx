@@ -416,88 +416,131 @@ export function MySyllabusPage({ onboarding = false }: MySyllabusPageProps) {
             )}
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {filtered.map((syllabus) => (
-              <article
-                key={syllabus.id}
-                className="flex h-full flex-col rounded-[20px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 transition-colors hover:border-[var(--qs-ink)]"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <h2 className="truncate text-[15px] font-extrabold text-[var(--qs-ink)]" title={syllabus.name}>
-                      {syllabus.name}
-                    </h2>
-                    <p className="mt-0.5 truncate text-[12px] font-medium text-[var(--qs-muted)]">
-                      {syllabus.subject}
-                      {syllabus.board ? ` · ${syllabus.board}` : ""}
-                      {syllabus.classLevel ? ` · ${syllabus.classLevel}` : ""}
-                    </p>
-                  </div>
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((syllabus, index) => {
+              const isDraft = syllabus.status === "draft";
+              const initials = syllabus.subject
+                .split(/\s+/)
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((word) => word[0]?.toUpperCase() ?? "")
+                .join("") || "S";
+              const accent = ["var(--qs-sun)", "var(--qs-brand)", "var(--qs-ok)"][index % 3];
+              const meta = [syllabus.board, syllabus.classLevel].filter(Boolean).join(" · ");
+              return (
+                <article
+                  key={syllabus.id}
+                  className="group relative flex h-full flex-col overflow-hidden rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 shadow-[5px_5px_0_var(--qs-sun)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[8px_8px_0_var(--qs-sun)]"
+                >
                   <span
-                    className={cn(
-                      "shrink-0 rounded-full border-2 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em]",
-                      syllabus.status === "draft"
-                        ? "border-[#a85d00] text-[#a85d00]"
-                        : "border-[var(--qs-ok)] text-[var(--qs-ok)]"
-                    )}
-                  >
-                    {syllabus.status === "draft" ? "Draft" : "Active"}
-                  </span>
-                </div>
+                    aria-hidden="true"
+                    className="absolute inset-x-0 top-0 h-1.5"
+                    style={{ backgroundColor: accent }}
+                  />
 
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  <span className="rounded-md bg-[var(--qs-bg)] px-2 py-1 text-[10px] font-bold text-[var(--qs-muted)]">
-                    {syllabus.chapterCount} chapters
-                  </span>
-                  <span className="rounded-md bg-[var(--qs-bg)] px-2 py-1 text-[10px] font-bold text-[var(--qs-muted)]">
-                    {syllabus.topicCount} topics
-                  </span>
+                  <div className="flex items-start gap-3">
+                    <span
+                      className="grid h-12 w-12 shrink-0 place-items-center rounded-[14px] border-2 border-[var(--qs-ink)] text-[15px] font-black tracking-[-0.02em] text-[var(--qs-ink)] shadow-[2px_2px_0_var(--qs-ink)]"
+                      style={{ backgroundColor: accent }}
+                    >
+                      {initials}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <h2
+                        className="truncate text-[16px] font-extrabold leading-tight tracking-[-0.01em] text-[var(--qs-ink)]"
+                        title={syllabus.name}
+                      >
+                        {syllabus.name}
+                      </h2>
+                      <p className="mt-1 truncate text-[12px] font-semibold text-[var(--qs-muted)]">
+                        {syllabus.subject}
+                        {meta ? ` · ${meta}` : ""}
+                      </p>
+                    </div>
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-full border-2 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-[0.08em]",
+                        isDraft
+                          ? "border-[#a85d00] bg-[var(--qs-sun)]/20 text-[#a85d00]"
+                          : "border-[var(--qs-ok)] bg-[var(--qs-ok)]/10 text-[var(--qs-ok)]"
+                      )}
+                    >
+                      {isDraft ? "Draft" : "Active"}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-2.5">
+                    <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2">
+                      <p className="text-[9px] font-black uppercase tracking-[0.1em] text-[var(--qs-muted)]">
+                        Chapters
+                      </p>
+                      <p className="text-[20px] font-extrabold leading-none tabular-nums text-[var(--qs-ink)]">
+                        {syllabus.chapterCount}
+                      </p>
+                    </div>
+                    <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2">
+                      <p className="text-[9px] font-black uppercase tracking-[0.1em] text-[var(--qs-muted)]">
+                        Topics
+                      </p>
+                      <p className="text-[20px] font-extrabold leading-none tabular-nums text-[var(--qs-ink)]">
+                        {syllabus.topicCount}
+                      </p>
+                    </div>
+                  </div>
+
                   {syllabus.level && (
-                    <span className="rounded-md bg-[var(--qs-bg)] px-2 py-1 text-[10px] font-bold text-[var(--qs-muted)]">
+                    <span className="mt-3 inline-flex w-fit rounded-md bg-[var(--qs-brand)]/10 px-2 py-1 text-[10px] font-bold text-[var(--qs-brand)]">
                       {syllabus.level}
                     </span>
                   )}
-                </div>
 
-                <p className="mt-auto pt-3 text-[10px] font-medium text-[var(--qs-muted)]">
-                  Updated {formatUpdated(syllabus.updatedAt)}
-                </p>
+                  <p className="mt-auto pt-4 text-[11px] font-semibold text-[var(--qs-muted)]">
+                    Updated {formatUpdated(syllabus.updatedAt)}
+                  </p>
 
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => void openEdit(syllabus)}
-                    disabled={openingId === syllabus.id}
-                    className={BTN_SEC}
-                  >
-                    {openingId === syllabus.id ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Pencil className="h-3 w-3" />
-                    )}
-                    Edit
-                  </button>
-                  <button type="button" onClick={() => startRename(syllabus)} className={BTN_SEC}>
-                    Rename
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openImport(syllabus)}
-                    className={BTN_SEC}
-                    title="Import a new document and replace this syllabus tree"
-                  >
-                    <RefreshCw className="h-3 w-3" /> Re-import
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDeleteTarget(syllabus)}
-                    className="inline-flex items-center justify-center gap-1 rounded-[10px] border-2 border-red-500/30 px-2.5 py-1.5 text-[12px] font-bold text-red-500 transition-colors hover:bg-red-500/10"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </div>
-              </article>
-            ))}
+                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t-2 border-dashed border-[var(--qs-line)] pt-3">
+                    <button
+                      type="button"
+                      onClick={() => void openEdit(syllabus)}
+                      disabled={openingId === syllabus.id}
+                      className={cn(BTN_PRI, "flex-1 px-3 py-2 text-[12px] shadow-[2px_2px_0_var(--qs-ink)]")}
+                    >
+                      {openingId === syllabus.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Pencil className="h-3.5 w-3.5" />
+                      )}
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => startRename(syllabus)}
+                      className={cn(BTN_SEC, "px-2.5 py-2")}
+                      title="Rename"
+                    >
+                      Rename
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openImport(syllabus)}
+                      className={cn(BTN_SEC, "px-2.5 py-2")}
+                      title="Import a new document and replace this syllabus tree"
+                    >
+                      <RefreshCw className="h-3 w-3" /> Re-import
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteTarget(syllabus)}
+                      aria-label={`Remove ${syllabus.name}`}
+                      title="Remove syllabus"
+                      className="grid h-[34px] w-[34px] place-items-center rounded-[10px] border-2 border-red-500/40 bg-red-500/5 text-red-500 transition-colors hover:border-red-500 hover:bg-red-500/10"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </section>

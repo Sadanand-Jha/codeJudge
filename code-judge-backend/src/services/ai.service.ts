@@ -151,7 +151,9 @@ type Message = OpenAI.ChatCompletionMessage & ReasoningDelta;
 /** A single conversation turn as accepted by `/ai/chat`. */
 export type ChatContentPart =
   | { type: "text"; text: string }
-  | { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" } };
+  | { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" } }
+  /** A document (e.g. PDF) sent inline as a base64 data URL. */
+  | { type: "file"; file: { filename: string; file_data: string } };
 
 export interface ChatMessageInput {
   role: "system" | "user" | "assistant";

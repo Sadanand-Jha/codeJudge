@@ -358,7 +358,7 @@ export function QuestionGeneratorPanel() {
               <motion.div
                 initial={{ opacity: 0, y: -6, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                className="absolute right-0 top-full z-50 mt-2 w-[300px] max-w-[calc(100vw-1.5rem)] rounded-[20px] border border-slate-200/90 bg-white/95 px-3.5 pb-3 pt-2.5 shadow-[0_16px_42px_rgba(30,41,59,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-[#242424]/98 dark:shadow-[0_16px_44px_rgba(0,0,0,0.38)]"
+                className="absolute right-0 top-full z-50 mt-2 w-[18.75rem] max-w-[calc(100vw-1.5rem)] rounded-[1.25rem] border border-slate-200/90 bg-white/95 px-3.5 pb-3 pt-2.5 shadow-[0_16px_42px_rgba(30,41,59,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-[#242424]/98 dark:shadow-[0_16px_44px_rgba(0,0,0,0.38)]"
               >
                 <div className="flex items-start justify-between">
                   <Sparkles className="mt-1 h-3.5 w-3.5 text-slate-400 dark:text-zinc-400" />

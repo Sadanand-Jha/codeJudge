@@ -90,27 +90,27 @@ function RoundedStarIllustration() {
 
 const SHAPES: Record<LandingIllustrationVariant, SceneShape[]> = {
   hero: [
-    { key: "sheet", className: "hero-shape-sheet", style: { bottom: "12px", left: "-38px", width: "clamp(130px, 13vw, 170px)", rotate: "8deg" }, children: <AnswerSheetIllustration /> },
-    { key: "bubble", className: "hero-shape-bubble", style: { right: "-28px", bottom: "8%", width: "clamp(108px, 11vw, 130px)", rotate: "-8deg" }, children: <SpeechBubbleIllustration /> },
-    { key: "star", className: "hero-shape-star", style: { bottom: "-28px", left: "47%", width: "70px" }, children: <RoundedStarIllustration /> },
+    { key: "sheet", className: "hero-shape-sheet", style: { bottom: "0.75rem", left: "-2.375rem", width: "clamp(8.125rem, 13vw, 10.625rem)", rotate: "8deg" }, children: <AnswerSheetIllustration /> },
+    { key: "bubble", className: "hero-shape-bubble", style: { right: "-1.75rem", bottom: "8%", width: "clamp(6.75rem, 11vw, 8.125rem)", rotate: "-8deg" }, children: <SpeechBubbleIllustration /> },
+    { key: "star", className: "hero-shape-star", style: { bottom: "-1.75rem", left: "47%", width: "4.375rem" }, children: <RoundedStarIllustration /> },
   ],
   closing: [],
   statement: [
-    { key: "sphere", className: "shape-sphere shape-depth-back", style: { top: "8%", left: "-56px", width: "180px" }, children: sphere },
-    { key: "heart", className: "shape-heart shape-depth-back", style: { right: "6%", bottom: "-62px", width: "160px" }, children: heart },
-    { key: "orbit", className: "shape-orbit shape-depth-back", style: { top: "8%", right: "31%", width: "140px" }, children: orbit },
+    { key: "sphere", className: "shape-sphere shape-depth-back", style: { top: "8%", left: "-3.5rem", width: "11.25rem" }, children: sphere },
+    { key: "heart", className: "shape-heart shape-depth-back", style: { right: "6%", bottom: "-3.875rem", width: "10rem" }, children: heart },
+    { key: "orbit", className: "shape-orbit shape-depth-back", style: { top: "8%", right: "31%", width: "8.75rem" }, children: orbit },
   ],
   proof: [
-    { key: "star", className: "shape-star", style: { top: "10px", left: "10px", width: "62px" }, children: star },
-    { key: "ring", className: "shape-ring", style: { top: "12px", right: "14px", width: "58px" }, children: ring },
-    { key: "heart", className: "shape-heart", style: { bottom: "12px", left: "16px", width: "52px" }, children: heart },
-    { key: "cube", className: "shape-cube", style: { right: "12px", bottom: "14px", width: "64px" }, children: cube },
+    { key: "star", className: "shape-star", style: { top: "0.625rem", left: "0.625rem", width: "3.875rem" }, children: star },
+    { key: "ring", className: "shape-ring", style: { top: "0.75rem", right: "0.875rem", width: "3.625rem" }, children: ring },
+    { key: "heart", className: "shape-heart", style: { bottom: "0.75rem", left: "1rem", width: "3.25rem" }, children: heart },
+    { key: "cube", className: "shape-cube", style: { right: "0.75rem", bottom: "0.875rem", width: "4rem" }, children: cube },
   ],
   paper: [
-    { key: "sheet", className: "shape-sheet", style: { right: 0, bottom: 0, width: 170 }, children: <svg viewBox="0 0 120 110"><path d="M30 10h48l22 22v60H30V10Z" /><path d="M78 10v22h22" /><path d="M42 52h36M42 66h42M42 80h30" /></svg> },
-    { key: "sphere", className: "shape-sphere", style: { left: 8, top: 10, width: 72 }, children: sphere },
-    { key: "orbit", className: "shape-orbit", style: { right: 36, top: 10, width: 120 }, children: orbit },
-    { key: "check", className: "shape-check", style: { left: 22, bottom: 12, width: 74 }, children: <svg viewBox="0 0 100 100"><path d="M22 52l18 18 38-42" fill="none" stroke="currentColor" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" /></svg> },
+    { key: "sheet", className: "shape-sheet", style: { right: 0, bottom: 0, width: "10.625rem" }, children: <svg viewBox="0 0 120 110"><path d="M30 10h48l22 22v60H30V10Z" /><path d="M78 10v22h22" /><path d="M42 52h36M42 66h42M42 80h30" /></svg> },
+    { key: "sphere", className: "shape-sphere", style: { left: "0.5rem", top: "0.625rem", width: "4.5rem" }, children: sphere },
+    { key: "orbit", className: "shape-orbit", style: { right: "2.25rem", top: "0.625rem", width: "7.5rem" }, children: orbit },
+    { key: "check", className: "shape-check", style: { left: "1.375rem", bottom: "0.75rem", width: "4.625rem" }, children: <svg viewBox="0 0 100 100"><path d="M22 52l18 18 38-42" fill="none" stroke="currentColor" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" /></svg> },
   ],
 };
 

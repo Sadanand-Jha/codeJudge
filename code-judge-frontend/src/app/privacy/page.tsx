@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
-import ThemeToggle from "@/components/ui/ThemeToggle";
-import { SecureLogo } from "@/components/common/SecureLogo";
+import { LandingPageShell } from "@/components/marketing/landing/LandingPageShell";
+import { LandingSiteFooter, LandingSubpageHero } from "@/components/marketing/landing/LandingSubpage";
+import LandingReveal from "@/components/marketing/landing/LandingReveal";
+import LpHeader from "@/components/marketing/landing/LpHeader";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
 
 export const metadata = buildPublicPageMetadata({
@@ -70,39 +72,36 @@ const SECTIONS: PrivacySection[] = [
   },
 ];
 
+const PRIVACY_LINKS = [
+  { label: "Home", href: "/" },
+  { label: "About", href: "/about" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "Contact", href: "/contact" },
+];
+
 export default function PrivacyPage() {
   return (
-    <div className="qs-ui qs-lp min-h-screen">
-      <nav aria-label="Main">
-        <div className="wrap">
-          <Link href="/" aria-label="QuizSupport home">
-            <SecureLogo size={42} variant="full" rounded={false} className="logo" />
-          </Link>
-          <div className="nl">
-            <Link href="/">Home</Link>
-            <ThemeToggle variant="icon" />
-            <Link href="/creator/quizzes/create" className="btn sm pri">
-              Create a quiz
-            </Link>
-          </div>
-        </div>
-      </nav>
+    <LandingPageShell>
+      <LpHeader links={PRIVACY_LINKS} />
 
       <main id="top">
-        <header className="wrap pg-top">
-          <p className="eb">Legal</p>
-          <h1>Privacy Policy</h1>
-          <p className="pg-lead">
-            How QuizSupport handles account details, quiz attempts and scores —
-            written in plain language.
-          </p>
-          <div className="pg-meta">
-            <span className="pl ok">No data selling</span>
-            <span className="pl mu">Last updated October 2026</span>
-          </div>
-        </header>
+        <LandingSubpageHero
+          ariaLabelledBy="privacy-title"
+          eyebrow="Legal"
+          title={
+            <>
+              Privacy <span className="landing-hero-gradient-word">Policy</span>.
+            </>
+          }
+          lead="How QuizSupport handles account details, quiz attempts and scores, written in plain language."
+          meta={["No data selling", "Last updated October 2026"]}
+          panelLabel="On this page"
+          panelTitle="Read what matters to you."
+          panelText="Jump straight to the section you need."
+          panelItems={SECTIONS.map((section) => ({ label: section.title, href: `#${section.id}` }))}
+        />
 
-        <div className="wrap pp-layout">
+        <div className="wrap pp-layout privacy-body">
           <aside className="card pp-toc" aria-label="On this page">
             <b>On this page</b>
             <ol>
@@ -159,17 +158,8 @@ export default function PrivacyPage() {
         </div>
       </main>
 
-      <footer>
-        <div className="wrap">
-          <SecureLogo size={34} variant="full" rounded={false} className="logo" />
-          <div className="fl">
-            <Link href="/about">About</Link>
-            <Link href="/contact">Contact</Link>
-            <Link href="/privacy">Privacy Policy</Link>
-            <Link href="/quiz">Quizzes</Link>
-          </div>
-        </div>
-      </footer>
-    </div>
+      <LandingSiteFooter />
+      <LandingReveal />
+    </LandingPageShell>
   );
 }

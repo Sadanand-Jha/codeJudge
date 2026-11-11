@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { BookOpen, ShieldCheck, type LucideIcon } from "lucide-react";
-import ThemeToggle from "@/components/ui/ThemeToggle";
 import FeedbackForm from "@/components/marketing/landing/FeedbackForm";
-import { SecureLogo } from "@/components/common/SecureLogo";
+import { LandingPageShell } from "@/components/marketing/landing/LandingPageShell";
+import { LandingSiteFooter, LandingSubpageHero } from "@/components/marketing/landing/LandingSubpage";
+import LandingReveal from "@/components/marketing/landing/LandingReveal";
+import LpHeader from "@/components/marketing/landing/LpHeader";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
 
 export const metadata = buildPublicPageMetadata({
@@ -36,39 +38,36 @@ const CARDS: ContactCard[] = [
   },
 ];
 
+const CONTACT_LINKS = [
+  { label: "Home", href: "/" },
+  { label: "About", href: "/about" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "Privacy", href: "/privacy" },
+];
+
 export default function ContactPage() {
   return (
-    <div className="qs-ui qs-lp min-h-screen">
-      <nav aria-label="Main">
-        <div className="wrap">
-          <Link href="/" aria-label="QuizSupport home">
-            <SecureLogo size={42} variant="full" rounded={false} className="logo" />
-          </Link>
-          <div className="nl">
-            <Link href="/">Home</Link>
-            <ThemeToggle variant="icon" />
-            <Link href="/creator/quizzes/create" className="btn sm pri">
-              Create a quiz
-            </Link>
-          </div>
-        </div>
-      </nav>
+    <LandingPageShell>
+      <LpHeader links={CONTACT_LINKS} />
 
       <main id="top">
-        <header className="wrap pg-top">
-          <p className="eb">Contact &amp; feedback</p>
-          <h1>Send feedback to the team</h1>
-          <p className="pg-lead">
-            Found a bug, have an idea, or something in a quiz feels off? Sign in
-            and tell us — every message is read by the QuizSupport team.
-          </p>
-          <div className="pg-meta">
-            <span className="pl ok">Read by the team</span>
-            <span className="pl blue">Signed-in only</span>
-          </div>
-        </header>
+        <LandingSubpageHero
+          ariaLabelledBy="contact-title"
+          eyebrow="Contact & feedback"
+          title={
+            <>
+              Send feedback to <span className="landing-hero-gradient-word">the team</span>.
+            </>
+          }
+          lead="Found a bug, have an idea, or something in a quiz feels off? Sign in and tell us. Every message is read by the QuizSupport team."
+          meta={["Read by the team", "Signed-in only"]}
+          panelLabel="Need something else?"
+          panelTitle="Quick help, right here."
+          panelText="Guides and policies answer most questions before you write in."
+          panelItems={CARDS.map((card) => ({ label: card.title, href: card.href, icon: card.icon }))}
+        />
 
-        <div className="wrap ct-layout">
+        <div className="wrap ct-layout contact-body">
           <FeedbackForm />
 
           <aside className="ct-side">
@@ -91,17 +90,8 @@ export default function ContactPage() {
         </div>
       </main>
 
-      <footer>
-        <div className="wrap">
-          <SecureLogo size={34} variant="full" rounded={false} className="logo" />
-          <div className="fl">
-            <Link href="/about">About</Link>
-            <Link href="/contact">Contact</Link>
-            <Link href="/privacy">Privacy Policy</Link>
-            <Link href="/quiz">Quizzes</Link>
-          </div>
-        </div>
-      </footer>
-    </div>
+      <LandingSiteFooter />
+      <LandingReveal />
+    </LandingPageShell>
   );
 }

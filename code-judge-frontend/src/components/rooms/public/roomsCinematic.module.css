@@ -59,7 +59,7 @@
 
 .reveal {
   opacity: 0;
-  transform: translateY(24px);
+  transform: translateY(1.5rem);
 }
 
 .revealVisible {
@@ -84,7 +84,7 @@
   border-radius: 9999px;
   background: var(--qs-poly-1);
   padding: 0.25rem 0.625rem;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   color: var(--qs-brand);
 }
@@ -100,8 +100,8 @@
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 26px;
-  transform: translate(var(--rooms-offset, 16px), var(--rooms-offset, 16px));
+  border-radius: 1.625rem;
+  transform: translate(var(--rooms-offset, 1rem), var(--rooms-offset, 1rem));
 }
 
 .offsetBlockAnimated {
@@ -112,7 +112,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 26px;
+  border-radius: 1.625rem;
   background: var(--qs-sun);
   animation: rooms-breathe 4s ease-in-out infinite;
 }
@@ -170,7 +170,7 @@
   width: 4rem;
   height: 4rem;
   place-items: center;
-  border: 2px solid var(--qs-ok);
+  border: 0.125rem solid var(--qs-ok);
   border-radius: 9999px;
   color: var(--qs-ok);
 }
@@ -183,11 +183,11 @@
 .checkPath {
   fill: none;
   stroke: currentColor;
-  stroke-width: 3;
+  stroke-width: 0.1875rem;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
+  stroke-dasharray: 0.0625rem;
+  stroke-dashoffset: 0.0625rem;
 }
 
 .checkPathDrawn {
@@ -198,7 +198,7 @@
   max-width: 100%;
   overflow-wrap: anywhere;
   opacity: 0;
-  transform: translateY(12px);
+  transform: translateY(0.75rem);
 }
 
 .joinedRevealed .joinedName {
@@ -253,19 +253,19 @@
 .codeField {
   position: relative;
   display: flex;
-  min-height: 58px;
+  min-height: 3.625rem;
   align-items: center;
   justify-content: center;
   overflow: visible;
-  border: 2px solid var(--qs-line);
-  border-radius: 12px;
+  border: 0.125rem solid var(--qs-line);
+  border-radius: 0.75rem;
   background: var(--qs-field);
 }
 
 .codeField:focus-within {
   border-color: var(--qs-brand);
-  outline: 3px solid var(--qs-brand);
-  outline-offset: 3px;
+  outline: 0.1875rem solid var(--qs-brand);
+  outline-offset: 0.1875rem;
 }
 
 .codeFieldInvalid,
@@ -277,9 +277,9 @@
 .codeFieldPulse::after {
   content: "";
   position: absolute;
-  inset: -3px;
-  border: 2px solid var(--qs-brand);
-  border-radius: 14px;
+  inset: -0.1875rem;
+  border: 0.125rem solid var(--qs-brand);
+  border-radius: 0.875rem;
   opacity: 0;
   pointer-events: none;
   animation: rooms-pulse var(--rooms-dur-pulse) var(--rooms-ease-out) 1;
@@ -296,7 +296,7 @@
   background: transparent;
   color: transparent;
   caret-color: transparent;
-  font-size: 16px;
+  font-size: 1rem;
   cursor: text;
   opacity: 0;
 }
@@ -312,7 +312,7 @@
   align-items: center;
   justify-content: center;
   font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  font-size: 22px;
+  font-size: 1.375rem;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -344,7 +344,7 @@
   display: inline-block;
   width: 0.62em;
   opacity: 0;
-  transform: translateX(-2px);
+  transform: translateX(-0.125rem);
   text-align: center;
 }
 
@@ -388,7 +388,7 @@
 @keyframes rooms-rise-in {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(0.75rem);
   }
   to {
     opacity: 1;
@@ -419,7 +419,7 @@
 @keyframes rooms-step-in {
   from {
     opacity: 0;
-    transform: translateX(-24px);
+    transform: translateX(-1.5rem);
   }
   to {
     opacity: 1;
@@ -432,7 +432,7 @@
     transform: translate(0, 0);
   }
   to {
-    transform: translate(16px, 16px);
+    transform: translate(1rem, 1rem);
   }
 }
 
@@ -442,14 +442,14 @@
     transform: translate(0, 0);
   }
   50% {
-    transform: translate(2px, 2px);
+    transform: translate(0.125rem, 0.125rem);
   }
 }
 
 @keyframes rooms-card-up {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(0.625rem);
   }
   to {
     opacity: 1;
@@ -460,14 +460,14 @@
 @keyframes rooms-tab-out {
   to {
     opacity: 0;
-    transform: translateY(-16px);
+    transform: translateY(-1rem);
   }
 }
 
 @keyframes rooms-tab-in {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(1rem);
   }
   to {
     opacity: 1;
@@ -512,15 +512,15 @@
   12.5%,
   37.5%,
   62.5% {
-    transform: translateX(-6px);
+    transform: translateX(-0.375rem);
   }
   25%,
   50%,
   75% {
-    transform: translateX(6px);
+    transform: translateX(0.375rem);
   }
   87.5% {
-    transform: translateX(3px);
+    transform: translateX(0.1875rem);
   }
 }
 
@@ -583,7 +583,7 @@
 @keyframes rooms-name-up {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(0.75rem);
   }
   to {
     opacity: 1;
@@ -594,7 +594,7 @@
 @keyframes rooms-mobile-card-in {
   from {
     opacity: 0;
-    transform: translateY(14px) scale(0.985);
+    transform: translateY(0.875rem) scale(0.985);
   }
   to {
     opacity: 1;
@@ -607,14 +607,14 @@
     transform: translate(0, 0);
   }
   to {
-    transform: translate(8px, 8px);
+    transform: translate(0.5rem, 0.5rem);
   }
 }
 
 @keyframes rooms-mobile-success-in {
   from {
     opacity: 0;
-    transform: translateY(14px) scale(0.99);
+    transform: translateY(0.875rem) scale(0.99);
   }
   to {
     opacity: 1;
@@ -632,8 +632,8 @@
   }
 
   .offsetBlockClapper {
-    --rooms-offset: 8px;
-    border-radius: 22px;
+    --rooms-offset: 0.5rem;
+    border-radius: 1.375rem;
     transform: translate(var(--rooms-offset), var(--rooms-offset));
   }
 
@@ -688,7 +688,7 @@
   }
 
   .offsetBlockAnimated {
-    transform: translate(var(--rooms-offset, 16px), var(--rooms-offset, 16px));
+    transform: translate(var(--rooms-offset, 1rem), var(--rooms-offset, 1rem));
   }
 
   .offsetBlockFill {

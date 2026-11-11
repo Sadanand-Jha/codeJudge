@@ -18,7 +18,7 @@ export default function QuizGameMechanicsRoute() {
 
   return (
     <StudioProvider editMode initialQuizId={quizId}>
-      <div className="min-h-[calc(100vh-3.5rem)] bg-background">
+      <div className="min-h-[calc(100dvh-3.5rem)] bg-background">
         <GameMechanicsPage />
       </div>
     </StudioProvider>

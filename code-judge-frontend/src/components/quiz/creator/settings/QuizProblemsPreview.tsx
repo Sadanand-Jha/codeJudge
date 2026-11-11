@@ -67,6 +67,8 @@ import { downloadQuizPaperPdf, getPaperPdfErrorMessage, type PaperDownloadKind }
 import { formatPaperDate, type PaperMeta } from "@/utils/paperHtml";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/helpers";
+import { QuizRichText } from "@/components/quiz/QuizRichText";
+import { looksLikeMath } from "@/utils/mathText";
 import { zonedDateTimeToISO } from "@/lib/timezone";
 import PdfConfigModal, { type PaperDownloadConfig } from "@/components/quiz/creator/settings/PdfConfigModal";
 import { computeQuestionsSignature, getSyncedSignature, setSyncedSignature } from "@/utils/quizStorage";
@@ -849,7 +851,12 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
                           {isCorrect ? <Check className="w-3.5 h-3.5" /> : <span className="w-2 h-2 rounded-full bg-transparent" />}
                         </button>
                         <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 border ${isCorrect ? "bg-emerald-500 text-white border-emerald-500" : "bg-zinc-50 text-zinc-700 border-zinc-200"}`}>{opt.label}</span>
-                        <input value={opt.content} onChange={(e) => updateProblem(current.id, { options: current.options.map((o, i) => (i === idx ? { ...o, content: e.target.value, contentHtml: undefined } : o)) })} placeholder={`Option ${opt.label}`} className="flex-1 bg-transparent text-[14px] text-zinc-900 placeholder:text-zinc-400 focus:outline-none" />
+                        <div className="flex-1 min-w-0">
+                          <input value={opt.content} onChange={(e) => updateProblem(current.id, { options: current.options.map((o, i) => (i === idx ? { ...o, content: e.target.value, contentHtml: undefined } : o)) })} placeholder={`Option ${opt.label}`} className="w-full bg-transparent text-[14px] text-zinc-900 placeholder:text-zinc-400 focus:outline-none" />
+                          {looksLikeMath(opt.content) && (
+                            <QuizRichText as="div" html={opt.content} className="mt-0.5 text-[13px] text-zinc-600" />
+                          )}
+                        </div>
                         {isCorrect && <span className="hidden sm:inline text-xs font-medium text-emerald-700">Correct</span>}
                         <div className="hidden sm:flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => handleOptionImage(idx)} className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-500">

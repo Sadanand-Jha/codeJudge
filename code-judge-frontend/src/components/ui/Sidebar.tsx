@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useRef, useEffect } from "react";
+import { ReactNode, Ref, forwardRef, useRef, useEffect, useImperativeHandle } from "react";
 import { cn } from "@/lib/helpers";
 
 interface SidebarProps {
@@ -18,8 +18,12 @@ interface SidebarProps {
  *   <nav>...</nav>
  * </Sidebar>
  */
-export function Sidebar({ children, className, dataSidebar = "true" }: SidebarProps) {
+export const Sidebar = forwardRef<HTMLElement, SidebarProps>(function Sidebar(
+  { children, className, dataSidebar = "true" },
+  forwardedRef: Ref<HTMLElement>
+) {
   const sidebarRef = useRef<HTMLElement>(null);
+  useImperativeHandle(forwardedRef, () => sidebarRef.current as HTMLElement);
 
   useEffect(() => {
     const el = sidebarRef.current;
@@ -80,6 +84,6 @@ export function Sidebar({ children, className, dataSidebar = "true" }: SidebarPr
       {children}
     </aside>
   );
-}
+});
 
 export default Sidebar;

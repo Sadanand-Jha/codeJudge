@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { cn } from "@/lib/helpers";
 import { renderQuestionHtml } from "@/components/creator/questions/QuestionHtml";
 import { containsHtml } from "@/utils/htmlText";
+import { renderMathInHtml, renderPlainMathHtml } from "@/utils/mathText";
 
 const RICH_TEXT_CLASS = cn(
   "break-words",
@@ -27,20 +28,27 @@ interface QuizRichTextProps {
 }
 
 /**
- * Renders AI-generated quiz HTML (tables, lists, code blocks…) as parsed
- * markup, while falling back to plain text when the value has no tags.
+ * Renders quiz content (question statements and answer options) with math:
+ * - HTML content (tables, lists, code blocks…) is parsed as markup, with
+ *   LaTeX typeset in its text nodes.
+ * - Plain text is escaped, and math such as `2.5 m/s^2` or `$x_1$` is typeset.
  */
 export function QuizRichText({ html, className, as = "div" }: QuizRichTextProps) {
   const value = html ?? "";
   const hasHtml = containsHtml(value);
   const rendered = useMemo(
-    () => (hasHtml ? renderQuestionHtml(value) : value),
+    () => (hasHtml ? renderMathInHtml(renderQuestionHtml(value)) : renderPlainMathHtml(value)),
     [hasHtml, value]
   );
 
   const Tag = as;
   if (!hasHtml) {
-    return <Tag className={cn("whitespace-pre-wrap break-words", className)}>{value}</Tag>;
+    return (
+      <Tag
+        className={cn("whitespace-pre-wrap break-words", className)}
+        dangerouslySetInnerHTML={{ __html: rendered }}
+      />
+    );
   }
 
   return (

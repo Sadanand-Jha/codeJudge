@@ -23,6 +23,8 @@ import type { CreatorQuestion, CreatorQuestionType } from "../types";
 import { useStudio } from "../StudioProvider";
 import { EditableContent, RichToolbar } from "./RichToolbar";
 import { MatchFollowingEditor } from "./MatchFollowingEditor";
+import { QuizRichText } from "@/components/quiz/QuizRichText";
+import { looksLikeMath } from "@/utils/mathText";
 import { motion, AnimatePresence } from "framer-motion";
 
 const SELECTABLE_TYPES: CreatorQuestionType[] = [
@@ -334,14 +336,19 @@ export function QuestionEditor() {
                       <span className={cn("mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] border-2 text-xs font-extrabold", o.isCorrect ? "border-[var(--qs-ok)] bg-[var(--qs-ok)] text-white" : "border-[var(--qs-line)] bg-[var(--qs-poly-1)] text-[var(--qs-ink)]")}>
                         {o.label}
                       </span>
-                      <textarea
-                        value={o.content}
-                        onChange={(e) => { if (e.target.value.length <= 250) update({ options: q.options.map((x) => (x.id === o.id ? { ...x, content: e.target.value, contentHtml: undefined } : x)) }); }}
-                        placeholder={`Option ${o.label}`}
-                        maxLength={250}
-                        rows={Math.max(1, Math.ceil(Math.max(o.content.length, 1) / 48))}
-                        className="min-h-7 min-w-0 flex-1 resize-none overflow-hidden bg-transparent py-1 text-sm font-medium leading-5 text-[var(--qs-ink)] outline-none placeholder:text-[var(--qs-muted)] focus:outline-none"
-                      />
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        <textarea
+                          value={o.content}
+                          onChange={(e) => { if (e.target.value.length <= 250) update({ options: q.options.map((x) => (x.id === o.id ? { ...x, content: e.target.value, contentHtml: undefined } : x)) }); }}
+                          placeholder={`Option ${o.label}`}
+                          maxLength={250}
+                          rows={Math.max(1, Math.ceil(Math.max(o.content.length, 1) / 48))}
+                          className="min-h-7 min-w-0 w-full resize-none overflow-hidden bg-transparent py-1 text-sm font-medium leading-5 text-[var(--qs-ink)] outline-none placeholder:text-[var(--qs-muted)] focus:outline-none"
+                        />
+                        {looksLikeMath(o.content) && (
+                          <QuizRichText as="div" html={o.content} className="mt-0.5 text-sm font-medium text-[var(--qs-ink)]" />
+                        )}
+                      </div>
                       <div className="mt-0.5 flex shrink-0 items-center gap-0.5 sm:flex">
                         <button onClick={() => removeOption(o.id)} className="rounded-[8px] p-1.5 text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-badbg)] hover:text-[var(--qs-bad)]">
                           <Trash2 className="h-3.5 w-3.5" />

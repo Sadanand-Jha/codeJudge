@@ -50,7 +50,7 @@ function ScratchContent() {
                   animate={{ x: 0 }}
                   exit={{ x: -320 }}
                   transition={{ type: "spring", stiffness: 380, damping: 34 }}
-                  className="fixed inset-y-0 left-0 z-[80] w-[min(264px,calc(100vw-2rem))] border-r-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-2xl"
+                  className="fixed inset-y-0 left-0 z-[80] w-[min(16.5rem,calc(100vw-2rem))] border-r-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-2xl"
                 >
                   <button
                     type="button"

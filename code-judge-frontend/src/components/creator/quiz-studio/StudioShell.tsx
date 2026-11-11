@@ -48,7 +48,7 @@ export function StudioHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-20 flex min-h-[56px] h-auto w-full max-w-[100vw] min-w-0 flex-wrap items-center gap-2 border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2 py-2 sm:gap-3 sm:px-4 lg:h-11 lg:min-h-[44px] lg:flex-nowrap lg:justify-center lg:py-0">
+    <header className="sticky top-0 z-20 flex min-h-14 h-auto w-full max-w-full min-w-0 flex-wrap items-center gap-2 border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2 py-2 sm:gap-3 sm:px-4 lg:h-11 lg:min-h-11 lg:flex-nowrap lg:justify-center lg:py-0">
       <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5 lg:flex-none lg:max-w-[70%]">
         {editing ? (
           <input
@@ -451,7 +451,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
           className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--qs-bg)]"
         >
           <div
-            className="mx-auto flex min-h-0 w-full max-w-[430px] min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden p-2 sm:p-3 min-[900px]:w-[96%] min-[900px]:max-w-none min-[1240px]:w-[95%]"
+            className="mx-auto flex min-h-0 w-full max-w-[80rem] min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8"
           >
             {children}
           </div>

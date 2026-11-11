@@ -204,7 +204,7 @@ export default function SocialPage({ mode }: SocialPageProps) {
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                style={{ marginTop: "20px", height: "150px" }}
+                style={{ marginTop: "1.25rem" }}
                 className="flex flex-col justify-center rounded-xl border border-border bg-card-hover p-4 shadow-xl"
               >
                 <div className="flex items-center gap-4">
