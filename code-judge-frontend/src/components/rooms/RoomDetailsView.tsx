@@ -63,6 +63,9 @@ const QS_TOP_BTN =
 const QS_WHATSAPP_BTN =
   "inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[#0b3d2c] bg-[#25D366] px-3.5 py-[9px] text-sm font-extrabold text-white shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50";
 
+// Student insertion is disabled — students join through the WhatsApp invite.
+const STUDENT_INSERT_ENABLED = false;
+
 const FILTERS: Array<{ id: StudentFilter; label: string }> = [
   { id: "all", label: "All" },
   { id: "recent", label: "Recently Added" },
@@ -518,28 +521,32 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                   <Download className="h-4 w-4" />
                   Export
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAddTab("import");
-                    setAddOpen(true);
-                  }}
-                  className={QS_TOP_BTN}
-                >
-                  <FileSpreadsheet className="h-4 w-4" />
-                  Import
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAddTab("manual");
-                    setAddOpen(true);
-                  }}
-                  className={cn(QS_PRIMARY_BTN, "rounded-[12px] px-3.5 py-[9px] text-sm")}
-                >
-                  <UserRoundPlus className="h-4 w-4" />
-                  Add Students
-                </button>
+                {STUDENT_INSERT_ENABLED && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAddTab("import");
+                        setAddOpen(true);
+                      }}
+                      className={QS_TOP_BTN}
+                    >
+                      <FileSpreadsheet className="h-4 w-4" />
+                      Import
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAddTab("manual");
+                        setAddOpen(true);
+                      }}
+                      className={cn(QS_PRIMARY_BTN, "rounded-[12px] px-3.5 py-[9px] text-sm")}
+                    >
+                      <UserRoundPlus className="h-4 w-4" />
+                      Add Students
+                    </button>
+                  </>
+                )}
               </>
             )}
             <div className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] transition-colors hover:border-[var(--qs-brand)]">
@@ -664,7 +671,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
             <div className="space-y-2.5 border-t-2 border-[var(--qs-line)] p-4 md:hidden">
               {room.students.length === 0 ? (
                 <p className="px-2 py-8 text-center text-sm font-medium text-[var(--qs-muted)]">
-                  No students yet — add students manually or import them from an Excel/CSV file.
+                  No students yet — invite them on WhatsApp to join this room.
                 </p>
               ) : filteredStudents.length === 0 ? (
                 <p className="px-2 py-8 text-center text-sm font-medium text-[var(--qs-muted)]">
@@ -757,7 +764,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                   {room.students.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="border-t-2 border-[var(--qs-line)]/60 px-4 py-10 text-center text-sm font-medium text-[var(--qs-muted)]">
-                        No students yet — add students manually or import them from an Excel/CSV file.
+                        No students yet — invite them on WhatsApp to join this room.
                       </td>
                     </tr>
                   ) : filteredStudents.length === 0 ? (
@@ -867,24 +874,26 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
       </div>
 
       {/* Add / import students */}
-      <AddStudentsModal
-        key={addOpen ? "open" : "closed"}
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
-        existing={room.students}
-        roomName={room.name}
-        initialTab={addTab}
-        roomId={room.id}
-        viewStudentsHref={`${basePath}/${room.id}`}
-        onAdd={(students) => {
-          addStudents(room.id, students);
-          setAddOpen(false);
-          toast.success({
-            title: "Students added",
-            description: `${students.length} student${students.length !== 1 ? "s" : ""} added to ${room.name}.`,
-          });
-        }}
-      />
+      {STUDENT_INSERT_ENABLED && (
+        <AddStudentsModal
+          key={addOpen ? "open" : "closed"}
+          open={addOpen}
+          onClose={() => setAddOpen(false)}
+          existing={room.students}
+          roomName={room.name}
+          initialTab={addTab}
+          roomId={room.id}
+          viewStudentsHref={`${basePath}/${room.id}`}
+          onAdd={(students) => {
+            addStudents(room.id, students);
+            setAddOpen(false);
+            toast.success({
+              title: "Students added",
+              description: `${students.length} student${students.length !== 1 ? "s" : ""} added to ${room.name}.`,
+            });
+          }}
+        />
+      )}
 
       {/* Duplicate */}
       <DuplicateRoomModal

@@ -49,6 +49,9 @@ const SORTS: Array<{ id: SortKey; label: string }> = [
 
 const RECENT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
+// Student insertion is disabled — students join through the WhatsApp invite.
+const STUDENT_INSERT_ENABLED = false;
+
 const QS_PRIMARY_BTN =
   "inline-flex items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2.5 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50";
 
@@ -195,18 +198,22 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
       icon: Settings2,
       onClick: () => setEditTarget(roomId),
     },
-    {
-      id: "add",
-      label: "Add Students",
-      icon: Users,
-      onClick: () => setAddTarget({ roomId, tab: "manual" }),
-    },
-    {
-      id: "import",
-      label: "Import Students",
-      icon: FileSpreadsheet,
-      onClick: () => setAddTarget({ roomId, tab: "import" }),
-    },
+    ...(STUDENT_INSERT_ENABLED
+      ? [
+          {
+            id: "add",
+            label: "Add Students",
+            icon: Users,
+            onClick: () => setAddTarget({ roomId, tab: "manual" }),
+          },
+          {
+            id: "import",
+            label: "Import Students",
+            icon: FileSpreadsheet,
+            onClick: () => setAddTarget({ roomId, tab: "import" }),
+          },
+        ]
+      : []),
     {
       id: "export",
       label: "Export Students",
@@ -601,7 +608,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
       />
 
       {/* Add / import students */}
-      {addRoomTarget && (
+      {STUDENT_INSERT_ENABLED && addRoomTarget && (
         <AddStudentsModal
           key={addRoomTarget.id}
           open={Boolean(addTarget)}
@@ -728,10 +735,12 @@ function EmptyRooms({ onCreate, onImport }: { onCreate: () => void; onImport: ()
           <Plus className="h-4 w-4" strokeWidth={3} />
           Create Room
         </button>
-        <button onClick={onImport} className={QS_OUTLINE_BTN}>
-          <FileSpreadsheet className="h-4 w-4" />
-          Import Students
-        </button>
+        {STUDENT_INSERT_ENABLED && (
+          <button onClick={onImport} className={QS_OUTLINE_BTN}>
+            <FileSpreadsheet className="h-4 w-4" />
+            Import Students
+          </button>
+        )}
       </div>
     </div>
   );

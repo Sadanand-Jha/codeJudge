@@ -10,9 +10,7 @@ import { useRoomStore, getOwnedRooms } from "@/store/roomStore";
 import { useAuthStore } from "@/store/authStore";
 import { getAvatarUrlById } from "@/config/dicebear";
 import { useToast } from "@/hooks/useToast";
-import { useMySubscription } from "@/hooks/useMySubscription";
 import { getApiErrorMessage } from "@/lib/apiError";
-import { showUpgradeModal } from "@/lib/upgradePrompt";
 import { searchUserByUsername, createRoom as apiCreateRoom, addMemberToRoom, SearchedUser } from "@/services/rooms";
 import { isValidUsername, validateUsername } from "@/utils/importValidation";
 import AudienceModal from "./AudienceModal";
@@ -27,17 +25,14 @@ interface CreateRoomModalProps {
 
 type AddTab = "manual" | "import" | "rooms";
 
+// Student insertion is disabled — students are added by sharing the WhatsApp invite.
+const STUDENT_INSERT_ENABLED = false;
+
 export default function CreateRoomModal({ open, onClose, onCreated, initialTab = "manual" }: CreateRoomModalProps) {
   const rooms = useRoomStore((s) => s.rooms);
   const setRooms = useRoomStore((s) => s.setRooms);
   const { user } = useAuthStore();
   const toast = useToast();
-  const { subscription, isLoading: subscriptionLoading } = useMySubscription();
-  const needsMonthlyPlan =
-    !subscriptionLoading &&
-    subscription != null &&
-    !subscription.isPaid &&
-    subscription.status !== "trialing";
 
   const [tab, setTab] = useState<AddTab>(initialTab);
   const [name, setName] = useState("");
@@ -188,20 +183,7 @@ export default function CreateRoomModal({ open, onClose, onCreated, initialTab =
     }
   };
 
-  const promptForPlan = () => {
-    showUpgradeModal({
-      code: "MONTHLY_PLAN_REQUIRED",
-      tab: "plans",
-      eyebrow: "Rooms",
-      title: "Choose a plan to create rooms",
-      titleAccent: "plan",
-      description: "Monthly plans unlock reusable student rooms.",
-      message: "You need an active monthly plan to create a room.",
-    });
-  };
-
   const handleCreate = async () => {
-    if (needsMonthlyPlan) { promptForPlan(); return; }
     if (!name.trim()) { setError("Room name is required."); return; }
     if (ownedRooms.length >= MAX_ROOMS_PER_CREATOR) {
       toast.error({ title: "Room limit reached", description: `You can create at most ${MAX_ROOMS_PER_CREATOR} rooms.` });
@@ -240,19 +222,8 @@ export default function CreateRoomModal({ open, onClose, onCreated, initialTab =
   const avatarSrc = searchedUser?.avatarUrl ?? "";
 
   return (
-    <AudienceModal open={open} onClose={handleClose} title="Create a Room" subtitle="Add by username, import, or choose from existing rooms." icon={<Users className="h-5 w-5" />} size="md" footer={<div className="flex items-center justify-end gap-2"><button onClick={handleClose} className="inline-flex h-9 cursor-pointer items-center justify-center rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]">Cancel</button><button onClick={handleCreate} disabled={creating} className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50">{creating ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <Check className="h-3.5 w-3.5" />} Create Room</button></div>}>
+    <AudienceModal open={open} onClose={handleClose} title="Create a Room" subtitle="Create a room, then invite students to join on WhatsApp." icon={<Users className="h-5 w-5" />} size="md" footer={<div className="flex items-center justify-end gap-2"><button onClick={handleClose} className="inline-flex h-9 cursor-pointer items-center justify-center rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]">Cancel</button><button onClick={handleCreate} disabled={creating} className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50">{creating ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <Check className="h-3.5 w-3.5" />} Create Room</button></div>}>
       <div className="space-y-5">
-        {needsMonthlyPlan && (
-          <div className="flex items-start gap-2 rounded-[12px] border-2 border-[#a85d00]/30 bg-[#fff3d6] px-3 py-2.5 text-xs font-bold text-[#a85d00]">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span>
-              Creating rooms requires an active monthly plan.{" "}
-              <button type="button" onClick={promptForPlan} className="underline underline-offset-2">
-                View plans
-              </button>
-            </span>
-          </div>
-        )}
         <div>
           <label className="mb-1.5 block text-xs font-extrabold text-[var(--qs-ink)]">Room Name</label>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="CSE 3rd Year - Section A" className="h-10 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-sm font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] focus:outline-none" />
@@ -261,6 +232,7 @@ export default function CreateRoomModal({ open, onClose, onCreated, initialTab =
           <label className="mb-1.5 block text-xs font-extrabold text-[var(--qs-ink)]">Description <span className="font-medium text-[var(--qs-muted)]">(optional)</span></label>
           <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Third year CSE students, Section A" className="h-10 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-sm font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] focus:outline-none" />
         </div>
+        {STUDENT_INSERT_ENABLED && (
         <div>
           <div className="mb-2 flex items-center justify-between">
             <label className="text-xs font-extrabold text-[var(--qs-ink)]">Add Students</label>
@@ -373,7 +345,8 @@ export default function CreateRoomModal({ open, onClose, onCreated, initialTab =
             </div>
           )}
         </div>
-        {pending.length > 0 && (
+        )}
+        {STUDENT_INSERT_ENABLED && pending.length > 0 && (
           <div>
             <div className="mb-1.5 flex items-center justify-between"><label className="text-xs font-extrabold text-[var(--qs-ink)]">{pending.length} student{pending.length !== 1 ? "s" : ""} to add</label></div>
             <div className="max-h-[150px] h-[150px] space-y-1 overflow-y-auto pr-1">
