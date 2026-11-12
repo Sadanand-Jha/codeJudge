@@ -15,7 +15,7 @@ export function AccessStep() {
         <section className="border-t-2 border-[var(--qs-line)] pt-6">
           <RegistrationStep embedded />
         </section>
-        <section className="border-t-2 border-[var(--qs-line)] pt-6">
+        <section className="hidden border-t-2 border-[var(--qs-line)] pt-6 sm:block">
           <PricingStep embedded />
         </section>
       </div>

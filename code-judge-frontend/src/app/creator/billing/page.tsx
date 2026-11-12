@@ -2,7 +2,7 @@ import { BillingDashboard } from "@/components/creator/billing/BillingDashboard"
 import { demoStateFromParams } from "@/lib/demoState";
 
 export const metadata = {
-  title: "Billing Overview — Creator Studio",
+  title: "Overview — Creator Studio",
 };
 
 export default async function BillingPage({

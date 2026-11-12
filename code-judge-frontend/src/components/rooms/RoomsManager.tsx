@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   Archive,
   ArchiveRestore,
-  ArrowUpDown,
   Clock,
   Copy,
   Download,
@@ -15,7 +14,6 @@ import {
   FileSpreadsheet,
   MoreVertical,
   Plus,
-  Search,
   Settings2,
   Users,
 } from "lucide-react";
@@ -84,8 +82,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
 
   const [filter, setFilter] = useState<FilterTab>("all");
   const [sort, setSort] = useState<SortKey>("updated");
-  const [roomQuery, setRoomQuery] = useState("");
-  const [studentQuery, setStudentQuery] = useState("");
+
   const [createOpen, setCreateOpen] = useState(false);
   const [createTab, setCreateTab] = useState<"manual" | "import">("manual");
   const [editTarget, setEditTarget] = useState<string | null>(null);
@@ -145,21 +142,10 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
   };
 
   const filtered = useMemo(() => {
-    const roomNeedle = roomQuery.trim().toLowerCase();
-    const studentNeedle = studentQuery.trim().toLowerCase();
     let list = ownedRooms.filter((r) => {
       if (filter === "active" && r.archived) return false;
       if (filter === "archived" && !r.archived) return false;
       if (filter === "recent" && (r.archived || !isWithinWindow(r.updatedAt, RECENT_WINDOW_MS))) return false;
-      if (roomNeedle && !`${r.name} ${r.description ?? ""}`.toLowerCase().includes(roomNeedle)) return false;
-      if (
-        studentNeedle &&
-        !r.students.some((student) =>
-          `${student.username ?? ""} ${student.rollNumber ?? ""}`.toLowerCase().includes(studentNeedle)
-        )
-      ) {
-        return false;
-      }
       return true;
     });
     list = [...list].sort((a, b) => {
@@ -168,7 +154,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
     return list;
-  }, [ownedRooms, filter, sort, roomQuery, studentQuery]);
+  }, [ownedRooms, filter, sort]);
 
   const editRoom = editTarget ? ownedRooms.find((r) => r.id === editTarget) : null;
   const duplicateRoomTarget = duplicateTarget ? ownedRooms.find((r) => r.id === duplicateTarget) : null;
@@ -261,13 +247,13 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
   if (loadingRooms) {
     return (
       <div className="qs-ui min-h-full bg-[var(--qs-bg)]">
-        <div className="mx-auto max-w-[1280px] px-4 py-4 pb-20 sm:px-6 sm:py-6">
+      <div className="mx-auto max-w-[1280px] px-4 pt-2 pb-20 sm:px-6 sm:py-6">
           <div className="mb-6 rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-6 sm:p-8">
             <div className="app-skeleton h-4 w-36 rounded-full" />
             <div className="app-skeleton mt-4 h-9 w-64 max-w-full rounded" />
             <div className="app-skeleton mt-2 h-4 w-80 max-w-full rounded" />
           </div>
-          <div className="mb-4 grid grid-cols-2 gap-3 sm:mb-5 md:grid-cols-4 md:gap-3.5">
+          <div className="mb-4 hidden gap-3 sm:mb-5 md:mb-5 md:grid md:grid-cols-4 md:gap-3.5">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="rounded-[16px] border border-[var(--qs-line)] border-b-4 border-b-[var(--qs-sun)] bg-[var(--qs-surface)] p-3.5">
                 <div className="app-skeleton h-7 w-14 rounded sm:h-7 sm:w-14" />
@@ -298,15 +284,6 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
         {/* Mobile header */}
         <header className="mb-3 rounded-[16px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] p-3.5 text-[var(--qs-on-brand)] shadow-[2px_3px_0_var(--qs-sun)] md:hidden">
           <div className="flex items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-[10px] bg-[var(--qs-sun)] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.04em] text-[#1A1240]">
-              <Users className="h-3 w-3" />
-              Creator Studio · Student groups
-            </span>
-            <span className="inline-flex h-7 shrink-0 items-center rounded-full bg-[var(--qs-surface)] px-3 text-[12px] font-bold text-[var(--qs-ink)]">
-              {stats.rooms}/{MAX_ROOMS_PER_CREATOR} rooms
-            </span>
-          </div>
-          <div className="mt-3 flex items-center justify-between gap-2">
             <h1 className="min-w-0 truncate text-[24px] font-extrabold leading-tight">
               {basePath === "/creator/rooms" ? "My Classrooms" : "My Rooms"}
             </h1>
@@ -383,7 +360,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
         )}
 
         {/* Stats */}
-        <div className="mb-3 grid grid-cols-2 gap-3 md:mb-5 md:grid-cols-4 md:gap-3.5">
+        <div className="mb-3 hidden gap-3 md:mb-5 md:grid md:grid-cols-4 md:gap-3.5">
           {statCards.map((kpi) => (
             <div
               key={kpi.label}
@@ -404,32 +381,6 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
           ))}
         </div>
 
-        {/* Search */}
-        <div className="mb-3 grid grid-cols-2 gap-2 md:hidden">
-          <label className="relative block min-w-0">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--qs-muted)]" />
-            <input
-              type="search"
-              value={studentQuery}
-              onChange={(event) => setStudentQuery(event.target.value)}
-              placeholder="Search students"
-              aria-label="Search students"
-              className="h-[52px] w-full rounded-[16px] border border-[var(--qs-line)] bg-[var(--qs-surface)] pl-10 pr-3 text-[16px] font-semibold text-[var(--qs-ink)] outline-none transition-colors placeholder:font-semibold placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] focus:shadow-[0_0_0_3px_rgba(106,61,240,0.2)]"
-            />
-          </label>
-          <label className="relative block min-w-0">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--qs-muted)]" />
-            <input
-              type="search"
-              value={roomQuery}
-              onChange={(event) => setRoomQuery(event.target.value)}
-              placeholder="Search rooms"
-              aria-label="Search rooms"
-              className="h-[52px] w-full rounded-[16px] border border-[var(--qs-line)] bg-[var(--qs-surface)] pl-10 pr-3 text-[16px] font-semibold text-[var(--qs-ink)] outline-none transition-colors placeholder:font-semibold placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] focus:shadow-[0_0_0_3px_rgba(106,61,240,0.2)]"
-            />
-          </label>
-        </div>
-
         {/* Filter bar */}
         <div className="mb-3 flex flex-col gap-3 md:mb-5 md:flex-row md:flex-wrap md:items-center md:gap-2.5">
           <div className="flex w-full min-w-0 items-center gap-1.5 overflow-x-auto scrollbar-none md:w-auto md:flex-1 md:flex-wrap md:gap-2">
@@ -445,7 +396,8 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
                     "inline-flex h-11 shrink-0 items-center whitespace-nowrap rounded-[22px] border px-[18px] text-[15px] font-bold leading-4 transition-colors active:scale-[0.97] md:h-auto md:rounded-full md:border-2 md:px-[13px] md:py-1.5 md:text-[13px] md:font-extrabold md:uppercase md:leading-[18px] md:tracking-[0.06em]",
                     active
                       ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
-                      : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] md:text-[var(--qs-ink)]"
+                      : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] md:text-[var(--qs-ink)]",
+                    f.id === "recent" && "max-md:hidden"
                   )}
                 >
                   <span className="md:hidden">{f.id === "recent" ? "Recent" : f.label}</span>
@@ -454,24 +406,6 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
                 </button>
               );
             })}
-            <div className="relative ml-auto shrink-0 md:hidden">
-              <span aria-hidden className="grid h-11 w-11 place-items-center rounded-[12px] border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)]">
-                <ArrowUpDown className="h-4 w-4" />
-              </span>
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value as SortKey)}
-                aria-label="Sort rooms"
-                title={`Sort: ${SORTS.find((s) => s.id === sort)?.label ?? ""}`}
-                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-              >
-                {SORTS.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    Sort: {s.label}
-                  </option>
-                ))}
-              </select>
-            </div>
           </div>
           <Select
             value={sort}
@@ -495,15 +429,8 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2 md:block">
                   <h2 className="text-[18px] font-extrabold tracking-tight text-[var(--qs-ink)] md:text-2xl">Rooms</h2>
-                  <p className="text-[13px] font-semibold text-[var(--qs-muted)] md:hidden">
-                    {filtered.length} of {stats.rooms}
-                  </p>
                 </div>
-                <p className="mt-0.5 text-[13px] leading-5 text-[var(--qs-muted)] md:text-sm md:leading-[1.4]">Reusable student groups — open a room to manage its students.</p>
               </div>
-              <p className="hidden text-[13px] font-medium text-[var(--qs-muted)] md:block md:text-sm">
-                {filtered.length} of {stats.rooms}
-              </p>
             </header>
 
             {ownedRooms.length === 0 ? (
@@ -633,9 +560,6 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
               </>
             )}
 
-            <div className="border-t-0 px-3 py-2.5 text-[10.5px] font-medium text-[var(--qs-muted)] md:border-t-2 md:border-[var(--qs-line)] md:px-[26px] md:py-3.5 md:text-sm">
-              Showing {filtered.length} of {stats.rooms} rooms
-            </div>
           </div>
         </div>
       </div>

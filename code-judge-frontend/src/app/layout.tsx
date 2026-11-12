@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Onest } from "next/font/google";
+import { Onest, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import "katex/dist/katex.min.css";
 import { Toaster } from "@/components/ui/toast";
@@ -159,6 +159,15 @@ const onest = Onest({
   ],
 });
 
+// Creator Studio registration settings uses the Plus Jakarta Sans type ramp
+// from its mobile design.
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
+  variable: "--font-jakarta",
+  display: "swap",
+});
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -190,7 +199,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildSiteJsonLd()) }}
         />
       </head>
-      <body className={`${onest.variable} ${onest.className} min-h-screen bg-[var(--background)]`} suppressHydrationWarning>
+      <body className={`${onest.variable} ${onest.className} ${jakarta.variable} min-h-screen bg-[var(--background)]`} suppressHydrationWarning>
         <ThemeProvider>
           <AuthHydrator />
           <ModalScrollLock />

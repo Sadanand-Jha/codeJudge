@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { getCommunityTopTeachers, type CommunityTopTeacher } from "@/services/quiz";
 import { CommunityLeaderboard } from "@/components/creator/resources/CommunityLeaderboard";
 
@@ -33,11 +33,7 @@ export function ResourceMarketplacePage() {
           aria-hidden="true"
           className="pointer-events-none absolute -right-[70px] -top-[90px] hidden h-[290px] w-[290px] rounded-full bg-white/[0.08] sm:block"
         />
-        <span className="relative inline-flex items-center gap-1.5 rounded-[10px] bg-[var(--qs-ink)] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.05em] text-[var(--qs-sun)] sm:py-[5px] sm:text-[12px]">
-          <Sparkles className="h-3 w-3 fill-current" />
-          Teacher community
-        </span>
-        <h1 className="qs-display relative mt-2.5 mb-1.5 text-[30px] font-extrabold leading-[1.05] tracking-[-0.02em] sm:mt-3.5 sm:mb-2 sm:text-[46px] sm:leading-[1.02] sm:tracking-[-0.035em]">
+        <h1 className="qs-display relative mb-1.5 text-[30px] font-extrabold leading-[1.05] tracking-[-0.02em] sm:mb-2 sm:text-[46px] sm:leading-[1.02] sm:tracking-[-0.035em]">
           Community
         </h1>
         <p className="relative max-w-[520px] text-[14px] font-semibold leading-[1.5] text-white sm:text-[15.5px]">

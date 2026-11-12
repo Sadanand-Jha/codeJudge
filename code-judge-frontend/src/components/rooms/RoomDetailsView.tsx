@@ -69,7 +69,6 @@ const STUDENT_INSERT_ENABLED = false;
 const FILTERS: Array<{ id: StudentFilter; label: string }> = [
   { id: "all", label: "All" },
   { id: "recent", label: "Recently Added" },
-  { id: "issues", label: "Issues" },
 ];
 
 const SORT_OPTIONS: Array<{ id: StudentSort; label: string }> = [
@@ -270,7 +269,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   if (backendLoading) {
     return (
       <div className="min-h-full bg-[var(--qs-bg)]">
-        <div className="mx-auto max-w-[1280px] px-4 py-6 pb-20 sm:px-6">
+        <div className="mx-auto w-full max-w-[430px] px-4 pb-[104px] pt-1 sm:max-w-[1280px] sm:px-6 sm:py-6">
           <div className="mb-6 flex items-center gap-3.5">
             <div className="app-skeleton h-[42px] w-[42px] shrink-0 rounded-[12px]" />
             <div>
@@ -278,15 +277,15 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
               <div className="app-skeleton mt-1.5 h-4 w-36 rounded" />
             </div>
           </div>
-          <div className="mb-4 flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:mb-5 sm:grid sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-4">
+          <div className="mb-5 hidden grid-cols-2 gap-3 sm:grid sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="min-w-[132px] flex-1 shrink-0 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 sm:min-w-0 sm:rounded-[18px] sm:p-4">
+              <div key={i} className="rounded-[20px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 sm:rounded-[18px]">
                 <div className="app-skeleton h-3 w-16 rounded sm:w-20" />
-                <div className="app-skeleton mt-3 h-6 w-12 rounded sm:h-7 sm:w-14" />
+                <div className="app-skeleton mt-3 h-7 w-12 rounded sm:h-7 sm:w-14" />
               </div>
             ))}
           </div>
-          <div className="rounded-[26px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">
+          <div className="rounded-[20px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 sm:rounded-[26px]">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="app-skeleton mt-2 h-9 rounded first:mt-0" />
             ))}
@@ -299,7 +298,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   if (!room) {
     return (
       <div className="min-h-full bg-[var(--qs-bg)]">
-        <div className="mx-auto max-w-[1280px] px-4 py-6 pb-20 sm:px-6">
+        <div className="mx-auto w-full max-w-[430px] px-4 pb-[104px] pt-1 sm:max-w-[1280px] sm:px-6 sm:py-6">
           <div className="rounded-[22px] border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-surface)] px-6 py-16 text-center">
             <Users className="mx-auto h-8 w-8 text-[var(--qs-muted)]" />
             <h2 className="mt-3 text-lg font-black text-[var(--qs-ink)]">Room not found</h2>
@@ -426,21 +425,18 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
 
   return (
     <div className="min-h-full bg-[var(--qs-bg)]">
-      <div className="mx-auto max-w-[1280px] px-4 py-6 pb-20 sm:px-6">
+      <div className="mx-auto w-full max-w-[430px] px-4 pb-[104px] pt-1 sm:max-w-[1280px] sm:px-6 sm:py-6">
 
         {/* Top */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex min-w-0 items-start gap-3.5">
+        <div className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-start gap-2.5 sm:gap-3.5">
             <Link
               href={basePath}
               aria-label="Back to Rooms"
-              className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] transition-colors hover:border-[var(--qs-brand)]"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] transition-colors hover:border-[var(--qs-brand)] sm:h-[42px] sm:w-[42px] sm:rounded-[12px]"
             >
-              <ArrowLeft className="h-4.5 w-4.5 text-[var(--qs-ink)]" />
+              <ArrowLeft className="h-5 w-5 text-[var(--qs-ink)] sm:h-4.5 sm:w-4.5" />
             </Link>
-            <span className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)]">
-              <Users className="h-[26px] w-[26px]" strokeWidth={2.5} />
-            </span>
             <div className="min-w-0">
               {isRenaming ? (
                 <div className="flex flex-col gap-1.5">
@@ -465,33 +461,26 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                 </div>
               ) : (
                 <>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="inline-flex items-center rounded-full border-2 border-[var(--qs-brand)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.05em] text-[var(--qs-brand)]">
-                      Creator
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--qs-poly-1)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.05em] text-[var(--qs-ink)]">
-                      <Users className="h-3 w-3" />
-                      {room.students.length} student{room.students.length === 1 ? "" : "s"}
-                    </span>
-                    {room.archived && (
-                      <span className="rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2 py-0.5 text-[10px] font-extrabold text-[#1A1240]">
+                  {room.archived && (
+                    <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+                      <span className="rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2 py-0.5 text-[12px] font-extrabold text-[#1A1240] sm:text-[10px]">
                         Archived
                       </span>
-                    )}
-                  </div>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                    <h1 className="truncate text-[26px] font-extrabold leading-[1.1] tracking-[-0.02em] text-[var(--qs-ink)] sm:text-[30px]">{room.name}</h1>
+                    </div>
+                  )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="break-words text-[28px] font-extrabold leading-[32px] tracking-[-0.02em] text-[var(--qs-ink)] sm:truncate sm:text-[30px] sm:leading-[1.1]">{room.name}</h1>
                     <button
                       type="button"
                       onClick={startRename}
-                      className="grid h-7 w-7 shrink-0 place-items-center rounded-[8px] text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-brand)]/10 hover:text-[var(--qs-brand)]"
+                      className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-brand)]/10 hover:text-[var(--qs-brand)] sm:h-7 sm:w-7 sm:rounded-[8px]"
                       title="Rename room"
                       aria-label="Rename room"
                     >
-                      <Edit3 className="h-3.5 w-3.5" />
+                      <Edit3 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                     </button>
                   </div>
-                  <p className="mt-1 truncate text-sm text-[var(--qs-muted)]">
+                  <p className="mt-1 break-words text-[14px] leading-5 text-[var(--qs-muted)] sm:truncate sm:text-sm">
                     {room.description || "Student group"}
                     <span className="mx-1">·</span>
                     Updated {timeAgo(room.updatedAt)}
@@ -500,82 +489,94 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
               )}
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
             {section === "students" && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setInviteOpen(true)}
-                  disabled={room.archived}
-                  title={room.archived ? "Restore the room before inviting students" : "Create a WhatsApp invite"}
-                  className={QS_WHATSAPP_BTN}
-                >
-                  <WhatsAppIcon className="h-4 w-4" />
-                  Invite on WhatsApp
-                </button>
-                <button type="button" onClick={() => setRegistrationOpen(true)} className={QS_TOP_BTN}>
-                  <ClipboardList className="h-4 w-4" />
-                  Form
-                </button>
-                <button type="button" onClick={handleExport} className={QS_TOP_BTN}>
-                  <Download className="h-4 w-4" />
-                  Export
-                </button>
-                {STUDENT_INSERT_ENABLED && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAddTab("import");
-                        setAddOpen(true);
-                      }}
-                      className={QS_TOP_BTN}
-                    >
-                      <FileSpreadsheet className="h-4 w-4" />
-                      Import
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAddTab("manual");
-                        setAddOpen(true);
-                      }}
-                      className={cn(QS_PRIMARY_BTN, "rounded-[12px] px-3.5 py-[9px] text-sm")}
-                    >
-                      <UserRoundPlus className="h-4 w-4" />
-                      Add Students
-                    </button>
-                  </>
-                )}
-              </>
+              <button
+                type="button"
+                onClick={() => setInviteOpen(true)}
+                disabled={room.archived}
+                title={room.archived ? "Restore the room before inviting students" : "Create a WhatsApp invite"}
+                className={cn(QS_WHATSAPP_BTN, "h-12 w-full justify-center text-base sm:h-auto sm:w-auto sm:text-sm")}
+              >
+                <WhatsAppIcon className="h-5 w-5 sm:h-4 sm:w-4" />
+                Invite on WhatsApp
+              </button>
             )}
-            <div className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] transition-colors hover:border-[var(--qs-brand)]">
-              <RoomMenu items={headerMenuItems} />
+            <div className={cn("flex w-full items-center gap-2 sm:contents", section !== "students" && "justify-end")}>
+              {section === "students" && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setRegistrationOpen(true)}
+                    className={cn(QS_TOP_BTN, "h-11 flex-1 justify-center text-base sm:h-auto sm:flex-none sm:text-sm")}
+                  >
+                    <ClipboardList className="h-5 w-5 sm:h-4 sm:w-4" />
+                    Form
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExport}
+                    className={cn(QS_TOP_BTN, "h-11 flex-1 justify-center text-base sm:h-auto sm:flex-none sm:text-sm")}
+                  >
+                    <Download className="h-5 w-5 sm:h-4 sm:w-4" />
+                    Export
+                  </button>
+                  {STUDENT_INSERT_ENABLED && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAddTab("import");
+                          setAddOpen(true);
+                        }}
+                        className={cn(QS_TOP_BTN, "h-11 flex-1 justify-center text-base sm:h-auto sm:flex-none sm:text-sm")}
+                      >
+                        <FileSpreadsheet className="h-5 w-5 sm:h-4 sm:w-4" />
+                        Import
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAddTab("manual");
+                          setAddOpen(true);
+                        }}
+                        className={cn(QS_PRIMARY_BTN, "h-11 flex-1 justify-center rounded-[12px] px-3.5 py-[9px] text-base sm:h-auto sm:flex-none sm:text-sm")}
+                      >
+                        <UserRoundPlus className="h-5 w-5 sm:h-4 sm:w-4" />
+                        Add Students
+                      </button>
+                    </>
+                  )}
+                </>
+              )}
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] transition-colors hover:border-[var(--qs-brand)] sm:h-[42px] sm:w-[42px] sm:rounded-[12px]">
+                <RoomMenu items={headerMenuItems} />
+              </div>
             </div>
           </div>
         </div>
 
         {/* Stats */}
         {section === "students" && stats && (
-          <div className="mb-4 flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:mb-5 sm:grid sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-4">
+          <div className="mb-5 hidden grid-cols-2 gap-3 sm:grid sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-4">
             {statCards.map((kpi) => (
               <div
                 key={kpi.label}
                 className={cn(
-                  "min-w-[136px] flex-1 shrink-0 rounded-[16px] border-2 p-3 sm:min-w-0 sm:rounded-[18px] sm:p-4 sm:px-[18px]",
+                  "rounded-[20px] border-2 p-4 sm:rounded-[18px] sm:px-[18px]",
                   kpi.hi ? "border-[var(--qs-ink)] bg-[var(--qs-sun)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
                 )}
               >
                 <small className={cn(
-                  "flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] sm:gap-2 sm:text-xs",
+                  "flex items-center gap-2 text-[12px] font-extrabold uppercase leading-4 tracking-[0.08em] sm:text-xs",
                   kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-muted)]"
                 )}>
-                  <span className="h-2 w-2 shrink-0 rounded-full sm:h-2.5 sm:w-2.5" style={{ background: kpi.color }} />
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: kpi.color }} />
                   {kpi.label}
                 </small>
-                <b className={cn("mt-1.5 block text-[24px] font-extrabold leading-[1.1] sm:mt-2 sm:text-[32px] lg:text-[36px]", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-ink)]")}>
+                <b className={cn("mt-2 block text-[28px] font-extrabold leading-[31px] sm:text-[32px] lg:text-[36px]", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-ink)]")}>
                   {kpi.value}
-                  <span className={cn("ml-1 text-xs font-medium sm:text-sm", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-muted)]")}>{kpi.sub}</span>
+                  <span className={cn("ml-1 text-[14px] font-medium sm:text-sm", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-muted)]")}>{kpi.sub}</span>
                 </b>
               </div>
             ))}
@@ -585,18 +586,23 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
         {section === "students" ? (
           <>
         {/* Filter bar */}
-        <div className="mb-5 flex flex-wrap items-center gap-2.5">
+        <div className="mb-5 flex flex-wrap items-center gap-3">
           <div className="relative w-full sm:w-auto sm:min-w-[220px] sm:flex-[0_1_290px]">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
+            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)] sm:h-4 sm:w-4" />
             <input
+              type="search"
               value={query}
               onChange={(e) => changeQuery(e.target.value)}
               placeholder="Search name, roll or username…"
               aria-label="Search students"
-              className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-2.5 pl-9 pr-3.5 text-sm text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
+              className="h-[52px] w-full rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-11 pr-4 text-base text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] sm:h-auto sm:rounded-[12px] sm:py-2.5 sm:pl-9 sm:pr-3.5 sm:text-sm"
             />
           </div>
-          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-1">
+          <div
+            role="group"
+            aria-label="Filter students"
+            className="flex w-full items-center gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:w-auto sm:flex-1 sm:flex-wrap"
+          >
             {FILTERS.map((f) => {
               const active = filter === f.id;
               return (
@@ -606,7 +612,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                   aria-pressed={active}
                   onClick={() => changeFilter(f.id)}
                   className={cn(
-                    "rounded-full border-2 px-[13px] py-1.5 text-xs font-extrabold uppercase tracking-[0.06em] transition-colors",
+                    "inline-flex h-11 shrink-0 items-center rounded-full border-2 px-[18px] text-[15px] font-extrabold uppercase tracking-[0.04em] transition-colors sm:h-auto sm:px-[13px] sm:py-1.5 sm:text-xs sm:tracking-[0.06em]",
                     active
                       ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
                       : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
@@ -630,22 +636,22 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
               exit={{ opacity: 0, y: 4 }}
               className="mb-5 flex flex-wrap items-center justify-between gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[#fff7dd] px-3 py-2"
             >
-              <p className="text-xs font-extrabold text-[var(--qs-ink)]">
+              <p className="text-sm font-extrabold text-[var(--qs-ink)]">
                 <span className="tabular-nums">{selected.size}</span> selected
               </p>
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleRemoveSelected}
-                  className="flex h-8 items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-bad)] bg-[var(--qs-bad)] px-3 text-xs font-extrabold text-white transition-all hover:brightness-105"
+                  className="flex h-11 items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-bad)] bg-[var(--qs-bad)] px-4 text-sm font-extrabold text-white transition-all hover:brightness-105"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-4 w-4" />
                   Remove
                 </button>
                 <button
                   onClick={() => setSelected(new Set())}
-                  className="flex h-8 items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+                  className="flex h-11 items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-sm font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-4 w-4" />
                   Clear
                 </button>
               </div>
@@ -654,27 +660,27 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
         </AnimatePresence>
 
         {/* Student table */}
-        <div className="relative mb-4 mr-4">
-          <div aria-hidden className="absolute left-4 top-4 -bottom-4 -right-4 rounded-[30px] bg-[var(--qs-sun)]" />
-          <div className="relative overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
-            <header className="flex flex-wrap items-start justify-between gap-3 px-4 pb-4 pt-5 sm:px-[26px]">
+        <div className="relative mb-4 mr-2">
+          <div aria-hidden className="absolute left-2 top-2 -bottom-2 -right-2 rounded-[20px] bg-[var(--qs-sun)]" />
+          <div className="relative overflow-hidden rounded-[20px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] sm:rounded-[26px]">
+            <header className="flex flex-wrap items-start justify-between gap-3 p-4 sm:px-[26px] sm:pb-4 sm:pt-5">
               <div>
-                <h2 className="text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-2xl">Students</h2>
-                <p className="mt-0.5 text-sm text-[var(--qs-muted)]">Manage every student in this room — select rows for bulk actions.</p>
+                <h2 className="text-lg font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-2xl">Students</h2>
+                <p className="mt-1 text-[14px] leading-5 text-[var(--qs-muted)] sm:mt-0.5 sm:text-sm">Manage every student in this room — select rows for bulk actions.</p>
               </div>
-              <p className="text-sm font-medium text-[var(--qs-muted)]">
+              <p className="text-[14px] font-medium text-[var(--qs-muted)] sm:text-sm">
                 {filteredStudents.length} of {room.students.length}
               </p>
             </header>
 
             {/* Mobile cards */}
-            <div className="space-y-2.5 border-t-2 border-[var(--qs-line)] p-4 md:hidden">
+            <div className="space-y-3.5 border-t-2 border-[var(--qs-line)] p-4 md:hidden">
               {room.students.length === 0 ? (
-                <p className="px-2 py-8 text-center text-sm font-medium text-[var(--qs-muted)]">
+                <p className="px-2 py-8 text-center text-base font-medium leading-6 text-[var(--qs-muted)]">
                   No students yet — invite them on WhatsApp to join this room.
                 </p>
               ) : filteredStudents.length === 0 ? (
-                <p className="px-2 py-8 text-center text-sm font-medium text-[var(--qs-muted)]">
+                <p className="px-2 py-8 text-center text-base font-medium leading-6 text-[var(--qs-muted)]">
                   No students match this search or filter.
                 </p>
               ) : (
@@ -684,7 +690,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                     <div
                       key={student.id}
                       onClick={() => setDetailsStudent(student)}
-                      className="cursor-pointer rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 transition-colors active:bg-[var(--qs-bg)]"
+                      className="cursor-pointer rounded-[20px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 transition-colors active:bg-[var(--qs-bg)]"
                     >
                       <div className="flex items-start gap-3">
                         <button
@@ -692,41 +698,46 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                             e.stopPropagation();
                             toggleSelected(student.id);
                           }}
-                          className={cn(
-                            "mt-2 grid h-4.5 w-4.5 shrink-0 place-items-center rounded border-2 transition-colors",
-                            selected.has(student.id)
-                              ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
-                              : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
-                          )}
                           aria-label={`Select ${student.name}`}
+                          aria-pressed={selected.has(student.id)}
+                          className="-ml-2 -mt-2 grid h-11 w-11 shrink-0 place-items-center rounded-[10px]"
                         >
-                          {selected.has(student.id) && <CheckSquare className="h-3 w-3" />}
+                          <span
+                            className={cn(
+                              "grid h-5 w-5 place-items-center rounded border-2 transition-colors",
+                              selected.has(student.id)
+                                ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
+                                : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
+                            )}
+                          >
+                            {selected.has(student.id) && <CheckSquare className="h-3.5 w-3.5" />}
+                          </span>
                         </button>
                         {/* eslint-disable-next-line @next/next/no-img-element -- avatar URLs are user-configured and may be remote */}
                         <img
                           src={student.avatarUrl || getAvatarUrlById(student.avatarId)}
                           alt=""
-                          className="h-[38px] w-[38px] shrink-0 rounded-full border-2 border-[var(--qs-ink)] object-cover"
+                          className="h-10 w-10 shrink-0 rounded-full border-2 border-[var(--qs-ink)] object-cover"
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-2">
-                            <span className="flex min-w-0 items-center gap-1.5 font-bold text-[var(--qs-ink)]">
+                            <span className="flex min-w-0 items-center gap-1.5 text-base font-bold text-[var(--qs-ink)]">
                               <span className="truncate">{student.name}</span>
-                              {issue && <AlertTriangle className="h-3 w-3 shrink-0 text-[#a85d00]" />}
+                              {issue && <AlertTriangle className="h-4 w-4 shrink-0 text-[#a85d00]" />}
                             </span>
                             <span
                               className={cn(
-                                "shrink-0 rounded-full border-2 border-current px-2 py-px text-[10px] font-extrabold uppercase tracking-[0.05em]",
+                                "shrink-0 rounded-full border-2 border-current px-2 py-0.5 text-[12px] font-extrabold uppercase tracking-[0.05em] sm:text-[10px]",
                                 student.active ? "text-[var(--qs-ok)]" : "text-[#a85d00]"
                               )}
                             >
                               {student.active ? "Active" : "Inactive"}
                             </span>
                           </div>
-                          <p className="mt-0.5 truncate text-xs text-[var(--qs-muted)]">
+                          <p className="mt-1 truncate text-[14px] leading-5 text-[var(--qs-muted)]">
                             Roll {student.rollNumber} · @{(student.username ?? "").toLowerCase() || "—"}
                           </p>
-                          <p className="mt-1 text-[11px] text-[var(--qs-muted)]">
+                          <p className="mt-0.5 text-[13px] leading-5 text-[var(--qs-muted)]">
                             Added {student.addedAt ? timeAgo(student.addedAt) : "—"}
                           </p>
                         </div>
@@ -837,8 +848,8 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
               </table>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t-2 border-[var(--qs-line)] px-4 py-3.5 sm:px-[26px]">
-              <p className="text-sm font-medium text-[var(--qs-muted)]">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t-2 border-[var(--qs-line)] px-4 py-4 sm:px-[26px] sm:py-3.5">
+              <p className="text-[14px] font-medium text-[var(--qs-muted)] sm:text-sm">
                 Showing {filteredStudents.length} of {room.students.length} students
               </p>
               {totalPages > 1 && (
@@ -846,17 +857,17 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage <= 1}
-                    className="rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-xs font-extrabold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:opacity-40"
+                    className="h-11 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-sm font-extrabold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:opacity-40 sm:h-auto sm:rounded-[10px] sm:px-3 sm:py-1.5 sm:text-xs"
                   >
                     Prev
                   </button>
-                  <span className="text-xs font-medium text-[var(--qs-muted)]">
+                  <span className="text-[14px] font-medium text-[var(--qs-muted)] sm:text-xs">
                     Page <b className="tabular-nums text-[var(--qs-ink)]">{currentPage}</b> of {totalPages}
                   </span>
                   <button
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                     disabled={currentPage >= totalPages}
-                    className="rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-xs font-extrabold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:opacity-40"
+                    className="h-11 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-sm font-extrabold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:opacity-40 sm:h-auto sm:rounded-[10px] sm:px-3 sm:py-1.5 sm:text-xs"
                   >
                     Next
                   </button>
@@ -1064,7 +1075,7 @@ function SortSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
         className={cn(
-          "flex h-[42px] w-full items-center justify-between gap-2 rounded-[12px] border-2 bg-[var(--qs-surface)] px-3.5 text-sm font-bold text-[var(--qs-ink)] outline-none transition-all sm:w-auto sm:min-w-[196px]",
+          "flex h-11 w-full items-center justify-between gap-2 rounded-[14px] border-2 bg-[var(--qs-surface)] px-4 text-base font-bold text-[var(--qs-ink)] outline-none transition-all sm:h-[42px] sm:w-auto sm:min-w-[196px] sm:rounded-[12px] sm:px-3.5 sm:text-sm",
           open
             ? "border-[var(--qs-brand)] shadow-[0_0_0_3px_var(--qs-poly-2)]"
             : "border-[var(--qs-line)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] focus-visible:shadow-[0_0_0_3px_var(--qs-poly-2)]"
@@ -1113,7 +1124,7 @@ function SortSelect({
                       setOpen(false);
                     }}
                     className={cn(
-                      "flex w-full items-center justify-between gap-2 rounded-[9px] px-2.5 py-2 text-left text-sm font-bold transition-colors",
+                      "flex min-h-11 w-full items-center justify-between gap-2 rounded-[9px] px-3 py-2 text-left text-base font-bold transition-colors sm:min-h-0 sm:px-2.5 sm:text-sm",
                       active
                         ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
                         : "text-[var(--qs-ink)] hover:bg-[var(--qs-poly-0)]"

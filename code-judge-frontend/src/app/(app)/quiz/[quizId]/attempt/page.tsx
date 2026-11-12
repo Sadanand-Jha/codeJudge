@@ -5,7 +5,8 @@ import { use, useCallback, useEffect, useMemo, useRef, useState, type ReactNode 
 import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Home, PartyPopper, Send, ShieldCheck, Volume2, VolumeX } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
+import { SecureLogo } from "@/components/common/SecureLogo";
+import { CheerfulOwlLoader } from "@/components/quiz/live/CheerfulOwlLoader";
 import ExamModeShell, { type ViolationSummary } from "@/components/quiz/exam/ExamModeShell";
 import {
   getAttemptRegistrationState,
@@ -865,13 +866,13 @@ function SubmissionProgressOverlay({ complete, soundEnabled, onSound, onHome }: 
 function StatusScreen({ loading = false, text, action }: { loading?: boolean; text: string; action?: ReactNode }) {
   if (loading) {
     return (
-      <div className="qs-ui flex min-h-[70vh] items-center justify-center bg-[var(--qs-bg)] px-4">
-        <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
+      <div className="qs-ui flex min-h-[calc(100dvh-3.5rem)] w-full items-center justify-center bg-[var(--qs-bg)] px-4">
+        <CheerfulOwlLoader size={220} label={text} caption={text} />
       </div>
     );
   }
   return (
-    <div className="qs-ui flex min-h-[70vh] items-center justify-center bg-[var(--qs-bg)] px-4">
+    <div className="qs-ui flex min-h-[calc(100dvh-3.5rem)] w-full items-center justify-center bg-[var(--qs-bg)] px-4">
       <div className="w-full max-w-md rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-6 text-center">
         <AlertCircle className="mx-auto h-8 w-8 text-[var(--qs-bad)]" />
         <p className="mt-3 text-sm leading-6 text-[var(--qs-muted)]">{text}</p>

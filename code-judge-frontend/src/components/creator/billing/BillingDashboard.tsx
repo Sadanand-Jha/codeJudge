@@ -594,7 +594,7 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
         <div className="min-w-0">
           <span className={cn(PILL, "text-[#2457d6]")}>Billing</span>
           <h1 className="qs-display mt-1.5 text-[21px] font-bold leading-[26px] tracking-normal text-[var(--qs-ink)] sm:mt-2 sm:text-[34px] sm:font-extrabold sm:leading-[1.08] sm:tracking-[-0.025em] lg:text-[38px]">
-            Billing Overview
+            Overview
           </h1>
           <p className="mt-0.5 text-[11px] leading-[15px] text-[var(--qs-muted)] sm:mt-1.5 sm:text-[15px]">
             Track your monthly plan, AI credit balance, usage and top-ups in one place.

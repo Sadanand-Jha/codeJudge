@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
+import { SecureLogo } from "@/components/common/SecureLogo";
+import { CheerfulOwlLoader } from "@/components/quiz/live/CheerfulOwlLoader";
 import { WaitingRoomThemeProvider } from "@/context/WaitingRoomThemeContext";
 import { AnimatedCrowd } from "@/components/quiz/live/AnimatedCrowd";
 import { PREDEFINED_AVATARS } from "@/config/dicebear";
@@ -210,8 +210,19 @@ export default function StudentQuizShell({
   );
 }
 
-/* ── qs-ui brand loader (replaces the theme-dependent icon spinner) ── */
+/* ── qs-ui brand loader ──
+   Page-level loaders show the cheerful owl; tiny inline loaders (buttons,
+   badges) keep the compact brand mark so they stay legible at 12–36px. */
 export function QuizLoader({ className, size = 32 }: { className?: string; size?: number }) {
+  if (size >= 48) {
+    return (
+      <CheerfulOwlLoader
+        size={Math.max(size, 160)}
+        label="Loading"
+        className={cn("shrink-0", className)}
+      />
+    );
+  }
   return (
     <span role="status" aria-label="Loading" className={cn("shrink-0", className)}>
       <SecureLogo variant="mark" size={size} className="animate-pulse motion-reduce:animate-none" />
@@ -226,36 +237,17 @@ export function QuizStateScreen({
   text,
   action,
   loading = false,
-  illustration,
 }: {
   icon?: React.ReactNode;
   title?: string;
   text: string;
   action?: React.ReactNode;
   loading?: boolean;
-  illustration?: "owl";
 }) {
   if (loading) {
     return (
-      <div
-        role="status"
-        className="qs-ui flex min-h-[calc(100dvh-3.5rem)] flex-col items-center justify-center gap-5 bg-[var(--qs-bg)] px-4 text-center"
-      >
-        {illustration === "owl" ? (
-          <Image
-            src="/images/quiz/cheerful-owl-study-champion.png"
-            alt=""
-            width={480}
-            height={320}
-            priority
-            sizes="(max-width: 640px) 190px, 220px"
-            className="h-auto w-[190px] select-none sm:w-[220px]"
-          />
-        ) : (
-          <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
-        )}
-        {text && <p className="max-w-sm text-sm leading-6 text-[var(--qs-muted)]">{text}</p>}
-        {action}
+      <div className="qs-ui flex min-h-[calc(100dvh-3.5rem)] flex-col items-center justify-center gap-5 bg-[var(--qs-bg)] px-4 text-center">
+        <CheerfulOwlLoader size={220} label={text || "Loading"} caption={text} action={action} />
       </div>
     );
   }

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, AlertTriangle, ArrowLeft, ClipboardList, Clock, Maximize2, PhoneOff, Radio, Rocket, ShieldAlert, ShieldCheck, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
+import { CheerfulOwlLoader } from "@/components/quiz/live/CheerfulOwlLoader";
 import { useTheme } from "@/context/ThemeContext";
 import { reportViolation } from "@/services/quiz";
 
@@ -593,29 +594,27 @@ export default function ExamModeShell({
   }
 
   if (!examActive) {
-    return (
-      <div className="qs-ui relative flex min-h-dvh w-full items-center justify-center overflow-x-hidden p-3 sm:p-6">
-        <div className="qs-shadow w-full max-w-3xl">
-          <div className="qs-card overflow-hidden p-6 text-center sm:p-8">
-            {entryError ? (
-              <>
-                <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[var(--qs-badbg)] text-[var(--qs-bad)]">
-                  <AlertCircle className="h-6 w-6" />
-                </span>
-                <h1 className="mt-4 text-xl font-black tracking-tight text-[var(--qs-ink)]">Quiz could not be started</h1>
-                <p className="mx-auto mt-1.5 max-w-md text-sm text-[var(--qs-muted)]">{entryError}</p>
-                <button onClick={onExitPreview} className="b b-pri mt-5 w-full sm:w-auto sm:px-6">
-                  Back to quizzes
-                </button>
-              </>
-            ) : (
-              <>
-                <div className="flex justify-center text-[var(--qs-brand)]"><QuizLoader size={28} /></div>
-                <p className="mt-3 text-sm font-semibold text-[var(--qs-muted)]">Preparing your quiz…</p>
-              </>
-            )}
+    if (entryError) {
+      return (
+        <div className="qs-ui relative flex min-h-dvh w-full items-center justify-center overflow-x-hidden p-3 sm:p-6">
+          <div className="qs-shadow w-full max-w-3xl">
+            <div className="qs-card overflow-hidden p-6 text-center sm:p-8">
+              <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[var(--qs-badbg)] text-[var(--qs-bad)]">
+                <AlertCircle className="h-6 w-6" />
+              </span>
+              <h1 className="mt-4 text-xl font-black tracking-tight text-[var(--qs-ink)]">Quiz could not be started</h1>
+              <p className="mx-auto mt-1.5 max-w-md text-sm text-[var(--qs-muted)]">{entryError}</p>
+              <button onClick={onExitPreview} className="b b-pri mt-5 w-full sm:w-auto sm:px-6">
+                Back to quizzes
+              </button>
+            </div>
           </div>
         </div>
+      );
+    }
+    return (
+      <div className="qs-ui flex min-h-dvh w-full items-center justify-center bg-[var(--qs-bg)] px-4">
+        <CheerfulOwlLoader size={220} label="Preparing your quiz" caption="Preparing your quiz…" />
       </div>
     );
   }

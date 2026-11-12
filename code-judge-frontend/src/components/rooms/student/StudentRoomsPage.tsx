@@ -184,7 +184,7 @@ export default function StudentRoomsPage() {
 
         {loading ? (
           <>
-            <div className="mb-4 grid grid-cols-2 gap-2.5 sm:mb-5 sm:gap-3.5 lg:grid-cols-4">
+            <div className="mb-4 hidden grid-cols-2 gap-2.5 sm:mb-5 sm:grid sm:gap-3.5 lg:grid-cols-4">
               {Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={index}
@@ -234,7 +234,7 @@ export default function StudentRoomsPage() {
           </div>
         ) : (
           <>
-            <div className="mb-4 grid grid-cols-2 gap-2.5 sm:mb-5 sm:gap-3.5 lg:grid-cols-4">
+            <div className="mb-4 hidden grid-cols-2 gap-2.5 sm:mb-5 sm:grid sm:gap-3.5 lg:grid-cols-4">
               {statCards.map((kpi) => (
                 <div
                   key={kpi.label}
@@ -277,7 +277,7 @@ export default function StudentRoomsPage() {
               ))}
             </div>
 
-            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2.5">
+            <div className="mb-5 hidden gap-3 sm:flex sm:flex-row sm:flex-wrap sm:items-center sm:gap-2.5">
               <div className="relative w-full sm:w-auto sm:min-w-[220px] sm:flex-[0_1_290px]">
                 <Search className="absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--qs-muted)]" />
                 <input

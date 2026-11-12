@@ -48,6 +48,7 @@ interface Student {
   rank: number | null;
   questionsAnswered: number | null;
   totalQuestions: number | null;
+  registrationData: Record<string, string> | null;
 }
 
 const STATUS_CONFIG: Record<StudentStatus, { label: string; text: string }> = {
@@ -114,6 +115,22 @@ function toNumber(v: number | string | null | undefined): number | null {
   if (v === null || v === undefined || v === "") return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
+}
+
+function registrationValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value.map(registrationValue).filter(Boolean).join(", ");
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function normalizeRegistrationData(value: unknown): Record<string, string> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([key]) => key.trim().length > 0)
+    .map(([key, val]) => [key, registrationValue(val)] as const);
+  return entries.length ? Object.fromEntries(entries) : null;
 }
 
 /** seconds → "30m 15s" / "45s" / "1h 05m" */
@@ -204,6 +221,7 @@ function mapStudent(row: QuizResponseStudent): Student {
     rank: row.rank,
     questionsAnswered: hasAttempt ? (correct ?? 0) + wrong : status === "NOT_STARTED" ? 0 : null,
     totalQuestions: toNumber(row.total_questions),
+    registrationData: normalizeRegistrationData(row.registration_data),
   };
 }
 
@@ -260,6 +278,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
   const quizEnded = normalizedQuizStatus === "ended" || normalizedQuizStatus === "completed";
   const [resolvedQuizId, setResolvedQuizId] = useState(quizId);
   const [totalQuestions, setTotalQuestions] = useState(0);
+  const [registrationFields, setRegistrationFields] = useState<string[]>([]);
   const [timeStats, setTimeStats] = useState<{ avg: number | null; fastest: number | null; slowest: number | null }>({ avg: null, fastest: null, slowest: null });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -303,6 +322,10 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
 
       setQuizName(resp.quiz?.name || "Responses");
       setQuizStatus(resp.quiz?.status ?? null);
+      const configuredFields = Array.isArray(resp.quiz?.registration_fields)
+        ? resp.quiz.registration_fields.filter((field): field is string => typeof field === "string" && field.trim().length > 0)
+        : [];
+      setRegistrationFields(configuredFields);
       setResolvedQuizId(numericId);
       const attempts = (resp.students || []).map(mapStudent);
       const questions = attempts.find((s) => s.totalQuestions != null)?.totalQuestions ?? 0;
@@ -468,6 +491,19 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
     };
   }, [summaryStudents]);
 
+  // Configured fields first, then any extra keys discovered on student answers.
+  const visibleRegistrationFields = useMemo(() => {
+    const fields = [...registrationFields];
+    students.forEach((student) => {
+      Object.keys(student.registrationData ?? {}).forEach((field) => {
+        if (!fields.includes(field)) fields.push(field);
+      });
+    });
+    return fields;
+  }, [registrationFields, students]);
+
+  const tableColumnCount = 9 + visibleRegistrationFields.length;
+
   const statusCounts = useMemo(() => {
     const counts: Record<StudentStatus | "ALL", number> = {
       ALL: students.length, SUBMITTED: 0, IN_PROGRESS: 0, NOT_STARTED: 0, TIMED_OUT: 0,
@@ -481,7 +517,11 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
     if (filter !== "ALL") list = list.filter((s) => s.status === filter);
     if (search) {
       const q = search.toLowerCase();
-      list = list.filter((s) => s.name.toLowerCase().includes(q) || s.rollNo.toLowerCase().includes(q));
+      list = list.filter((s) =>
+        s.name.toLowerCase().includes(q) ||
+        s.rollNo.toLowerCase().includes(q) ||
+        Object.values(s.registrationData ?? {}).some((value) => value.toLowerCase().includes(q))
+      );
     }
     const sorted = [...list];
     const time = (s: Student) => (s.completedAt ? Date.parse(s.completedAt) : s.lastActivityAt ? Date.parse(s.lastActivityAt) : 0) || 0;
@@ -990,8 +1030,8 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               <table className="w-full min-w-[900px] border-collapse text-left">
                 <thead>
                   <tr>
-                    {["Rank", "Student", "Roll no.", "Status", "Correct", "%", "Time taken", "Submitted at", "Actions"].map((h) => (
-                      <th key={h} className="whitespace-nowrap px-3 py-3.5 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">{h}</th>
+                    {["Rank", "Student", "Roll no.", ...visibleRegistrationFields, "Status", "Correct", "%", "Time taken", "Submitted at", "Actions"].map((h, i) => (
+                      <th key={`${h}-${i}`} className="whitespace-nowrap px-3 py-3.5 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -999,14 +1039,14 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                   {loading ? (
                     Array.from({ length: 5 }).map((_, i) => (
                       <tr key={i}>
-                        <td colSpan={9} className="border-t-2 border-[var(--qs-line)]/60 px-3 py-3">
+                        <td colSpan={tableColumnCount} className="border-t-2 border-[var(--qs-line)]/60 px-3 py-3">
                           <div className="app-skeleton h-8 rounded" />
                         </td>
                       </tr>
                     ))
                   ) : filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="border-t-2 border-[var(--qs-line)]/60 px-4 py-10 text-center text-sm font-medium text-[var(--qs-muted)]">
+                      <td colSpan={tableColumnCount} className="border-t-2 border-[var(--qs-line)]/60 px-4 py-10 text-center text-sm font-medium text-[var(--qs-muted)]">
                         {students.length === 0 ? "No responses yet — students haven't been registered or attempted this quiz." : "No records match this filter."}
                       </td>
                     </tr>
@@ -1025,6 +1065,16 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                           </div>
                         </td>
                         <td className="px-3 py-3 text-[var(--qs-muted)]">{s.rollNo}</td>
+                        {visibleRegistrationFields.map((field) => {
+                          const value = s.registrationData?.[field] ?? "";
+                          return (
+                            <td key={field} className="px-3 py-3 text-[var(--qs-muted)]">
+                              <span className="block max-w-[180px] truncate" title={value || undefined}>
+                                {value || "—"}
+                              </span>
+                            </td>
+                          );
+                        })}
                         <td className="px-3 py-3"><StatusBadge status={s.status} /></td>
                         <td className="px-3 py-3 font-bold text-[var(--qs-ink)]">
                           {s.correct !== null ? s.correct : "—"}
@@ -1209,6 +1259,22 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                     </div>
                   ))}
                 </div>
+
+                {visibleRegistrationFields.length > 0 && (
+                  <div>
+                    <h4 className="mb-2 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Registration details</h4>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {visibleRegistrationFields.map((field) => (
+                        <div key={field} className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2">
+                          <p className="text-[9px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">{field}</p>
+                          <p className="mt-0.5 break-words text-xs font-bold text-[var(--qs-ink)]">
+                            {detailPanel.registrationData?.[field] || "—"}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <h4 className="mb-2 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Question Progress</h4>

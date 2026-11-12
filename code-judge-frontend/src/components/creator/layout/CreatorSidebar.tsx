@@ -6,7 +6,6 @@ import {
   Database,
   Wallet,
   CalendarClock,
-  ArrowLeft,
   BookOpen,
   UserRound,
   NotebookPen,
@@ -17,11 +16,13 @@ import {
   FileImage,
   Lock,
   Share2,
+  LogOut,
   X,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useAuthStore } from "@/store/authStore";
+import { useUIStore } from "@/store/uiStore";
 import { FOCUS_MODE_ENABLED } from "@/config/focusMode";
 import { verificationLabel, verificationState } from "@/lib/verification";
 import { useMySubscription } from "@/hooks/useMySubscription";
@@ -50,12 +51,12 @@ export const CREATOR_NAV: CreatorNavItem[] = [
   { label: "My Quizzes", href: "/creator/quizzes", icon: ListChecks, section: "Quizzes", match: (p) => p === "/creator/quizzes" || p.startsWith("/creator/quizzes/") },
   { label: "Question Papers", href: "/creator/tests", icon: ClipboardList, section: "Question Papers", match: (p) => p === "/creator/tests" || p.startsWith("/creator/tests/") },
   { label: "Assignment Builder", href: "/creator/problems", icon: NotebookPen, section: "Question Papers" },
-  { label: "Paper Headers", href: "/creator/headers", icon: FileImage, section: "Question Papers", badge: "PRO" },
+  { label: "Paper Headers", href: "/creator/headers", icon: FileImage, section: "Question Papers" },
   { label: "My Syllabus", href: "/creator/syllabus", icon: BookOpen, section: "Library" },
   { label: "Question Bank", href: "/creator/question-bank", icon: Database, section: "Library" },
   { label: "Community", href: "/creator/resources", icon: FolderKanban, section: "Library" },
   { label: "My Classrooms", href: "/creator/rooms", icon: UserRound, section: "Classroom" },
-  { label: "Billing Overview", href: "/creator/billing", icon: Wallet, section: "Billing", exact: true },
+  { label: "Overview", href: "/creator/billing", icon: Wallet, section: "Billing", exact: true },
   { label: "Plans", href: "/creator/billing/plans", icon: CalendarClock, section: "Billing" },
   { label: "Refer & Earn", href: "/creator/refer-and-earn", icon: Share2, section: "Billing", exact: true },
 ];
@@ -140,6 +141,7 @@ export function CreatorSidebar({
   onNavigate?: () => void;
 }) {
   const user = useAuthStore((s) => s.user);
+  const requestLogout = useUIStore((s) => s.requestLogout);
   const { subscription } = useMySubscription();
   const premiumLocked = !canUseCustomHeader(subscription);
   const displayName = user?.displayName || user?.username || "Creator";
@@ -224,17 +226,21 @@ export function CreatorSidebar({
         ))}
       </nav>
 
-      {/* Bottom */}
-      <div className="shrink-0 space-y-1 border-t-2 border-[var(--qs-line)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        {mobile && (
-          <div className="border-t-2 border-[var(--qs-line)] pt-3">
-            <Link href="/quiz" onClick={onNavigate} className="b b-pri w-full justify-start gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Student Mode
-            </Link>
-          </div>
-        )}
-      </div>
+      {mobile && (
+        <div className="shrink-0 border-t-2 border-[var(--qs-line)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <button
+            type="button"
+            onClick={() => {
+              onNavigate?.();
+              requestLogout();
+            }}
+            className="b b-ghost w-full justify-start gap-2 text-[var(--qs-bad)]"
+          >
+            <LogOut className="h-4 w-4" />
+            Log out
+          </button>
+        </div>
+      )}
     </div>
   );
 }

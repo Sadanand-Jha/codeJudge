@@ -67,13 +67,14 @@ import {
   upsertQuizGameMechanics,
 } from "../../../controllers/quiz.controller.ts";
 import { renderPaperPdfController } from "../../../controllers/paperPdf.controller.ts";
+import { pdfDownloadCooldown } from "../../../middleware/pdfDownloadCooldown.ts";
 const router = Router();
 
 // All quiz routes require authentication
 router.use(authenticate);
 
 // POST /api/v1/user/quiz/paper-pdf — render a print-ready question-paper PDF
-router.post("/paper-pdf", validate(paperPdfSchema), renderPaperPdfController);
+router.post("/paper-pdf", validate(paperPdfSchema), pdfDownloadCooldown, renderPaperPdfController);
 
 // ==================== QUIZ SETTINGS ====================
 

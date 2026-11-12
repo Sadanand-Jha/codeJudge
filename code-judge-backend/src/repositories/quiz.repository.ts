@@ -2403,6 +2403,7 @@ export class QuizRepository {
         q.code,
         q.total_marks,
         q.passing_marks,
+        q.registration_fields,
         qs.name AS status,
         q.starttime,
         q.endtime
@@ -2442,7 +2443,8 @@ export class QuizRepository {
         qa.total_questions,
         qa.correct_answers,
         qa.wrong_answers,
-        qa.skipped_questions
+        qa.skipped_questions,
+        qa.registration_data
       FROM quiz_registration qr
       FULL OUTER JOIN quiz_attempt qa
         ON qa.quiz_id = qr.quiz_id AND qa.user_id = qr.user_id AND qa.deleted_at IS NULL
@@ -2586,6 +2588,7 @@ export class QuizRepository {
         qa.correct_answers,
         qa.wrong_answers,
         qa.skipped_questions,
+        qa.registration_data,
         u.username,
         u.first_name,
         u.last_name

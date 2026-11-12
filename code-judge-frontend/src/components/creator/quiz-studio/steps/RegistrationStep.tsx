@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowDown,
@@ -40,12 +40,38 @@ export function RegistrationStep({ embedded = false }: { embedded?: boolean } = 
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Only surface the manual Save action once the creator actually edits
+  // registration fields or settings.
+  const [dirty, setDirty] = useState(false);
+  // Mobile delete is a two-tap confirm (same 3s window as the design).
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const confirmDeleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (confirmDeleteTimer.current) clearTimeout(confirmDeleteTimer.current);
+    },
+    []
+  );
+
+  const requestRemoveField = (id: string) => {
+    if (confirmDeleteId === id) {
+      if (confirmDeleteTimer.current) clearTimeout(confirmDeleteTimer.current);
+      setConfirmDeleteId(null);
+      removeField(id);
+      return;
+    }
+    setConfirmDeleteId(id);
+    if (confirmDeleteTimer.current) clearTimeout(confirmDeleteTimer.current);
+    confirmDeleteTimer.current = setTimeout(() => setConfirmDeleteId(null), 3000);
+  };
 
   const handleSave = async () => {
     if (saving) return;
     setSaving(true);
     try {
       await saveToServer();
+      setDirty(false);
       toast.success({ title: "Saved", description: "Your quiz has been saved." });
     } catch (err) {
       if (!isQuestionValidationError(err)) {
@@ -58,14 +84,18 @@ export function RegistrationStep({ embedded = false }: { embedded?: boolean } = 
 
   /* ── mutations ─────────────────────────────────────────── */
 
-  const mutateFields = (fn: (prev: RegistrationFieldConfig[]) => RegistrationFieldConfig[]) =>
+  const mutateFields = (fn: (prev: RegistrationFieldConfig[]) => RegistrationFieldConfig[]) => {
+    setDirty(true);
     setState((s) => ({ ...s, registration: { ...s.registration, fields: fn(s.registration.fields) } }));
+  };
 
-  const updateSettings = (patch: Partial<typeof reg.settings>) =>
+  const updateSettings = (patch: Partial<typeof reg.settings>) => {
+    setDirty(true);
     setState((s) => ({
       ...s,
       registration: { ...s.registration, settings: { ...s.registration.settings, ...patch } },
     }));
+  };
 
   const addField = () => {
     const field: RegistrationFieldConfig = { id: uid("rfld"), name: "" };
@@ -110,6 +140,180 @@ export function RegistrationStep({ embedded = false }: { embedded?: boolean } = 
 
   return (
     <StudioStepLayout width="wide" embedded={embedded}>
+      {/* Mobile — mirrors the Registration settings mobile design */}
+      <div className="qs-jakarta lg:hidden">
+        <h1 className="mb-4 text-[24px] font-extrabold leading-[1.2] text-[var(--qs-ink)]">
+          Registration Settings
+        </h1>
+
+        <button
+          type="button"
+          role="switch"
+          aria-checked={reg.settings.collectAdditionalInfo}
+          onClick={() => updateSettings({ collectAdditionalInfo: !reg.settings.collectAdditionalInfo })}
+          className="flex w-full items-start gap-3.5 rounded-[20px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 text-left active:scale-[0.99]"
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block text-[17px] font-extrabold leading-[1.3] text-[var(--qs-ink)]">
+              Participants must fill a registration form
+            </span>
+            <span className="mt-1.5 block text-[14px] font-semibold leading-[1.45] text-[var(--qs-muted)]">
+              Students fill extra details below. Otherwise they register with their account.
+            </span>
+          </span>
+          <span
+            aria-hidden="true"
+            className={cn(
+              "relative mt-0.5 h-8 w-[52px] shrink-0 rounded-full transition-colors duration-200",
+              reg.settings.collectAdditionalInfo ? "bg-[var(--qs-brand)]" : "bg-[var(--qs-line)]"
+            )}
+          >
+            <span
+              className={cn(
+                "absolute left-[3px] top-[3px] h-[26px] w-[26px] rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-transform duration-200",
+                reg.settings.collectAdditionalInfo && "translate-x-5"
+              )}
+            />
+          </span>
+        </button>
+
+        {reg.settings.collectAdditionalInfo && (
+          <section className="mt-4 rounded-[24px] border border-[var(--qs-line)] border-b-4 border-b-[var(--qs-sun)] bg-[var(--qs-surface)] p-4 shadow-[0_8px_20px_rgba(27,24,64,0.10)]">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="text-[18px] font-extrabold leading-[1.25] text-[var(--qs-ink)]">
+                  Registration fields
+                </h2>
+                <p className="mt-0.5 text-[14px] font-semibold text-[var(--qs-muted)]">
+                  {fields.length} field{fields.length === 1 ? "" : "s"} · tap to edit
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={addField}
+                className="flex h-12 shrink-0 items-center gap-1.5 rounded-[14px] bg-[var(--qs-brand)] px-4 text-[15px] font-extrabold text-[var(--qs-on-brand)] shadow-[0_3px_0_#4a22b8] transition active:translate-y-0.5 active:shadow-[0_1px_0_#4a22b8]"
+              >
+                <Plus className="h-5 w-5" /> Add
+              </button>
+            </div>
+
+            {fields.length === 0 ? (
+              <p className="py-6 text-center text-[14px] font-semibold text-[var(--qs-muted)]">
+                No fields yet. Tap Add to create one.
+              </p>
+            ) : (
+              <ul className="mt-4 grid gap-2.5">
+                {fields.map((field, idx) => {
+                  const expanded = expandedId === field.id;
+                  return (
+                    <li
+                      key={field.id}
+                      className={cn(
+                        "overflow-hidden rounded-[18px] border bg-[var(--qs-surface)]",
+                        expanded
+                          ? "border-[var(--qs-brand)] shadow-[0_0_0_3px_rgba(106,60,240,0.12)]"
+                          : "border-[var(--qs-line)]"
+                      )}
+                    >
+                      <div className="flex min-h-16 items-center pr-1">
+                        <span
+                          aria-hidden="true"
+                          className="grid h-11 w-9 shrink-0 place-items-center text-[var(--qs-muted)]"
+                        >
+                          <GripVertical className="h-[18px] w-[18px]" />
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setExpandedId(expanded ? null : field.id)}
+                          aria-expanded={expanded}
+                          className="min-w-0 flex-1 py-2.5 pr-1 text-left"
+                        >
+                          <strong className="block break-words text-[16px] font-extrabold leading-[1.25] text-[var(--qs-ink)]">
+                            {field.name.trim() || "Untitled field"}
+                          </strong>
+                          <span className="mt-1 flex items-center gap-2 text-[13px] font-semibold text-[var(--qs-muted)]">
+                            <span>Text input</span>
+                            <span className="rounded-[8px] bg-[var(--qs-poly-1)] px-2 py-0.5 text-[12px] font-extrabold text-[var(--qs-brand)]">
+                              Required
+                            </span>
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setExpandedId(expanded ? null : field.id)}
+                          aria-label={expanded ? "Collapse configuration" : "Configure field"}
+                          className="grid h-11 w-11 shrink-0 place-items-center text-[var(--qs-muted)]"
+                        >
+                          <ChevronDown
+                            className={cn(
+                              "h-5 w-5 transition-transform duration-200",
+                              expanded && "rotate-180 text-[var(--qs-brand)]"
+                            )}
+                          />
+                        </button>
+                      </div>
+
+                      {expanded && (
+                        <div className="border-t border-[var(--qs-line)] px-3.5 pb-4">
+                          <label className="mt-3.5 block">
+                            <span className="mb-1.5 block text-[13px] font-extrabold tracking-[0.02em] text-[var(--qs-muted)]">
+                              FIELD NAME
+                            </span>
+                            <input
+                              value={field.name}
+                              maxLength={REGISTRATION_FIELD_NAME_MAX}
+                              placeholder="e.g. Roll Number"
+                              onChange={(e) =>
+                                updateField(field.id, {
+                                  name: e.target.value.slice(0, REGISTRATION_FIELD_NAME_MAX),
+                                })
+                              }
+                              className="h-[50px] w-full rounded-[14px] border border-[var(--qs-line)] bg-[var(--qs-bg)] px-3.5 text-[16px] font-semibold text-[var(--qs-ink)] outline-none focus:border-[var(--qs-brand)] focus:shadow-[0_0_0_3px_rgba(106,60,240,0.2)]"
+                            />
+                          </label>
+                          <div className="mt-3 grid grid-cols-3 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => moveField(field.id, -1)}
+                              disabled={idx === 0}
+                              className="flex h-14 flex-col items-center justify-center gap-0.5 rounded-[14px] border border-[var(--qs-line)] text-[12px] font-bold text-[var(--qs-ink)] disabled:cursor-not-allowed disabled:opacity-35"
+                            >
+                              <ArrowUp className="h-5 w-5" /> Move up
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveField(field.id, 1)}
+                              disabled={idx === fields.length - 1}
+                              className="flex h-14 flex-col items-center justify-center gap-0.5 rounded-[14px] border border-[var(--qs-line)] text-[12px] font-bold text-[var(--qs-ink)] disabled:cursor-not-allowed disabled:opacity-35"
+                            >
+                              <ArrowDown className="h-5 w-5" /> Move down
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => requestRemoveField(field.id)}
+                              className={cn(
+                                "flex h-14 flex-col items-center justify-center gap-0.5 rounded-[14px] border text-[12px] font-bold transition-colors",
+                                confirmDeleteId === field.id
+                                  ? "border-[var(--qs-bad)] bg-[var(--qs-bad)] text-white"
+                                  : "border-[var(--qs-line)] text-[var(--qs-bad)]"
+                              )}
+                            >
+                              <Trash2 className="h-5 w-5" />
+                              {confirmDeleteId === field.id ? "Confirm?" : "Delete"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        )}
+      </div>
+
+      <div className="hidden space-y-4 lg:block">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
@@ -125,18 +329,21 @@ export function RegistrationStep({ embedded = false }: { embedded?: boolean } = 
         <div className="space-y-5">
           {/* Form requirement */}
           <section className="rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
-            <label className="flex cursor-pointer items-start gap-3 px-5 py-4">
+            <label className="flex cursor-pointer items-start gap-3 px-4 py-3 sm:px-5 sm:py-4">
               <input
                 type="checkbox"
                 checked={reg.settings.collectAdditionalInfo}
                 onChange={(e) => updateSettings({ collectAdditionalInfo: e.target.checked })}
-                className="mt-0.5 h-4 w-4 shrink-0 rounded accent-[var(--qs-brand)]"
+                className="mt-0.5 h-5 w-5 shrink-0 rounded accent-[var(--qs-brand)]"
               />
               <span>
                 <span className="block text-sm font-bold text-[var(--qs-ink)]">
                   Participants must fill a registration form
                 </span>
-                <span className="mt-0.5 block text-xs font-medium text-[var(--qs-muted)]">
+                <span className="mt-0.5 block text-xs font-medium text-[var(--qs-muted)] sm:hidden">
+                  Students fill extra details below; otherwise they register with their account.
+                </span>
+                <span className="mt-0.5 hidden text-xs font-medium text-[var(--qs-muted)] sm:block">
                   When checked, students provide the academic details you select
                   below. Otherwise they register with just their platform account.
                 </span>
@@ -158,22 +365,24 @@ export function RegistrationStep({ embedded = false }: { embedded?: boolean } = 
                   {fields.length} field{fields.length !== 1 ? "s" : ""} configured · drag to reorder
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => void handleSave()}
-                  disabled={saving}
-                  className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-xs font-bold text-[var(--qs-ink)] transition-colors duration-150 hover:border-[var(--qs-brand)] disabled:pointer-events-none disabled:opacity-50"
-                >
-                  {saving ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : null}
-                  Save
-                </button>
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                {dirty ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleSave()}
+                    disabled={saving}
+                    className="inline-flex h-10 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-sm font-bold text-[var(--qs-ink)] transition-colors duration-150 hover:border-[var(--qs-brand)] disabled:pointer-events-none disabled:opacity-50 sm:h-auto sm:w-auto sm:px-3 sm:py-1.5 sm:text-xs"
+                  >
+                    {saving ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : null}
+                    Save
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={addField}
-                  className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3 py-1.5 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] transition-transform duration-150 hover:-translate-y-px active:translate-y-0 active:shadow-none"
+                  className="inline-flex h-10 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] transition-transform duration-150 hover:-translate-y-px active:translate-y-0 active:shadow-none sm:h-auto sm:w-auto sm:px-3 sm:py-1.5 sm:text-xs"
                 >
-                  <Plus className="h-3.5 w-3.5" /> Add Registration Field
+                  <Plus className="h-4 w-4 sm:h-3.5 sm:w-3.5" /> Add Field
                 </button>
               </div>
             </div>
@@ -228,25 +437,25 @@ export function RegistrationStep({ embedded = false }: { embedded?: boolean } = 
                           </button>
                           <div className="flex shrink-0 items-center gap-0.5">
                             <IconBtn title="Move up" disabled={idx === 0} onClick={() => moveField(field.id, -1)}>
-                              <ArrowUp className="h-3.5 w-3.5" />
+                              <ArrowUp className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                             </IconBtn>
                             <IconBtn
                               title="Move down"
                               disabled={idx === fields.length - 1}
                               onClick={() => moveField(field.id, 1)}
                             >
-                              <ArrowDown className="h-3.5 w-3.5" />
+                              <ArrowDown className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                             </IconBtn>
                             <IconBtn title="Remove field" danger onClick={() => removeField(field.id)}>
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                             </IconBtn>
                             <button
                               type="button"
                               onClick={() => setExpandedId(expanded ? null : field.id)}
-                              className="rounded-[8px] p-1 text-[var(--qs-muted)] transition-colors duration-150 hover:bg-[var(--qs-poly-2)] hover:text-[var(--qs-ink)]"
+                              className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] text-[var(--qs-muted)] transition-colors duration-150 hover:bg-[var(--qs-poly-2)] hover:text-[var(--qs-ink)] sm:h-auto sm:w-auto sm:p-1"
                               aria-label={expanded ? "Collapse configuration" : "Configure field"}
                             >
-                              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", expanded && "rotate-180")} />
+                              <ChevronDown className={cn("h-4 w-4 transition-transform sm:h-3.5 sm:w-3.5", expanded && "rotate-180")} />
                             </button>
                           </div>
                         </div>
@@ -351,8 +560,8 @@ export function RegistrationStep({ embedded = false }: { embedded?: boolean } = 
           */}
         </div>
 
-        {/* ── Live Preview ── */}
-        <aside data-sidebar="true" className="h-full xl:sticky xl:top-4">
+        {/* ── Live Preview (desktop only; hidden on mobile/tablet) ── */}
+        <aside data-sidebar="true" className="hidden h-full xl:sticky xl:top-4 xl:block">
           <section className="flex h-full flex-col overflow-hidden rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
             <div className="flex shrink-0 items-center justify-between border-b-2 border-[var(--qs-line)] px-4 py-3">
               <h3 className="text-sm font-extrabold text-[var(--qs-ink)]">Live Preview</h3>
@@ -422,6 +631,7 @@ export function RegistrationStep({ embedded = false }: { embedded?: boolean } = 
           </section>
         </aside>
       </div>
+      </div>
     </StudioStepLayout>
   );
 }
@@ -447,7 +657,7 @@ function IconBtn({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "rounded-[8px] p-1 text-[var(--qs-muted)] transition-colors duration-150 hover:bg-[var(--qs-poly-2)]",
+        "grid h-8 w-8 shrink-0 place-items-center rounded-[8px] text-[var(--qs-muted)] transition-colors duration-150 hover:bg-[var(--qs-poly-2)] sm:h-auto sm:w-auto sm:p-1",
         danger ? "hover:text-[var(--qs-bad)]" : "hover:text-[var(--qs-ink)]",
         disabled && "pointer-events-none opacity-30"
       )}

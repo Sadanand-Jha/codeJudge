@@ -168,6 +168,9 @@ export function AiGenerateModal({
   currentQuestionCount?: number;
 }) {
   const [mode, setMode] = useState<"own" | "bank">("own");
+  // Mobile only: the topic generator is split into 3 steps so the form does
+  // not become one long scroll. Desktop still shows all columns at once.
+  const [mobileStep, setMobileStep] = useState(0);
   const {
     canUploadFiles,
     canUseAi,
@@ -227,12 +230,19 @@ export function AiGenerateModal({
   const inputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const streamScrollRef = useRef<HTMLDivElement | null>(null);
+  const mobileScrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const el = streamScrollRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [thinking, streamContent, open]);
+
+  // Start each mobile step at the top of the form.
+  useEffect(() => {
+    if (!open) return;
+    mobileScrollRef.current?.scrollTo({ top: 0 });
+  }, [open, mobileStep, mode]);
 
   useEffect(() => {
     if (!open || defaultSubjectId == null) return;
@@ -376,6 +386,7 @@ export function AiGenerateModal({
   }, [open, defaultDifficulty, bankNumber, bankTheory, bankNumerical]);
 
   const reset = () => {
+    setMobileStep(0);
     setFiles([]);
     setError("");
     setGenerating(false);
@@ -877,7 +888,7 @@ export function AiGenerateModal({
               <button
                 type="button"
                 disabled={generating}
-                onClick={() => { setMode("own"); setError(""); setGenerationFailed(false); }}
+                onClick={() => { setMode("own"); setMobileStep(0); setError(""); setGenerationFailed(false); }}
                 className={cn(
                   "min-w-0 rounded-[11px] border-2 px-2.5 py-2 text-left transition-colors disabled:opacity-60",
                   mode === "own"
@@ -894,7 +905,7 @@ export function AiGenerateModal({
               <button
                 type="button"
                 disabled={generating}
-                onClick={() => { setMode("bank"); setError(""); setGenerationFailed(false); }}
+                onClick={() => { setMode("bank"); setMobileStep(0); setError(""); setGenerationFailed(false); }}
                 className={cn(
                   "min-w-0 rounded-[11px] border-2 px-2.5 py-2 text-left transition-colors disabled:opacity-60",
                   mode === "bank"
@@ -910,13 +921,58 @@ export function AiGenerateModal({
               </button>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-5 lg:overflow-hidden lg:py-3">
+            {/* Mobile stepper — keeps the topic generator short and focused */}
+            {mode === "bank" && (
+              <div className="flex shrink-0 gap-1.5 px-4 pt-2.5 sm:px-5 lg:hidden">
+                {["Scope", "Setup", "Topics"].map((label, index) => {
+                  const active = mobileStep === index;
+                  const complete = mobileStep > index;
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => setMobileStep(index)}
+                      disabled={generating || accepting}
+                      aria-current={active ? "step" : undefined}
+                      className="min-w-0 flex-1 text-left disabled:cursor-not-allowed"
+                    >
+                      <span
+                        className={cn(
+                          "block h-1.5 rounded-full transition-colors",
+                          active || complete ? "bg-[var(--qs-brand)]" : "bg-[var(--qs-line)]"
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          "mt-1 block truncate text-[9px] font-extrabold uppercase tracking-[0.06em]",
+                          active ? "text-[var(--qs-brand)]" : "text-[var(--qs-muted)]"
+                        )}
+                      >
+                        {index + 1}. {label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <div ref={mobileScrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-5 lg:overflow-hidden lg:py-3">
               <div className="grid min-h-0 gap-3 lg:h-full lg:grid-cols-[1fr_1fr_1.05fr]">
                 {mode === "bank" ? (
                   <>
                     {/* Column 1 — scope, theory/numerical, size */}
-                    <div className="flex min-h-0 flex-col gap-2.5 lg:overflow-y-auto lg:pr-1">
-                      <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
+                    <div
+                      className={cn(
+                        "flex min-h-0 flex-col gap-2.5 lg:overflow-y-auto lg:pr-1",
+                        mobileStep === 2 && "hidden lg:flex"
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3",
+                          mobileStep !== 0 && "hidden lg:block"
+                        )}
+                      >
                         <p className="mb-2 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
                           <Target className="h-3.5 w-3.5 text-[var(--qs-brand)]" /> Quiz scope
                         </p>
@@ -1016,7 +1072,12 @@ export function AiGenerateModal({
                         ) : null}
                       </div>
 
-                      <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
+                      <div
+                        className={cn(
+                          "rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3",
+                          mobileStep !== 1 && "hidden lg:block"
+                        )}
+                      >
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
                             Theory vs numerical
@@ -1066,7 +1127,12 @@ export function AiGenerateModal({
                         </p>
                       </div>
 
-                      <div className="shrink-0 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 lg:sticky lg:bottom-0 lg:z-10 lg:shadow-[0_-6px_14px_rgba(26,18,64,0.06)]">
+                      <div
+                        className={cn(
+                          "shrink-0 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 lg:sticky lg:bottom-0 lg:z-10 lg:shadow-[0_-6px_14px_rgba(26,18,64,0.06)]",
+                          mobileStep !== 1 && "hidden lg:block"
+                        )}
+                      >
                         <div className="flex items-center justify-between gap-3">
                           <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
                             <Target className="h-3.5 w-3.5 text-[var(--qs-brand)]" /> Assessment size
@@ -1106,7 +1172,12 @@ export function AiGenerateModal({
                     </div>
 
                     {/* Column 2 — syllabus, difficulty, selected scope */}
-                    <div className="flex min-h-0 flex-col gap-2.5 lg:overflow-y-auto lg:pr-1">
+                    <div
+                      className={cn(
+                        "flex min-h-0 flex-col gap-2.5 lg:overflow-y-auto lg:pr-1",
+                        mobileStep !== 2 && "hidden lg:flex"
+                      )}
+                    >
                       <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
                         <div className="flex flex-wrap items-center justify-between gap-1.5">
                           <label htmlFor="ai-bank-syllabus" className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
@@ -1506,7 +1577,46 @@ export function AiGenerateModal({
                     This quiz has {currentQuestionCount} of {MAX_QUIZ_QUESTIONS} questions · {remainingQuestionSlots} slot{remainingQuestionSlots === 1 ? "" : "s"} left
                   </p>
                 ) : null}
-                <div className="flex flex-wrap items-center gap-2">
+                {mode === "bank" && (
+                  <div className="flex items-center gap-2 lg:hidden">
+                    <button
+                      type="button"
+                      onClick={() => setMobileStep((step) => Math.max(0, step - 1))}
+                      disabled={mobileStep === 0 || generating || accepting}
+                      className="h-10 rounded-[10px] border-2 border-[var(--qs-line)] px-4 text-sm font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:opacity-40"
+                    >
+                      Back
+                    </button>
+                    <span className="mx-auto text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+                      Step {mobileStep + 1} of 3
+                    </span>
+                    {mobileStep < 2 ? (
+                      <button
+                        type="button"
+                        onClick={() => setMobileStep((step) => Math.min(2, step + 1))}
+                        disabled={generating || accepting}
+                        className="h-10 rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-5 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:opacity-50"
+                      >
+                        Next
+                      </button>
+                    ) : (
+                      <AiGenerateButton
+                        size="md"
+                        label={
+                          generationFailed
+                            ? "Try again"
+                            : generating
+                              ? "Generating…"
+                              : `Generate ${bankNumber} questions`
+                        }
+                        onClick={generationFailed ? retryGeneration : () => void handleGenerateFromBank()}
+                        disabled={primaryDisabled || generating}
+                        className="h-10 min-w-0 flex-1 px-4 text-sm disabled:opacity-60"
+                      />
+                    )}
+                  </div>
+                )}
+                <div className={cn("flex flex-wrap items-center gap-2", mode === "bank" && "hidden lg:flex")}>
                   <p className="mr-auto hidden max-w-[430px] items-start gap-1.5 text-[9px] font-medium leading-4 text-[var(--qs-muted)] lg:flex">
                     <AlertCircle className="mt-px h-2.5 w-2.5 shrink-0" /> AI can make mistakes. Review every question before adding it to your quiz.
                   </p>

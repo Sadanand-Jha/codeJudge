@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ListChecks, UserRound, UsersRound } from "lucide-react";
+import { DoorOpen, ListChecks, UsersRound } from "lucide-react";
 import { cn } from "@/lib/helpers";
 
 const TABS = [
   { label: "Quizzes", href: "/creator/quizzes", icon: ListChecks, match: (p: string) => p === "/creator/quizzes" || p.startsWith("/creator/quizzes/") },
-  // { label: "Results", href: "/creator/analytics", icon: BarChart3, match: (p: string) => p === "/creator/analytics" || p.startsWith("/creator/analytics/") },
+  { label: "Rooms", href: "/creator/rooms", icon: DoorOpen, match: (p: string) => p === "/creator/rooms" || p.startsWith("/creator/rooms/") },
   { label: "Community", href: "/creator/resources", icon: UsersRound, match: (p: string) => p === "/creator/resources" || p.startsWith("/creator/resources/") },
-  { label: "Profile", href: "/creator/profile", icon: UserRound, match: (p: string) => p === "/creator/profile" || p.startsWith("/creator/profile/") },
 ];
 
 export default function CreatorMobileNav() {

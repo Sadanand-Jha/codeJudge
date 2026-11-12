@@ -136,11 +136,13 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return (data ?? []).filter((q) => {
-      const matchesStatus = filter === "all" || q.status === filter;
-      const matchesSearch = !term || q.title.toLowerCase().includes(term) || q.subject.toLowerCase().includes(term);
-      return matchesStatus && matchesSearch;
-    });
+    return (data ?? [])
+      .filter((q) => {
+        const matchesStatus = filter === "all" || q.status === filter;
+        const matchesSearch = !term || q.title.toLowerCase().includes(term) || q.subject.toLowerCase().includes(term);
+        return matchesStatus && matchesSearch;
+      })
+      .sort((a, b) => Number(b.status === "live") - Number(a.status === "live"));
   }, [data, filter, search]);
 
   const stats = useMemo(() => {
@@ -201,19 +203,15 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
       </div>
 
       {/* AI callout — compact single row on mobile */}
-      <section className="flex min-h-16 items-center gap-3 rounded-[16px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] p-2.5 pl-3 lg:hidden">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
-          <WandSparkles className="h-5 w-5" strokeWidth={2.4} />
-        </span>
-        <span className="min-w-0 flex-1 truncate text-[16px] font-bold text-[var(--qs-ink)]">
-          Build quizzes with AI
-        </span>
-        <Link
-          href="/creator/quizzes/create"
-          className="inline-flex h-11 shrink-0 items-center justify-center rounded-[12px] bg-[var(--qs-brand)] px-[18px] text-[15px] font-bold text-[var(--qs-on-brand)] transition-transform active:scale-[0.97]"
-        >
-          Generate
-        </Link>
+      <section className="qs-ai-ad relative rounded-[16px] p-[2px] lg:hidden">
+        <div className="relative z-10 flex min-h-16 items-center gap-3 rounded-[14px] bg-[var(--qs-surface)] p-2.5 pl-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+            <WandSparkles className="h-5 w-5" strokeWidth={2.4} />
+          </span>
+          <span className="min-w-0 flex-1 text-[14px] font-bold leading-tight text-[var(--qs-ink)]">
+            Generate quiz questions from AI
+          </span>
+        </div>
       </section>
 
       {/* AI callout — desktop */}
@@ -227,7 +225,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
               AI service
             </p>
             <h2 className="qs-display mt-1 text-[20px] font-extrabold text-[var(--qs-ink)]">
-              Build your next quiz with AI
+              Generate quiz questions from AI
             </h2>
             <p className="mt-1 text-[13px] text-[var(--qs-muted)]">
               {WHOLE_QUIZ_AI_ENABLED
@@ -297,7 +295,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
       {status === "ready" && data && (
         <>
           {/* Stat tiles — the Live tile is the page's one bold element */}
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-[18px]">
+          <div className="hidden lg:grid lg:grid-cols-4 lg:gap-[18px]">
             <StatTile
               label="Total quizzes"
               mobileLabel="Quizzes"
@@ -334,7 +332,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
           </div>
 
           {/* Search + filter chips */}
-          <div className="flex flex-col gap-3.5 lg:gap-3 lg:rounded-[18px] lg:border-2 lg:border-[var(--qs-line)] lg:bg-[var(--qs-surface)] lg:p-3 xl:flex-row xl:items-center">
+          <div className="hidden flex-col gap-3.5 lg:flex lg:gap-3 lg:rounded-[18px] lg:border-2 lg:border-[var(--qs-line)] lg:bg-[var(--qs-surface)] lg:p-3 xl:flex-row xl:items-center">
             <label className="relative block w-full min-w-0 lg:flex-1 xl:max-w-xs">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)] lg:left-3.5 lg:h-4 lg:w-4" />
               <input
@@ -669,7 +667,7 @@ function MobileQuizRow({
               className={cn(
                 "flex h-[60px] flex-col items-center justify-center gap-0.5 rounded-[14px] border text-[12px] font-bold transition-transform active:scale-[0.97]",
                 action.primary
-                  ? "border-[var(--qs-brand)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
+                  ? "border-[var(--qs-brand)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] active:shadow-[1px_1px_0_var(--qs-sun)]"
                   : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)]"
               )}
             >

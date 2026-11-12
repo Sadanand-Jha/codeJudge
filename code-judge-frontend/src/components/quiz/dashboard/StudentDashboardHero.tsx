@@ -63,10 +63,8 @@ export default function StudentDashboardHero() {
   return (
     <div className={styles.root}>
       <section className={styles.hero} aria-labelledby="student-dashboard-title">
-        <i className={styles.heroA} aria-hidden="true" />
-        <i className={styles.heroB} aria-hidden="true" />
-        <i className={styles.heroC} aria-hidden="true" />
-        <i className={styles.heroD} aria-hidden="true" />
+        <i className={styles.heroOrbA} aria-hidden="true" />
+        <i className={styles.heroOrbB} aria-hidden="true" />
 
         <div className={styles.heroInner}>
           <div className={styles.top}>

@@ -205,7 +205,7 @@ export function SetupStep() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.18 }}
-          className="flex h-full min-h-0 flex-col"
+          className={cn("h-full min-h-0 flex-col", editMode ? "hidden lg:flex" : "flex")}
         >
           {/* Miniature model of the student join view */}
           <div

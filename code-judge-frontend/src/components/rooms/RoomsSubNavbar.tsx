@@ -72,12 +72,12 @@ export default function RoomsSubNavbar({
         className
       )}
     >
-      <div className="mx-auto flex w-full max-w-[1280px] items-center gap-2 px-3.5 py-[9px] sm:gap-2.5 sm:px-6 sm:py-2.5">
+      <div className="mx-auto flex w-full max-w-[1280px] items-center gap-2 px-4 py-2 sm:gap-2.5 sm:px-6 sm:py-2.5">
         <Link
           href={homeHref}
           aria-current={homeActive ? "page" : undefined}
           className={cn(
-            "inline-flex h-[38px] shrink-0 items-center gap-1.5 rounded-full border-2 px-3 text-[13px] font-extrabold transition-colors",
+            "inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full border-2 px-4 text-[15px] font-extrabold transition-colors sm:h-[38px] sm:px-3 sm:text-[13px]",
             homeActive
               ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-surface)]"
               : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
@@ -93,26 +93,26 @@ export default function RoomsSubNavbar({
         >
           {loading ? (
             Array.from({ length: 4 }).map((_, index) => (
-              <span key={index} className="app-skeleton h-[38px] w-28 shrink-0 rounded-full" />
+              <span key={index} className="app-skeleton h-11 w-28 shrink-0 rounded-full sm:h-[38px]" />
             ))
           ) : error ? (
             <button
               type="button"
               onClick={onRetry}
-              className="inline-flex h-[38px] shrink-0 items-center gap-1.5 rounded-full border-2 border-dashed border-[var(--qs-bad)] px-3 text-[13px] font-bold text-[var(--qs-bad)]"
+              className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full border-2 border-dashed border-[var(--qs-bad)] px-4 text-[15px] font-bold text-[var(--qs-bad)] sm:h-[38px] sm:px-3 sm:text-[13px]"
             >
-              <RefreshCw className="h-3.5 w-3.5" />
+              <RefreshCw className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
               Retry
             </button>
           ) : items.length === 0 ? (
-            <span className="inline-flex h-[38px] shrink-0 items-center gap-1.5 px-2 text-[13px] font-semibold text-[var(--qs-muted)]">
+            <span className="inline-flex h-11 shrink-0 items-center gap-1.5 px-2 text-[15px] font-semibold text-[var(--qs-muted)] sm:h-[38px] sm:text-[13px]">
               <Users className="h-3.5 w-3.5" />
               No rooms yet
             </span>
           ) : (
             items.map((item) => {
               const className = cn(
-                "inline-flex h-[38px] max-w-[190px] shrink-0 items-center gap-1.5 rounded-full border-2 px-3 text-[13px] font-extrabold transition-colors",
+                "inline-flex h-11 max-w-[190px] shrink-0 items-center gap-1.5 rounded-full border-2 px-4 text-[15px] font-extrabold transition-colors sm:h-[38px] sm:px-3 sm:text-[13px]",
                 item.active
                   ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)]"
                   : item.disabled

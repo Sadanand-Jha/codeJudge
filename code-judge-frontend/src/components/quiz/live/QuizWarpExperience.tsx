@@ -4,9 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { Rocket, ShieldCheck, IceCreamCone, PartyPopper } from "lucide-react";
-import { SecureLogo } from "@/components/common/SecureLogo";
 import { useQuizSounds } from "@/hooks/useQuizSounds";
-import { QuizLoader } from "./StudentQuizShell";
+import { CheerfulOwlLoader } from "./CheerfulOwlLoader";
 import { useTheme } from "@/context/ThemeContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
@@ -196,7 +195,7 @@ export function QuizWarpExperience({
         aria-label="Entering quiz"
       >
         <div>
-          <QuizLoader className="mx-auto block w-fit" size={36} />
+          <CheerfulOwlLoader className="mx-auto" size={130} label="Entering quiz" />
           <p className={`mt-5 text-[10px] font-bold uppercase tracking-[0.3em] ${light ? "text-pink-600" : "text-cyan-200/70"}`}>
             Entering quiz
           </p>
@@ -459,7 +458,7 @@ export function QuizWarpExperience({
           >
             <div>
               <div className="mx-auto w-fit">
-                <SecureLogo variant="mark" size={36} className="animate-pulse motion-reduce:animate-none" />
+                <CheerfulOwlLoader size={130} label="Preparing your quiz" />
               </div>
               <p className="mt-7 text-[10px] font-bold uppercase tracking-[0.45em] text-violet-200/75">Destination reached</p>
               <h2 className="mt-3 text-3xl font-black tracking-[-0.03em] text-white sm:text-5xl">WELCOME ABOARD</h2>

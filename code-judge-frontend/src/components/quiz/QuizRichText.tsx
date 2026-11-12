@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { cn } from "@/lib/helpers";
 import { renderQuestionHtml } from "@/components/creator/questions/QuestionHtml";
-import { containsHtml } from "@/utils/htmlText";
+import { containsHtml, decodeHtmlEntities } from "@/utils/htmlText";
 import { renderMathInHtml, renderPlainMathHtml } from "@/utils/mathText";
 
 const RICH_TEXT_CLASS = cn(
@@ -37,7 +37,10 @@ export function QuizRichText({ html, className, as = "div" }: QuizRichTextProps)
   const value = html ?? "";
   const hasHtml = containsHtml(value);
   const rendered = useMemo(
-    () => (hasHtml ? renderMathInHtml(renderQuestionHtml(value)) : renderPlainMathHtml(value)),
+    () =>
+      hasHtml
+        ? renderMathInHtml(renderQuestionHtml(value))
+        : renderPlainMathHtml(decodeHtmlEntities(value)),
     [hasHtml, value]
   );
 

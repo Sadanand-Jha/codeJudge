@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { cn } from "@/lib/helpers";
-import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
+import { CheerfulOwlLoader } from "@/components/quiz/live/CheerfulOwlLoader";
 
 /**
  * QuizPageReady — "render completely, then reveal" gate for mobile.
@@ -78,7 +78,7 @@ export default function QuizPageReady({
           aria-hidden="true"
           aria-label={label}
         >
-          <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
+          <CheerfulOwlLoader size={160} label={label} />
         </div>
       )}
     </div>

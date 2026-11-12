@@ -1369,6 +1369,8 @@ export interface QuizResponseStudent {
   correct_answers: number | null;
   wrong_answers: number | null;
   skipped_questions: number | null;
+  /** Creator-defined registration form answers captured when the attempt started. */
+  registration_data?: Record<string, unknown> | null;
   decoy_hits?: number | null;
   decoy_questions?: number | null;
   decoy_flagged?: boolean | null;
@@ -1391,6 +1393,7 @@ export interface QuizResponsesData {
     code: string;
     total_marks: number;
     passing_marks: number | null;
+    registration_fields?: string[] | null;
     status: string | null;
     starttime: string | null;
     endtime: string | null;
@@ -1423,6 +1426,7 @@ export interface StudentResponseDetail {
     correct_answers: number | null;
     wrong_answers: number | null;
     skipped_questions: number | null;
+    registration_data?: Record<string, unknown> | null;
     username: string | null;
     first_name: string | null;
     last_name: string | null;

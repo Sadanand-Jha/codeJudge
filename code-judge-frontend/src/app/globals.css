@@ -20368,3 +20368,48 @@ html.landing-animations-paused .lpx.landing-redesign .landing-art-hero .landing-
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================
+   AI quiz ad — rotating colour ring
+   ============================================ */
+.qs-ai-ad {
+  overflow: hidden;
+}
+
+.qs-ai-ad::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 200vmax;
+  height: 200vmax;
+  margin-left: -100vmax;
+  margin-top: -100vmax;
+  background: conic-gradient(#7c3aed, #ec4899, #f59e0b, #22d3ee, #7c3aed);
+  /* Mobile quiet mode disables every loop; this ad opts back in. */
+  animation: qs-ai-ad-ring 4s linear infinite !important;
+}
+
+@keyframes qs-ai-ad-ring {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qs-ai-ad::before {
+    animation: none !important;
+  }
+}
+
+/* Registration settings — Plus Jakarta Sans type ramp */
+.qs-jakarta,
+.qs-jakarta :is(button, input, select, textarea) {
+  font-family: var(--font-jakarta), "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* Mobile quiz editor — match the mobile design type ramp */
+@media (max-width: 1023.98px) {
+  .qs-jakarta-mobile,
+  .qs-jakarta-mobile :is(button, input, select, textarea) {
+    font-family: var(--font-jakarta), "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+}
