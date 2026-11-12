@@ -35,6 +35,8 @@ export function MobileStudioWizard() {
   const total = mobileSteps.length;
   const isLast = activeIndex === total - 1;
   const showContinue = !isLast || editMode;
+  // The edit-mode publish step owns its save actions in the sticky bottom bar.
+  const hideMobileActions = isLast && editMode;
   const label = state.info.title.trim() || "Untitled quiz";
 
   const commit = () => {
@@ -98,38 +100,40 @@ export function MobileStudioWizard() {
           </h1>
         )}
 
-        <div className="mt-3.5 flex gap-2.5">
-          <button
-            type="button"
-            onClick={() => {
-              if (activeIndex === 0) router.push("/creator/quizzes");
-              else void prevMobileStep();
-            }}
-            disabled={activeIndex === 0 && !editMode}
-            aria-label={activeIndex === 0 ? "Back to My Quizzes" : "Previous step"}
-            className={cn(
-              "inline-flex h-[52px] items-center justify-center gap-1 rounded-[16px] border-[1.5px] border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-[16px] font-bold text-[var(--qs-ink)] transition active:scale-95 disabled:opacity-40",
-              !showContinue && "flex-1"
-            )}
-          >
-            <ChevronLeft className="h-5 w-5" /> Back
-          </button>
-          {showContinue && (
+        {!hideMobileActions && (
+          <div className="mt-3.5 flex gap-2.5">
             <button
               type="button"
-              onClick={() => void handleContinue()}
-              disabled={continuing}
-              aria-busy={continuing || undefined}
+              onClick={() => {
+                if (activeIndex === 0) router.push("/creator/quizzes");
+                else void prevMobileStep();
+              }}
+              disabled={activeIndex === 0 && !editMode}
+              aria-label={activeIndex === 0 ? "Back to My Quizzes" : "Previous step"}
               className={cn(
-                "inline-flex h-[52px] flex-1 items-center justify-center gap-2 rounded-[16px] bg-gradient-to-br from-[#8250ff] to-[var(--qs-brand)] text-[17px] font-extrabold text-white shadow-[0_4px_0_rgba(74,34,184,0.55)] transition active:translate-y-[3px] active:shadow-[0_1px_0_rgba(74,34,184,0.55)] disabled:pointer-events-none disabled:opacity-60",
-                continuing && "opacity-70"
+                "inline-flex h-[52px] items-center justify-center gap-1 rounded-[16px] border-[1.5px] border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-[16px] font-bold text-[var(--qs-ink)] transition active:scale-95 disabled:opacity-40",
+                !showContinue && "flex-1"
               )}
             >
-              {continuing ? "Saving…" : isLast && editMode ? "Save & exit" : "Continue"}
-              {!continuing && <ArrowRight className="h-5 w-5" />}
+              <ChevronLeft className="h-5 w-5" /> Back
             </button>
-          )}
-        </div>
+            {showContinue && (
+              <button
+                type="button"
+                onClick={() => void handleContinue()}
+                disabled={continuing}
+                aria-busy={continuing || undefined}
+                className={cn(
+                  "inline-flex h-[52px] flex-1 items-center justify-center gap-2 rounded-[16px] bg-gradient-to-br from-[#8250ff] to-[var(--qs-brand)] text-[17px] font-extrabold text-white shadow-[0_4px_0_rgba(74,34,184,0.55)] transition active:translate-y-[3px] active:shadow-[0_1px_0_rgba(74,34,184,0.55)] disabled:pointer-events-none disabled:opacity-60",
+                  continuing && "opacity-70"
+                )}
+              >
+                {continuing ? "Saving…" : isLast && editMode ? "Save & exit" : "Continue"}
+                {!continuing && <ArrowRight className="h-5 w-5" />}
+              </button>
+            )}
+          </div>
+        )}
 
         <nav className="mt-4 flex items-center" aria-label="Progress">
           <button

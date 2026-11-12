@@ -1365,7 +1365,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     if (!editMode || loading || !state.serverQuizId) return;
     // No autosave on the questions step — problems are saved explicitly
     // with the big per-problem Save button instead.
-    if (state.step === "questions") return;
+    // The publish step also uses one explicit save bar (Save draft / Save &
+    // exit) so the "All changes saved" chip stays truthful.
+    if (state.step === "questions" || state.step === "reviewPublish") return;
 
     const snapshot = JSON.stringify({
       info: state.info,

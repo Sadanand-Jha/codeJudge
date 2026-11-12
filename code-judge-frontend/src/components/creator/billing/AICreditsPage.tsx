@@ -196,21 +196,21 @@ export function AICreditsPage({
       </div>
 
       <div className="sm:hidden">
-        <h1 className="qs-display text-[21px] font-bold leading-[26px] text-[var(--qs-ink)]">AI Credits</h1>
-        <p className="mt-0.5 text-[11px] leading-[15px] text-[var(--qs-muted)]">Top up credits whenever you need them.</p>
-        <div className="mt-2.5 flex items-center gap-1.5">
+        <h1 className="qs-display text-[28px] font-extrabold leading-[1.15] tracking-[-0.01em] text-[var(--qs-ink)]">AI Credits</h1>
+        <p className="mt-1 text-[15px] font-medium leading-normal text-[var(--qs-muted)]">Top up credits whenever you need them.</p>
+        <div className="mt-3 flex items-center gap-2">
           <Link
             href="/creator/billing/plans"
-            className="flex h-[34px] items-center gap-1 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-[11.5px] font-semibold text-[var(--qs-ink)]"
+            className="flex h-11 items-center gap-2 rounded-[14px] border-[1.5px] border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-[14px] font-extrabold text-[var(--qs-ink)]"
           >
-            <CalendarClock className="h-3.5 w-3.5" />
+            <CalendarClock className="h-[18px] w-[18px]" />
             Plans
           </Link>
           <Link
             href="/creator/billing/transactions"
-            className="flex h-[34px] items-center gap-1 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-[11.5px] font-semibold text-[var(--qs-ink)]"
+            className="flex h-11 items-center gap-2 rounded-[14px] border-[1.5px] border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-[14px] font-extrabold text-[var(--qs-ink)]"
           >
-            <History className="h-3.5 w-3.5" />
+            <History className="h-[18px] w-[18px]" />
             Transactions
           </Link>
         </div>
