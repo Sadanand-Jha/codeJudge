@@ -360,7 +360,12 @@ export function CreditPacks({
         )}
 
         <section aria-label="AI credit packs">
-          <div className="mx-auto grid w-full max-w-4xl items-stretch gap-[18px] sm:grid-cols-2 sm:gap-6 lg:grid-cols-2">
+          <div
+            className={cn(
+              "mx-auto grid w-full items-stretch gap-[18px] sm:gap-6",
+              packs.length === 1 ? "max-w-[436px]" : "max-w-4xl sm:grid-cols-2 lg:grid-cols-2"
+            )}
+          >
             {packs.map((pack) => (
               <CreditPackCard key={pack.id} pack={pack} basePack={basePack} onSelect={onSelect} />
             ))}

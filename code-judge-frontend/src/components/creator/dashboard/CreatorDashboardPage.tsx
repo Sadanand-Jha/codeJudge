@@ -757,7 +757,14 @@ function CreditsCard() {
 
       {packs.length > 0 && (
         <>
-          <div className="mt-3 grid grid-cols-2 gap-3" role="radiogroup" aria-label="Credit packs">
+          <div
+            className={cn(
+              "mt-3 grid gap-3",
+              packs.length > 1 ? "grid-cols-2" : "grid-cols-1 justify-items-center"
+            )}
+            role="radiogroup"
+            aria-label="Credit packs"
+          >
             {packs.slice(0, 2).map((pack) => {
               const selected = selectedPack?.id === pack.id;
               return (
@@ -769,6 +776,7 @@ function CreditsCard() {
                   onClick={() => setSelectedPackId(pack.id)}
                   className={cn(
                     "relative overflow-hidden rounded-[18px] border-2 p-3 text-left font-[inherit] text-[#1e1b4b] transition-all",
+                    packs.length === 1 && "w-full max-w-[240px]",
                     selected
                       ? "border-[#1e1b4b] bg-[linear-gradient(160deg,#fff,#ede9ff_170%)] shadow-[0_0_0_4px_rgba(124,92,255,0.18)]"
                       : "border-[#d6cff7] bg-[#faf9ff] hover:-translate-y-px hover:border-[#a99cf0]"
