@@ -372,8 +372,6 @@ export function CreditPacks({
           </div>
         </section>
       </div>
-
-      </p>
     </div>
   );
 }
