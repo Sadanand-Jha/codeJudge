@@ -11,6 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
+import { CreditCoin } from "@/components/creator/billing/CreditCoin";
 import { LandingPageShell } from "@/components/marketing/landing/LandingPageShell";
 import LandingIllustration from "@/components/marketing/landing/LandingIllustration";
 import LandingReveal from "@/components/marketing/landing/LandingReveal";
@@ -242,41 +243,68 @@ export default async function AICreditsPricingPage() {
                 {creditPacks.map((pack) => (
                   <article
                     key={pack.id}
-                    className={`landing-plan-card pricing-plan-card${pack.popular ? " is-featured" : ""}`}
+                    className={`relative flex flex-col rounded-[24px] border-2 bg-white p-5 ${
+                      pack.popular
+                        ? "border-[#f6bf2f] shadow-[0_22px_48px_-24px_rgba(246,191,47,0.55)]"
+                        : "border-[#e4ddff] shadow-[0_22px_48px_-30px_rgba(40,25,120,0.35)]"
+                    }`}
                     aria-labelledby={`pack-${pack.id}`}
                   >
-                    <div className="landing-plan-top">
-                      <span>{pack.popular ? "LIMITED OFFER" : "ONE-TIME TOP-UP"}</span>
-                      {pack.popular ? <i aria-hidden /> : null}
+                    {pack.popular && (
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#f6bf2f] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-[#3b2400]">
+                        Limited offer
+                      </span>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] border border-[#f0d28a] bg-[#fff3d1]">
+                        <CreditCoin className="h-6 w-6" />
+                      </span>
+                      <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#6b5a2b]">
+                        {pack.popular ? "Best value" : "One-time top-up"}
+                      </span>
                     </div>
-                    <h3 id={`pack-${pack.id}`}>{pack.name}</h3>
-                    <p className="landing-plan-description">{pack.blurb}</p>
+                    <h3 id={`pack-${pack.id}`} className="mt-2 text-[18px] font-extrabold tracking-[-0.02em] text-[#1e1b4b]">
+                      {pack.name}
+                    </h3>
+                    <p className="mt-1 text-[12.5px] leading-5 text-[#5b5780]">{pack.blurb}</p>
 
-                    <div className="pricing-plan-price-row">
-                      <div  className="landing-plan-price">
-                        <b>{formatPricingAmount(pack.price)}</b>
-                        <span>one-time</span>
+                    <div className="mt-3 flex flex-wrap items-end justify-between gap-2">
+                      <div className="flex items-baseline gap-1.5">
+                        <b className="text-[34px] font-extrabold leading-none tracking-[-0.03em] text-[#1e1b4b]">
+                          {formatPricingAmount(pack.price)}
+                        </b>
+                        <span className="text-[12px] font-semibold text-[#7c7899]">one-time</span>
                       </div>
-                      <span className="pricing-plan-badge">{pack.validityMonths} months</span>
+                      <span className="rounded-full border border-[#f0d28a] bg-[#fff3d1] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.04em] text-[#5a3b00]">
+                        {pack.validityMonths} months
+                      </span>
                     </div>
 
-                    <div className="pricing-pack-credits">
-                      <Coins size={17} aria-hidden />
-                      <strong>{pack.credits}</strong>
-                      <span>AI credits</span>
+                    <div className="mt-3 flex items-center gap-2 rounded-[12px] border border-[#f0d28a] bg-[#fffaf0] px-2.5 py-2">
+                      <CreditCoin className="h-5 w-5 shrink-0" />
+                      <strong className="text-[16px] font-extrabold text-[#1e1b4b]">
+                        {pack.credits.toLocaleString("en-IN")}
+                      </strong>
+                      <span className="text-[12px] font-semibold text-[#6b5a2b]">AI credits</span>
                     </div>
 
-                    <ul>
-                      <li>
-                        <Check size={15} aria-hidden />
+                    <ul className="mt-3 grid flex-1 gap-2 border-t-2 border-dashed border-[#e4ddff] pt-3">
+                      <li className="flex items-start gap-2 text-[12.5px] font-medium text-[#1e1b4b]">
+                        <span className="mt-0.5 grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-[#f6bf2f] !text-black">
+                          <Check className="h-3 w-3" strokeWidth={3.5} />
+                        </span>
                         Works with {planList}
                       </li>
-                      <li>
-                        <Check size={15} aria-hidden />
+                      <li className="flex items-start gap-2 text-[12.5px] font-medium text-[#1e1b4b]">
+                        <span className="mt-0.5 grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-[#f6bf2f] !text-black">
+                          <Check className="h-3 w-3" strokeWidth={3.5} />
+                        </span>
                         AI questions, papers and exports
                       </li>
-                      <li>
-                        <Check size={15} aria-hidden />
+                      <li className="flex items-start gap-2 text-[12.5px] font-medium text-[#1e1b4b]">
+                        <span className="mt-0.5 grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-[#f6bf2f] !text-black">
+                          <Check className="h-3 w-3" strokeWidth={3.5} />
+                        </span>
                         Valid for {pack.validityMonths} months from purchase
                       </li>
                     </ul>
@@ -284,7 +312,7 @@ export default async function AICreditsPricingPage() {
                     <PublicPackCta
                       packId={pack.id}
                       label={pack.cta}
-                      className="landing-plan-link pricing-plan-cta"
+                      className="mt-4 flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-[12px] border-2 border-[#1b1740] bg-[linear-gradient(135deg,#8b6cff,#5b3fe8)] px-3 text-[12.5px] font-bold !text-white shadow-[4px_4px_0_#f6bf2f] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
                     />
                   </article>
                 ))}

@@ -12,11 +12,9 @@ import {
   Clock,
   Database,
   FileText,
-  Fuel,
   List,
   Plus,
   Sparkles,
-  TriangleAlert,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
@@ -27,10 +25,12 @@ import { useData } from "@/lib/hooks/useData";
 import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
 import { ShareQuizDialog, WhatsAppIcon } from "@/components/creator/common/ShareQuizDialog";
 import { TrialOfferBanner } from "@/components/marketing/TrialOfferBanner";
+import { CreditCoin } from "@/components/creator/billing/CreditCoin";
 import { TimingModal } from "@/components/creator/dashboard/TimingModal";
 import { ErrorState, Skeleton } from "@/components/creator/billing/ui";
-import { checkLowCreditWarning, useAICreditsStore } from "@/store/aiCreditsStore";
+import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
+import { formatPricingAmount } from "@/services/pricing";
 import { useCreditState } from "@/hooks/useCreditState";
 import { creditExpiryDays, fuelSegments } from "@/lib/creditState";
 import { useAuthStore } from "@/store/authStore";
@@ -628,10 +628,10 @@ function LowFuelStrip() {
       role="status"
       aria-live="polite"
       data-credit-warning="low"
-      className="flex flex-col gap-3 rounded-[18px] border-2 border-[var(--qs-credit-strip-border)] bg-[var(--qs-credit-strip-bg)] px-4 py-3 text-[var(--qs-credit-strip-text)] sm:flex-row sm:items-center"
+      className="flex flex-col gap-3 rounded-[18px] border-2 border-[#f0d28a] bg-[#fffaf0] px-4 py-3 text-[#5a3b00] sm:flex-row sm:items-center"
     >
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-[var(--qs-credit-chip-border)] bg-[var(--qs-credit-card)]">
-        <TriangleAlert className="h-4 w-4" strokeWidth={2.5} />
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#f0d28a] bg-[#fff3d1]">
+        <CreditCoin className="h-6 w-6" />
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[13px] font-extrabold leading-5">Your fuel is running low. Top up your credits.</p>
@@ -640,13 +640,13 @@ function LowFuelStrip() {
       <div className="flex flex-wrap gap-2 sm:shrink-0">
         <Link
           href="/creator/billing/credits"
-          className="inline-flex min-h-9 items-center justify-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3.5 py-1.5 text-[12px] font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-credit-accent)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
+          className="inline-flex min-h-9 items-center justify-center rounded-[10px] border-2 border-[#1b1740] bg-[linear-gradient(135deg,#8b6cff,#5b3fe8)] px-3.5 py-1.5 text-[12px] font-bold !text-white shadow-[3px_3px_0_#f6bf2f] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
         >
           Buy credits
         </Link>
         <Link
           href="/creator/billing/transactions"
-          className="inline-flex min-h-9 items-center justify-center rounded-[10px] border-2 border-[var(--qs-credit-strip-border)] bg-[var(--qs-credit-surface)] px-3.5 py-1.5 text-[12px] font-bold text-[var(--qs-credit-strip-text)] transition-colors hover:bg-[var(--qs-credit-card)]"
+          className="inline-flex min-h-9 items-center justify-center rounded-[10px] border-2 border-[#1b1740] bg-white px-3.5 py-1.5 text-[12px] font-bold text-[#1e1b4b] transition-colors hover:bg-[#f3efff]"
         >
           History
         </Link>
@@ -659,23 +659,40 @@ function LowFuelStrip() {
    Credits card
    ============================================================ */
 
+function PackCoinArt() {
+  return (
+    <span aria-hidden="true" className="pointer-events-none absolute right-3 top-10 h-14 w-[70px]">
+      <span className="absolute left-0.5 top-7 grid h-[22px] w-[22px] place-items-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#ffe18a,#f5b72b_55%,#c98310)] text-[10px] font-bold text-[#a35f00] shadow-[inset_0_0_0_2px_#e9a71f,inset_0_0_0_3px_#fbd160,0_4px_8px_rgba(160,100,0,0.28)]">
+        ★
+      </span>
+      <span className="absolute left-[22px] top-0 grid h-[22px] w-[22px] place-items-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#ffe18a,#f5b72b_55%,#c98310)] text-[10px] font-bold text-[#a35f00] shadow-[inset_0_0_0_2px_#e9a71f,inset_0_0_0_3px_#fbd160,0_4px_8px_rgba(160,100,0,0.28)]">
+        ★
+      </span>
+      <span className="absolute right-1 top-1.5 grid h-10 w-10 place-items-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#ffe18a,#f5b72b_55%,#c98310)] text-[18px] font-bold text-[#a35f00] shadow-[inset_0_0_0_2px_#e9a71f,inset_0_0_0_3px_#fbd160,0_4px_8px_rgba(160,100,0,0.28)]">
+        ₹
+      </span>
+    </span>
+  );
+}
+
 function CreditsCard() {
   const balance = useAICreditsStore((s) => s.balance);
   const { state, expiresAt } = useCreditState();
   const remaining = balance.totalRemaining;
-  const empty = state === "empty";
-  const low = state === "low";
-  const runningLow =
-    !empty &&
-    !low &&
-    checkLowCreditWarning(remaining, balance.monthlyAllowance || remaining || 1);
   const { catalog } = usePricingCatalog();
+  const packs = catalog.creditPacks;
+  const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
+  const selectedPack =
+    packs.find((pack) => pack.id === selectedPackId) ??
+    packs.find((pack) => pack.popular) ??
+    packs[0] ??
+    null;
   const validityMonths =
-    catalog.creditPacks.length > 0
-      ? Math.max(...catalog.creditPacks.map((pack) => pack.validityMonths))
+    packs.length > 0
+      ? Math.max(...packs.map((pack) => pack.validityMonths))
       : null;
   const packCapacity = Math.max(
-    ...catalog.creditPacks.map((pack) => pack.credits),
+    ...packs.map((pack) => pack.credits),
     balance.monthlyAllowance,
     remaining,
     1
@@ -693,82 +710,140 @@ function CreditsCard() {
 
   return (
     <article
-      data-credit-card={low ? "low" : empty ? "empty" : "ok"}
-      className={cn(
-        "hidden h-full flex-col rounded-[24px] border-2 p-6 sm:p-8 lg:flex",
-        low
-          ? "border-[var(--qs-credit-chip-border)] bg-[var(--qs-credit-card)]"
-          : "border-[var(--qs-ink)] bg-[var(--qs-surface)]"
-      )}
+      data-credit-card={state}
+      className="relative hidden h-full flex-col rounded-[28px] border-2 border-[#1e1b4b] bg-white p-6 lg:flex"
     >
-      <span
-        className={cn(
-          "grid h-14 w-14 place-items-center rounded-full border-2",
-          low
-            ? "border-[var(--qs-credit-chip-border)] bg-[var(--qs-credit-card)] text-[var(--qs-credit-chip-text)]"
-            : "border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]"
-        )}
-      >
-        {empty || low ? <Fuel className="h-6 w-6" strokeWidth={2.5} /> : <Sparkles className="h-7 w-7" strokeWidth={2} />}
+      <span className="absolute right-6 top-[22px] grid h-14 w-14 place-items-center rounded-full border-2 border-[#1e1b4b] bg-[#ffd24d] text-[#1e1b4b]">
+        <Sparkles className="h-7 w-7" strokeWidth={2} />
       </span>
-      <p className="mt-5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1 leading-none">
-        <span className="qs-display text-[56px] font-extrabold leading-none tracking-[-0.02em] text-[var(--qs-ink)]">{remaining}</span>
-        <span className="text-[18px] font-bold leading-tight text-[var(--qs-muted)]">credits left</span>
-      </p>
-      <p className="mt-2.5 text-[15px] leading-6 text-[var(--qs-muted)]">
-        {empty
-          ? "Your tank is empty. Buy credits to keep generating with AI."
-          : low
-            ? "Your tank is running low. Top up before it runs out."
-            : validityMonths
-              ? `Valid ${validityMonths} months from purchase.`
-              : "One-time credits, valid from purchase."}
+
+      <h3 className="m-0 flex flex-wrap items-baseline gap-3 pr-16 leading-none">
+        <span className="text-[52px] font-extrabold leading-none tracking-[-0.04em] text-[#1e1b4b]">
+          {remaining.toLocaleString("en-IN")}
+        </span>
+        <span className="text-[18px] font-semibold text-[#5b5780]">credits left</span>
+      </h3>
+      <p className="mb-3.5 mt-2 text-[14px] font-medium text-[#5b5780]">
+        {validityMonths
+          ? `Valid ${validityMonths} months from purchase.`
+          : "One-time credits, valid from purchase."}
       </p>
 
-      <div className="mt-4">
-        <div
-          className="qs-credit-fuel"
-          role="img"
-          aria-label={`${remaining} of ${packCapacity} credits remaining`}
-        >
-          {Array.from({ length: 5 }, (_, index) => (
-            <i key={index} data-filled={index < filledSegments ? "true" : "false"} />
-          ))}
-        </div>
-        <p className="mt-1.5 text-[11px] font-semibold text-[var(--qs-muted)]">
-          {filledSegments} of 5 fuel bars
-        </p>
+      <div className="grid grid-cols-5 gap-2" role="img" aria-label={`${filledSegments} of 5 fuel bars`}>
+        {Array.from({ length: 5 }, (_, index) => (
+          <i
+            key={index}
+            className={
+              index < filledSegments
+                ? "h-2.5 rounded-full border-2 border-[#e8b100] bg-[#ffd24d]"
+                : "h-2.5 rounded-full border-2 border-[#d6cff7] bg-white"
+            }
+          />
+        ))}
+      </div>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-x-2.5 gap-y-1 text-[12.5px] font-semibold text-[#5b5780]">
+        <span>{filledSegments} of 5 fuel bars</span>
+        {expiryHint ? <span className="text-[#b45f06]">{expiryHint}</span> : null}
       </div>
 
-      {expiryHint && (
-        <p className="mt-2 text-[12px] font-semibold text-[var(--qs-warn)]">{expiryHint}</p>
-      )}
+      <hr className="my-4 border-0 border-t-2 border-dashed border-[#d6cff7]" />
 
-      {runningLow && !expiryHint && (
-        <div className="mt-3.5 flex items-start gap-2.5 rounded-2xl border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/20 p-3">
-          <span className="mt-0.5 text-[var(--qs-ink)]">
-            <TriangleAlert className="h-4 w-4" />
-          </span>
-          <p className="text-[12px] font-medium leading-5 text-[var(--qs-ink)]">
-            Running low — top up before your next paper.
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <h4 className="m-0 text-[16px] font-bold text-[#1e1b4b]">Top up your credits</h4>
+        <span className="rounded-full border-[1.5px] border-[#d6cff7] bg-[#faf9ff] px-3 py-[5px] text-[12px] font-semibold text-[#5b5780]">
+          One-time · no subscription
+        </span>
+      </div>
+
+      {packs.length > 0 && (
+        <>
+          <div className="mt-3 grid grid-cols-2 gap-3" role="radiogroup" aria-label="Credit packs">
+            {packs.slice(0, 2).map((pack) => {
+              const selected = selectedPack?.id === pack.id;
+              return (
+                <button
+                  key={pack.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => setSelectedPackId(pack.id)}
+                  className={cn(
+                    "relative overflow-hidden rounded-[18px] border-2 p-3 text-left font-[inherit] text-[#1e1b4b] transition-all",
+                    selected
+                      ? "border-[#1e1b4b] bg-[linear-gradient(160deg,#fff,#ede9ff_170%)] shadow-[0_0_0_4px_rgba(124,92,255,0.18)]"
+                      : "border-[#d6cff7] bg-[#faf9ff] hover:-translate-y-px hover:border-[#a99cf0]"
+                  )}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "absolute right-3.5 top-3.5 grid h-[22px] w-[22px] place-items-center rounded-full border-2 text-[12px]",
+                      selected
+                        ? "border-[#4a2fd8] bg-[#4a2fd8] text-white"
+                        : "border-[#d6cff7] bg-white text-transparent"
+                    )}
+                  >
+                    ✓
+                  </span>
+                  <span className="inline-block rounded-full bg-[linear-gradient(90deg,#7c5cff,#4a2fd8)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] !text-white">
+                    {pack.popular ? "Best value" : "Limited offer"}
+                  </span>
+                  <span className="mt-1.5 block text-[14px] font-bold text-[#1e1b4b]">{pack.name}</span>
+                  <span className="mt-1.5 block text-[30px] font-extrabold leading-none tracking-[-0.04em] text-[#1e1b4b]">
+                    {formatPricingAmount(pack.price, "INR")}
+                    <small className="ml-0.5 align-baseline text-[11.5px] font-medium tracking-normal text-[#5b5780]">
+                      one-time
+                    </small>
+                  </span>
+                  <PackCoinArt />
+                  <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-[#f0d28a] bg-[#fff3d1] py-[5px] pl-1.5 pr-3 text-[13px] font-bold text-[#5a3b00]">
+                    <CreditCoin className="h-[18px] w-[18px]" />
+                    {pack.credits.toLocaleString("en-IN")} credits
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {selectedPack && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2.5 rounded-[14px] bg-[#ede9ff] px-3.5 py-2.5 text-[13.5px] font-semibold text-[#5b5780]">
+              <span>Balance after purchase</span>
+              <span>
+                <b className="text-[15px] font-bold text-[#1e1b4b]">{remaining.toLocaleString("en-IN")}</b>{" "}
+                →{" "}
+                <b className="text-[15px] font-bold text-[#1e1b4b]">
+                  {(remaining + selectedPack.credits).toLocaleString("en-IN")}
+                </b>{" "}
+                credits
+              </span>
+            </div>
+          )}
+
+          <div className="mt-4 flex gap-4">
+            <Link
+              href={
+                selectedPack
+                  ? `/creator/billing/credits?pack=${encodeURIComponent(selectedPack.id)}`
+                  : "/creator/billing/credits"
+              }
+              className="flex min-h-[48px] flex-1 items-center justify-center rounded-[14px] border-2 border-[#1e1b4b] bg-[#6a3df5] px-5 text-[15px] font-bold !text-white shadow-[4px_5px_0_#ffd24d] transition-transform active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+            >
+              {selectedPack
+                ? `Buy ${selectedPack.name} · ${formatPricingAmount(selectedPack.price, "INR")}`
+                : "Buy credits"}
+            </Link>
+            <Link
+              href="/creator/billing/transactions"
+              className="flex min-h-[48px] items-center justify-center rounded-[14px] border-2 border-[#1e1b4b] bg-white px-5 text-[15px] font-bold text-[#1e1b4b] shadow-[4px_5px_0_#d6cff7] transition-transform active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+            >
+              History
+            </Link>
+          </div>
+          <p className="mt-3.5 text-center text-[11.5px] font-medium text-[#5b5780]">
+            Secure payment via Razorpay · Credits are added after verification.
           </p>
-        </div>
+        </>
       )}
-
-      <div className="mt-auto flex flex-wrap gap-3.5 pt-7">
-        <Link
-          href="/creator/billing/credits"
-          className="inline-flex h-12 items-center justify-center rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-5 text-[15px] font-bold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition-[transform,box-shadow] duration-150 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_var(--qs-sun)] focus-visible:[outline:3px_solid_#2A4FD6] focus-visible:[outline-offset:3px]"
-        >
-          Buy credits
-        </Link>
-        <Link
-          href="/creator/billing/transactions"
-          className="inline-flex h-12 items-center justify-center rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-5 text-[15px] font-bold text-[var(--qs-ink)] shadow-[4px_4px_0_var(--qs-line)] transition-[transform,box-shadow] duration-150 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_var(--qs-line)] focus-visible:[outline:3px_solid_#2A4FD6] focus-visible:[outline-offset:3px]"
-        >
-          History
-        </Link>
-      </div>
     </article>
   );
 }
@@ -1440,32 +1515,34 @@ export function CreatorDashboardPage() {
         <>
           {/* Live quiz + credits */}
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              {liveQuiz ? (
-                <LiveQuizCard quiz={liveQuiz} onChangeTiming={() => setTimingQuiz(liveQuiz)} />
-              ) : quizzes.length === 0 ? (
-                <OnboardingCard />
-              ) : (
-                <NoLiveCard draftCount={draftCount} />
-              )}
+            <div className="flex flex-col gap-5 lg:col-span-2">
+              <div>
+                {liveQuiz ? (
+                  <LiveQuizCard quiz={liveQuiz} onChangeTiming={() => setTimingQuiz(liveQuiz)} />
+                ) : quizzes.length === 0 ? (
+                  <OnboardingCard />
+                ) : (
+                  <NoLiveCard draftCount={draftCount} />
+                )}
+              </div>
+
+              {/* Stat tiles */}
+              <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-3.5 lg:grid-cols-2">
+                {tiles.map((tile, index) => (
+                  <StatTile
+                    key={tile.label}
+                    label={tile.label}
+                    value={tile.value}
+                    hint={tile.hint}
+                    color={tile.color}
+                    index={index}
+                  />
+                ))}
+              </div>
             </div>
             <div className="hidden lg:block">
               <CreditsCard />
             </div>
-          </div>
-
-          {/* Stat tiles */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-3.5">
-            {tiles.map((tile, index) => (
-              <StatTile
-                key={tile.label}
-                label={tile.label}
-                value={tile.value}
-                hint={tile.hint}
-                color={tile.color}
-                index={index}
-              />
-            ))}
           </div>
 
           {/* Attempts, status mix, attention */}

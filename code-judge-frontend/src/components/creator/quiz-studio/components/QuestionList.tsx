@@ -110,7 +110,7 @@ export function QuestionList({
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 space-y-1" onDragOver={handleDragOver}>
+      <div className="hide-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 space-y-1" onDragOver={handleDragOver}>
         {questionsLoading && state.questions.length === 0 ? (
           <div className="flex flex-col items-center gap-2 rounded-[14px] border-2 border-dashed border-[var(--qs-line)] px-3 py-6">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--qs-line)] border-t-[var(--qs-brand)]" />

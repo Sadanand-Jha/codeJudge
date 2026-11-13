@@ -75,7 +75,7 @@ export function LiveRail({ onStudentPreview, collapsed, onToggle }: { onDownload
           <Settings2 className="h-3.5 w-3.5" /> Properties
         </span>
       </div>
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-6 text-center">
+      <div className="hide-scrollbar flex-1 min-h-0 overflow-y-auto p-4 space-y-6 text-center">
         <div className="text-center">
           <div className="flex items-center justify-center gap-2">
             <h3 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)] text-center">Question Properties</h3>

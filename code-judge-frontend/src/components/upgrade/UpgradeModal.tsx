@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Check, Coins, Sparkles, X } from "lucide-react";
+import { ArrowRight, Check, Coins, Sparkles, X, Zap } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { CreditCoin } from "@/components/creator/billing/CreditCoin";
 import { useMySubscription } from "@/hooks/useMySubscription";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import {
@@ -66,11 +67,12 @@ function PackCard({
   return (
     <label
       className={cn(
-        "relative flex cursor-pointer flex-col gap-1.5 rounded-[20px] border-2 border-[var(--qs-ink)] p-5 pt-6 transition-[transform,box-shadow]",
-        popular
-          ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
-          : "bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]",
-        selected && "-translate-x-0.5 -translate-y-0.5 shadow-[6px_6px_0_var(--qs-sun)]"
+        "relative flex cursor-pointer flex-col rounded-[22px] border-2 bg-white/85 p-4 pt-5 backdrop-blur transition-all",
+        selected
+          ? "border-[#7c5cff] shadow-[0_18px_42px_-18px_rgba(124,92,255,0.55)]"
+          : popular
+            ? "border-[#f6bf2f]/60 hover:border-[#f6bf2f]"
+            : "border-[#e4ddff] hover:border-[#c9bff5]"
       )}
     >
       <input
@@ -82,67 +84,48 @@ function PackCard({
         className="sr-only"
       />
       {popular && (
-        <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--qs-ink)] px-3 py-[3px] text-[11px] font-extrabold uppercase tracking-[0.05em] text-[var(--qs-bg)]">
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[linear-gradient(90deg,#7c5cff,#4a2fd8)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.06em] !text-white">
           Best value
         </span>
       )}
       <span
         aria-hidden
         className={cn(
-          "absolute right-3.5 top-3.5 grid h-6 w-6 place-items-center rounded-full border-2 border-current",
+          "absolute right-3 top-3 grid h-6 w-6 place-items-center rounded-full border-2",
           selected
-            ? "border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]"
-            : "text-transparent"
+            ? "border-[#7c5cff] bg-[#f6bf2f] text-black"
+            : "border-[#e4ddff] text-transparent"
         )}
       >
         <Check className="h-3.5 w-3.5" strokeWidth={3.5} />
       </span>
-      <span className="text-[12px] font-extrabold uppercase tracking-[0.08em] opacity-80">
-        {pack.name}
-      </span>
-      <span className="flex items-baseline gap-1 text-[38px] font-extrabold leading-none tracking-[-0.03em]">
+
+      <div className="flex items-center gap-2">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] border border-[#f0d28a] bg-[#fff3d1]">
+          <CreditCoin className="h-6 w-6" />
+        </span>
+        <span className="text-[12px] font-bold uppercase tracking-[0.08em] text-[#5b5780]">
+          {pack.name}
+        </span>
+      </div>
+      <span className="mt-2 flex items-baseline gap-1 text-[36px] font-extrabold leading-none tracking-[-0.03em] text-[#1e1b4b]">
         {formatPricingAmount(pack.price)}
       </span>
-      <span className="text-[15px] font-bold">
+      <span className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-full border border-[#f0d28a] bg-[#fff3d1] px-2.5 py-1 text-[13px] font-bold text-[#5a3b00]">
         {pack.credits.toLocaleString("en-IN")} AI credits
       </span>
-      <ul
-        className={cn(
-          "mt-2 grid gap-2 border-t-2 pt-3 text-[13px]",
-          popular ? "border-white/35" : "border-[var(--qs-line)]"
-        )}
-      >
+      <ul className="mt-3 grid gap-2 border-t-2 border-dashed border-[#e4ddff] pt-3 text-[13px] text-[#1e1b4b]">
         <li className="flex items-start gap-2">
-          <Check
-            className={cn(
-              "mt-0.5 h-4 w-4 shrink-0",
-              popular ? "text-[var(--qs-sun)]" : "text-[var(--qs-ok)]"
-            )}
-            strokeWidth={3}
-          />
-          <span className="font-bold">Use on any plan</span>
+          <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#4a2fd8]" strokeWidth={3} />
+          <span className="font-semibold">Use on any plan</span>
         </li>
         <li className="flex items-start gap-2">
-          <Check
-            className={cn(
-              "mt-0.5 h-4 w-4 shrink-0",
-              popular ? "text-[var(--qs-sun)]" : "text-[var(--qs-ok)]"
-            )}
-            strokeWidth={3}
-          />
-          <span>
-            Valid for {months} month{months === 1 ? "" : "s"}
-          </span>
+          <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#4a2fd8]" strokeWidth={3} />
+          <span>Valid for {months} month{months === 1 ? "" : "s"}</span>
         </li>
         {pack.blurb && (
           <li className="flex items-start gap-2">
-            <Check
-              className={cn(
-                "mt-0.5 h-4 w-4 shrink-0",
-                popular ? "text-[var(--qs-sun)]" : "text-[var(--qs-ok)]"
-              )}
-              strokeWidth={3}
-            />
+            <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#4a2fd8]" strokeWidth={3} />
             <span>{pack.blurb}</span>
           </li>
         )}
@@ -164,44 +147,39 @@ function PlanCard({
   return (
     <div
       className={cn(
-        "relative flex flex-col gap-1.5 rounded-[20px] border-2 border-[var(--qs-ink)] p-5 pt-6",
+        "relative flex flex-col rounded-[22px] border-2 border-[#1b1740] bg-[linear-gradient(155deg,#34268a_0%,#231a66_45%,#1b1740_100%)] p-4 pt-5 !text-white",
         featured
-          ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
-          : "bg-[var(--qs-surface)] text-[var(--qs-ink)]"
+          ? "border-[#f6bf2f]/70 shadow-[0_20px_45px_-18px_rgba(246,191,47,0.35)]"
+          : "shadow-[0_20px_45px_-24px_rgba(40,25,120,0.65)]"
       )}
     >
       {featured && (
-        <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--qs-ink)] px-3 py-[3px] text-[11px] font-extrabold uppercase tracking-[0.05em] text-[var(--qs-bg)]">
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#f6bf2f] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-[#3b2400]">
           Most popular
         </span>
       )}
-      <span className="text-[12px] font-extrabold uppercase tracking-[0.08em] opacity-80">
-        {plan.name}
-      </span>
-      <span className="flex items-baseline gap-1 text-[38px] font-extrabold leading-none tracking-[-0.03em]">
+      <div className="flex items-center gap-2">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] border border-[#f6bf2f]/45 bg-[#f6bf2f]/15">
+          <Zap className="h-5 w-5 text-[#f6bf2f]" strokeWidth={2.2} />
+        </span>
+        <span className="text-[13px] font-bold uppercase tracking-[0.08em] !text-white/80">
+          {plan.name}
+        </span>
+      </div>
+      <span className="mt-2 flex items-baseline gap-1 text-[36px] font-extrabold leading-none tracking-[-0.03em] !text-white">
         {formatPricingAmount(plan.price, plan.currency)}
-        <small className="text-[13px] font-semibold tracking-normal opacity-75">
-          /mo
-        </small>
+        <small className="text-[13px] font-semibold tracking-normal !text-white/70">/mo</small>
       </span>
-      <span className="text-[15px] font-bold">
+      <span className="mt-2 flex items-center gap-2 rounded-[12px] border border-[#f6bf2f]/35 bg-[#f6bf2f]/10 px-2.5 py-2 text-[13px] font-semibold !text-white">
+        <CreditCoin className="h-5 w-5 shrink-0" />
         {plan.credits.toLocaleString("en-IN")} AI credits / month
       </span>
-      <ul
-        className={cn(
-          "mt-2 grid gap-2 border-t-2 pt-3 text-[13px]",
-          featured ? "border-white/35" : "border-[var(--qs-line)]"
-        )}
-      >
+      <ul className="mt-3 grid gap-2 border-t-2 border-dashed border-white/20 pt-3 text-[13px] !text-white">
         {features.map((feature) => (
           <li key={feature} className="flex items-start gap-2">
-            <Check
-              className={cn(
-                "mt-0.5 h-4 w-4 shrink-0",
-                featured ? "text-[var(--qs-sun)]" : "text-[var(--qs-ok)]"
-              )}
-              strokeWidth={3}
-            />
+            <span className="mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full bg-[#22c55e] !text-white">
+              <Check className="h-2.5 w-2.5" strokeWidth={3.5} />
+            </span>
             <span>{feature}</span>
           </li>
         ))}
@@ -212,10 +190,9 @@ function PlanCard({
           event.stopPropagation();
           onBuy();
         }}
-        className="mt-3 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-3 py-2.5 text-[13px] font-extrabold text-[#1A1240] shadow-[3px_3px_0_var(--qs-ink)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
+        className="mt-3 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-[12px] border border-white/20 bg-[linear-gradient(135deg,#8b6cff,#5b3fe8)] px-3 py-2.5 text-[13px] font-bold !text-white shadow-[0_12px_26px_-12px_rgba(123,92,255,0.9)] transition-all hover:brightness-110 active:translate-y-px"
       >
-        Upgrade to {plan.name} · {formatPricingAmount(plan.price, plan.currency)}
-        /mo
+        Upgrade to {plan.name} · {formatPricingAmount(plan.price, plan.currency)}/mo
         <ArrowRight className="h-3.5 w-3.5" />
       </button>
     </div>

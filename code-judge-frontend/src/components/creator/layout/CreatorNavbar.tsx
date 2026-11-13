@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Coins, Globe2, LogOut, Settings, UserRound } from "lucide-react";
+import { ChevronDown, Globe2, LogOut, Settings, UserRound } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { CreditCoin } from "@/components/creator/billing/CreditCoin";
 import { SecureLogo } from "@/components/common/SecureLogo";
 import WorkspaceSwitcher from "@/components/layout/WorkspaceSwitcher";
 import { useCreditState } from "@/hooks/useCreditState";
@@ -156,13 +157,17 @@ export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuTogg
           }
           data-credit-chip={creditState}
           className={cn(
-            "mr-0.5 inline-flex shrink-0 items-center gap-1 rounded-full border-2 px-2 py-1 text-[10px] font-bold tabular-nums transition-colors sm:text-[11px]",
-            low
-              ? "border-[var(--qs-credit-chip-border)] bg-[var(--qs-credit-chip-bg)] text-[var(--qs-credit-chip-text)] hover:brightness-[0.98]"
-              : "border-[var(--qs-sun)] bg-[var(--qs-sun)]/25 text-[var(--qs-ink)] hover:bg-[var(--qs-sun)]/45"
+            "mr-0.5 inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-bold tabular-nums shadow-[0_1px_0_rgba(90,59,0,0.06)] transition-all sm:text-[11px]",
+            unknown
+              ? "border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)]"
+              : empty
+                ? "border-[#fecaca] bg-[#fff1f2] text-[#b42318] hover:bg-[#ffe4e6]"
+                : low
+                  ? "border-[#f6bf2f] bg-[#fff7df] text-[#7a4a00] hover:bg-[#ffefc2]"
+                  : "border-[#f0d28a] bg-[#fff7df] text-[#5a3b00] hover:bg-[#ffefc2]"
           )}
         >
-          <Coins className="h-3 w-3 shrink-0" />
+          <CreditCoin className="h-4 w-4 shrink-0" />
           {unknown ? (
             <span className="whitespace-nowrap">— credits</span>
           ) : empty ? (
@@ -173,7 +178,7 @@ export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuTogg
               </span>
             </>
           ) : (
-            <span>{creditBalance}</span>
+            <span>{creditBalance.toLocaleString("en-IN")}</span>
           )}
         </Link>
         <WorkspaceSwitcher />

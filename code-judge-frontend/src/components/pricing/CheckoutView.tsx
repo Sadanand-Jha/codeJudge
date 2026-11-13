@@ -18,12 +18,13 @@ import {
   Mail,
   ShieldCheck,
   Smartphone,
-  Sparkles,
   Tag,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { CreditCoin } from "@/components/creator/billing/CreditCoin";
+import { useCreditState } from "@/hooks/useCreditState";
 import {
   BANKS,
   CHECKOUT_GST_RATE,
@@ -330,6 +331,7 @@ export function CheckoutView({ packs, initialPackId }: CheckoutViewProps) {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
 
+  const { balance: currentBalance } = useCreditState();
   const [phase, setPhase] = useState<CheckoutPhase>("form");
   const [processingStep, setProcessingStep] = useState<ProcessingStep>(0);
   const [failureReason, setFailureReason] = useState("");
@@ -878,7 +880,7 @@ export function CheckoutView({ packs, initialPackId }: CheckoutViewProps) {
                           <span className="qco-pack-top">
                             <span className="qco-pack-name">{item.name}</span>
                             {item.popular && (
-                              <span className="qco-pack-badge">Popular</span>
+                              <span className="qco-pack-badge">Best value</span>
                             )}
                           </span>
                           <span className="qco-pack-price">
@@ -886,10 +888,11 @@ export function CheckoutView({ packs, initialPackId }: CheckoutViewProps) {
                             <small>one-time</small>
                           </span>
                           <span className="qco-pack-credits">
-                            <Sparkles size={13} aria-hidden="true" />
-                            {item.credits.toLocaleString("en-IN")} AI credits
+                            <CreditCoin className="h-[18px] w-[18px]" />
+                            {item.credits.toLocaleString("en-IN")} credits
                           </span>
                           <span className="qco-pack-validity">
+                            {item.credits > 0 ? `≈ ${formatInr(item.price / item.credits)}/credit · ` : ""}
                             Valid {item.validityMonths} months
                           </span>
                           <span className="qco-select-dot" aria-hidden="true">
@@ -903,7 +906,7 @@ export function CheckoutView({ packs, initialPackId }: CheckoutViewProps) {
 
                 <div className="qco-pack-details">
                   <span className="qco-pack-icon" aria-hidden="true">
-                    <Sparkles size={18} />
+                    <CreditCoin className="h-7 w-7" />
                   </span>
                   <div>
                     <strong>{pack.name}</strong>
@@ -912,6 +915,14 @@ export function CheckoutView({ packs, initialPackId }: CheckoutViewProps) {
                       {pack.validityMonths} months
                     </p>
                   </div>
+                </div>
+
+                <div className="qco-after">
+                  <span>Balance after purchase</span>
+                  <span>
+                    <b>{currentBalance.toLocaleString("en-IN")}</b> →{" "}
+                    <b>{(currentBalance + pack.credits).toLocaleString("en-IN")}</b> credits
+                  </span>
                 </div>
 
                 <form className="qco-coupon" onSubmit={handleApplyCoupon}>

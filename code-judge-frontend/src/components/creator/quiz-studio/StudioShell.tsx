@@ -738,7 +738,10 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
           className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--qs-bg)]"
         >
           <div
-            className="mx-auto flex min-h-0 w-full max-w-[80rem] min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8"
+            className={cn(
+              "mx-auto flex min-h-0 w-full max-w-[80rem] min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8",
+              state.step === "questions" && "hide-scrollbar"
+            )}
           >
             {children}
           </div>

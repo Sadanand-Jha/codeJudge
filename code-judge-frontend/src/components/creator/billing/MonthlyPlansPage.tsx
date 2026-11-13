@@ -53,6 +53,89 @@ function PlanCreditCoin({ className }: { className?: string }) {
   );
 }
 
+function FreePlanCard({
+  plan,
+  isCurrent,
+}: {
+  plan: PricingPlan;
+  isCurrent: boolean;
+}) {
+  const features = (
+    plan.features.length
+      ? plan.features
+      : [`${plan.quizzes} quiz creations`, `${plan.rooms} rooms`]
+  )
+    .filter((feature) => !/trial/i.test(feature))
+    .slice(0, 6);
+
+  return (
+    <article
+      aria-labelledby={`studio-plan-${plan.slug}`}
+      aria-current={isCurrent ? "true" : undefined}
+      className="relative flex min-h-[540px] flex-col rounded-[26px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-5 text-[var(--qs-ink)] shadow-[0_2px_10px_rgba(27,24,64,0.06)] sm:p-7"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[16px] border border-[var(--qs-line)] bg-[var(--qs-poly-1)]">
+            <Zap className="h-6 w-6 text-[var(--qs-brand)]" strokeWidth={2} />
+          </span>
+          <div className="min-w-0">
+            <h2
+              id={`studio-plan-${plan.slug}`}
+              className="truncate text-[28px] font-extrabold tracking-[-0.01em] sm:text-[30px]"
+            >
+              {plan.name}
+            </h2>
+            <p className="mt-0.5 text-[13px] font-semibold text-[var(--qs-muted)]">Free plan</p>
+          </div>
+        </div>
+        {isCurrent ? (
+          <span className="shrink-0 rounded-full bg-[var(--qs-poly-1)] px-3 py-1.5 text-[12px] font-bold text-[var(--qs-brand)]">
+            Current plan
+          </span>
+        ) : null}
+      </div>
+
+      <p className="mt-4 text-[15px] leading-relaxed text-[var(--qs-muted)]">{plan.tagline}</p>
+
+      <div className="mt-5 flex items-end gap-2.5">
+        <span className="text-[58px] font-extrabold leading-[0.9] tracking-[-0.03em] sm:text-[68px]">
+          Free
+        </span>
+      </div>
+
+      {plan.credits > 0 ? (
+        <span className="mt-5 inline-flex w-fit items-center gap-2 rounded-[14px] border border-[var(--qs-line)] bg-[var(--qs-poly-1)] px-3 py-2 text-[13px] font-semibold text-[var(--qs-ink)]">
+          <PlanCreditCoin className="h-5 w-5 shrink-0" />
+          {plan.credits.toLocaleString("en-IN")} AI credits / month
+        </span>
+      ) : null}
+
+      <div className="my-5 border-t border-dashed border-[var(--qs-line)]" />
+
+      <ul className="flex flex-1 list-none flex-col gap-3.5 p-0">
+        {features.map((feature) => (
+          <li key={feature} className="flex items-center gap-3 text-[14px] font-medium text-[var(--qs-ink)]">
+            <span className="grid h-[22px] w-[22px] flex-none place-items-center rounded-full bg-[var(--qs-poly-1)] text-[var(--qs-brand)]">
+              <Check className="h-3 w-3" strokeWidth={3} />
+            </span>
+            {feature}
+          </li>
+        ))}
+      </ul>
+
+      <button
+        type="button"
+        disabled
+        className="mt-6 flex min-h-[56px] w-full cursor-default items-center justify-center gap-2.5 rounded-[16px] border border-[var(--qs-line)] bg-[var(--qs-poly-1)] text-[16px] font-bold text-[var(--qs-muted)]"
+      >
+        <Check className="h-[18px] w-[18px] text-[var(--qs-brand)]" strokeWidth={3} />
+        {isCurrent ? "Current plan" : "Free plan"}
+      </button>
+    </article>
+  );
+}
+
 function PlanCard({
   plan,
   currentPlanId,
@@ -554,16 +637,27 @@ export function MonthlyPlansPage({
       ) : (
         <div
           id="studio-plans"
-          className="mx-auto grid w-full max-w-4xl items-stretch gap-3 sm:gap-6 lg:grid-cols-2"
+          className={cn(
+            "mx-auto grid w-full items-stretch gap-3 sm:gap-6",
+            visiblePlans.length === 1 ? "max-w-[436px]" : "max-w-4xl lg:grid-cols-2"
+          )}
         >
-          {visiblePlans.map((plan) => (
-            <PlanCard
-              key={plan.slug}
-              plan={plan}
-              currentPlanId={isTrialActive ? "" : activePlanId}
-              onSelect={startCheckout}
-            />
-          ))}
+          {visiblePlans.map((plan) =>
+            plan.price === 0 ? (
+              <FreePlanCard
+                key={plan.slug}
+                plan={plan}
+                isCurrent={!isTrialActive && plan.slug === activePlanId}
+              />
+            ) : (
+              <PlanCard
+                key={plan.slug}
+                plan={plan}
+                currentPlanId={isTrialActive ? "" : activePlanId}
+                onSelect={startCheckout}
+              />
+            )
+          )}
         </div>
       )}
 

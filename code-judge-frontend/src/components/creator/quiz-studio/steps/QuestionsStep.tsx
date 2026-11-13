@@ -316,7 +316,7 @@ export function QuestionsStep() {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 min-[1240px]:h-full">
           <main
             className={cn(
-              "flex min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden rounded-[22px] border-x-2 border-b-2 border-[var(--qs-line)] bg-[var(--qs-surface)] min-[900px]:h-[calc(100dvh-13rem)] min-[1240px]:h-auto min-[1240px]:flex-1",
+              "hide-scrollbar flex min-h-0 min-w-0 flex-col overflow-y-auto overflow-x-hidden rounded-[22px] border-x-2 border-b-2 border-[var(--qs-line)] bg-[var(--qs-surface)] min-[900px]:h-[calc(100dvh-13rem)] min-[1240px]:h-auto min-[1240px]:flex-1",
               state.activeQuestionId && !questionsLoading ? "border-t-0" : "border-t-2"
             )}
           >

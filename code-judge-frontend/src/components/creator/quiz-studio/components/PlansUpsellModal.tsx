@@ -21,9 +21,11 @@ import {
   Sparkles,
   Wand2,
   X,
+  Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { CreditCoin } from "@/components/creator/billing/CreditCoin";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { formatBillingPeriod, formatPricingAmount } from "@/services/pricing";
 import type { PricingPlan } from "@/types/pricing";
@@ -198,57 +200,52 @@ function PlanCard({ plan, highlight }: { plan: PricingPlan; highlight: string })
   return (
     <div
       className={cn(
-        "flex flex-1 flex-col rounded-[16px] border-2 p-4",
+        "relative flex flex-1 flex-col rounded-[20px] border-2 border-[#1b1740] bg-[linear-gradient(155deg,#34268a_0%,#231a66_45%,#1b1740_100%)] p-4 !text-white",
         popular
-          ? "border-[var(--qs-brand)] bg-[var(--qs-poly-0)] shadow-[3px_3px_0_var(--qs-sun)]"
-          : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
+          ? "border-[#f6bf2f]/70 shadow-[0_20px_45px_-18px_rgba(246,191,47,0.35)]"
+          : "shadow-[0_20px_45px_-24px_rgba(40,25,120,0.65)]"
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[17px] font-extrabold text-[var(--qs-ink)]">
-          {plan.name}
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] border border-[#f6bf2f]/45 bg-[#f6bf2f]/15">
+            <Zap className="h-4 w-4 text-[#f6bf2f]" strokeWidth={2.2} />
+          </span>
+          <span className="truncate text-[16px] font-extrabold !text-white">{plan.name}</span>
         </span>
         {popular ? (
-          <span className="rounded-[6px] bg-[var(--qs-sun)] px-[7px] py-[3px] text-[10px] font-extrabold tracking-[0.06em] text-[#1A1240]">
-            POPULAR
+          <span className="shrink-0 rounded-full bg-[#f6bf2f] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-[#3b2400]">
+            Popular
           </span>
         ) : (
-          <span className="rounded-[6px] bg-[var(--qs-poly-1)] px-[7px] py-[3px] text-[10px] font-bold tracking-[0.06em] text-[var(--qs-brand)]">
-            {period.toUpperCase()} PLAN
+          <span className="shrink-0 rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] !text-white/75">
+            {period}
           </span>
         )}
       </div>
 
       <div className="mb-3 mt-2">
-        <span
-          className={cn(
-            "text-[30px] font-extrabold leading-none",
-            popular ? "text-[var(--qs-brand)]" : "text-[var(--qs-ink)]"
-          )}
-        >
+        <span className="text-[32px] font-extrabold leading-none tracking-[-0.03em] !text-white">
           {formatPricingAmount(amount, currency)}
         </span>
-        <span className="text-[12px] font-medium text-[var(--qs-muted)]">
-          {" "}
-          / {period.toLowerCase()}
-        </span>
+        <span className="text-[12px] font-semibold !text-white/65"> / {period.toLowerCase()}</span>
       </div>
 
-      <ul className="m-0 flex flex-1 list-none flex-col gap-[2px] p-0">
-        <li className="flex min-h-[24px] items-center gap-2 text-[13px] font-medium text-[var(--qs-ink)]">
-          <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-[var(--qs-sun)] text-[#1A1240]">
+      <span className="mb-3 flex items-center gap-2 rounded-[12px] border border-[#f6bf2f]/35 bg-[#f6bf2f]/10 px-2.5 py-2 text-[12.5px] font-semibold !text-white">
+        <CreditCoin className="h-5 w-5 shrink-0" />
+        {plan.credits.toLocaleString("en-IN")} AI credits / month
+      </span>
+
+      <ul className="m-0 flex flex-1 list-none flex-col gap-1.5 p-0">
+        <li className="flex min-h-[24px] items-center gap-2 text-[12.5px] font-semibold !text-white">
+          <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-[#6ee7b7] !text-[#053d2c]">
             <Check className="h-[11px] w-[11px]" strokeWidth={3} />
           </span>
-          <span className="rounded-[6px] bg-[var(--qs-poly-5)] px-1.5 py-px font-bold text-[#1A1240]">
-            {highlight}
-          </span>
+          {highlight}
         </li>
         {features.map((feature) => (
-          <li
-            key={feature}
-            className="flex min-h-[24px] items-center gap-2 text-[13px] font-medium text-[var(--qs-ink)]"
-          >
-            <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-[var(--qs-okbg)] text-[var(--qs-ok)]">
+          <li key={feature} className="flex min-h-[24px] items-center gap-2 text-[12.5px] font-medium !text-white/85">
+            <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-[#22c55e] !text-white">
               <Check className="h-[11px] w-[11px]" strokeWidth={3} />
             </span>
             {feature}
@@ -258,10 +255,7 @@ function PlanCard({ plan, highlight }: { plan: PricingPlan; highlight: string })
 
       <Link
         href={`/creator/billing/plans?plan=${plan.slug}`}
-        className={cn(
-          "mt-3.5 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-brand)] text-[14px] font-bold text-[var(--qs-on-brand)] no-underline transition-transform hover:-translate-y-px active:translate-y-0",
-          popular ? "bg-[var(--qs-brand)]" : "bg-[var(--qs-poly-1)] text-[var(--qs-brand)]"
-        )}
+        className="mt-3.5 flex min-h-[42px] w-full items-center justify-center gap-2 rounded-[12px] border border-white/20 bg-[linear-gradient(135deg,#8b6cff,#5b3fe8)] text-[13px] font-bold !text-white no-underline shadow-[0_12px_26px_-12px_rgba(123,92,255,0.9)] transition-all hover:brightness-110 active:translate-y-px"
       >
         {plan.cta || `Choose ${plan.name}`}
         <ArrowRight className="h-[15px] w-[15px]" />
