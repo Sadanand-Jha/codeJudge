@@ -31,7 +31,7 @@ const MODE_OPTIONS: Array<{ id: "public" | "private" | "classroom"; label: strin
 ];
 
 export function AudienceStep({ embedded = false }: { embedded?: boolean } = {}) {
-  const { state, updateAudience, saveAudienceParticipants, audienceDirty } = useStudio();
+  const { state, updateAudience } = useStudio();
   const a = state.audience;
 
   const rooms = useRoomStore((s) => s.rooms);
@@ -288,8 +288,6 @@ export function AudienceStep({ embedded = false }: { embedded?: boolean } = {}) 
           onRemoveRoom={(roomId) =>
             updateAudience({ roomIds: roomIds.filter((id) => id !== roomId) })
           }
-          onSave={saveAudienceParticipants}
-          dirty={audienceDirty}
         />
       )}
 
@@ -303,8 +301,6 @@ export function AudienceStep({ embedded = false }: { embedded?: boolean } = {}) 
           toggleStudent={toggleStudent}
           updateAudience={updateAudience}
           onSelectRooms={() => setSelectRoomsOpen(true)}
-          onSave={saveAudienceParticipants}
-          dirty={audienceDirty}
         />
       )}
       */}
@@ -452,19 +448,13 @@ interface RoomsAudiencePanelProps {
   }>;
   onSelectRooms: () => void;
   onRemoveRoom: (roomId: string) => void;
-  onSave: () => Promise<void>;
-  dirty: boolean;
 }
 
 function RoomsAudiencePanel({
   selectedRooms,
   onSelectRooms,
   onRemoveRoom,
-  onSave,
-  dirty,
 }: RoomsAudiencePanelProps) {
-  const [saving, setSaving] = useState(false);
-
   const totalActiveMembers = useMemo(
     () =>
       selectedRooms.reduce(
@@ -473,22 +463,6 @@ function RoomsAudiencePanel({
       ),
     [selectedRooms]
   );
-
-  const handleSave = async () => {
-    if (saving) return;
-    setSaving(true);
-    try {
-      await onSave();
-      toast.success({ title: "Audience saved" });
-    } catch {
-      toast.error({
-        title: "Failed to save audience",
-        description: "Please try again.",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
 
   return (
     <div className="w-full min-w-0 max-w-full overflow-hidden rounded-[20px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-[0_1px_0_var(--qs-line)]">
@@ -512,7 +486,7 @@ function RoomsAudiencePanel({
           </div>
         </div>
 
-        <div className="grid shrink-0 grid-cols-2 gap-2 sm:flex sm:items-center">
+        <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             onClick={onSelectRooms}
@@ -520,14 +494,6 @@ function RoomsAudiencePanel({
           >
             <Users className="h-3.5 w-3.5 shrink-0" />
             Select Rooms
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!dirty || saving}
-            className="rounded-[11px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3.5 py-2 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] transition-transform duration-150 hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {saving ? "Saving…" : "Save audience"}
           </button>
         </div>
       </div>

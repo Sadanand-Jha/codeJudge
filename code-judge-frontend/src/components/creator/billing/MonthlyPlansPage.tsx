@@ -8,13 +8,13 @@ import {
   CalendarClock,
   Check,
   Coins,
-  Link2,
   Sparkles,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { BASIC_TRIAL_CREDITS } from "@/lib/constants";
 import { getApiErrorMessage } from "@/lib/apiError";
-import { formatTrialEnd, getTrialState, useMySubscription } from "@/hooks/useMySubscription";
+import { getTrialState, useMySubscription } from "@/hooks/useMySubscription";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { useToast } from "@/hooks/useToast";
 import {
@@ -35,13 +35,23 @@ import { PlanCheckoutDialog, type PlanPurchaseReceipt } from "./PlanCheckoutDial
 import { InvoiceV2Dialog } from "./InvoiceV2Dialog";
 import { TrialRequestPanel } from "./TrialRequestPanel";
 import type { PurchasePhase } from "./credits/OrderSummaryDialog";
-import { PageHeader } from "./ui";
 import Select from "@/components/ui/Select";
 
 const OUTLINE_BTN =
   "inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]";
-const PILL =
-  "inline-flex shrink-0 items-center text-[12px] font-extrabold uppercase tracking-[0.07em]";
+function PlanCreditCoin({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 30 30" aria-hidden="true" className={className}>
+      <circle cx="15" cy="15" r="13.5" fill="#f6bf2f" stroke="#b87408" strokeWidth="1.5" />
+      <path
+        d="M15 7.5l2 4.7 5 .5-3.8 3.3 1.2 5-4.4-2.7-4.4 2.7 1.2-5L8 12.7l5-.5z"
+        fill="#fff4c9"
+        stroke="#c98410"
+        strokeWidth=".8"
+      />
+    </svg>
+  );
+}
 
 function PlanCard({
   plan,
@@ -67,172 +77,161 @@ function PlanCard({
   const isHot = plan.featured && !isCurrent;
   const includedCredits = plan.credits > 0;
   const features = plan.features.filter((feature) => !/trial/i.test(feature));
+  const offerLabel =
+    plan.offer?.trim() ||
+    (isCurrent
+      ? "Current monthly plan"
+      : discount > 0
+        ? `${discount}% off`
+        : "Flexible monthly billing");
 
   return (
     <article
       aria-labelledby={`studio-plan-${plan.slug}`}
+      aria-current={isCurrent ? "true" : undefined}
       className={cn(
-        "relative flex flex-col rounded-[26px] border border-[var(--qs-line)] px-5 pb-5 pt-[22px] sm:rounded-[26px] sm:border-2 sm:border-[var(--qs-ink)] sm:p-6",
-        isHot
-          ? "border-[1.5px] border-[var(--qs-ink)] border-b-[5px] border-b-[var(--qs-sun)] bg-[var(--qs-brand)] pb-4 pt-6 text-[var(--qs-on-brand)] shadow-[2px_3px_0_var(--qs-sun)] sm:border-b-2 sm:border-b-[var(--qs-ink)] sm:pb-7 sm:pt-9 sm:shadow-[8px_8px_0_var(--qs-sun)]"
-          : "bg-[var(--qs-surface)] text-[var(--qs-ink)]",
-        isCurrent &&
-          "border-[1.5px] border-[var(--qs-ink)] border-b-[5px] border-b-[var(--qs-sun)] shadow-[0_12px_28px_rgba(27,24,64,0.12)] sm:border-2 sm:border-b-2 sm:shadow-[6px_6px_0_var(--qs-sun)]"
+        "relative flex min-h-[540px] flex-col overflow-hidden rounded-[26px] border-2 border-[#1b1740] bg-[linear-gradient(155deg,#34268a_0%,#231a66_45%,#1b1740_100%)] !text-white shadow-[0_30px_70px_-18px_rgba(40,25,120,0.7)]",
+        isHot && "border-[#f6bf2f]/70 shadow-[0_34px_80px_-18px_rgba(246,191,47,0.32)]"
       )}
     >
-      {isCurrent && (
-        <span className="absolute -top-[15px] left-1/2 flex h-[30px] -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-[var(--qs-ok)] px-3.5 text-[12px] font-extrabold uppercase tracking-[0.06em] text-white sm:-top-4 sm:h-auto sm:gap-1.5 sm:px-4 sm:py-[5px] sm:text-[12px] sm:normal-case sm:tracking-normal">
-          <Check className="h-3.5 w-3.5 sm:h-3 sm:w-3" strokeWidth={3.5} />
+      {isCurrent ? (
+        <span className="absolute left-1/2 top-0 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-b-[14px] bg-[#6ee7b7] px-4 py-2 text-[12px] font-bold text-[#053d2c]">
+          <Check className="h-3.5 w-3.5" strokeWidth={3} />
           Current plan
         </span>
-      )}
-      {isHot && (
-        <span className="absolute -top-[15px] left-1/2 flex h-[30px] -translate-x-1/2 items-center whitespace-nowrap rounded-full bg-[var(--qs-ink)] px-3.5 text-[12px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-bg)] sm:-top-4 sm:h-auto sm:px-4 sm:py-[5px] sm:text-[12px] sm:normal-case sm:tracking-normal">
+      ) : isHot ? (
+        <span className="absolute left-1/2 top-0 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-b-[14px] bg-[#f6bf2f] px-4 py-2 text-[12px] font-bold text-[#3b2400]">
+          <Sparkles className="h-3.5 w-3.5" strokeWidth={2.5} />
           Most popular
         </span>
-      )}
+      ) : null}
 
-      <div className="flex items-center justify-between gap-2.5">
-        <h2
-          id={`studio-plan-${plan.slug}`}
-          className="text-[24px] font-extrabold leading-[1.2] tracking-tight sm:text-[22px] sm:font-extrabold"
-        >
-          {plan.name}
-        </h2>
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full border border-white/10"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-14 -top-14 h-44 w-44 rounded-full border border-white/10"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-16 -top-10 h-56 w-56 rounded-full bg-[#7a5cff] opacity-40 blur-3xl"
+      />
+      {isHot && (
         <span
-          className={cn(
-            "flex h-[30px] shrink-0 items-center whitespace-nowrap rounded-full px-3 text-[13px] font-extrabold tracking-wide sm:px-2.5 sm:text-[11px] sm:font-extrabold",
-            isHot
-              ? "bg-[var(--qs-sun)] text-[#1A1240]"
-              : "bg-[var(--qs-poly-1)] text-[var(--qs-muted)]"
-          )}
-        >
-          {plan.discountBadge || (discount > 0 ? `${discount}% off` : billingPeriod)}
-        </span>
-      </div>
-
-      <p
-        className={cn(
-          "mt-1.5 text-[15px] font-medium leading-[1.45] sm:mt-1.5 sm:min-h-[42px] sm:text-[14px] sm:leading-6",
-          isHot ? "text-[var(--qs-on-brand)]/85" : "text-[var(--qs-muted)]"
-        )}
-      >
-        {plan.tagline}
-      </p>
-      {plan.offer && (
-        <p
-          className={cn(
-            "mt-2 text-[13px] font-extrabold sm:text-[12px]",
-            isHot ? "text-[var(--qs-sun)]" : "text-[var(--qs-brand)]"
-          )}
-        >
-          {plan.offer}
-        </p>
-      )}
-      {plan.prices.length > 1 && (
-        <label className={cn("mt-3 block text-xs font-bold", isHot ? "text-[var(--qs-on-brand)]/85" : "text-[var(--qs-muted)]")}>
-          Billing period
-          <Select
-            className="mt-1 w-full rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2 text-sm text-[var(--qs-ink)]"
-            value={selectedPrice?.id ?? ""}
-            onChange={(event) => setSelectedPriceId(Number(event.target.value))}
-          >
-            {plan.prices.map((price) => (
-              <option key={price.id} value={price.id}>
-                {formatBillingPeriod(price.billingPeriod, price.customDays)} · {formatPricingAmount(price.amount, price.currency)}
-              </option>
-            ))}
-          </Select>
-        </label>
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-20 -right-16 h-64 w-64 rounded-full bg-[#f6bf2f] opacity-15 blur-3xl"
+        />
       )}
 
-      <p className="mt-3.5 text-[44px] font-extrabold leading-none tracking-[-0.02em] sm:mt-4 sm:text-[44px] sm:font-black sm:leading-none">
-        {amount === 0 ? "Free" : formatPricingAmount(amount, selectedPrice?.currency ?? plan.currency)}
-        {discount > 0 && originalPrice && (
-          <s
-            className={cn(
-              "ml-2 align-middle text-[18px] font-semibold tracking-normal sm:text-[16px]",
-              isHot ? "text-[var(--qs-on-brand)]/70" : "text-[var(--qs-muted)]"
-            )}
-          >
-            {formatPricingAmount(originalPrice, selectedPrice?.currency ?? plan.currency)}
-          </s>
-        )}
-        <span
-          className={cn(
-            "ml-1.5 align-middle text-[16px] font-semibold tracking-normal sm:text-[13px] sm:font-bold",
-            isHot ? "text-[var(--qs-on-brand)]/80" : "text-[var(--qs-muted)]"
-          )}
-        >
-          {amount === 0 ? "forever" : `/ ${billingPeriod.toLowerCase()}`}
-        </span>
-      </p>
-
-      <p
-        className={cn(
-          "mt-3.5 flex items-center gap-2 text-[14px] font-extrabold sm:mt-3 sm:text-[13px] sm:font-bold",
-          includedCredits
-            ? isHot
-              ? "text-[var(--qs-sun)]"
-              : "text-[var(--qs-brand)]"
-            : isHot
-              ? "text-[var(--qs-on-brand)]/70"
-              : "text-[var(--qs-muted)]"
-        )}
-      >
-        <Sparkles className="h-[18px] w-[18px] shrink-0 sm:h-3.5 sm:w-3.5" />
-        {includedCredits
-          ? `Includes ${plan.credits} AI credits / month`
-          : "AI credits sold separately"}
-      </p>
-
-      <ul
-        className={cn(
-          "m-0 mb-0 mt-4 flex flex-1 list-none flex-col gap-3 border-t-[1.5px] border-dashed pb-5 pt-4 sm:mb-6 sm:mt-5 sm:gap-[11px] sm:border-t-2 sm:pt-[18px]",
-          isHot ? "border-white/35" : "border-[var(--qs-line)]"
-        )}
-      >
-        {features.map((feature) => (
-          <li key={feature} className="flex items-start gap-3 sm:gap-2.5">
-            <span
-              className={cn(
-                "mt-px grid h-[22px] w-[22px] flex-none place-items-center rounded-full sm:h-5 sm:w-5",
-                isHot
-                  ? "bg-[var(--qs-sun)] text-[#1A1240]"
-                  : "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
-              )}
-            >
-              <Check className="h-[13px] w-[13px] sm:h-3 sm:w-3" strokeWidth={3.4} />
+      <div className="relative z-10 flex h-full flex-col px-5 pb-5 pt-10 sm:px-7 sm:pb-7 sm:pt-11">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[16px] border border-[#f6bf2f]/45 bg-[#f6bf2f]/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]">
+              <Zap className="h-6 w-6 text-[#f6bf2f] drop-shadow-[0_2px_8px_rgba(246,191,47,0.45)]" strokeWidth={2} />
             </span>
-            <span className="text-[15px] font-semibold leading-[1.4] sm:text-[14px] sm:leading-5">{feature}</span>
-          </li>
-        ))}
-      </ul>
+            <h2
+              id={`studio-plan-${plan.slug}`}
+              className="truncate !text-white text-[28px] font-extrabold tracking-[-0.01em] sm:text-[30px]"
+            >
+              {plan.name}
+            </h2>
+          </div>
+          <span className="shrink-0 rounded-full border border-white/30 bg-white/15 px-3 py-1.5 !text-white text-[12px] font-bold">
+            {billingPeriod}
+          </span>
+        </div>
 
-      {isCurrent ? (
-        <span
-          aria-disabled="true"
-          className="mt-5 flex h-[54px] w-full cursor-default items-center justify-center gap-2 rounded-[16px] border-[1.5px] border-[var(--qs-line)] bg-[var(--qs-poly-1)] py-0 text-[16px] font-extrabold text-[var(--qs-muted)] sm:mt-0 sm:h-auto sm:rounded-[14px] sm:border-2 sm:py-[13px] sm:text-[14px] sm:font-extrabold"
-        >
-          <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          Current plan
-        </span>
-      ) : (
+        <p className="mt-4 !text-white/85 text-[15px] leading-relaxed">{plan.tagline}</p>
+
+        {plan.prices.length > 1 && (
+          <label className="mt-4 block text-[11px] font-bold uppercase tracking-[0.08em] !text-white/65">
+            Billing period
+            <Select
+              className="mt-1.5 w-full rounded-[12px] border border-white/25 bg-[#2a1f73] px-3 py-2 text-sm font-semibold !text-white"
+              value={selectedPrice?.id ?? ""}
+              onChange={(event) => setSelectedPriceId(Number(event.target.value))}
+            >
+              {plan.prices.map((price) => (
+                <option key={price.id} value={price.id}>
+                  {formatBillingPeriod(price.billingPeriod, price.customDays)} · {formatPricingAmount(price.amount, price.currency)}
+                </option>
+              ))}
+            </Select>
+          </label>
+        )}
+
+        <div className="mt-5 flex flex-col gap-1.5">
+          <span className="self-start rounded-full bg-[#6ee7b7]/15 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#6ee7b7]">
+            {offerLabel}
+          </span>
+          <div className="mt-1 flex flex-wrap items-end gap-2.5">
+            <span className="!text-white text-[58px] font-extrabold leading-[0.9] tracking-[-0.03em] sm:text-[68px]">
+              {amount === 0 ? "Free" : formatPricingAmount(amount, selectedPrice?.currency ?? plan.currency)}
+            </span>
+            {amount > 0 && (
+              <span className="pb-2 !text-white/80 text-[15px] font-semibold">/ {billingPeriod.toLowerCase()}</span>
+            )}
+            {discount > 0 && originalPrice && (
+              <span className="mb-2 rounded-full bg-white/10 px-2.5 py-1 text-[12px] font-bold !text-white/60 line-through">
+                {formatPricingAmount(originalPrice, selectedPrice?.currency ?? plan.currency)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-5 flex items-center gap-3 rounded-[16px] border border-[#f6bf2f]/35 bg-[linear-gradient(135deg,rgba(246,191,47,0.18),rgba(255,255,255,0.07))] px-4 py-3 backdrop-blur-md">
+          <PlanCreditCoin className="h-8 w-8 shrink-0 drop-shadow-[0_2px_8px_rgba(246,191,47,0.45)]" />
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#f6bf2f]">
+              {includedCredits ? "Included credits" : "AI credits"}
+            </p>
+            <p className="!text-white text-[15px] font-bold leading-snug">
+              {includedCredits
+                ? `${plan.credits.toLocaleString("en-IN")} AI credits / month`
+                : "No monthly credits included"}
+            </p>
+          </div>
+        </div>
+
+        <div className="my-5 border-t-2 border-dashed border-white/20" />
+
+        <ul className="flex flex-1 list-none flex-col gap-3.5 p-0">
+          {features.slice(0, 6).map((feature) => (
+            <li key={feature} className="flex items-center gap-3 !text-white text-[14px] font-semibold">
+              <span className="grid h-[22px] w-[22px] flex-none place-items-center rounded-full bg-[#22c55e] !text-white shadow-[0_2px_8px_rgba(34,197,94,0.35)]">
+                <Check className="h-3 w-3" strokeWidth={3} />
+              </span>
+              {feature}
+            </li>
+          ))}
+        </ul>
+
         <button
           type="button"
+          disabled={isCurrent || !selectedPrice || amount <= 0}
           onClick={() => selectedPrice && onSelect(plan, selectedPrice.id)}
-          disabled={!selectedPrice}
           className={cn(
-            "mt-5 flex h-[54px] w-full items-center justify-center gap-2 rounded-[16px] border-[1.5px] border-[var(--qs-ink)] py-0 text-[16px] font-extrabold transition-all sm:mt-0 sm:h-auto sm:rounded-[14px] sm:border-2 sm:py-[13px] sm:text-[14px] sm:font-extrabold",
-            isHot
-              ? "bg-[var(--qs-sun)] text-[#1A1240] hover:brightness-105"
-              : "bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:bg-[var(--qs-ink)] hover:text-[var(--qs-bg)]"
+            "mt-6 flex min-h-[56px] w-full items-center justify-center gap-2.5 rounded-[16px] text-[16px] font-bold transition-all",
+            isCurrent
+              ? "cursor-default border border-white/35 bg-white/15 !text-white"
+              : "border border-white/25 bg-[linear-gradient(135deg,#8b6cff,#5b3fe8)] !text-white shadow-[0_14px_30px_-12px_rgba(123,92,255,0.9)] hover:brightness-110 active:translate-y-px"
           )}
         >
-          {plan.cta || `Upgrade to ${plan.name}`}
-          <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          {isCurrent ? (
+            <>
+              <Check className="h-[18px] w-[18px] text-[#6ee7b7]" strokeWidth={3} />
+              Current plan
+            </>
+          ) : (
+            <>
+              {plan.cta || `Choose ${plan.name}`}
+              <ArrowRight className="h-[18px] w-[18px]" />
+            </>
+          )}
         </button>
-      )}
+      </div>
     </article>
   );
 }
@@ -247,7 +246,7 @@ export function MonthlyPlansPage({
 }) {
   const balance = useAICreditsStore((state) => state.balance);
   const refreshCredits = useAICreditsStore((state) => state.refresh);
-  const { subscription, isLoading, refresh: refreshSubscription } = useMySubscription();
+  const { subscription, refresh: refreshSubscription } = useMySubscription();
   const { catalog, isLoading: catalogLoading, error: catalogError, refresh: refreshCatalog } = usePricingCatalog();
   const toast = useToast();
   const [checkoutPlan, setCheckoutPlan] = useState<PricingPlan | null>(null);
@@ -266,31 +265,11 @@ export function MonthlyPlansPage({
   const trialState = getTrialState(subscription);
   const isTrialActive = trialState === "active";
   const isTrialExpired = trialState === "expired";
-  const isTrial = isTrialActive || (!subscription && balance.planId === "free");
   const activePlanId = subscription?.planSlug ?? balance.planId;
   const trialPlan = catalog.plans.find((plan) => plan.trialDays > 0);
-  const currentPlan = catalog.plans.find((plan) => plan.slug === activePlanId);
-  const displayPlan = currentPlan;
   const visiblePlans = catalog.plans.filter(
     (plan) => plan.price > 0 || plan.slug === activePlanId
   );
-  const trialPlanName = currentPlan?.name ?? trialPlan?.name;
-  const currentPlanName = isTrialActive
-    ? trialPlanName
-      ? `${trialPlanName} trial`
-      : "Trial"
-    : isTrialExpired
-      ? trialPlanName
-        ? `${trialPlanName} trial expired`
-        : "Trial expired"
-      : displayPlan?.name ?? subscription?.planName ?? "Free plan";
-  const trialEndsOn = formatTrialEnd(subscription?.trialEnd ?? null);
-  const isFreePlan =
-    !isLoading &&
-    !isTrialActive &&
-    !isTrialExpired &&
-    !subscription?.isPaid &&
-    !displayPlan;
 
   const plansSubtitle =
     isTrialActive && trialPlan
@@ -299,13 +278,6 @@ export function MonthlyPlansPage({
         ? `Your ${trialPlan.name} trial has ended. Upgrade to keep creating quizzes without limits.`
         : "Paid plans include monthly AI credits.";
 
-  const planCreditsLabel = isTrialActive
-    ? `${BASIC_TRIAL_CREDITS} trial AI credits`
-    : isTrialExpired
-      ? "Trial ended · upgrade for AI credits"
-      : displayPlan && displayPlan.credits > 0
-        ? `${displayPlan.credits.toLocaleString("en-IN")} AI credits / month`
-        : "No monthly credits";
 
   const deepLinkPlan =
     !dismissedInitialPlan && initialPlanSlug
@@ -458,33 +430,27 @@ export function MonthlyPlansPage({
 
   return (
     <div className="space-y-3 pb-2 sm:space-y-5">
-      <div className="hidden sm:block">
-        <PageHeader
-          title="Plans"
-          subtitle={plansSubtitle}
-          actions={
-            <Link href="/creator/billing/credits" className={OUTLINE_BTN}>
-              <Coins className="h-4 w-4" />
-              Buy AI credits
-            </Link>
-          }
-        />
-      </div>
-
-      <div className="flex items-start justify-between gap-3 sm:hidden">
-        <div className="min-w-0">
-          <h1 className="qs-display text-[28px] font-extrabold leading-[1.15] tracking-[-0.01em] text-[var(--qs-ink)]">Plans</h1>
-          <p className="mt-1 text-[15px] font-medium leading-normal text-[var(--qs-muted)]">{plansSubtitle}</p>
-        </div>
-        <Link
-          href="/creator/billing/credits"
-          className="flex h-11 shrink-0 items-center gap-2 rounded-[14px] border-[1.5px] border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-[14px] font-extrabold text-[var(--qs-ink)]"
-        >
-          <Link2 className="h-[18px] w-[18px] text-[var(--qs-brand)]" />
+      <div className="hidden items-center justify-between gap-4 sm:flex">
+        <p className="text-[14px] text-[var(--qs-muted)] sm:text-[15px]">{plansSubtitle}</p>
+        <Link href="/creator/billing/credits" className={OUTLINE_BTN}>
+          <PlanCreditCoin className="h-5 w-5" />
           Buy AI credits
         </Link>
       </div>
 
+      <div className="flex items-start justify-between gap-3 sm:hidden">
+        <p className="min-w-0 text-[15px] font-medium leading-normal text-[var(--qs-muted)]">{plansSubtitle}</p>
+        <Link
+          href="/creator/billing/credits"
+          className="flex h-11 shrink-0 items-center gap-2 rounded-[14px] border-[1.5px] border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-[14px] font-extrabold text-[var(--qs-ink)]"
+        >
+          <PlanCreditCoin className="h-[18px] w-[18px]" />
+          Buy AI credits
+        </Link>
+      </div>
+
+      {/* OLD (disabled): current plan summary strip. The current plan is
+          rendered by the Elevate-style plan card in the grid instead.
       <section
         aria-label="Current plan"
         className="flex items-center gap-3 rounded-[20px] border border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 sm:flex-wrap sm:justify-between sm:gap-4 sm:rounded-[22px] sm:border-2 sm:px-5 sm:py-4"
@@ -555,6 +521,7 @@ export function MonthlyPlansPage({
           </>
         )}
       </section>
+      */}
 
       <TrialRequestPanel />
 
@@ -612,8 +579,8 @@ export function MonthlyPlansPage({
             <Coins className="h-[22px] w-[22px] sm:h-4 sm:w-4" />
           </span>
           <div className="min-w-0">
-            <h2 className="text-[18px] font-extrabold leading-[1.25] sm:text-[18px] sm:font-extrabold">Need extra AI credits?</h2>
-            <p className="mt-1 text-[14px] font-medium leading-[1.5] text-white/85 sm:text-[13px]">
+            <h2 className="!text-white text-[18px] font-extrabold leading-[1.25] sm:text-[18px] sm:font-extrabold">Need extra AI credits?</h2>
+            <p className="mt-1 text-[14px] font-medium leading-[1.5] !text-white/85 sm:text-[13px]">
               One-time packs work with every plan and stack on top of your
               monthly allowance.
             </p>

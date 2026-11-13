@@ -60,15 +60,145 @@ function perCredit(paise: number): string {
   return `₹${(paise / 100).toFixed(2)}`;
 }
 
-function PackCard({
+function CheckoutCoins() {
+  const coinFace: React.CSSProperties = {
+    background: "radial-gradient(circle at 35% 30%, #ffe18a, #f5b72b 55%, #c98310)",
+    boxShadow:
+      "inset 0 0 0 4px #e9a71f, inset 0 0 0 6px #fbd160, 0 8px 14px rgba(160,100,0,.3)",
+  };
+
+  return (
+    <div
+      aria-hidden="true"
+      className="relative mx-auto flex h-[150px] w-full max-w-[240px] items-center justify-center sm:h-[170px]"
+    >
+      <span className="absolute bottom-2 h-3.5 w-24 rounded-[50%] bg-[#7c5cff]/15 blur-[2px]" />
+      <span className="absolute left-3 top-4 text-[18px] text-[#f5b72b]">✦</span>
+      <span className="absolute right-4 top-3 text-[16px] text-[#7c5cff]">✦</span>
+      <span
+        className="absolute left-2 top-[92px] grid h-[54px] w-[54px] place-items-center rounded-full text-[22px] font-bold text-[#a35f00]"
+        style={coinFace}
+      >
+        ★
+      </span>
+      <span
+        className="relative z-10 grid h-[104px] w-[104px] place-items-center rounded-full text-[44px] font-bold text-[#a35f00] sm:h-[112px] sm:w-[112px] sm:text-[50px]"
+        style={coinFace}
+      >
+        ₹
+      </span>
+      <span
+        className="absolute right-3 top-[96px] grid h-[44px] w-[44px] place-items-center rounded-full text-[18px] font-bold text-[#a35f00]"
+        style={coinFace}
+      >
+        ★
+      </span>
+    </div>
+  );
+}
+
+function PackCard({ summary, balance }: { summary: PackOrderSummary; balance: number }) {
+  const credits = Math.max(0, summary.credits);
+  const months = summary.pack.validityMonths;
+  const validity = `${months} month${months === 1 ? "" : "s"}`;
+  const balanceAfter = balance + credits;
+  const addedPercent = balanceAfter > 0 ? (credits / balanceAfter) * 100 : 0;
+  const currentPercent = Math.max(0, 100 - addedPercent);
+  const perCreditRate =
+    credits > 0 ? `≈ ₹${(summary.total / credits).toFixed(2)} per credit` : "Best value pack";
+  const badge = /master\s*pack/i.test(summary.pack.name)
+    ? "Best value"
+    : summary.pack.popular
+      ? "Limited offer"
+      : "One-time pack";
+
+  return (
+    <article className="rounded-[20px] border-2 border-[var(--qs-ink)] bg-[linear-gradient(160deg,var(--qs-surface),var(--qs-bg)_160%)] p-4 shadow-[0_18px_40px_-18px_rgba(124,92,255,0.35)] sm:rounded-[24px] sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-[20px] font-extrabold tracking-[-0.01em] sm:text-[22px]">Order summary</h3>
+        <span className="rounded-full border border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-[11px] font-semibold text-[var(--qs-muted)]">
+          Current balance · <b className="text-[var(--qs-ink)]">{balance.toLocaleString("en-IN")}</b> credits
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:mt-5 sm:grid-cols-[190px_1fr] sm:items-center sm:gap-5">
+        <CheckoutCoins />
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h4 className="text-[22px] font-extrabold tracking-[-0.01em] sm:text-[24px]">{summary.pack.name}</h4>
+            <span className="rounded-full bg-[linear-gradient(90deg,#7c5cff,#4a2fd8)] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.06em] !text-white">
+              {badge}
+            </span>
+          </div>
+          <p className="mt-2 text-[44px] font-black leading-none tracking-[-0.03em] sm:text-[54px]">
+            {formatPricingAmount(summary.total, "INR")}
+            <span className="ml-2 text-[12px] font-medium tracking-normal text-[var(--qs-muted)] sm:text-[13px]">
+              one-time payment
+            </span>
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#f0d28a] bg-[#fff3d1] py-1.5 pl-1.5 pr-3 text-[13px] font-bold text-[#5a3b00]">
+              <span className="grid h-5 w-5 place-items-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#ffe18a,#e9a71f)] text-[10px] text-white">
+                ★
+              </span>
+              {credits.toLocaleString("en-IN")} credits
+            </span>
+            <span className="rounded-full border border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-[11px] font-semibold text-[var(--qs-muted)]">
+              {perCreditRate}
+            </span>
+          </div>
+          <p className="mt-3 text-[13.5px] leading-relaxed text-[var(--qs-muted)]">
+            {summary.pack.blurb || `Add ${credits.toLocaleString("en-IN")} AI credits, valid for ${validity}.`}
+          </p>
+        </div>
+      </div>
+
+      <hr className="my-4 border-0 border-t-2 border-dashed border-[var(--qs-line)] sm:my-5" />
+
+      <div className="rounded-[14px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[12px] font-semibold text-[#4a2fd8]">Balance after purchase</span>
+          <span className="text-[12px] font-bold tabular-nums text-[#4a2fd8]">
+            {balanceAfter.toLocaleString("en-IN")} credits
+          </span>
+        </div>
+        <div className="mt-2.5 flex h-2.5 overflow-hidden rounded-full bg-[var(--qs-bg)]">
+          <i className="block h-full bg-[#c9bff5]" style={{ width: `${currentPercent}%` }} />
+          <i
+            className="block h-full bg-[linear-gradient(90deg,#7c5cff,#4a2fd8)]"
+            style={{ width: `${addedPercent}%` }}
+          />
+        </div>
+      </div>
+
+      <hr className="my-4 border-0 border-t-2 border-dashed border-[var(--qs-line)] sm:my-5" />
+
+      <ul className="grid list-none gap-2.5 p-0">
+        {[
+          `${credits.toLocaleString("en-IN")} AI credits added instantly`,
+          "Generate MCQ, short & long questions",
+          "Export to PDF / Word",
+          `Valid for ${validity} from purchase`,
+        ].map((feature) => (
+          <li key={feature} className="flex items-center gap-3 text-[13px] font-semibold">
+            <span className="grid h-[22px] w-[22px] flex-none place-items-center rounded-full bg-[#4a2fd8] !text-white">
+              <Check className="h-3 w-3" strokeWidth={3} />
+            </span>
+            {feature}
+          </li>
+        ))}
+      </ul>
+    </article>
+  );
+}
+
+function PaymentCard({
   summary,
-  balance,
   method,
   onMethodChange,
   onPay,
 }: {
   summary: PackOrderSummary;
-  balance: number;
   method: MethodId;
   onMethodChange: (method: MethodId) => void;
   onPay: () => void;
@@ -78,86 +208,72 @@ function PackCard({
   const validity = `${months} month${months === 1 ? "" : "s"}`;
 
   return (
-    <article className="flex flex-col rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 sm:rounded-[20px] sm:border-2 sm:p-4">
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-[14px] font-bold leading-tight tracking-normal sm:text-[20px] sm:font-extrabold sm:tracking-[-0.015em]">
-          {summary.pack.name}
-        </h3>
-        <span className="whitespace-nowrap rounded-full bg-[var(--qs-bg)] px-2.5 py-1 text-[11px] font-extrabold text-[var(--qs-muted)]">
-          One-time
-        </span>
-      </div>
-      <p className="mt-1 text-[10.5px] leading-[14px] text-[var(--qs-muted)] sm:mt-1.5 sm:text-[13.5px] sm:font-medium sm:leading-[1.4]">
-        {summary.pack.blurb || `${credits.toLocaleString("en-IN")} AI credits for ${validity}.`}
-      </p>
-      <p className="mt-1.5 text-[10px] font-semibold text-[var(--qs-brand)] sm:mt-3 sm:text-[12px] sm:font-bold">
-        Top-up credits · no subscription needed
-      </p>
-      <div className="mt-1 flex flex-wrap items-baseline gap-2">
-        <span className="text-[24px] font-bold leading-7 tracking-normal sm:text-[38px] sm:font-extrabold sm:leading-none sm:tracking-[-0.03em]">
-          {formatPricingAmount(summary.total, "INR")}
-        </span>
-        <span className="text-[10.5px] font-medium text-[var(--qs-muted)] sm:text-[13px] sm:font-bold">one-time</span>
-      </div>
-      <div className="mt-3">
-        <div className="flex justify-between gap-2 text-[12px] font-bold text-[var(--qs-brand)]">
-          <span>Balance after</span>
-          <span className="tabular-nums">
-            {(balance + credits).toLocaleString("en-IN")} credits
-          </span>
-        </div>
-        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[var(--qs-line)]">
-          <div
-            className="h-full rounded-full bg-[var(--qs-brand)]"
-            style={{ width: "100%" }}
-          />
-        </div>
-      </div>
-      <hr className="my-3 border-0 border-t-2 border-dashed border-[var(--qs-line)]" />
-      <ul className="grid gap-1.5 text-[11px] font-medium sm:gap-2 sm:text-[13.5px] sm:font-semibold">
-        <li className="flex items-center gap-2.5">
-          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
-            <Check className="h-3 w-3" strokeWidth={2.6} />
-          </span>
-          {credits.toLocaleString("en-IN")} AI credits added instantly
-        </li>
-        <li className="flex items-center gap-2.5">
-          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
-            <Check className="h-3 w-3" strokeWidth={2.6} />
-          </span>
-          Valid for {validity} from purchase
-        </li>
-      </ul>
+    <aside className="rounded-[20px] border-2 border-[var(--qs-ink)] bg-[linear-gradient(160deg,var(--qs-surface),var(--qs-bg)_160%)] p-4 shadow-[0_18px_40px_-18px_rgba(124,92,255,0.35)] sm:rounded-[24px] sm:p-6">
+      <h3 className="text-[20px] font-extrabold tracking-[-0.01em] sm:text-[22px]">Payment</h3>
 
-      <div className="mt-auto pt-2.5 sm:pt-4">
-        <p className="mb-1.5 text-[10px] font-semibold text-[var(--qs-muted)] sm:mb-2 sm:text-[12px] sm:font-bold">Pay with</p>
-        <div className="mb-3 flex flex-wrap gap-1.5">
-          {METHODS.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              aria-pressed={method === m.id}
-              onClick={() => onMethodChange(m.id)}
-              className={cn(
-                "rounded-full border px-2 py-1 text-[10.5px] font-medium sm:border-2 sm:px-3.5 sm:py-1.5 sm:text-[12.5px] sm:font-bold transition-colors",
-                method === m.id
-                  ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
-                  : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
-              )}
-            >
-              {m.label}
-            </button>
-          ))}
+      <div className="mt-4 grid gap-2.5 text-[13px] text-[var(--qs-muted)]">
+        <div className="flex items-center justify-between gap-3">
+          <span>Pack</span>
+          <b className="text-[var(--qs-ink)]">{summary.pack.name}</b>
         </div>
-        <button
-          type="button"
-          onClick={onPay}
-          className="flex w-full items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] px-2.5 py-2.5 text-[12px] font-semibold sm:gap-2 sm:rounded-[14px] sm:border-2 sm:px-4 sm:py-3 sm:text-[15px] sm:font-extrabold text-[var(--qs-ink)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_3px_0_var(--qs-ink)] active:translate-y-0.5 active:shadow-none"
-        >
-          <Lock className="h-3.5 w-3.5" /> Pay {formatPricingAmount(summary.total, "INR")}
-        </button>
+        <div className="flex items-center justify-between gap-3">
+          <span>Credits</span>
+          <b className="text-[var(--qs-ink)]">+{credits.toLocaleString("en-IN")}</b>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <span>Validity</span>
+          <b className="text-[var(--qs-ink)]">{validity}</b>
+        </div>
+        <hr className="my-1 border-0 border-t-2 border-dashed border-[var(--qs-line)]" />
+        <div className="flex items-center justify-between gap-3 text-[16px] font-bold text-[var(--qs-ink)]">
+          <span>Total</span>
+          <span>{formatPricingAmount(summary.total, "INR")}</span>
+        </div>
       </div>
-    </article>
+
+      <hr className="my-4 border-0 border-t-2 border-dashed border-[var(--qs-line)]" />
+
+      <p className="text-[13px] font-bold">Pay with</p>
+      <div className="mt-2.5 grid grid-cols-3 gap-2">
+        {METHODS.map((m) => (
+          <button
+            key={m.id}
+            type="button"
+            aria-pressed={method === m.id}
+            onClick={() => onMethodChange(m.id)}
+            className={cn(
+              "rounded-[12px] border-2 px-2 py-2.5 text-[12px] font-bold transition-colors sm:text-[13px]",
+              method === m.id
+                ? "border-[#4a2fd8] bg-[var(--qs-bg)] text-[var(--qs-ink)] shadow-[0_0_0_3px_rgba(124,92,255,0.18)]"
+                : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[#4a2fd8]"
+            )}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={onPay}
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-[14px] border-0 bg-[linear-gradient(90deg,#7c5cff,#4a2fd8)] px-4 py-4 text-[15px] font-bold !text-white shadow-[0_12px_24px_-10px_#4a2fd8] transition-[filter] hover:brightness-110"
+      >
+        <Lock className="h-[18px] w-[18px]" />
+        Pay {formatPricingAmount(summary.total, "INR")}
+      </button>
+
+      <p className="mt-3 flex gap-2 text-[11.5px] leading-relaxed text-[var(--qs-muted)]">
+        <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-[#4a2fd8]" />
+        <span>
+          Credits are added instantly and stay valid for {validity} from purchase. You&apos;ll complete
+          the payment in the secure Razorpay window.
+        </span>
+      </p>
+      <p className="mt-4 border-t-2 border-dashed border-[var(--qs-line)] pt-3 text-center text-[11px] text-[var(--qs-muted)]">
+        <ShieldCheck className="mr-1 inline h-3.5 w-3.5 text-[#4a2fd8]" />
+        Credits are added only after backend payment verification
+      </p>
+    </aside>
   );
 }
 
@@ -379,11 +495,7 @@ export function OrderSummaryDialog({
           QS_DIALOG_PANEL,
           "m-auto max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain"
         )}
-        style={
-          suggestion && !declined && phase === "summary"
-            ? { maxWidth: 780 }
-            : undefined
-        }
+        style={phase === "summary" ? { maxWidth: 980 } : undefined}
         onClick={(e) => e.stopPropagation()}
       >
         <header className="mb-2.5 flex items-center justify-between gap-2 sm:mb-4 sm:gap-3">
@@ -403,27 +515,18 @@ export function OrderSummaryDialog({
 
         {phase === "summary" && (
           <>
-            <div className="mt-2 flex items-center justify-between gap-2 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-2 text-[11px] sm:mt-3 sm:gap-3 sm:rounded-[14px] sm:border-2 sm:px-4 sm:py-2.5 sm:text-sm">
-              <span className="font-medium text-[var(--qs-muted)] sm:font-semibold">Current balance</span>
-              <strong className="text-[12px] font-bold tabular-nums sm:text-base sm:font-extrabold">
-                {balance.toLocaleString("en-IN")} credits
-              </strong>
-            </div>
-
-            <div
-              className={cn(
-                "mt-3 grid gap-2.5 sm:mt-6 sm:gap-4",
-                suggestion && !declined && "sm:grid-cols-[1fr_1.18fr] sm:items-stretch"
-              )}
-            >
-              <PackCard
+            <div className="mt-3 grid gap-3 sm:mt-5 sm:grid-cols-[1.15fr_0.85fr] sm:items-start sm:gap-4">
+              <PackCard summary={summary} balance={balance} />
+              <PaymentCard
                 summary={summary}
-                balance={balance}
                 method={method}
                 onMethodChange={setMethod}
                 onPay={() => onPay(method)}
               />
-              {suggestion && !declined && (
+            </div>
+
+            {suggestion && !declined && (
+              <div className="mt-3">
                 <UpgradeCard
                   suggestion={suggestion}
                   balance={balance}
@@ -431,8 +534,8 @@ export function OrderSummaryDialog({
                   onAccept={acceptSuggestion}
                   onDecline={declineSuggestion}
                 />
-              )}
-            </div>
+              </div>
+            )}
 
             {suggestion && declined && (
               <button
@@ -447,19 +550,6 @@ export function OrderSummaryDialog({
                 <ArrowRight className="h-3.5 w-3.5" />
               </button>
             )}
-
-            <p className="mt-4 flex items-center justify-center gap-2.5 text-center text-[12.5px] font-semibold text-[var(--qs-muted)]">
-              <CalendarClock className="h-4 w-4 shrink-0 text-[var(--qs-brand)]" />
-              Credits are added instantly and stay valid for{" "}
-              {summary.pack.validityMonths} month
-              {summary.pack.validityMonths === 1 ? "" : "s"} from purchase.
-            </p>
-            <p className="mt-1.5 text-center text-xs font-medium text-[var(--qs-muted)]">
-              You&apos;ll complete the payment in the secure Razorpay window.
-            </p>
-            <p className="mt-1.5 text-center text-xs font-medium text-[var(--qs-muted)]">
-              Secure payments via UPI, Cards &amp; Net Banking
-            </p>
           </>
         )}
 

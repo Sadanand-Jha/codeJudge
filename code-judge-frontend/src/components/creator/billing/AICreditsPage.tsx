@@ -3,14 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { CalendarClock, History } from "lucide-react";
+import { History, Zap } from "lucide-react";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { useToast } from "@/hooks/useToast";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { trackCheckoutEvent } from "@/services/analytics";
-import { PageHeader } from "./ui";
 import { InvoiceV2Dialog } from "./InvoiceV2Dialog";
 import { CreditPacks } from "./credits/CreditPacks";
 import { HowCreditsWork } from "./credits/HowCreditsWork";
@@ -170,47 +169,39 @@ export function AICreditsPage({
 
   return (
     <div className="space-y-3 pb-2 sm:space-y-5">
-      <div className="hidden sm:block">
-        <PageHeader
-          title="AI Credits"
-          subtitle="Top up credits whenever you need them."
-          actions={
-            <>
-              <Link
-                href="/creator/billing/plans"
-                className="inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
-              >
-                <CalendarClock className="h-4 w-4" />
-                Plans
-              </Link>
-              <Link
-                href="/creator/billing/transactions"
-                className="inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
-              >
-                <History className="h-4 w-4" />
-                Transactions
-              </Link>
-            </>
-          }
-        />
+      <div className="hidden items-center justify-end gap-4 sm:flex">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/creator/billing/plans"
+            className="inline-flex items-center justify-center gap-2 rounded-[12px] border border-white/20 bg-[linear-gradient(135deg,#34268a,#231a66)] px-4 py-2.5 text-[13px] font-bold !text-white shadow-[0_10px_24px_-12px_rgba(40,25,120,0.8)] transition-all hover:brightness-110 active:translate-y-px"
+          >
+            <Zap className="h-4 w-4 text-[#f6bf2f]" strokeWidth={2.2} />
+            Monthly plans
+          </Link>
+          <Link
+            href="/creator/billing/transactions"
+            className="inline-flex items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+          >
+            <History className="h-4 w-4 text-[#34268a]" />
+            Transactions
+          </Link>
+        </div>
       </div>
 
       <div className="sm:hidden">
-        <h1 className="qs-display text-[28px] font-extrabold leading-[1.15] tracking-[-0.01em] text-[var(--qs-ink)]">AI Credits</h1>
-        <p className="mt-1 text-[15px] font-medium leading-normal text-[var(--qs-muted)]">Top up credits whenever you need them.</p>
-        <div className="mt-3 flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <Link
             href="/creator/billing/plans"
-            className="flex h-11 items-center gap-2 rounded-[14px] border-[1.5px] border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-[14px] font-extrabold text-[var(--qs-ink)]"
+            className="flex h-11 items-center gap-2 rounded-[14px] border border-white/20 bg-[linear-gradient(135deg,#34268a,#231a66)] px-3.5 text-[14px] font-extrabold !text-white shadow-[0_8px_20px_-10px_rgba(40,25,120,0.8)] active:translate-y-px"
           >
-            <CalendarClock className="h-[18px] w-[18px]" />
-            Plans
+            <Zap className="h-[18px] w-[18px] text-[#f6bf2f]" strokeWidth={2.2} />
+            Monthly plans
           </Link>
           <Link
             href="/creator/billing/transactions"
             className="flex h-11 items-center gap-2 rounded-[14px] border-[1.5px] border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-[14px] font-extrabold text-[var(--qs-ink)]"
           >
-            <History className="h-[18px] w-[18px]" />
+            <History className="h-[18px] w-[18px] text-[#34268a]" />
             Transactions
           </Link>
         </div>

@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   Sparkles,
   X,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { formatTrialEnd } from "@/hooks/useMySubscription";
@@ -26,7 +27,7 @@ import {
 } from "@/services/billing";
 import { trackCheckoutEvent } from "@/services/analytics";
 import type { PurchasePhase } from "./credits/OrderSummaryDialog";
-import { QS_DIALOG_PANEL, QS_ROW } from "./credits/styles";
+import { QS_DIALOG_PANEL } from "./credits/styles";
 
 export interface PlanPurchaseReceipt {
   transactionId: string;
@@ -43,6 +44,290 @@ function PhaseShell({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col items-center py-4 text-center" role="status" aria-live="polite">
       {children}
     </div>
+  );
+}
+
+const PLAN_METHODS = [
+  { id: "upi", label: "UPI" },
+  { id: "card", label: "Card" },
+  { id: "netbanking", label: "Net Banking" },
+] as const;
+
+type PlanMethodId = (typeof PLAN_METHODS)[number]["id"];
+
+function PlanCreditCoin({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 30 30" aria-hidden="true" className={className}>
+      <circle cx="15" cy="15" r="13.5" fill="#f6bf2f" stroke="#b87408" strokeWidth="1.5" />
+      <path
+        d="M15 7.5l2 4.7 5 .5-3.8 3.3 1.2 5-4.4-2.7-4.4 2.7 1.2-5L8 12.7l5-.5z"
+        fill="#fff4c9"
+        stroke="#c98410"
+        strokeWidth=".8"
+      />
+    </svg>
+  );
+}
+
+function PlanOrderSummaryCard({ plan, balance }: { plan: PricingPlan; balance: number }) {
+  const credits = Math.max(0, plan.credits);
+  const periodLabel = formatBillingPeriod(plan.billingPeriod ?? "monthly", plan.customDays);
+  const period = periodLabel.toLowerCase();
+  const balanceAfter = balance + credits;
+  const addedPercent = balanceAfter > 0 ? (credits / balanceAfter) * 100 : 0;
+  const currentPercent = Math.max(0, 100 - addedPercent);
+  const features = [
+    `${credits.toLocaleString("en-IN")} AI credits every month`,
+    ...plan.features.filter((feature) => !/trial/i.test(feature)),
+    "Activates immediately",
+  ].slice(0, 5);
+
+  return (
+    <article className="rounded-[20px] border-2 border-[var(--qs-ink)] bg-[linear-gradient(160deg,var(--qs-surface),var(--qs-bg)_160%)] p-4 shadow-[0_18px_40px_-18px_rgba(124,92,255,0.35)] sm:rounded-[24px] sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-[20px] font-extrabold tracking-[-0.01em] sm:text-[22px]">Order summary</h3>
+        <span className="rounded-full border border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-[11px] font-semibold text-[var(--qs-muted)]">
+          Current balance · <b className="text-[var(--qs-ink)]">{balance.toLocaleString("en-IN")}</b> credits
+        </span>
+      </div>
+
+      <div className="mt-4 flex items-start gap-3 sm:mt-5">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[15px] border border-[#f6bf2f]/45 bg-[#f6bf2f]/15">
+          <Zap className="h-6 w-6 text-[#c98410]" strokeWidth={2} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h4 className="text-[22px] font-extrabold tracking-[-0.01em] sm:text-[24px]">{plan.name}</h4>
+            <span className="rounded-full border border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--qs-muted)]">
+              {periodLabel}
+            </span>
+          </div>
+          <p className="mt-1 text-[13.5px] leading-relaxed text-[var(--qs-muted)]">
+            {plan.description ?? plan.tagline}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <span className="rounded-full bg-[#6ee7b7]/20 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#047857]">
+          {plan.offer?.trim() || "Flexible monthly billing"}
+        </span>
+        <p className="mt-2 text-[44px] font-black leading-none tracking-[-0.03em] sm:text-[54px]">
+          {formatPricingAmount(plan.price, plan.currency)}
+          <span className="ml-2 text-[12px] font-medium tracking-normal text-[var(--qs-muted)] sm:text-[13px]">
+            / {period}
+          </span>
+        </p>
+      </div>
+
+      <div className="mt-4 flex items-center gap-3 rounded-[14px] border border-[#f0d28a] bg-[#fff3d1] px-3.5 py-3">
+        <PlanCreditCoin className="h-8 w-8 shrink-0 drop-shadow-[0_2px_8px_rgba(246,191,47,0.45)]" />
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#a35f00]">Included credits</p>
+          <p className="text-[14px] font-bold leading-snug text-[#5a3b00]">
+            {credits.toLocaleString("en-IN")} AI credits / month
+          </p>
+        </div>
+      </div>
+
+      <hr className="my-4 border-0 border-t-2 border-dashed border-[var(--qs-line)] sm:my-5" />
+
+      <div className="rounded-[14px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[12px] font-semibold text-[#4a2fd8]">Balance after activation</span>
+          <span className="text-[12px] font-bold tabular-nums text-[#4a2fd8]">
+            {balanceAfter.toLocaleString("en-IN")} credits
+          </span>
+        </div>
+        <div className="mt-2.5 flex h-2.5 overflow-hidden rounded-full bg-[var(--qs-bg)]">
+          <i className="block h-full bg-[#c9bff5]" style={{ width: `${currentPercent}%` }} />
+          <i
+            className="block h-full bg-[linear-gradient(90deg,#7c5cff,#4a2fd8)]"
+            style={{ width: `${addedPercent}%` }}
+          />
+        </div>
+      </div>
+
+      <hr className="my-4 border-0 border-t-2 border-dashed border-[var(--qs-line)] sm:my-5" />
+
+      <ul className="grid list-none gap-2.5 p-0">
+        {features.map((feature) => (
+          <li key={feature} className="flex items-center gap-3 text-[13px] font-semibold">
+            <span className="grid h-[22px] w-[22px] flex-none place-items-center rounded-full bg-[#4a2fd8] !text-white">
+              <Check className="h-3 w-3" strokeWidth={3} />
+            </span>
+            {feature}
+          </li>
+        ))}
+      </ul>
+    </article>
+  );
+}
+
+function PlanPaymentCard({
+  plan,
+  method,
+  onMethodChange,
+  onPay,
+}: {
+  plan: PricingPlan;
+  method: PlanMethodId;
+  onMethodChange: (method: PlanMethodId) => void;
+  onPay: () => void;
+}) {
+  const credits = Math.max(0, plan.credits);
+  const periodLabel = formatBillingPeriod(plan.billingPeriod ?? "monthly", plan.customDays);
+
+  return (
+    <aside className="rounded-[20px] border-2 border-[var(--qs-ink)] bg-[linear-gradient(160deg,var(--qs-surface),var(--qs-bg)_160%)] p-4 shadow-[0_18px_40px_-18px_rgba(124,92,255,0.35)] sm:rounded-[24px] sm:p-6">
+      <h3 className="text-[20px] font-extrabold tracking-[-0.01em] sm:text-[22px]">Payment</h3>
+
+      <div className="mt-4 grid gap-2.5 text-[13px] text-[var(--qs-muted)]">
+        <div className="flex items-center justify-between gap-3">
+          <span>Plan</span>
+          <b className="text-[var(--qs-ink)]">{plan.name}</b>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <span>Credits</span>
+          <b className="text-[var(--qs-ink)]">+{credits.toLocaleString("en-IN")} / month</b>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <span>Billing</span>
+          <b className="text-[var(--qs-ink)]">{periodLabel}</b>
+        </div>
+        <hr className="my-1 border-0 border-t-2 border-dashed border-[var(--qs-line)]" />
+        <div className="flex items-center justify-between gap-3 text-[16px] font-bold text-[var(--qs-ink)]">
+          <span>Total</span>
+          <span>{formatPricingAmount(plan.price, plan.currency)}</span>
+        </div>
+      </div>
+
+      <hr className="my-4 border-0 border-t-2 border-dashed border-[var(--qs-line)]" />
+
+      <p className="text-[13px] font-bold">Pay with</p>
+      <div className="mt-2.5 grid grid-cols-3 gap-2">
+        {PLAN_METHODS.map((m) => (
+          <button
+            key={m.id}
+            type="button"
+            aria-pressed={method === m.id}
+            onClick={() => onMethodChange(m.id)}
+            className={cn(
+              "rounded-[12px] border-2 px-2 py-2.5 text-[12px] font-bold transition-colors sm:text-[13px]",
+              method === m.id
+                ? "border-[#4a2fd8] bg-[var(--qs-bg)] text-[var(--qs-ink)] shadow-[0_0_0_3px_rgba(124,92,255,0.18)]"
+                : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[#4a2fd8]"
+            )}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={onPay}
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-[14px] border-0 bg-[linear-gradient(90deg,#7c5cff,#4a2fd8)] px-4 py-4 text-[15px] font-bold !text-white shadow-[0_12px_24px_-10px_#4a2fd8] transition-[filter] hover:brightness-110"
+      >
+        <Lock className="h-[18px] w-[18px]" />
+        Pay {formatPricingAmount(plan.price, plan.currency)}
+      </button>
+
+      <p className="mt-3 flex gap-2 text-[11.5px] leading-relaxed text-[var(--qs-muted)]">
+        <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-[#4a2fd8]" />
+        <span>
+          Your plan activates immediately and stays active for its billing period. You&apos;ll complete
+          the payment in the secure Razorpay window.
+        </span>
+      </p>
+      <p className="mt-4 border-t-2 border-dashed border-[var(--qs-line)] pt-3 text-center text-[11px] text-[var(--qs-muted)]">
+        <ShieldCheck className="mr-1 inline h-3.5 w-3.5 text-[#4a2fd8]" />
+        Plans and credits are activated only after backend payment verification
+      </p>
+    </aside>
+  );
+}
+
+function PlanBundleSuggestionCard({
+  suggestion,
+  plan,
+  balance,
+  onAccept,
+}: {
+  suggestion: PlanBundleSuggestion;
+  plan: PricingPlan;
+  balance: number;
+  onAccept: () => void;
+}) {
+  const bundleCreditsAfter = balance + suggestion.credits;
+  const bundleCreditMultiple = plan.credits > 0 ? suggestion.credits / plan.credits : 0;
+  const extraAmount = Math.max(0, suggestion.amountPaise - plan.price * 100) / 100;
+  const regularRatePaise =
+    suggestion.credits > 0 ? suggestion.compareAtPaise / suggestion.credits : 0;
+
+  return (
+    <article className="relative rounded-[20px] border-2 border-[var(--qs-ink)] bg-[linear-gradient(155deg,#34268a_0%,#231a66_45%,#1b1740_100%)] p-4 !text-white shadow-[0_24px_55px_-20px_rgba(40,25,120,0.65)] sm:rounded-[24px] sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f6bf2f] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[#3b2400]">
+            <Sparkles className="h-3 w-3" />
+            {suggestion.badge}
+          </span>
+          <h3 className="mt-2 text-[20px] font-extrabold !text-white sm:text-[22px]">{suggestion.title}</h3>
+          <p className="mt-1 max-w-lg text-[13px] leading-relaxed !text-white/80">{suggestion.description}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[28px] font-black leading-none !text-white sm:text-[34px]">
+            {formatPricingAmount(suggestion.amountPaise / 100, plan.currency)}
+          </p>
+          <p className="mt-1 text-[12px] font-semibold !text-white/60">
+            <s>{formatPricingAmount(suggestion.compareAtPaise / 100, plan.currency)}</s> · save{" "}
+            {formatPricingAmount(suggestion.savingsPaise / 100, plan.currency)}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-2 text-[12.5px] font-semibold !text-white sm:grid-cols-3">
+        <span className="flex items-center gap-2">
+          <span className="grid h-5 w-5 place-items-center rounded-full bg-[#6ee7b7] !text-[#053d2c]">
+            <Check className="h-3 w-3" strokeWidth={3} />
+          </span>
+          {bundleCreditsAfter.toLocaleString("en-IN")} credits after purchase
+          {bundleCreditMultiple > 1 ? ` · ${Number(bundleCreditMultiple.toFixed(1))}× more` : ""}
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="grid h-5 w-5 place-items-center rounded-full bg-[#6ee7b7] !text-[#053d2c]">
+            <Check className="h-3 w-3" strokeWidth={3} />
+          </span>
+          {plan.name} plan + {suggestion.pack.name}
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="grid h-5 w-5 place-items-center rounded-full bg-[#6ee7b7] !text-[#053d2c]">
+            <Check className="h-3 w-3" strokeWidth={3} />
+          </span>
+          {formatPricingAmount(suggestion.perCreditPaise / 100, plan.currency)} per credit
+          {regularRatePaise > 0 ? `, not ${formatPricingAmount(regularRatePaise / 100, plan.currency)}` : ""}
+        </span>
+      </div>
+
+      <div className="mt-4 flex flex-col gap-2 border-t-2 border-dashed border-white/20 pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-[12px] font-semibold !text-white/75">
+          Just{" "}
+          <b className="font-extrabold !text-[#f6bf2f]">
+            {formatPricingAmount(extraAmount, plan.currency)}
+          </b>{" "}
+          more than {plan.name} to add the {suggestion.pack.name}
+        </p>
+        <button
+          type="button"
+          onClick={onAccept}
+          className="flex items-center justify-center gap-2 rounded-[13px] border-0 bg-[#f6bf2f] px-5 py-3 text-[14px] font-bold text-[#3b2400] transition-[filter] hover:brightness-105"
+        >
+          Buy bundle · {formatPricingAmount(suggestion.amountPaise / 100, plan.currency)}
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      </div>
+    </article>
   );
 }
 
@@ -72,6 +357,7 @@ export function PlanCheckoutDialog({
   const busy = phase === "processing";
   const [suggestion, setSuggestion] = useState<PlanBundleSuggestion | null>(null);
   const [selection, setSelection] = useState<"plan" | "bundle">("plan");
+  const [method, setMethod] = useState<PlanMethodId>("upi");
 
   useEffect(() => {
     if (plan.billingPeriod && plan.billingPeriod !== "monthly") return;
@@ -109,27 +395,6 @@ export function PlanCheckoutDialog({
 
   const activeBundle = selection === "bundle" ? suggestion : null;
   const validTill = receipt ? formatTrialEnd(receipt.expiresAt) : null;
-  const planCredits = Math.max(0, plan.credits);
-  const bundleCreditsAfter = suggestion
-    ? balance + suggestion.credits
-    : balance + planCredits;
-  const bundleCreditMultiple =
-    suggestion && planCredits > 0 ? suggestion.credits / planCredits : 0;
-  const planFillPercent =
-    suggestion && suggestion.credits > 0
-      ? Math.max(
-          8,
-          Math.min(100, Math.round((planCredits / suggestion.credits) * 100))
-        )
-      : 100;
-  const bundleExtraAmount = suggestion
-    ? Math.max(0, suggestion.amountPaise - plan.price * 100) / 100
-    : 0;
-  const bundleRegularRatePaise =
-    suggestion && suggestion.credits > 0
-      ? suggestion.compareAtPaise / suggestion.credits
-      : 0;
-
   const choosePlan = () => {
     setSelection("plan");
     if (suggestion) {
@@ -178,14 +443,12 @@ export function PlanCheckoutDialog({
           QS_DIALOG_PANEL,
           "qs-ui m-auto max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain"
         )}
-        style={
-          suggestion && phase === "summary" ? { maxWidth: 780 } : undefined
-        }
+        style={phase === "summary" ? { maxWidth: 980 } : undefined}
         onClick={(event) => event.stopPropagation()}
       >
         <header className="mb-2.5 flex items-center justify-between gap-2 sm:mb-3 sm:gap-3">
           <h2 className="text-[18px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-[26px]">
-            {phase === "success" ? "Plan activated" : "Confirm plan"}
+            {phase === "success" ? "Plan activated" : "Checkout"}
           </h2>
           <button
             type="button"
@@ -200,225 +463,25 @@ export function PlanCheckoutDialog({
 
         {phase === "summary" && (
           <>
-            <div className="mt-2 flex items-center justify-between gap-2 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-2 text-[12px] sm:mt-3 sm:gap-3 sm:rounded-[14px] sm:border-2 sm:px-4 sm:py-2.5 sm:text-sm">
-              <span className="font-semibold text-[var(--qs-muted)]">Current balance</span>
-              <strong className="font-extrabold tabular-nums text-[var(--qs-ink)]">
-                {balance.toLocaleString("en-IN")} credits
-              </strong>
+            <div className="mt-3 grid gap-3 sm:mt-5 sm:grid-cols-[1.15fr_0.85fr] sm:items-start sm:gap-4">
+              <PlanOrderSummaryCard plan={plan} balance={balance} />
+              <PlanPaymentCard
+                plan={plan}
+                method={method}
+                onMethodChange={setMethod}
+                onPay={choosePlan}
+              />
             </div>
 
-            {suggestion ? (
-              <>
-                <div className="mt-3 grid gap-2.5 sm:mt-6 sm:gap-4 sm:grid-cols-[1fr_1.18fr] sm:items-stretch">
-                  <article className="flex flex-col rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 sm:rounded-[20px] sm:p-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-[15px] font-extrabold leading-tight tracking-[-0.015em] text-[var(--qs-ink)] sm:text-[20px]">
-                        {plan.name}
-                      </h3>
-                      <span className="whitespace-nowrap rounded-full bg-[var(--qs-bg)] px-2.5 py-1 text-[11px] font-extrabold text-[var(--qs-muted)]">
-                        {formatBillingPeriod(plan.billingPeriod ?? "monthly", plan.customDays)}
-                      </span>
-                    </div>
-                    {(plan.description ?? plan.tagline) && (
-                      <p className="mt-1 text-[12px] leading-[1.4] text-[var(--qs-muted)] sm:mt-1.5 sm:text-[13.5px] sm:font-medium">
-                        {plan.description ?? plan.tagline}
-                      </p>
-                    )}
-                    {plan.offer && (
-                      <p className="mt-1.5 text-[12px] font-bold text-[var(--qs-brand)] sm:mt-3">
-                        {plan.offer}
-                      </p>
-                    )}
-                    <div className="mt-1 flex flex-wrap items-baseline gap-2">
-                      <span className="text-[26px] font-extrabold leading-none tracking-[-0.03em] text-[var(--qs-ink)] sm:text-[38px]">
-                        {formatPricingAmount(plan.price, plan.currency)}
-                      </span>
-                      <span className="text-[12px] font-semibold text-[var(--qs-muted)] sm:text-[13px]">
-                        / {formatBillingPeriod(plan.billingPeriod ?? "monthly", plan.customDays).toLowerCase()}
-                      </span>
-                    </div>
-                    <div className="mt-3">
-                      <div className="flex justify-between gap-2 text-[12px] font-bold text-[var(--qs-brand)]">
-                        <span>Balance after</span>
-                        <span className="tabular-nums">
-                          {(balance + planCredits).toLocaleString("en-IN")} credits
-                        </span>
-                      </div>
-                      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[var(--qs-line)]">
-                        <div
-                          className="h-full rounded-full bg-[var(--qs-brand)]"
-                          style={{ width: `${planFillPercent}%` }}
-                        />
-                      </div>
-                    </div>
-                    <hr className="my-3 border-0 border-t-2 border-dashed border-[var(--qs-line)]" />
-                    <ul className="grid gap-1.5 text-[12px] font-semibold text-[var(--qs-ink)] sm:gap-2 sm:text-[13.5px]">
-                      <li className="flex items-center gap-2.5">
-                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--qs-okbg)] text-[var(--qs-ok)]">
-                          <Check className="h-3 w-3" strokeWidth={2.6} />
-                        </span>
-                        {planCredits.toLocaleString("en-IN")} AI credits every month
-                      </li>
-                      <li className="flex items-center gap-2.5">
-                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--qs-okbg)] text-[var(--qs-ok)]">
-                          <Check className="h-3 w-3" strokeWidth={2.6} />
-                        </span>
-                        Activates immediately
-                      </li>
-                    </ul>
-                    <div className="mt-auto pt-3 sm:pt-4">
-                      <button
-                        type="button"
-                        onClick={choosePlan}
-                        className="b b-full"
-                      >
-                        Continue with monthly
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </article>
-
-                  <article className="relative order-first flex flex-col rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] p-3 text-[var(--qs-on-brand)] shadow-[3px_4px_0_var(--qs-sun)] sm:order-none sm:rounded-[20px] sm:p-4 sm:shadow-[6px_6px_0_var(--qs-sun)]">
-                    <span className="absolute -top-3.5 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-ink)] px-3 py-[4px] text-[11px] font-extrabold uppercase tracking-[0.05em] text-[var(--qs-sun)]">
-                      <Sparkles className="h-3 w-3" />
-                      {suggestion.badge}
-                    </span>
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <h3 className="text-[15px] font-extrabold leading-tight tracking-[-0.015em] sm:text-[20px]">
-                        {suggestion.title}
-                      </h3>
-                      <span className="whitespace-nowrap rounded-full bg-[var(--qs-sun)] px-2.5 py-1 text-[11px] font-extrabold text-[#1A1240]">
-                        Save {formatPricingAmount(suggestion.savingsPaise / 100, plan.currency)}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-[12px] leading-[1.4] text-white/85 sm:mt-1.5 sm:text-[13.5px] sm:font-medium">
-                      {suggestion.description}
-                    </p>
-                    {plan.offer && (
-                      <p className="mt-3 text-[12px] font-bold text-[var(--qs-sun)]">
-                        {plan.offer}
-                      </p>
-                    )}
-                    <div className="mt-1 flex flex-wrap items-baseline gap-2">
-                      <span className="text-[26px] font-extrabold leading-none tracking-[-0.03em] sm:text-[38px]">
-                        {formatPricingAmount(suggestion.amountPaise / 100, plan.currency)}
-                      </span>
-                      <s className="text-[15px] font-bold text-[var(--qs-sun)]">
-                        {formatPricingAmount(suggestion.compareAtPaise / 100, plan.currency)}
-                      </s>
-                      <span className="text-[13px] font-bold text-white/85">today</span>
-                    </div>
-                    <div className="mt-3">
-                      <div className="flex justify-between gap-2 text-[12px] font-bold text-[var(--qs-sun)]">
-                        <span>Balance after</span>
-                        <span className="text-right tabular-nums">
-                          {bundleCreditsAfter.toLocaleString("en-IN")} credits
-                          {bundleCreditMultiple > 1
-                            ? ` · ${Number(bundleCreditMultiple.toFixed(1))}× more`
-                            : ""}
-                        </span>
-                      </div>
-                      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/20">
-                        <div className="h-full w-full rounded-full bg-[var(--qs-sun)]" />
-                      </div>
-                    </div>
-                    <hr className="my-3 border-0 border-t-2 border-dashed border-white/35" />
-                    <ul className="grid gap-1.5 text-[12px] font-semibold sm:gap-2 sm:text-[13.5px]">
-                      <li className="flex items-center gap-2.5">
-                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--qs-sun)] text-[#1A1240]">
-                          <Check className="h-3 w-3" strokeWidth={2.6} />
-                        </span>
-                        {plan.name} plan with{" "}
-                        {suggestion.planCredits.toLocaleString("en-IN")} credits / month
-                      </li>
-                      <li className="flex items-center gap-2.5">
-                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--qs-sun)] text-[#1A1240]">
-                          <Check className="h-3 w-3" strokeWidth={2.6} />
-                        </span>
-                        {suggestion.pack.name} —{" "}
-                        {suggestion.pack.credits.toLocaleString("en-IN")} AI credits, valid{" "}
-                        {suggestion.pack.validityDays} days
-                      </li>
-                      <li className="flex items-center gap-2.5">
-                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--qs-sun)] text-[#1A1240]">
-                          <Check className="h-3 w-3" strokeWidth={2.6} />
-                        </span>
-                        {formatPricingAmount(suggestion.perCreditPaise / 100, plan.currency)} per
-                        credit, not{" "}
-                        {formatPricingAmount(bundleRegularRatePaise / 100, plan.currency)}
-                      </li>
-                    </ul>
-                    <div className="mt-auto pt-3 sm:pt-4">
-                      <button
-                        type="button"
-                        onClick={chooseBundle}
-                        className="flex w-full items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-3 py-3 text-[14px] font-extrabold text-[#1A1240] shadow-[0_4px_0_var(--qs-ink)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_6px_0_var(--qs-ink)] active:translate-y-0.5 active:shadow-none sm:text-[15px]"
-                      >
-                        Buy bundle ·{" "}
-                        {formatPricingAmount(suggestion.amountPaise / 100, plan.currency)}
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </button>
-                      <p className="mt-2 text-center text-[12px] font-semibold text-white/90">
-                        Just{" "}
-                        <b className="font-extrabold text-[var(--qs-sun)]">
-                          {formatPricingAmount(bundleExtraAmount, plan.currency)}
-                        </b>{" "}
-                        more than {plan.name} to add the {suggestion.pack.name}
-                      </p>
-                    </div>
-                  </article>
-                </div>
-                <p className="mt-4 flex items-center justify-center gap-2.5 text-center text-[12.5px] font-semibold text-[var(--qs-muted)]">
-                  <CalendarClock className="h-4 w-4 shrink-0 text-[var(--qs-brand)]" />
-                  Your plan activates immediately; the credit pack keeps its own validity.
-                </p>
-                <p className="mt-1.5 text-center text-[12px] font-medium text-[var(--qs-muted)]">
-                  Secure payments via Razorpay
-                </p>
-              </>
-            ) : (
-              <>
-                <div className={cn(QS_ROW, "border-t-2 border-[var(--qs-line)]")}>
-                  <div>
-                    <b className="block text-[13px] font-extrabold text-[var(--qs-ink)] sm:text-[15px]">{plan.name}</b>
-                    <small className="text-[12px] text-[var(--qs-muted)] sm:text-sm">
-                      {formatBillingPeriod(plan.billingPeriod ?? "monthly", plan.customDays)} plan
-                    </small>
-                  </div>
-                  <strong className="text-[18px] font-extrabold tabular-nums text-[var(--qs-ink)] sm:text-[24px]">
-                    {formatPricingAmount(plan.price, plan.currency)}
-                  </strong>
-                </div>
-                <div className={cn(QS_ROW, "border-t-2 border-[var(--qs-line)]")}>
-                  <span className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--qs-muted)] sm:text-sm">
-                    <Sparkles className="h-4 w-4" />
-                    Monthly credits
-                  </span>
-                  <span className="font-bold tabular-nums text-[var(--qs-ink)]">
-                    {plan.credits.toLocaleString("en-IN")}
-                  </span>
-                </div>
-                <div className={cn(QS_ROW, "border-t-2 border-[var(--qs-line)]")}>
-                  <span className="text-[13px] font-bold text-[var(--qs-ink)] sm:text-sm">Balance after activation</span>
-                  <b className="text-[16px] font-extrabold tabular-nums text-[var(--qs-ok)] sm:text-[22px]">
-                    {(balance + plan.credits).toLocaleString("en-IN")}
-                  </b>
-                </div>
-                <p className="mb-2 mt-2 flex items-start gap-2 rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2.5 text-[12px] font-medium text-[var(--qs-muted)] sm:mb-3 sm:text-[13px]">
-                  <CalendarClock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--qs-brand)]" />
-                  Your plan activates immediately and stays active for its billing period.
-                </p>
-                <button
-                  type="button"
-                  onClick={choosePlan}
-                  className="b b-pri lg b-full"
-                >
-                  <Lock className="h-4 w-4" /> Pay {formatPricingAmount(plan.price, plan.currency)}
-                </button>
-                <p className="mt-3 text-center text-[12px] font-medium text-[var(--qs-muted)]">
-                  Secure payments via Razorpay
-                </p>
-              </>
+            {suggestion && (
+              <div className="mt-3">
+                <PlanBundleSuggestionCard
+                  suggestion={suggestion}
+                  plan={plan}
+                  balance={balance}
+                  onAccept={chooseBundle}
+                />
+              </div>
             )}
           </>
         )}

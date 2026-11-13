@@ -6,12 +6,8 @@ import { useEffect, type ReactNode } from "react";
 import {
   ArrowRight,
   CalendarClock,
-  Coins,
-  CreditCard,
   Flame,
   History,
-  PiggyBank,
-  Sparkles,
   TriangleAlert,
   Wallet,
 } from "lucide-react";
@@ -26,8 +22,6 @@ import { TrialRequestPanel } from "./TrialRequestPanel";
 import { checkLowCreditWarning, useAICreditsStore } from "@/store/aiCreditsStore";
 import type { AICreditPurchase, AICreditUsageEntry } from "@/types/aiCredits";
 
-const BTN =
-  "inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 py-2 text-[11.5px] font-semibold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] sm:gap-2 sm:rounded-[12px] sm:border-2 sm:px-4 sm:py-2.5 sm:text-[13px] sm:font-bold";
 const BTN_PRI =
   "inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] px-2 py-2 text-[11.5px] font-semibold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] transition-all hover:brightness-110 active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0_var(--qs-sun)] sm:gap-2 sm:rounded-[12px] sm:border-2 sm:px-4 sm:py-2.5 sm:text-[13px] sm:font-bold sm:shadow-[3px_3px_0_var(--qs-sun)] sm:active:shadow-[2px_2px_0_var(--qs-sun)]";
 const PILL =
@@ -39,6 +33,20 @@ const METRIC_COLORS = {
   warning: "var(--qs-sun)",
   info: "#2457d6",
 } as const;
+
+function CreditCoin({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 30 30" aria-hidden="true" className={className}>
+      <circle cx="15" cy="15" r="13.5" fill="#f6bf2f" stroke="#b87408" strokeWidth="1.5" />
+      <path
+        d="M15 7.5l2 4.7 5 .5-3.8 3.3 1.2 5-4.4-2.7-4.4 2.7 1.2-5L8 12.7l5-.5z"
+        fill="#fff4c9"
+        stroke="#c98410"
+        strokeWidth=".8"
+      />
+    </svg>
+  );
+}
 
 function formatTime(ts: number): string {
   return new Date(ts).toLocaleString(undefined, {
@@ -72,7 +80,7 @@ function DashPanel({
   className?: string;
 }) {
   return (
-    <section className={cn("flex h-full flex-col rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3.5 sm:rounded-[26px] sm:border-2 sm:p-6", className)}>
+    <section className={cn("flex h-full flex-col rounded-[18px] border border-[#e4ddff] bg-white/80 p-4 shadow-[0_18px_45px_-30px_rgba(70,40,200,0.5)] backdrop-blur sm:rounded-[26px] sm:p-6", className)}>
       <header className="flex flex-wrap items-baseline justify-between gap-3 sm:items-start">
         <div className="min-w-0">
           <h2 className="qs-display text-[14px] font-bold text-[var(--qs-ink)] sm:text-[21px] sm:font-extrabold">{title}</h2>
@@ -101,13 +109,13 @@ function MetricTile({
   icon: ReactNode;
 }) {
   return (
-    <article className="rounded-[10px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 py-2 sm:rounded-[18px] sm:border-2 sm:px-4 sm:py-3.5">
+    <article className="rounded-[14px] border border-[#e4ddff] bg-white/80 px-3 py-2.5 shadow-[0_14px_34px_-26px_rgba(70,40,200,0.5)] backdrop-blur sm:rounded-[18px] sm:px-4 sm:py-3.5">
       <div className="flex items-center justify-between gap-2">
         <p className="flex min-w-0 items-center gap-1.5 text-[9.5px] font-semibold text-[var(--qs-muted)] sm:gap-2 sm:text-[10px] sm:font-black sm:uppercase sm:tracking-[0.11em]">
           <span className="hidden h-2.5 w-2.5 shrink-0 rounded-full sm:block" style={{ background: color }} />
           <span className="truncate">{label}</span>
         </p>
-        <span className="hidden h-8 w-8 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-line)] text-[var(--qs-muted)] sm:grid">
+        <span className="hidden h-8 w-8 shrink-0 place-items-center rounded-[10px] border border-[#e4ddff] bg-[#f7f5ff] text-[var(--qs-muted)] sm:grid">
           {icon}
         </span>
       </div>
@@ -162,29 +170,52 @@ function CreditsCard({
     (subscription?.status === "free" ? "Free plan" : "Current");
 
   return (
-    <div className="relative mb-0 mr-0 sm:mb-4 sm:mr-4">
-      <span aria-hidden="true" className="absolute -bottom-4 -right-4 left-4 top-4 hidden rounded-[30px] bg-[var(--qs-sun)] sm:block" />
-      <article className="relative flex h-full flex-col rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3.5 shadow-[2px_3px_0_var(--qs-sun)] sm:rounded-[26px] sm:border-2 sm:p-6 sm:shadow-none">
+    <article className="relative flex h-full flex-col overflow-hidden rounded-[22px] border-2 border-[#1b1740] bg-[linear-gradient(155deg,#34268a_0%,#231a66_45%,#1b1740_100%)] p-4 !text-white shadow-[0_30px_70px_-24px_rgba(40,25,120,0.65)] sm:rounded-[26px] sm:p-6">
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full border border-white/10"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full border border-white/10"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-16 -top-10 h-56 w-56 rounded-full bg-[#7a5cff] opacity-40 blur-3xl"
+      />
+
+      <div className="relative z-10 flex h-full flex-col">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <span className={cn(PILL, low ? "text-[#a85d00]" : "text-[var(--qs-ok)]")}>
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.08em]",
+                low
+                  ? "border-[#f6bf2f]/40 bg-[#f6bf2f]/15 !text-[#f6bf2f]"
+                  : "border-[#6ee7b7]/40 bg-[#6ee7b7]/15 !text-[#6ee7b7]"
+              )}
+            >
               <span className="h-1.5 w-1.5 rounded-full bg-current" />
               {low ? "Running low" : "Available now"}
             </span>
-            <h2 className="qs-display mt-1.5 text-[15px] font-bold text-[var(--qs-ink)] sm:mt-3 sm:text-[21px] sm:font-extrabold">AI credit balance</h2>
+            <h2 className="mt-2 !text-white text-[20px] font-extrabold tracking-[-0.01em] sm:text-[22px]">
+              AI credit balance
+            </h2>
           </div>
-          <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240] sm:h-12 sm:w-12 sm:border-2">
-            <Sparkles className="h-3.5 w-3.5 sm:h-5 sm:w-5" strokeWidth={2.5} />
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-[18px] border border-[#f6bf2f]/40 bg-[#f6bf2f]/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]">
+            <CreditCoin className="h-9 w-9 drop-shadow-[0_2px_10px_rgba(246,191,47,0.5)]" />
           </span>
         </div>
 
-        <p className="mt-2 leading-none sm:mt-4">
-          <span className="qs-display text-[32px] font-bold tracking-tight text-[var(--qs-ink)] sm:text-[56px] sm:font-extrabold">
+        <p className="mt-3 leading-none sm:mt-4">
+          <span className="text-[48px] font-black tracking-[-0.03em] !text-white sm:text-[62px]">
             {balance.totalRemaining.toLocaleString("en-IN")}
           </span>
-          <span className="ml-2 align-middle text-[12px] font-medium text-[var(--qs-muted)] sm:ml-2.5 sm:text-[15px] sm:font-bold">credits left</span>
+          <span className="ml-2 align-middle text-[12px] font-semibold !text-white/70 sm:ml-2.5 sm:text-[15px]">
+            credits left
+          </span>
         </p>
-        <p className="mt-1.5 text-[10.5px] text-[var(--qs-muted)] sm:mt-2 sm:text-[13px]">
+        <p className="mt-2 text-[11.5px] leading-relaxed !text-white/70 sm:text-[13px]">
           {isTrialActive ? (
             <>
               {trialPlanName} trial · {BASIC_TRIAL_CREDITS} trial AI credits ·{" "}
@@ -199,52 +230,62 @@ function CreditsCard({
             </>
           ) : (
             <>
-              {planName} plan · {balance.monthlyCredits.toLocaleString("en-IN")}{" "}
-              included · {balance.purchasedCredits.toLocaleString("en-IN")}{" "}
-              purchased
+              {planName} plan · {balance.monthlyCredits.toLocaleString("en-IN")} included ·{" "}
+              {balance.purchasedCredits.toLocaleString("en-IN")} purchased
             </>
           )}
         </p>
 
-        <div className="mt-3 sm:mt-5">
-          <div className="flex items-center justify-between gap-3 text-[10.5px] font-semibold text-[var(--qs-muted)] sm:text-[11px] sm:font-bold">
+        <div className="mt-4 sm:mt-5">
+          <div className="flex items-center justify-between gap-3 text-[10.5px] font-semibold !text-white/70 sm:text-[11px]">
             <span>Monthly plan usage</span>
-            <span className="tabular-nums text-[var(--qs-ink)]">
+            <span className="tabular-nums !text-white">
               {monthlyUsed.toLocaleString("en-IN")} / {monthlyTotal.toLocaleString("en-IN")}
             </span>
           </div>
-          <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[var(--qs-line)] sm:mt-2 sm:h-3.5 sm:border-2 sm:border-[var(--qs-ink)] sm:bg-[var(--qs-bg)]">
+          <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/15 sm:h-3">
             <div
-              className={cn("h-full rounded-full transition-all duration-500", low ? "bg-[var(--qs-sun)]" : "bg-[var(--qs-brand)]")}
+              className={cn(
+                "h-full rounded-full transition-all duration-500",
+                low
+                  ? "bg-[linear-gradient(90deg,#f6bf2f,#ffd76a)]"
+                  : "bg-[linear-gradient(90deg,#8b6cff,#6ee7b7)]"
+              )}
               style={{ width: `${monthlyPct}%` }}
             />
           </div>
-          <p className="mt-1 text-[10px] text-[var(--qs-muted)] sm:mt-1.5 sm:text-[11px]">
+          <p className="mt-1.5 text-[10px] !text-white/55 sm:text-[11px]">
             {Math.round(monthlyPct)}% of this month&apos;s included credits used.
           </p>
         </div>
 
         {low && (
-          <div className="mt-4 flex items-start gap-2.5 rounded-2xl border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/20 p-3">
-            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-[var(--qs-ink)]" />
-            <p className="text-[12px] font-medium leading-5 text-[var(--qs-ink)]">
+          <div className="mt-4 flex items-start gap-2.5 rounded-[14px] border border-[#f6bf2f]/40 bg-[#f6bf2f]/10 p-3">
+            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-[#f6bf2f]" />
+            <p className="text-[12px] font-medium leading-5 !text-white/90">
               Running low — top up before your next paper or quiz.
             </p>
           </div>
         )}
 
-        <div className="mt-auto grid grid-cols-2 gap-1.5 pt-3.5 [&>*]:w-full sm:flex sm:flex-wrap sm:gap-2 sm:pt-5 sm:[&>*]:w-auto">
-          <Link href="/creator/billing/credits" className={BTN_PRI}>
-            <Coins className="h-4 w-4" />
+        <div className="mt-auto grid grid-cols-2 gap-2 pt-4 sm:flex sm:flex-wrap sm:pt-5">
+          <Link
+            href="/creator/billing/credits"
+            className="inline-flex items-center justify-center gap-2 rounded-[12px] border border-white/20 bg-[linear-gradient(135deg,#8b6cff,#5b3fe8)] px-3.5 py-2.5 text-[12px] font-bold !text-white shadow-[0_12px_26px_-12px_rgba(123,92,255,0.9)] transition-all hover:brightness-110 sm:px-4 sm:text-[13px]"
+          >
+            <CreditCoin className="h-4 w-4" />
             Buy credits
           </Link>
-          <Link href="/creator/billing/transactions" className={BTN}>
+          <Link
+            href="/creator/billing/transactions"
+            className="inline-flex items-center justify-center gap-2 rounded-[12px] border border-white/25 bg-white/10 px-3.5 py-2.5 text-[12px] font-bold !text-white transition-colors hover:bg-white/15 sm:px-4 sm:text-[13px]"
+          >
             <History className="h-4 w-4" />
             History
           </Link>
         </div>
-      </article>
-    </div>
+      </div>
+    </article>
   );
 }
 
@@ -279,8 +320,8 @@ function TopUpsCard({ purchases }: { purchases: AICreditPurchase[] }) {
     >
       {purchases.length === 0 ? (
         <div className="flex h-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--qs-line)] px-4 py-8 text-center">
-          <span className="grid h-12 w-12 place-items-center rounded-full border-2 border-[var(--qs-line)] text-[var(--qs-muted)]">
-            <CreditCard className="h-5 w-5" />
+          <span className="grid h-12 w-12 place-items-center rounded-full border border-[#f0d28a] bg-[#fff3d1]">
+            <CreditCoin className="h-7 w-7" />
           </span>
           <p className="mt-3 text-[13px] font-bold text-[var(--qs-ink)]">No top-ups yet</p>
           <p className="mt-1 max-w-[220px] text-[12px] leading-5 text-[var(--qs-muted)]">
@@ -297,8 +338,8 @@ function TopUpsCard({ purchases }: { purchases: AICreditPurchase[] }) {
               key={`${purchase.packId}-${purchase.timestamp}`}
               className={cn("flex items-center gap-2.5 py-2 sm:gap-3 sm:py-3", index > 0 && "border-t border-[var(--qs-line)] sm:border-t-2")}
             >
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] border border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-brand)] sm:h-10 sm:w-10 sm:rounded-[13px] sm:border-2">
-                <Coins className="h-4 w-4" />
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] border border-[#f0d28a] bg-[#fff3d1] sm:h-10 sm:w-10 sm:rounded-[13px]">
+                <CreditCoin className="h-5 w-5 sm:h-6 sm:w-6" />
               </span>
               <div className="min-w-0 flex-1">
                 <b className="block truncate text-[13px] font-bold text-[var(--qs-ink)]">{purchase.packName}</b>
@@ -458,7 +499,7 @@ function EmptyBilling() {
           Buy credits to start generating with AI. Your balance, usage and top-ups will appear here.
         </p>
         <Link href="/creator/billing/credits" className={cn(BTN_PRI, "mx-auto mt-5")}>
-          <Coins className="h-4 w-4" />
+          <CreditCoin className="h-4 w-4" />
           Buy credits
         </Link>
       </div>
@@ -488,11 +529,11 @@ function PlanSummaryStrip({
   return (
     <section
       aria-label="Monthly plan summary"
-      className="flex items-center gap-2.5 rounded-[14px] border border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5 sm:flex-wrap sm:justify-between sm:gap-4 sm:rounded-[22px] sm:border-2 sm:px-5 sm:py-4"
+      className="flex items-center gap-2.5 rounded-[16px] border border-[#e4ddff] bg-white/85 px-3 py-2.5 shadow-[0_14px_35px_-28px_rgba(70,40,200,0.5)] backdrop-blur sm:flex-wrap sm:justify-between sm:gap-4 sm:rounded-[22px] sm:px-5 sm:py-4"
     >
       <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
-        <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full border border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240] sm:h-11 sm:w-11 sm:border-2">
-          <CalendarClock className="h-4 w-4 sm:h-5 sm:w-5" />
+        <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[11px] border border-[#f0d28a] bg-[#fff3d1] sm:h-11 sm:w-11 sm:rounded-[14px]">
+          <CreditCoin className="h-5 w-5 sm:h-7 sm:w-7" />
         </span>
         <div className="min-w-0 flex-1">
           <span className={cn(PILL, "text-[var(--qs-brand)]")}>Current plan</span>
@@ -532,7 +573,7 @@ function PlanSummaryStrip({
 
       <div className="hidden flex-wrap items-center gap-x-5 gap-y-2 text-[12px] font-semibold text-[var(--qs-muted)] sm:flex">
         <span className="inline-flex items-center gap-1.5">
-          <Sparkles className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
+          <CreditCoin className="h-3.5 w-3.5" />
           {isTrialActive
             ? `${BASIC_TRIAL_CREDITS} trial AI credits`
             : isTrialExpired
@@ -542,7 +583,7 @@ function PlanSummaryStrip({
                 : "No monthly credits"}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <Coins className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
+          <CreditCoin className="h-3.5 w-3.5" />
           {purchasedCredits.toLocaleString("en-IN")} purchased credits
         </span>
         <Link
@@ -628,7 +669,7 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
               unit="credits"
               hint={`of ${data.balance.monthlyCredits.toLocaleString("en-IN")} included`}
               color={METRIC_COLORS.warning}
-              icon={<Flame className="h-4 w-4" />}
+              icon={<CreditCoin className="h-4 w-4" />}
             />
             <MetricTile
               label="Used today"
@@ -636,7 +677,7 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
               unit="credits"
               hint="Across all AI features"
               color={METRIC_COLORS.primary}
-              icon={<Sparkles className="h-4 w-4" />}
+              icon={<CreditCoin className="h-4 w-4" />}
             />
             <MetricTile
               label="Avg daily usage"
@@ -644,7 +685,7 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
               unit="credits"
               hint="Based on the last 30 days"
               color={METRIC_COLORS.info}
-              icon={<PiggyBank className="h-4 w-4" />}
+              icon={<CreditCoin className="h-4 w-4" />}
             />
             <MetricTile
               label="Days remaining"

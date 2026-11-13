@@ -6,7 +6,7 @@ import { cn } from "@/lib/helpers";
 
 const BILLING_TABS = [
   { label: "Overview", href: "/creator/billing", exact: true },
-  { label: "Plans", href: "/creator/billing/plans" },
+  { label: "Monthly plans", href: "/creator/billing/plans" },
   { label: "AI credits", href: "/creator/billing/credits" },
   // Selling tabs disabled for now (routes commented out, components kept):
   // { label: "Earnings", href: "/creator/billing/earnings" },
@@ -24,7 +24,7 @@ export function BillingSubnav() {
 
   return (
     <div className="relative z-10 -mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-6 sm:px-6">
-      <div className="flex w-fit items-center gap-1.5 rounded-[20px] border-[1.5px] border-[var(--qs-ink)] border-b-4 border-b-[var(--qs-sun)] bg-[var(--qs-surface)] p-1.5 sm:gap-1 sm:rounded-[16px] sm:border-2 sm:p-[5px] sm:shadow-[4px_4px_0_var(--qs-sun)]">
+      <div className="flex w-fit items-center gap-1.5 rounded-[20px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] p-1.5 shadow-[0_4px_0_var(--qs-sun)] sm:gap-1 sm:rounded-[16px] sm:border-2 sm:p-[5px] sm:shadow-[0_4px_0_var(--qs-sun)]">
         {BILLING_TABS.map((tab) => {
           const isActive = tab.exact
             ? pathname === tab.href
