@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import {
   ClipboardList,
   Code2,
-  Trophy,
   FileCode,
   ListMusic,
   TrendingUp,
@@ -17,7 +16,7 @@ import { SecureLogo } from "@/components/common/SecureLogo";
 const menuItems = [
   { label: "Quizzes", icon: ClipboardList, href: "/quiz", active: true },
   { label: "Problems", icon: Code2, href: "/problems" },
-  { label: "Contests", icon: Trophy, href: "/contests" },
+  // { label: "Contests", icon: Trophy, href: "/contests" } // Contests frontend disabled
   { label: "Submissions", icon: FileCode, href: "/submissions" },
   { label: "Playlists", icon: ListMusic, href: "/playlists" },
   { label: "Ratings", icon: TrendingUp, href: "/ratings" },

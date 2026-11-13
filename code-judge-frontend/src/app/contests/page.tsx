@@ -1,10 +1,7 @@
-import GuestGuard from "@/components/guards/GuestGuard";
-import ContestsLanding from "./ContestsLanding";
+// import GuestGuard from "@/components/guards/GuestGuard";
+// import ContestsLanding from "./ContestsLanding";
 
+// Contests frontend disabled
 export default function ContestsPage() {
-  return (
-    <GuestGuard action="join-contest">
-      <ContestsLanding />
-    </GuestGuard>
-  );
+  return null;
 }

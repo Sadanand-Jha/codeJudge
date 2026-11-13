@@ -235,10 +235,10 @@ function PlanPaymentCard({
 
       <p className="mt-3 flex gap-2 text-[11.5px] leading-relaxed text-[var(--qs-muted)]">
         <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-[#4a2fd8]" />
-        <span>
-          Your plan activates immediately and stays active for its billing period. You&apos;ll complete
-          the payment in the secure Razorpay window.
-        </span>
+          <span>
+            Your plan activates immediately and stays active for its billing period. You&apos;ll complete
+            the payment after backend verification.
+          </span>
       </p>
       <p className="mt-4 border-t-2 border-dashed border-[var(--qs-line)] pt-3 text-center text-[11px] text-[var(--qs-muted)]">
         <ShieldCheck className="mr-1 inline h-3.5 w-3.5 text-[#4a2fd8]" />

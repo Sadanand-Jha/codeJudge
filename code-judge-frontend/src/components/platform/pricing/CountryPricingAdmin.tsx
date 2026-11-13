@@ -128,7 +128,7 @@ export function CountryPricingAdmin() {
     <div className="space-y-4">
       <SectionCard
         title="Country-wise Elevate prices"
-        subtitle="Prices are monthly, versioned, and used by the server at checkout. Currency availability is separately gated by the Razorpay account configuration."
+        subtitle="Prices are monthly, versioned, and used at checkout."
       >
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] border-collapse text-left text-sm">

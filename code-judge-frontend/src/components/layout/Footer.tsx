@@ -11,7 +11,8 @@ export default function Footer() {
             <span className="text-[#3F3F46]">|</span>
             <Link href="/quiz" className="hover:text-[#7C3AED] transition-colors">Quizzes</Link>
             <Link href="/problems" className="hover:text-[#7C3AED] transition-colors">Problemset</Link>
-            <Link href="/contests" className="hover:text-[#7C3AED] transition-colors">Contests</Link>
+            {/* Contests frontend disabled */}
+            {/* <Link href="/contests" className="hover:text-[#7C3AED] transition-colors">Contests</Link> */}
             <Link href="/about" className="hover:text-[#7C3AED] transition-colors">About</Link>
             <Link href="/meet-the-developer" className="hover:text-[#7C3AED] transition-colors">Developer</Link>
           </div>

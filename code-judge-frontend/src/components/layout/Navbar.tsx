@@ -12,8 +12,8 @@ const primaryTabs = [
   { label: "HOME", href: "/" },
   { label: "TOP", href: "/top" },
   { label: "CATALOG", href: "/catalog" },
-  { label: "CONTESTS", href: "/contests" },
-  { label: "GYM", href: "/gym" },
+  // { label: "CONTESTS", href: "/contests" } // Contests frontend disabled
+  // { label: "GYM", href: "/gym" } // Gym frontend disabled
   { label: "PROBLEMSET", href: "/problems" },
   { label: "GROUPS", href: "/groups" },
   { label: "RATING", href: "/rating" },

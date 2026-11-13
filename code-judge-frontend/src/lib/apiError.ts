@@ -22,7 +22,7 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
       return "Too many attempts. Please wait a moment and try again.";
     }
     if (!error.response) {
-      return "Unable to reach the server. Please check your connection and try again.";
+      return "Unable to complete the request. Please check your connection and try again.";
     }
     return fallback;
   }

@@ -475,7 +475,7 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack }:
           <div role="tabpanel" hidden={tab !== "upi"}>
             {tab === "upi" && (
               <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[13px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300">
-                Continue to pay — you&apos;ll approve the UPI request in the secure Razorpay window.
+                Continue to pay — you&apos;ll approve the UPI request.
               </p>
             )}
           </div>

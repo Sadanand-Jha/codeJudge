@@ -373,9 +373,6 @@ export function CreditPacks({
         </section>
       </div>
 
-      <p className="mt-5 flex items-center justify-center gap-1.5 text-[13px] font-semibold text-[var(--qs-muted)] sm:mt-7 sm:text-[13px]">
-        <Lock className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5" />
-        Secure payments via UPI, Cards &amp; Net Banking
       </p>
     </div>
   );

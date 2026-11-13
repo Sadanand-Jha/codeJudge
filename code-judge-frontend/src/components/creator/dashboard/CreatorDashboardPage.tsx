@@ -847,9 +847,10 @@ function CreditsCard() {
               History
             </Link>
           </div>
-          <p className="mt-3.5 text-center text-[11.5px] font-medium text-[#5b5780]">
+          {/* Secure payment via Razorpay line removed */}
+          {/* <p className="mt-3.5 text-center text-[11.5px] font-medium text-[#5b5780]">
             Secure payment via Razorpay · Credits are added after verification.
-          </p>
+          </p> */}
         </>
       )}
     </article>

@@ -33,9 +33,10 @@ import { useAvatarHover } from "@/hooks/useAvatarHover";
 import { getQuizByCode, getQuizCode, type Quiz } from "@/services/quiz";
 import { isValidQuizCode } from "@/utils/quizCode";
 import { getQuizScheduleWindow } from "@/utils/quizSchedule";
-import dynamic from "next/dynamic";
-import { Sun, Moon, Globe } from "lucide-react";
-const LiveCampus = dynamic(() => import("@/components/quiz/live/live-campus/LiveCampus"), { ssr: false });
+// import dynamic from "next/dynamic"; // 2D open-world disabled
+import { Sun, Moon } from "lucide-react";
+// import { Globe } from "lucide-react"; // 2D open-world toggle disabled
+// const LiveCampus = dynamic(() => import("@/components/quiz/live/live-campus/LiveCampus"), { ssr: false }); // 2D open-world disabled
 
 export default function WaitingRoomPage() {
   const params = useParams<{ quizId?: string }>();
@@ -317,6 +318,7 @@ function WaitingRoomPageInner({
             >
               <Moon className="h-3.5 w-3.5" /> Dark
             </button>
+            {/* 2D open-world toggle disabled
             <button
               type="button"
               onClick={()=> handleViewMode("real")}
@@ -326,12 +328,15 @@ function WaitingRoomPageInner({
             >
               <Globe className="h-3.5 w-3.5" /> Real World
             </button>
+            */}
           </div>
           {/* Mobile compact toggle */}
           <div className="flex items-center gap-1 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-1 sm:hidden">
             <button type="button" onClick={()=> handleViewMode("light")} aria-pressed={viewMode==="light"} title="Light mode" className={`b b-icon sm ${viewMode==="light" ? "b-pri" : ""}`}><Sun className="h-3.5 w-3.5" /></button>
             <button type="button" onClick={()=> handleViewMode("dark")} aria-pressed={viewMode==="dark"} title="Dark mode" className={`b b-icon sm ${viewMode==="dark" ? "b-pri" : ""}`}><Moon className="h-3.5 w-3.5" /></button>
+            {/* 2D open-world toggle disabled
             <button type="button" onClick={()=> handleViewMode("real")} aria-pressed={viewMode==="real"} title="Real World — Live Campus" className={`b b-icon sm ${viewMode==="real" ? "b-pri" : ""}`}><Globe className="h-3.5 w-3.5" /></button>
+            */}
           </div>
           {/* Participants Button */}
           <button
@@ -348,12 +353,13 @@ function WaitingRoomPageInner({
         </div>
       </div>
 
-      {/* LiveCampus — only mounted in Real World mode, positioned absolutely to fill screen */}
+      {/* LiveCampus 2D open-world disabled
       {viewMode === "real" && (
         <div className="absolute inset-0 z-10 pt-[60px]">
           <LiveCampus quizId={quizCode} quizName={quiz.name} startsIn={remainingTime} totalCapacity={40} />
         </div>
       )}
+      */}
 
       {/* Waiting Room UI — hidden in Real World mode */}
       {viewMode !== "real" && (

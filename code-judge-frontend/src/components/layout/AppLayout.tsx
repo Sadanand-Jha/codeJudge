@@ -11,8 +11,8 @@ import {
   Settings,
   Menu,
   LogOut,
-  BookOpen,
-  Trophy,
+  // BookOpen, // Code editor frontend disabled
+  // Trophy, // Contests frontend disabled
   ChevronDown,
   User,
   Waypoints,
@@ -165,7 +165,7 @@ const _fullNavGroups: { label: string; items: NavItemData[] }[] = [
   {
     label: "ASSESSMENTS",
     items: [
-      { label: "Contests", icon: Trophy, href: "/contests" },
+      // { label: "Contests", icon: Trophy, href: "/contests" } // Contests frontend disabled
       { label: "Problems", icon: Code2, href: "/problems" },
       { label: "Join Quiz", icon: UserPlus, href: "/quiz" },
     ],
@@ -178,10 +178,7 @@ const _fullNavGroups: { label: string; items: NavItemData[] }[] = [
     label: "PREPARATION",
     items: [{ label: "Preparation", icon: Waypoints, href: "/preparation" }],
   },
-  {
-    label: "TOOLS",
-    items: [{ label: "Editor", icon: BookOpen, href: "/editor" }],
-  },
+  // { label: "TOOLS", items: [{ label: "Editor", icon: BookOpen, href: "/editor" }] } // Code editor frontend disabled
   {
     label: "ACCOUNT",
     items: [
