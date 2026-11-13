@@ -4,9 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Users,
-  Upload,
-  ClipboardList,
-  Plus,
+  // OLD / COMING SOON (disabled): manually added students.
+  // Upload,
+  // ClipboardList,
+  // Plus,
   Search,
   X,
   Check,
@@ -47,7 +48,8 @@ export function AudienceStep({ embedded = false }: { embedded?: boolean } = {}) 
   const currentModeLabel = MODE_OPTIONS.find((m) => m.id === a.mode)?.label;
 
   const roomIds = useMemo(() => a.roomIds ?? [], [a.roomIds]);
-  const selections = a.roomStudentSelections ?? {};
+  // OLD ARCHITECTURE (disabled): per-student selections inside selected rooms.
+  // const selections = a.roomStudentSelections ?? {};
   const selectedRooms = useMemo(
     () => rooms.filter((r) => roomIds.includes(r.id) && !r.archived),
     [rooms, roomIds]
@@ -214,17 +216,18 @@ export function AudienceStep({ embedded = false }: { embedded?: boolean } = {}) 
   const audienceLoading = a.mode === "classroom" &&
     (roomListLoading || restoringAudience || roomLoadsInFlight > 0 || selectedRoomsNeedMembers);
 
-  const toggleStudent = (roomId: string, rollNumber: string) => {
-    const room = rooms.find((r) => r.id === roomId);
-    if (!room) return;
-    // Build from the full member list so unchecking one student keeps others.
-    const base = selections[roomId]
-      ? new Set(selections[roomId])
-      : new Set(room.students.filter((s) => s.active).map((s) => s.rollNumber));
-    if (base.has(rollNumber)) base.delete(rollNumber);
-    else base.add(rollNumber);
-    updateAudience({ roomStudentSelections: { ...selections, [roomId]: [...base] } });
-  };
+  // OLD ARCHITECTURE (disabled): per-student selection helper.
+  // const toggleStudent = (roomId: string, rollNumber: string) => {
+  //   const room = rooms.find((r) => r.id === roomId);
+  //   if (!room) return;
+  //   // Build from the full member list so unchecking one student keeps others.
+  //   const base = selections[roomId]
+  //     ? new Set(selections[roomId])
+  //     : new Set(room.students.filter((s) => s.active).map((s) => s.rollNumber));
+  //   if (base.has(rollNumber)) base.delete(rollNumber);
+  //   else base.add(rollNumber);
+  //   updateAudience({ roomStudentSelections: { ...selections, [roomId]: [...base] } });
+  // };
 
   return (
     <StudioStepLayout embedded={embedded}>
@@ -279,6 +282,20 @@ export function AudienceStep({ embedded = false }: { embedded?: boolean } = {}) 
       {audienceLoading && <AudienceLoadingSkeleton />}
 
       {a.mode === "classroom" && !audienceLoading && (
+        <RoomsAudiencePanel
+          selectedRooms={selectedRooms}
+          onSelectRooms={() => setSelectRoomsOpen(true)}
+          onRemoveRoom={(roomId) =>
+            updateAudience({ roomIds: roomIds.filter((id) => id !== roomId) })
+          }
+          onSave={saveAudienceParticipants}
+          dirty={audienceDirty}
+        />
+      )}
+
+      {/* OLD ARCHITECTURE (disabled): per-student selection inside selected rooms.
+          Re-enable only if room membership should be snapshotted again.
+      {a.mode === "classroom" && !audienceLoading && (
         <AllStudentsPanel
           selectedRooms={selectedRooms}
           selections={selections}
@@ -290,7 +307,9 @@ export function AudienceStep({ embedded = false }: { embedded?: boolean } = {}) 
           dirty={audienceDirty}
         />
       )}
+      */}
 
+      {/* OLD / COMING SOON (disabled): manually added students.
       {a.mode === "classroom" && !audienceLoading && (
         <div className="relative w-full min-w-0 max-w-full overflow-hidden rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 sm:p-5 space-y-3 sm:space-y-4 opacity-60 pointer-events-none select-none">
           <div className="flex min-w-0 items-start justify-between gap-2">
@@ -337,6 +356,7 @@ export function AudienceStep({ embedded = false }: { embedded?: boolean } = {}) 
           </div>
         </div>
       )}
+      */}
 
       <ConfirmModal
         open={pendingMode !== null}
@@ -362,6 +382,7 @@ export function AudienceStep({ embedded = false }: { embedded?: boolean } = {}) 
       />
 
       <SelectRoomsModal
+        key={roomIds.join(",")}
         open={selectRoomsOpen}
         onClose={() => setSelectRoomsOpen(false)}
         selectedRoomIds={roomIds}
@@ -375,8 +396,11 @@ export function AudienceStep({ embedded = false }: { embedded?: boolean } = {}) 
         open={createRoomOpen}
         onClose={() => setCreateRoomOpen(false)}
         onCreated={(roomId) => {
-          updateAudience({ roomIds: [...roomIds, roomId] });
+          updateAudience({
+            roomIds: roomIds.includes(roomId) ? roomIds : [...roomIds, roomId],
+          });
           setCreateRoomOpen(false);
+          setSelectRoomsOpen(false);
           toast.success({ title: "Room created and added to audience" });
         }}
       />
@@ -416,6 +440,168 @@ function AudienceLoadingSkeleton() {
   );
 }
 
+/* ─── Rooms-only Audience Panel ─────────────────────────────────────────── */
+
+interface RoomsAudiencePanelProps {
+  selectedRooms: Array<{
+    id: string;
+    name: string;
+    description?: string;
+    students: Array<{ id: string; active: boolean }>;
+    memberCount?: number;
+  }>;
+  onSelectRooms: () => void;
+  onRemoveRoom: (roomId: string) => void;
+  onSave: () => Promise<void>;
+  dirty: boolean;
+}
+
+function RoomsAudiencePanel({
+  selectedRooms,
+  onSelectRooms,
+  onRemoveRoom,
+  onSave,
+  dirty,
+}: RoomsAudiencePanelProps) {
+  const [saving, setSaving] = useState(false);
+
+  const totalActiveMembers = useMemo(
+    () =>
+      selectedRooms.reduce(
+        (total, room) => total + room.students.filter((student) => student.active).length,
+        0
+      ),
+    [selectedRooms]
+  );
+
+  const handleSave = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await onSave();
+      toast.success({ title: "Audience saved" });
+    } catch {
+      toast.error({
+        title: "Failed to save audience",
+        description: "Please try again.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="w-full min-w-0 max-w-full overflow-hidden rounded-[20px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-[0_1px_0_var(--qs-line)]">
+      <div className="flex flex-col gap-4 border-b-2 border-[var(--qs-line)] bg-[var(--qs-poly-0)] px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-5">
+        <div className="flex min-w-0 gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] text-[var(--qs-brand)] shadow-[2px_2px_0_var(--qs-sun)]">
+            <Users className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-sm font-black text-[var(--qs-ink)]">Allowed rooms</h3>
+              <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-[var(--qs-muted)]">
+                {selectedRooms.length} selected
+              </span>
+            </div>
+            <p className="mt-1 max-w-xl text-xs font-medium leading-relaxed text-[var(--qs-muted)]">
+              {selectedRooms.length === 0
+                ? "Pick rooms to decide who can attempt this quiz."
+                : "Every active student in these rooms can attempt — students who join later are included automatically."}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid shrink-0 grid-cols-2 gap-2 sm:flex sm:items-center">
+          <button
+            type="button"
+            onClick={onSelectRooms}
+            className="inline-flex items-center justify-center gap-1.5 rounded-[11px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2 text-xs font-bold text-[var(--qs-ink)] transition-colors duration-150 hover:border-[var(--qs-brand)]"
+          >
+            <Users className="h-3.5 w-3.5 shrink-0" />
+            Select Rooms
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!dirty || saving}
+            className="rounded-[11px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3.5 py-2 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] transition-transform duration-150 hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {saving ? "Saving…" : "Save audience"}
+          </button>
+        </div>
+      </div>
+
+      <div className="px-4 py-3 sm:px-5 sm:py-4">
+        {selectedRooms.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-[14px] border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-8 text-center">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--qs-poly-1)] text-[var(--qs-brand)]">
+              <Users className="h-5 w-5" />
+            </span>
+            <p className="mt-2 text-sm font-extrabold text-[var(--qs-ink)]">No rooms allowed yet</p>
+            <p className="mt-0.5 max-w-xs text-xs font-medium text-[var(--qs-muted)]">
+              Select a room and all of its current and future students can attempt this quiz.
+            </p>
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {selectedRooms.map((room) => {
+              const activeMembers = room.students.filter((student) => student.active).length;
+              const memberCount = room.memberCount ?? activeMembers;
+              return (
+                <li
+                  key={room.id}
+                  className="group flex min-w-0 flex-col gap-2 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 transition-colors duration-150 hover:border-[var(--qs-brand)] sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] border-2 border-[var(--qs-ink)]/10 bg-[var(--qs-surface)] text-[var(--qs-brand)]">
+                      <Users className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-[var(--qs-ink)]">{room.name}</p>
+                      <p className="truncate text-xs font-medium text-[var(--qs-muted)]">
+                        {room.description || "All room members are allowed"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-2 pl-12 sm:pl-0">
+                    <span className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 py-0.5 text-[10px] font-extrabold text-[var(--qs-muted)]">
+                      <Users className="h-3 w-3" />
+                      {memberCount} {memberCount === 1 ? "member" : "members"}
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--qs-ok)]/30 bg-[var(--qs-ok)]/10 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-[var(--qs-ok)]">
+                      <Check className="h-3 w-3" strokeWidth={3} />
+                      Allowed
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onRemoveRoom(room.id)}
+                      className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-transparent text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-bad)]/20 hover:bg-[var(--qs-badbg)] hover:text-[var(--qs-bad)]"
+                      aria-label={`Remove ${room.name} from audience`}
+                      title="Remove room"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {selectedRooms.length > 0 && (
+          <p className="mt-3 flex items-center gap-1.5 text-[11px] font-medium text-[var(--qs-muted)]">
+            <Check className="h-3 w-3 text-[var(--qs-ok)]" strokeWidth={3} />
+            <span className="font-extrabold text-[var(--qs-ink)]">{totalActiveMembers}</span>
+            {totalActiveMembers === 1 ? "member" : "members"} can attempt right now · membership stays live
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ─── Unified Student Panel ─────────────────────────────────────────────── */
 
 interface AllStudentsPanelProps {
@@ -429,6 +615,7 @@ interface AllStudentsPanelProps {
   dirty: boolean;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- kept for legacy snapshot mode
 function AllStudentsPanel({
   selectedRooms,
   selections,

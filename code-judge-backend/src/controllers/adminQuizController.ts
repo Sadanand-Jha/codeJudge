@@ -1201,6 +1201,74 @@ export const getQuizParticipantsController = async (req: Request, res: Response)
   }
 };
 
+// ==================== ROOM AUDIENCE ====================
+
+export const getQuizAudienceRoomsController = async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    const { quizId } = req.params;
+    const access = await assertQuizAccess(quizId, userId);
+    if (!access.ok) {
+      res.status(access.status).json({ success: false, message: access.message });
+      return;
+    }
+
+    const roomIds = await quizService.getQuizAudienceRooms(quizId);
+    res.status(200).json({ success: true, data: { roomIds } });
+  } catch (error) {
+    console.error("Error fetching quiz audience rooms:", error);
+    res.status(500).json({ success: false, message: "Internal server error while fetching audience rooms" });
+  }
+};
+
+export const setQuizAudienceRoomsController = async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    const { quizId } = req.params;
+    const rawRoomIds = (req.body as { roomIds?: unknown } | undefined)?.roomIds;
+    if (!Array.isArray(rawRoomIds)) {
+      res.status(400).json({ success: false, message: "roomIds must be an array" });
+      return;
+    }
+
+    const roomIds = [...new Set(rawRoomIds.map((value) => Number(value)))]
+      .filter((value) => Number.isInteger(value) && value > 0);
+    if (roomIds.length !== rawRoomIds.length) {
+      res.status(400).json({ success: false, message: "roomIds must contain unique positive integers" });
+      return;
+    }
+
+    const access = await assertQuizOwnership(quizId, userId);
+    if (!access.ok) {
+      res.status(access.status).json({ success: false, message: access.message });
+      return;
+    }
+
+    const saved = await quizService.replaceQuizAudienceRooms(
+      Number(quizId),
+      Number(access.quiz.createdby),
+      roomIds
+    );
+    if (roomIds.length > 0) {
+      await quizService.updateQuiz(Number(quizId), { audienceMode: "classroom" });
+    }
+    res.status(200).json({ success: true, data: { saved, roomIds } });
+  } catch (error) {
+    console.error("Error saving quiz audience rooms:", error);
+    res.status(500).json({ success: false, message: "Internal server error while saving audience rooms" });
+  }
+};
+
 // ==================== GAME CONFIG ====================
 
 export const getQuizGameConfig = async (req: Request, res: Response) => {

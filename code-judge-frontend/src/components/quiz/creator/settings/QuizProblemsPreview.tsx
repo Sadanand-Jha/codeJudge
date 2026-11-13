@@ -63,7 +63,7 @@ import {
 import { useQuizSettings } from "@/components/quiz/creator/settings/QuizSettingsContext";
 import { useQuestionApproval } from "@/hooks/useQuestionApproval";
 import QuestionBankImportModal from "@/components/quiz/creator/settings/QuestionBankImportModal";
-import { downloadQuizPaperPdf, getPaperPdfErrorMessage, type PaperDownloadKind } from "@/utils/paperPdf";
+import { downloadQuizPaperPdf, formatPdfCooldownWait, getPaperPdfErrorInfo, type PaperDownloadKind } from "@/utils/paperPdf";
 import { formatPaperDate, type PaperMeta } from "@/utils/paperHtml";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/helpers";
@@ -301,7 +301,19 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
         });
       })
       .catch(async (error) => {
-        toast.error({ title: "Could not generate PDF", description: await getPaperPdfErrorMessage(error) });
+        const info = await getPaperPdfErrorInfo(error);
+        if (info.code === "PDF_COOLDOWN") {
+          toast.warning({
+            title: "PDF is cooling down",
+            description:
+              info.retryAfter !== undefined
+                ? `You can download another PDF in ${formatPdfCooldownWait(info.retryAfter)}.`
+                : info.message,
+            duration: 6000,
+          });
+          return;
+        }
+        toast.error({ title: "Could not generate PDF", description: info.message });
       })
       .finally(() => setGeneratingPdf(false));
   };

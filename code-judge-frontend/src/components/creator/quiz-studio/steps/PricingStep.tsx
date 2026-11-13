@@ -1,7 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { IndianRupee, PiggyBank, TrendingUp } from "lucide-react";
+import { IndianRupee } from "lucide-react";
+// OLD (disabled): payment history & payout account section.
+// import { PiggyBank, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import { StudioStepHeader, StudioStepLayout } from "../primitives";
@@ -150,6 +152,7 @@ export function PricingStep({ embedded = false }: { embedded?: boolean } = {}) {
         </div>
       )}
 
+      {/* OLD (disabled): payment history & payout account section.
       <div className="space-y-3 rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-5">
         <div className="flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
           <PiggyBank className="h-4 w-4" /> Payment history & payout account
@@ -164,6 +167,7 @@ export function PricingStep({ embedded = false }: { embedded?: boolean } = {}) {
           <TrendingUp className="h-3.5 w-3.5 text-[var(--qs-muted)]" />
         </div>
       </div>
+      */}
     </StudioStepLayout>
   );
 }

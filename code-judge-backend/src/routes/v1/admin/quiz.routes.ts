@@ -43,6 +43,8 @@ import {
   getStudentResponseDetail,
   setQuizParticipants,
   getQuizParticipantsController,
+  getQuizAudienceRoomsController,
+  setQuizAudienceRoomsController,
   getQuizGameConfig,
   upsertQuizGameConfig,
   getAllGameMechanics,
@@ -109,6 +111,8 @@ router.get("/:quizId/responses", getQuizResponses);
 router.get("/:quizId/responses/:userId", getStudentResponseDetail);
 router.get("/:quizId/participants", getQuizParticipantsController);
 router.put("/:quizId/participants", setQuizParticipants);
+router.get("/:quizId/audience-rooms", getQuizAudienceRoomsController);
+router.put("/:quizId/audience-rooms", setQuizAudienceRoomsController);
 
 // ==================== ANALYTICS + RESULTS ====================
 

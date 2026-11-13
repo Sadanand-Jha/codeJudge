@@ -636,6 +636,26 @@ export async function setQuizParticipants(quizId: string, participants: QuizPart
   );
 }
 
+/**
+ * Rooms whose active members may attempt the quiz. Access is resolved from
+ * live room membership, so students who join a room later are included.
+ */
+export async function getQuizAudienceRooms(quizId: string): Promise<string[]> {
+  const res = await apiClient.get<{ roomIds?: Array<number | string> }>(
+    `/v1/admin/quiz/${quizId}/audience-rooms`
+  );
+  const roomIds = res.data?.roomIds ?? [];
+  return roomIds.map((roomId) => String(roomId));
+}
+
+/** Replace the quiz's room audience. Owner-only on the backend. */
+export async function setQuizAudienceRooms(quizId: string, roomIds: string[]): Promise<void> {
+  await apiClient.put(
+    `/v1/admin/quiz/${quizId}/audience-rooms`,
+    { roomIds: roomIds.map((roomId) => Number(roomId)).filter((roomId) => Number.isInteger(roomId) && roomId > 0) }
+  );
+}
+
 // ─────────────────────────────────────────
 // Quiz Question Management API
 // ─────────────────────────────────────────

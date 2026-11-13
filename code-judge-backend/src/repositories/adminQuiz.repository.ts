@@ -865,6 +865,66 @@ export class AdminQuizRepository {
     );
     return result.rows;
   }
+
+  // ==================== ROOM AUDIENCE ====================
+
+  /**
+   * Replace the rooms whose members may attempt a quiz. Room membership is
+   * resolved at access time, so students who join a selected room later are
+   * automatically eligible.
+   *
+   * OLD ARCHITECTURE: room members used to be frozen into quiz_participants
+   * (source = 4) when the quiz was saved. Those stale snapshot rows are removed
+   * here so a student who left the room does not keep access.
+   */
+  async replaceQuizAudienceRooms(
+    quizId: number,
+    ownerId: number,
+    roomIds: number[]
+  ): Promise<number> {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("DELETE FROM quiz_audience_rooms WHERE quiz_id = $1", [quizId]);
+      // OLD ARCHITECTURE cleanup: stop trusting the room snapshot.
+      await client.query(
+        "DELETE FROM quiz_participants WHERE quiz_id = $1 AND source = 4",
+        [quizId]
+      );
+
+      let saved = 0;
+      for (const roomId of roomIds) {
+        const result = await client.query(
+          `INSERT INTO quiz_audience_rooms (quiz_id, room_id, created_at, updated_at)
+           SELECT $1, qr.id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+           FROM quiz_rooms qr
+           WHERE qr.id = $2 AND qr.owner_id = $3 AND qr.is_active IS TRUE
+           ON CONFLICT (quiz_id, room_id) DO NOTHING`,
+          [quizId, roomId, ownerId]
+        );
+        saved += result.rowCount ?? 0;
+      }
+
+      await client.query("COMMIT");
+      return saved;
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  async getQuizAudienceRooms(quizId: number): Promise<number[]> {
+    const result = await pool.query(
+      `SELECT room_id FROM quiz_audience_rooms
+       WHERE quiz_id = $1
+       ORDER BY room_id ASC`,
+      [quizId]
+    );
+    return result.rows.map((row) => Number(row.room_id));
+  }
+
   // ==================== ANALYTICS ====================
 
   async getQuizAnalytics(quizId: number): Promise<any> {

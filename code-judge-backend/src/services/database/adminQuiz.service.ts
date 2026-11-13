@@ -216,6 +216,20 @@ export class AdminQuizService {
     return this.repository.getQuizParticipants(Number(quizId));
   }
 
+  // ==================== ROOM AUDIENCE ====================
+
+  async replaceQuizAudienceRooms(
+    quizId: number,
+    ownerId: number,
+    roomIds: number[]
+  ): Promise<number> {
+    return this.repository.replaceQuizAudienceRooms(quizId, ownerId, roomIds);
+  }
+
+  async getQuizAudienceRooms(quizId: string | number): Promise<number[]> {
+    return this.repository.getQuizAudienceRooms(Number(quizId));
+  }
+
   // ==================== ANALYTICS ====================
 
   async getQuizAnalytics(quizId: number): Promise<any> {

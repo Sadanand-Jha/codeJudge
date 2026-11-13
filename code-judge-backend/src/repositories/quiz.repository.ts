@@ -1604,6 +1604,64 @@ export class QuizRepository {
     };
   }
 
+  /**
+   * Resolve classroom access for a user.
+   *
+   * Room-based audiences are dynamic: when quiz_audience_rooms has rows, an
+   * ACTIVE member of any selected room is eligible even if they joined after
+   * the quiz was saved. Legacy quiz_participants snapshots remain authoritative
+   * only for quizzes that have no room audience configured.
+   */
+  private async resolveAudienceAccess(quizId: number, userId: number): Promise<{
+    roomsConfigured: boolean;
+    roomMember: boolean;
+    configured: number;
+    allowed: number;
+    individuallyAllowed: number;
+  }> {
+    const rooms = await pool.query(
+      `SELECT 1 FROM quiz_audience_rooms WHERE quiz_id = $1 LIMIT 1`,
+      [quizId]
+    );
+    const roomsConfigured = rooms.rows.length > 0;
+
+    const audience = await pool.query(
+      `SELECT
+         COUNT(*)::int AS configured,
+         COUNT(*) FILTER (WHERE user_id = $2 AND status = 1)::int AS allowed,
+         COUNT(*) FILTER (
+           WHERE user_id = $2 AND status = 1 AND (source IS NULL OR source <> 4)
+         )::int AS individually_allowed
+       FROM quiz_participants
+       WHERE quiz_id = $1`,
+      [quizId, userId]
+    );
+    const row = audience.rows[0] ?? { configured: 0, allowed: 0, individually_allowed: 0 };
+
+    let roomMember = false;
+    if (roomsConfigured) {
+      const membership = await pool.query(
+        `SELECT 1
+         FROM quiz_audience_rooms qar
+         JOIN quiz_rooms qr ON qr.id = qar.room_id AND qr.is_active IS TRUE
+         JOIN room_members rm ON rm.room_id = qar.room_id AND rm.user_id = $2
+         JOIN room_member_status rms ON rms.id = rm.status AND rms.name = 'ACTIVE'
+         WHERE qar.quiz_id = $1
+         LIMIT 1`,
+        [quizId, userId]
+      );
+      roomMember = membership.rows.length > 0;
+    }
+
+    return {
+      roomsConfigured,
+      roomMember,
+      configured: Number(row.configured) || 0,
+      allowed: Number(row.allowed) || 0,
+      individuallyAllowed: Number(row.individually_allowed) || 0,
+    };
+  }
+
   async checkQuizAccess(
     userId: number,
     quizId: number
@@ -1631,23 +1689,21 @@ export class QuizRepository {
       return { allowed: false, reason: "Quiz has ended" };
     }
 
-    // Audience constraint: once the creator configures a participant list
-    // (quiz edit → rooms / invites), only students present in it (status = 1
-    // = allowed) may attempt the quiz. An empty list means open access.
-    // The creator is always allowed to attempt their own quiz (owner bypass).
+    // Audience constraint. Room audiences are resolved live from room
+    // membership, so later joiners are eligible. Legacy participant snapshots
+    // still gate quizzes that have no rooms configured. The creator is always
+    // allowed to attempt their own quiz (owner bypass).
     const isOwner = Number(q.createdby) === Number(userId);
     if (!isOwner) {
-      const audience = await pool.query(
-        `SELECT
-           COUNT(*)::int AS configured,
-           COUNT(*) FILTER (WHERE user_id = $2 AND status = 1)::int AS allowed
-         FROM quiz_participants
-         WHERE quiz_id = $1`,
-        [quizId, userId]
-      );
-      const { configured, allowed } = audience.rows[0] ?? { configured: 0, allowed: 0 };
-      if (q.audience_mode === 'classroom' && Number(configured) > 0 && Number(allowed) === 0) {
-        return { allowed: false, reason: "You are not invited to this quiz" };
+      const audience = await this.resolveAudienceAccess(quizId, userId);
+      if (q.audience_mode === 'classroom') {
+        if (audience.roomsConfigured) {
+          if (!audience.roomMember && audience.individuallyAllowed === 0) {
+            return { allowed: false, reason: "You are not invited to this quiz" };
+          }
+        } else if (audience.configured > 0 && audience.allowed === 0) {
+          return { allowed: false, reason: "You are not invited to this quiz" };
+        }
       }
     }
 
@@ -1686,21 +1742,18 @@ export class QuizRepository {
     const now = new Date();
     if (q.endtime && new Date(q.endtime) < now) return { allowed: false, reason: "Quiz has ended" };
 
-    // An empty participant list means open access. Once a creator configures
-    // an audience, only explicitly allowed users may register. The creator is
-    // always allowed (owner bypass).
+    // Room audiences are dynamic; legacy participant snapshots still gate
+    // quizzes without configured rooms. The creator is always allowed.
     if (userId && Number(q.createdby) !== Number(userId)) {
-      const audience = await pool.query(
-        `SELECT
-           COUNT(*)::int AS configured,
-           COUNT(*) FILTER (WHERE user_id = $2 AND status = 1)::int AS allowed
-         FROM quiz_participants
-         WHERE quiz_id = $1`,
-        [quizId, userId]
-      );
-      const { configured, allowed } = audience.rows[0] ?? { configured: 0, allowed: 0 };
-      if (q.audience_mode === 'classroom' && Number(configured) > 0 && Number(allowed) === 0) {
-        return { allowed: false, reason: "You are not invited to this quiz" };
+      const audience = await this.resolveAudienceAccess(Number(quizId), userId);
+      if (q.audience_mode === 'classroom') {
+        if (audience.roomsConfigured) {
+          if (!audience.roomMember && audience.individuallyAllowed === 0) {
+            return { allowed: false, reason: "You are not invited to this quiz" };
+          }
+        } else if (audience.configured > 0 && audience.allowed === 0) {
+          return { allowed: false, reason: "You are not invited to this quiz" };
+        }
       }
     }
     return { allowed: true };

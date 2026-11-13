@@ -58,18 +58,51 @@ function saveBlob(blob: Blob, filename: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
-export async function getPaperPdfErrorMessage(error: unknown): Promise<string> {
+export interface PaperPdfErrorInfo {
+  code?: string;
+  retryAfter?: number;
+  message: string;
+}
+
+const FALLBACK_PDF_ERROR = "Something went wrong while building the question paper.";
+
+export async function getPaperPdfErrorInfo(error: unknown): Promise<PaperPdfErrorInfo> {
   const response = (error as { response?: { data?: unknown } })?.response;
   const data = response?.data;
   if (data instanceof Blob) {
     try {
-      const parsed = JSON.parse(await data.text());
-      if (parsed?.message) return String(parsed.message);
+      const parsed = JSON.parse(await data.text()) as {
+        code?: string;
+        message?: string;
+        retryAfter?: number;
+      };
+      return {
+        code: typeof parsed?.code === "string" ? parsed.code : undefined,
+        retryAfter:
+          typeof parsed?.retryAfter === "number" && Number.isFinite(parsed.retryAfter)
+            ? parsed.retryAfter
+            : undefined,
+        message: parsed?.message ? String(parsed.message) : FALLBACK_PDF_ERROR,
+      };
     } catch {
       // not a JSON error body
     }
   }
-  return "Something went wrong while building the question paper.";
+  return { message: FALLBACK_PDF_ERROR };
+}
+
+export async function getPaperPdfErrorMessage(error: unknown): Promise<string> {
+  return (await getPaperPdfErrorInfo(error)).message;
+}
+
+/** Human-friendly remaining time, e.g. "4m 35s". */
+export function formatPdfCooldownWait(seconds: number): string {
+  const total = Math.max(0, Math.ceil(seconds));
+  const minutes = Math.floor(total / 60);
+  const rest = total % 60;
+  if (minutes === 0) return `${rest} second${rest === 1 ? "" : "s"}`;
+  if (rest === 0) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+  return `${minutes}m ${rest}s`;
 }
 
 export async function downloadQuizPaperPdf(input: DownloadPaperInput, kind: PaperDownloadKind): Promise<number> {

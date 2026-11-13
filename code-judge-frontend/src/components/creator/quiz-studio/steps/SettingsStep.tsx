@@ -297,48 +297,6 @@ function SecurityCard({ antiCheatAvailable }: { antiCheatAvailable: boolean }) {
           <span className="min-w-0 text-base font-extrabold text-[var(--qs-ink)]">Security</span>
         </button>
 
-        {locked ? (
-          <button
-            type="button"
-            onClick={openPlans}
-            aria-label="Upgrade to enable anti-cheat mode"
-            className="flex h-7 w-[50px] flex-none items-center rounded-full border-2 border-[#8b849c] bg-[#e4e0ee] p-0.5 transition-transform hover:-translate-y-px active:translate-y-0"
-          >
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#8b849c] text-white">
-              <Lock className="h-[11px] w-[11px]" />
-            </span>
-          </button>
-        ) : (
-          <button
-            type="button"
-            role="switch"
-            aria-checked={enabled}
-            aria-label="Anti-cheat mode"
-            onClick={() => updateSettings({ antiCheatEnabled: !enabled })}
-            className={cn(
-              "flex h-7 w-[50px] flex-none items-center rounded-full border-2 p-0.5 transition-colors",
-              enabled
-                ? "border-[var(--qs-ink)] bg-[var(--qs-ok)]"
-                : "border-[#8b849c] bg-[#e4e0ee]"
-            )}
-          >
-            <span
-              className={cn(
-                "flex h-5 w-5 items-center justify-center rounded-full transition-transform",
-                enabled
-                  ? "translate-x-[22px] bg-[var(--qs-surface)] text-[var(--qs-ok)]"
-                  : "bg-[#8b849c] text-white"
-              )}
-            >
-              {enabled ? (
-                <Check className="h-[11px] w-[11px]" strokeWidth={3} />
-              ) : (
-                <Lock className="h-[11px] w-[11px]" />
-              )}
-            </span>
-          </button>
-        )}
-
         <button
           type="button"
           onClick={() => setOpen(!open)}
@@ -355,16 +313,61 @@ function SecurityCard({ antiCheatAvailable }: { antiCheatAvailable: boolean }) {
       {open && (
         <div className="flex gap-6 px-[22px] pb-[22px]">
           <div className="flex min-w-0 flex-1 flex-col gap-[14px]">
-            <div className="flex flex-wrap items-center gap-[10px]">
-              <span className="text-[19px] font-extrabold leading-tight text-[var(--qs-ink)]">
-                Anti-cheat mode
-              </span>
-              {locked && (
-                <span className="inline-flex items-center gap-[5px] rounded-full bg-[var(--qs-ink)] px-[9px] py-1 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#ffc72c]">
-                  <Sparkles className="h-3 w-3" />
-                  Paid plans
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 flex-wrap items-center gap-[10px]">
+                <span className="text-[19px] font-extrabold leading-tight text-[var(--qs-ink)]">
+                  Anti-cheat mode
                 </span>
-              )}
+                {locked && (
+                  <span className="inline-flex items-center gap-[5px] rounded-full bg-[var(--qs-ink)] px-[9px] py-1 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#ffc72c]">
+                    <Sparkles className="h-3 w-3" />
+                    Paid plans
+                  </span>
+                )}
+              </div>
+              <div className="shrink-0 pt-0.5">
+                {locked ? (
+                  <button
+                    type="button"
+                    onClick={openPlans}
+                    aria-label="Upgrade to enable anti-cheat mode"
+                    className="flex h-7 w-[50px] flex-none items-center rounded-full border-2 border-[#8b849c] bg-[#e4e0ee] p-0.5 transition-transform hover:-translate-y-px active:translate-y-0"
+                  >
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#8b849c] text-white">
+                      <Lock className="h-[11px] w-[11px]" />
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={enabled}
+                    aria-label="Anti-cheat mode"
+                    onClick={() => updateSettings({ antiCheatEnabled: !enabled })}
+                    className={cn(
+                      "flex h-7 w-[50px] flex-none items-center rounded-full border-2 p-0.5 transition-colors",
+                      enabled
+                        ? "border-[var(--qs-ink)] bg-[var(--qs-ok)]"
+                        : "border-[#8b849c] bg-[#e4e0ee]"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex h-5 w-5 items-center justify-center rounded-full transition-transform",
+                        enabled
+                          ? "translate-x-[22px] bg-[var(--qs-surface)] text-[var(--qs-ok)]"
+                          : "bg-[#8b849c] text-white"
+                      )}
+                    >
+                      {enabled ? (
+                        <Check className="h-[11px] w-[11px]" strokeWidth={3} />
+                      ) : (
+                        <Lock className="h-[11px] w-[11px]" />
+                      )}
+                    </span>
+                  </button>
+                )}
+              </div>
             </div>
 
             <p className="text-sm leading-normal text-[var(--qs-muted)]">

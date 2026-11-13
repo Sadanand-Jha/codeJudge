@@ -19,18 +19,17 @@ import {
   isQuizCodeTakenError,
   updateQuiz,
   updateQuizStatus,
-  setQuizParticipants,
   getQuizParticipants,
+  getQuizAudienceRooms,
+  setQuizAudienceRooms,
   loadQuizMetadataForEdit,
   getQuizProblems,
   deleteQuizProblem,
-  type QuizParticipantInput,
   type QuizBasic,
   type QuizProblemWithOptions,
 } from "@/services/quiz";
 import { syncQuizQuestions, computeChangedQuestions, buildQuestionSnapshot } from "@/utils/quizQuestionSync";
 import { containsHtml, htmlToPlainText } from "@/utils/htmlText";
-import { useRoomStore } from "@/store/roomStore";
 import {
   type StudioState,
   type StudioStepId,
@@ -532,14 +531,16 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
   const snapshotRef = useRef<Map<string, string>>(new Map());
   const quizSnapshotRef = useRef<string>("");
   const audienceSnapshotRef = useRef<string>("");
+  /** Selected room ids as last loaded/saved from the server. */
+  const [audienceRoomsSnapshot, setAudienceRoomsSnapshot] = useState<string>("[]");
   const databaseAutosaveSnapshotRef = useRef<string | null>(null);
   const audienceModeSnapshotRef = useRef<StudioState["audience"]["mode"] | null>(null);
   /**
    * Tracks which background payloads have landed. Save paths must not persist
-   * participants until the bg fetch completes — otherwise local defaults would
+   * audience data until the bg fetch completes — otherwise local defaults would
    * overwrite real server data.
    */
-  const bgReadyRef = useRef({ participants: false });
+  const bgReadyRef = useRef({ participants: false, audienceRooms: false });
 
   useEffect(() => {
     if (!editMode || !initialQuizId) return;
@@ -614,16 +615,27 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         try {
           if (!loadedQuiz) return;
           const quiz = loadedQuiz;
-          const participants = await getQuizParticipants(initialQuizId).catch((error) => {
-            console.error("[StudioProvider] Failed to load participants:", error);
-            return [];
-          });
+          const [participants, audienceRoomIds] = await Promise.all([
+            getQuizParticipants(initialQuizId).catch((error) => {
+              console.error("[StudioProvider] Failed to load participants:", error);
+              return [];
+            }),
+            getQuizAudienceRooms(initialQuizId).catch((error) => {
+              console.error("[StudioProvider] Failed to load audience rooms:", error);
+              return [];
+            }),
+          ]);
           if (cancelled) return;
           let loadedAudience = {
             ...DEFAULT_AUDIENCE,
             accessCode: generateQuizCode(),
             mode: quiz.audience_mode ?? DEFAULT_AUDIENCE.mode,
+            roomIds: audienceRoomIds,
           };
+          setAudienceRoomsSnapshot(JSON.stringify([...audienceRoomIds].sort()));
+          if (audienceRoomIds.length > 0) {
+            loadedAudience = { ...loadedAudience, mode: "classroom" };
+          }
           if (participants.length > 0) {
             // Legacy quizzes did not store audience_mode. Preserve their old
             // room-restricted behaviour, while respecting the explicit mode for
@@ -653,6 +665,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
           setState((s) => ({ ...s, audience: loadedAudience }));
         } finally {
           bgReadyRef.current.participants = true;
+          bgReadyRef.current.audienceRooms = true;
         }
       })();
 
@@ -1283,44 +1296,56 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
             buildQuizMetaSnapshot(latest) !== currentSnapshot
         );
 
-        // Skip until the bg participants fetch lands — otherwise local
-        // defaults would wipe real server data.
-        if (!opts?.skipParticipants && bgReadyRef.current.participants) {
-        const audience = state.audience;
-        const selRoomIds = audience.roomIds ?? [];
-        const selections = audience.roomStudentSelections ?? {};
-        const allRooms = useRoomStore.getState().rooms;
-        const byKey = new Map<string, QuizParticipantInput>();
-
-        for (const roomId of selRoomIds) {
-          const room = allRooms.find((r) => r.id === roomId);
-          if (!room) continue;
-          const selected: string[] | undefined = selections[roomId];
-          for (const student of room.students) {
-            if (!student.active || !student.id) continue;
-            if (selected && !selected.includes(student.rollNumber)) continue;
-            const key = String(student.id);
-            if (!byKey.has(key)) {
-              byKey.set(key, { userId: Number(student.id), source: 4 });
-            }
+        // Rooms are the source of truth for the room audience. Access is
+        // resolved live from room membership, so later joiners are included.
+        if (!opts?.skipParticipants && bgReadyRef.current.audienceRooms) {
+          const roomIds = [...(state.audience.roomIds ?? [])].sort();
+          const currentAudienceSnapshot = JSON.stringify(roomIds);
+          if (currentAudienceSnapshot !== audienceRoomsSnapshot) {
+            await setQuizAudienceRooms(quizId, roomIds);
+            setAudienceRoomsSnapshot(currentAudienceSnapshot);
           }
         }
 
-        for (const uid of audience.invitedEmails ?? []) {
-          const numId = Number(uid);
-          if (!numId) continue;
-          const key = String(numId);
-          if (!byKey.has(key)) {
-            byKey.set(key, { userId: numId, source: 2 });
-          }
-        }
-
-        const currentAudienceSnapshot = JSON.stringify([...byKey.values()]);
-        if (currentAudienceSnapshot !== audienceSnapshotRef.current) {
-          await setQuizParticipants(quizId, [...byKey.values()]);
-          audienceSnapshotRef.current = currentAudienceSnapshot;
-        }
-        } // skipParticipants
+        // OLD ARCHITECTURE (disabled): room members used to be snapshotted into
+        // quiz_participants at save time, which excluded students who joined a
+        // room later. Re-enable only if the dynamic room audience is removed.
+        // if (!opts?.skipParticipants && bgReadyRef.current.participants) {
+        //   const audience = state.audience;
+        //   const selRoomIds = audience.roomIds ?? [];
+        //   const selections = audience.roomStudentSelections ?? {};
+        //   const allRooms = useRoomStore.getState().rooms;
+        //   const byKey = new Map<string, QuizParticipantInput>();
+        //
+        //   for (const roomId of selRoomIds) {
+        //     const room = allRooms.find((r) => r.id === roomId);
+        //     if (!room) continue;
+        //     const selected: string[] | undefined = selections[roomId];
+        //     for (const student of room.students) {
+        //       if (!student.active || !student.id) continue;
+        //       if (selected && !selected.includes(student.rollNumber)) continue;
+        //       const key = String(student.id);
+        //       if (!byKey.has(key)) {
+        //         byKey.set(key, { userId: Number(student.id), source: 4 });
+        //       }
+        //     }
+        //   }
+        //
+        //   for (const uid of audience.invitedEmails ?? []) {
+        //     const numId = Number(uid);
+        //     if (!numId) continue;
+        //     const key = String(numId);
+        //     if (!byKey.has(key)) {
+        //       byKey.set(key, { userId: numId, source: 2 });
+        //     }
+        //   }
+        //
+        //   const currentAudienceSnapshot = JSON.stringify([...byKey.values()]);
+        //   if (currentAudienceSnapshot !== audienceSnapshotRef.current) {
+        //     await setQuizParticipants(quizId, [...byKey.values()]);
+        //     audienceSnapshotRef.current = currentAudienceSnapshot;
+        //   }
+        // }
       }
 
       if (opts?.publish) {
@@ -1421,74 +1446,30 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
   const saveAudienceParticipants = useCallback(async () => {
     const quizId = state.serverQuizId;
     if (!quizId) throw new Error("Quiz not saved yet — save the quiz first");
-    if (!bgReadyRef.current.participants) throw new Error("Participants are still loading — please wait a moment and retry.");
-
-    const audience = state.audience;
-    const selRoomIds = audience.roomIds ?? [];
-    const selections = audience.roomStudentSelections ?? {};
-    const allRooms = useRoomStore.getState().rooms;
-    const byKey = new Map<string, QuizParticipantInput>();
-
-    for (const roomId of selRoomIds) {
-      const room = allRooms.find((r) => r.id === roomId);
-      if (!room) continue;
-      const selected: string[] | undefined = selections[roomId];
-      for (const student of room.students) {
-        if (!student.active || !student.id) continue;
-        if (selected && !selected.includes(student.rollNumber)) continue;
-        const key = String(student.id);
-        if (!byKey.has(key)) {
-          byKey.set(key, { userId: Number(student.id), source: 4 });
-        }
-      }
+    if (!bgReadyRef.current.audienceRooms) {
+      throw new Error("Audience rooms are still loading — please wait a moment and retry.");
     }
 
-    for (const uid of audience.invitedEmails ?? []) {
-      const numId = Number(uid);
-      if (!numId) continue;
-      const key = String(numId);
-      if (!byKey.has(key)) {
-        byKey.set(key, { userId: numId, source: 2 });
-      }
-    }
+    const roomIds = [...(state.audience.roomIds ?? [])].sort();
+    await setQuizAudienceRooms(quizId, roomIds);
+    setAudienceRoomsSnapshot(JSON.stringify(roomIds));
 
-    await setQuizParticipants(quizId, [...byKey.values()]);
-    audienceSnapshotRef.current = JSON.stringify([...byKey.values()]);
+    // OLD ARCHITECTURE (disabled): room students were frozen into
+    // quiz_participants here. Kept for reference only.
+    // const audience = state.audience;
+    // const selRoomIds = audience.roomIds ?? [];
+    // const selections = audience.roomStudentSelections ?? {};
+    // const allRooms = useRoomStore.getState().rooms;
+    // const byKey = new Map<string, QuizParticipantInput>();
+    // ...
+    // await setQuizParticipants(quizId, [...byKey.values()]);
+    // audienceSnapshotRef.current = JSON.stringify([...byKey.values()]);
   }, [state.serverQuizId, state.audience]);
 
   const audienceDirty = useMemo(() => {
-    const audience = state.audience;
-    const selRoomIds = audience.roomIds ?? [];
-    const selections = audience.roomStudentSelections ?? {};
-    const allRooms = useRoomStore.getState().rooms;
-    const byKey = new Map<string, QuizParticipantInput>();
-
-    for (const roomId of selRoomIds) {
-      const room = allRooms.find((r) => r.id === roomId);
-      if (!room) continue;
-      const selected: string[] | undefined = selections[roomId];
-      for (const student of room.students) {
-        if (!student.active || !student.id) continue;
-        if (selected && !selected.includes(student.rollNumber)) continue;
-        const key = String(student.id);
-        if (!byKey.has(key)) {
-          byKey.set(key, { userId: Number(student.id), source: 4 });
-        }
-      }
-    }
-
-    for (const uid of audience.invitedEmails ?? []) {
-      const numId = Number(uid);
-      if (!numId) continue;
-      const key = String(numId);
-      if (!byKey.has(key)) {
-        byKey.set(key, { userId: numId, source: 2 });
-      }
-    }
-
-    return JSON.stringify([...byKey.values()]) !== audienceSnapshotRef.current;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.serverQuizId, state.audience]);
+    const roomIds = [...(state.audience.roomIds ?? [])].sort();
+    return JSON.stringify(roomIds) !== audienceRoomsSnapshot;
+  }, [state.audience, audienceRoomsSnapshot]);
 
   const value: StudioContextValue = useMemo(
     () => ({

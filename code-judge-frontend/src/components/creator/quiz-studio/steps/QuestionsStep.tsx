@@ -26,7 +26,7 @@ import { StudentPreviewModal } from "../components/StudentPreviewModal";
 import { useStudio } from "../StudioProvider";
 import { Plus, ListChecks, Settings2, ChevronLeft, ChevronRight, Eye, Download } from "lucide-react";
 import type { CreatorQuestion } from "../types";
-import { downloadQuizPaperPdf, getPaperPdfErrorMessage, type PaperDownloadKind } from "@/utils/paperPdf";
+import { downloadQuizPaperPdf, formatPdfCooldownWait, getPaperPdfErrorInfo, type PaperDownloadKind } from "@/utils/paperPdf";
 import { formatPaperDate, type PaperMeta } from "@/utils/paperHtml";
 import PdfConfigModal, { type PaperDownloadConfig } from "@/components/quiz/creator/settings/PdfConfigModal";
 import { generateQuizCode } from "@/services/quiz";
@@ -129,9 +129,21 @@ export function QuestionsStep() {
         });
       })
       .catch(async (error) => {
+        const info = await getPaperPdfErrorInfo(error);
+        if (info.code === "PDF_COOLDOWN") {
+          toast.warning({
+            title: "PDF is cooling down",
+            description:
+              info.retryAfter !== undefined
+                ? `You can download another PDF in ${formatPdfCooldownWait(info.retryAfter)}.`
+                : info.message,
+            duration: 6000,
+          });
+          return;
+        }
         toast.error({
           title: "Could not generate PDF",
-          description: await getPaperPdfErrorMessage(error),
+          description: info.message,
         });
       })
       .finally(() => setGeneratingPdf(false));
