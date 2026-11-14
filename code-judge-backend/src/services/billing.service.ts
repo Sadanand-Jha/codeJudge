@@ -49,7 +49,11 @@ import {
   verifyWebhookSignature,
 } from "./billing/signatures.ts";
 import { invalidateEntitlements } from "./entitlement.service.ts";
-import { qualifyReferralForFirstPlanTx } from "./referral.service.ts";
+import {
+  getOrderReferralReward,
+  qualifyReferralForPurchaseTx,
+  validateReferralForCheckout,
+} from "./referral.service.ts";
 import {
   cardCountryMismatch,
   isRazorpayCurrencySupported,
@@ -145,6 +149,7 @@ export interface VerifiedBundlePurchase {
   newBalance: number;
   currency: string;
   amountPaise: number;
+  referralCredits: number;
 }
 
 export interface CheckoutSuggestionResponse {
@@ -181,6 +186,7 @@ export interface VerifiedPlanResponse {
   newBalance: number;
   currency: string;
   amountPaise: number;
+  referralCredits: number;
 }
 
 export interface WebhookResult {
@@ -201,6 +207,8 @@ interface CompletedOrder {
   balance: CreditBalanceSummary;
   /** True only for the transaction that moved the order into "paid". */
   newlyPaid: boolean;
+  /** Credits each side received from a checkout referral code, 0 if none. */
+  referralCredits: number;
 }
 
 /**
@@ -241,6 +249,34 @@ async function lockBillingUser(client: PoolClient, userId: string): Promise<void
 function normalizeCouponCode(value: string | null | undefined): string | null {
   const normalized = (value ?? "").trim();
   return normalized ? normalized : null;
+}
+
+/**
+ * Validates a referral code supplied at monthly plan checkout. Returns null when
+ * no code was sent, so plan and bundle orders remain usable without referrals.
+ */
+async function resolveReferralForCheckout(
+  userId: string,
+  value: string | null | undefined
+): Promise<{ code: string; referrerUserId: number } | null> {
+  const normalized = normalizeCouponCode(value);
+  if (!normalized) return null;
+
+  const result = await validateReferralForCheckout(Number(userId), normalized);
+  if (!result.valid || !result.code || !result.referrer) {
+    const message =
+      result.reason === "already_used"
+        ? "A referral code has already been used on this account."
+        : result.reason === "self_referral"
+          ? "You cannot use your own referral code."
+          : "This referral code is not valid.";
+    throw new BillingError(400, "REFERRAL_INVALID", message);
+  }
+
+  return {
+    code: result.code,
+    referrerUserId: result.referrer.id,
+  };
 }
 
 /**
@@ -384,6 +420,53 @@ async function resolveCouponForCheckout(
   };
 }
 
+type CheckoutReferral = { code: string; referrerUserId: number } | null;
+
+/**
+ * Reuses a matching pending order while syncing its referral snapshot to the
+ * latest checkout attempt. Rewards are still granted only after payment, so
+ * changing the code on an unpaid order is safe.
+ */
+async function reuseWithReferral(
+  order: OrderRow,
+  referral: CheckoutReferral,
+  userId: string,
+  client: PoolClient
+): Promise<{ order: OrderRow; created: boolean }> {
+  const currentCode = order.referralCode ?? null;
+  const currentReferrer = order.referralReferrerUserId ?? null;
+  if (
+    currentCode === (referral?.code ?? null) &&
+    currentReferrer === (referral?.referrerUserId ?? null)
+  ) {
+    return { order, created: false };
+  }
+
+  if (referral) {
+    await billingRepository.clearOtherPendingReferralOrders(
+      { userId, excludeOrderId: order.id },
+      client
+    );
+  }
+  await billingRepository.updatePendingOrderReferral(
+    {
+      orderId: order.id,
+      referralCode: referral?.code ?? null,
+      referralReferrerUserId: referral?.referrerUserId ?? null,
+    },
+    client
+  );
+
+  return {
+    order: {
+      ...order,
+      referralCode: referral?.code ?? null,
+      referralReferrerUserId: referral?.referrerUserId ?? null,
+    },
+    created: false,
+  };
+}
+
 /**
  * Creates the local pending order and reserves its coupon in one transaction. Prices, credits, and validity are snapshots from the catalog at checkout time.
  */
@@ -405,6 +488,8 @@ async function createPendingOrder(
     baseValidityDays: number;
     creditsTotal: number;
     couponCode: string | null;
+    referralCode?: string | null;
+    referralReferrerUserId?: number | null;
     notes: string;
     parentOrderId?: string | null;
     bundleId?: number | null;
@@ -938,6 +1023,7 @@ async function completeOrderTx(
       subscriptionId: order.subscriptionId,
       balance: await billingRepository.getCreditBalance(order.userId, client),
       newlyPaid: false,
+      referralCredits: (await getOrderReferralReward(order.id)).credits,
     };
   }
 
@@ -1005,14 +1091,23 @@ async function completeOrderTx(
     );
   }
 
-  await qualifyReferralForFirstPlanTx(client, {
+  const referral = await qualifyReferralForPurchaseTx(client, {
     userId: Number(updated.userId),
     orderId: updated.id,
     orderType: updated.orderType,
     paymentMethod: order.paymentMethod ?? updated.paymentMethod,
+    referralCode: order.referralCode,
+    referralReferrerUserId: order.referralReferrerUserId,
   });
 
-  return { order: updated, plan, subscriptionId, balance, newlyPaid: true };
+  return {
+    order: updated,
+    plan,
+    subscriptionId,
+    balance,
+    newlyPaid: true,
+    referralCredits: referral.credits,
+  };
 }
 
 /**
@@ -1132,7 +1227,7 @@ function creditVerificationResult(
 function planVerificationResult(
   result: CompletedOrder
 ): VerifiedPlanResponse {
-  const { order, plan, subscriptionId, balance } = result;
+  const { order, plan, subscriptionId, balance, referralCredits } = result;
   return {
     transactionId: order.orderNo,
     orderId: order.id,
@@ -1147,6 +1242,7 @@ function planVerificationResult(
     newBalance: balance.total,
     currency: order.currency,
     amountPaise: order.amountPaise,
+    referralCredits,
   };
 }
 
@@ -1159,7 +1255,8 @@ function bundleVerificationResult(
   balance: CreditBalanceSummary,
   plan: { id: number; slug: string; name: string } | null,
   pack: PurchasableCreditPack | null,
-  grants: OrderRow[] = []
+  grants: OrderRow[] = [],
+  referralCredits = 0
 ): VerifiedBundlePurchase {
   const packGrant = grants.find((grant) => grant.orderType === "credit_pack");
   return {
@@ -1191,6 +1288,7 @@ function bundleVerificationResult(
     newBalance: balance.total,
     currency: order.currency,
     amountPaise: order.amountPaise,
+    referralCredits,
   };
 }
 
@@ -1435,6 +1533,7 @@ export class BillingService {
       planSlug?: string | null;
       priceId?: number | null;
       couponCode: string | null;
+      referralCode?: string | null;
       currency?: string | null;
       request?: Request;
     }
@@ -1472,6 +1571,7 @@ export class BillingService {
     };
     const currency = countryPricing.currency;
     const couponCode = normalizeCouponCode(input.couponCode);
+    const referral = await resolveReferralForCheckout(userId, input.referralCode);
 
     const legacyPlanId = await billingRepository.findLegacyMonthlyPlanId(plan.slug);
     const validityDays = validityDaysForPeriod(plan.billingPeriod, plan.customDays);
@@ -1511,9 +1611,20 @@ export class BillingService {
             client
           ))
         ) {
-          return { order: reusable, created: false };
+          return await reuseWithReferral(
+            reusable,
+            referral,
+            userId,
+            client
+          );
         }
         if (reusable) await discardStalePendingOrder(reusable, client);
+        if (referral) {
+          await billingRepository.clearOtherPendingReferralOrders(
+            { userId },
+            client
+          );
+        }
 
         const order = await createPendingOrder(
           {
@@ -1533,6 +1644,8 @@ export class BillingService {
             baseValidityDays: validityDays,
             creditsTotal: Math.max(0, plan.credits),
             couponCode,
+            referralCode: referral?.code ?? null,
+            referralReferrerUserId: referral?.referrerUserId ?? null,
             notes: `Plan: ${plan.name}`,
           },
           client
@@ -1540,7 +1653,10 @@ export class BillingService {
         return { order, created: true };
       });
     } catch (error) {
-      if (isUniqueViolation(error, "uq_orders_open_checkout")) {
+      if (
+        isUniqueViolation(error, "uq_orders_open_checkout") ||
+        isUniqueViolation(error, "uq_orders_pending_referral")
+      ) {
         throw new BillingError(
           409,
           "CHECKOUT_IN_PROGRESS",
@@ -1570,6 +1686,7 @@ export class BillingService {
     input: {
       bundleId: number;
       couponCode: string | null;
+      referralCode?: string | null;
       currency?: string | null;
     }
   ): Promise<BundleOrderResponse> {
@@ -1599,6 +1716,14 @@ export class BillingService {
 
     const currency = resolveCurrency(plan.currency, input.currency);
     const couponCode = normalizeCouponCode(input.couponCode);
+    if (input.referralCode && plan.billingPeriod !== "monthly") {
+      throw new BillingError(
+        400,
+        "REFERRAL_INVALID",
+        "Referral codes are valid for monthly plans only."
+      );
+    }
+    const referral = await resolveReferralForCheckout(userId, input.referralCode);
     const legacyPlanId = await billingRepository.findLegacyMonthlyPlanId(plan.slug);
 
     let prepared: { order: OrderRow; created: boolean };
@@ -1630,9 +1755,20 @@ export class BillingService {
             client
           ))
         ) {
-          return { order: reusable, created: false };
+          return await reuseWithReferral(
+            reusable,
+            referral,
+            userId,
+            client
+          );
         }
         if (reusable) await discardStalePendingOrder(reusable, client);
+        if (referral) {
+          await billingRepository.clearOtherPendingReferralOrders(
+            { userId },
+            client
+          );
+        }
 
         const order = await createPendingOrder(
           {
@@ -1648,6 +1784,8 @@ export class BillingService {
             baseValidityDays: planValidityDays,
             creditsTotal: 0,
             couponCode,
+            referralCode: referral?.code ?? null,
+            referralReferrerUserId: referral?.referrerUserId ?? null,
             notes: `Bundle: ${bundle.name}`,
             bundleId: bundle.id,
             bundlePlanCredits: Math.max(0, plan.credits),
@@ -1659,7 +1797,10 @@ export class BillingService {
         return { order, created: true };
       });
     } catch (error) {
-      if (isUniqueViolation(error, "uq_orders_open_checkout")) {
+      if (
+        isUniqueViolation(error, "uq_orders_open_checkout") ||
+        isUniqueViolation(error, "uq_orders_pending_referral")
+      ) {
         throw new BillingError(
           409,
           "CHECKOUT_IN_PROGRESS",
@@ -1741,6 +1882,7 @@ export class BillingService {
         subscriptionId: order.subscriptionId,
         balance: await billingRepository.getCreditBalance(order.userId),
         newlyPaid: false,
+        referralCredits: (await getOrderReferralReward(order.id)).credits,
       });
     }
 
@@ -1784,7 +1926,8 @@ export class BillingService {
         await billingRepository.getCreditBalance(order.userId),
         plan,
         pack,
-        grants
+        grants,
+        (await getOrderReferralReward(order.id)).credits
       );
     }
 
@@ -2132,6 +2275,7 @@ export class BillingService {
       subscriptionId: refunded.subscriptionId,
       balance,
       newlyPaid: false,
+      referralCredits: (await getOrderReferralReward(refunded.id)).credits,
     };
   }
 }

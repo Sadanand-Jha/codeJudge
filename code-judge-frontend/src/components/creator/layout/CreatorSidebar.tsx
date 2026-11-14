@@ -94,7 +94,7 @@ function NavRow({
       onClick={onNavigate}
       aria-label={item.badge ? `${item.label} — ${item.badge}` : undefined}
       className={cn(
-        "group flex w-full items-center gap-2.5 rounded-xl border-2 px-3 py-2 text-[13px] font-bold outline-none transition-all duration-150 focus-visible:ring-3 focus-visible:ring-[var(--qs-brand)]/40",
+        "group flex min-h-11 w-full items-center gap-3 rounded-xl border-2 px-3 py-2 text-[15px] font-medium outline-none transition-all duration-150 focus-visible:ring-3 focus-visible:ring-[var(--qs-brand)]/40",
         isActive
           ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] shadow-[3px_3px_0_var(--qs-sun)]"
           : "border-transparent text-[var(--qs-muted)] hover:border-[var(--qs-line)] hover:bg-[var(--qs-bg)] hover:text-[var(--qs-ink)]"
@@ -102,13 +102,13 @@ function NavRow({
     >
       <Icon
         className={cn(
-          "h-[18px] w-[18px] shrink-0 transition-colors",
+          "h-5 w-5 shrink-0 transition-colors",
           isActive
             ? "text-[var(--qs-on-brand)]"
             : "text-[var(--qs-muted)] group-hover:text-[var(--qs-ink)]"
         )}
       />
-      <span className={cn("min-w-0 flex-1 truncate", isActive && "font-extrabold text-[var(--qs-on-brand)]")}>
+      <span className={cn("min-w-0 flex-1 truncate", isActive && "font-semibold text-[var(--qs-on-brand)]")}>
         {item.label}
       </span>
       {item.badge && (
@@ -179,9 +179,9 @@ export function CreatorSidebar({
         <Link
           href={FOCUS_MODE_ENABLED ? "/creator/quizzes" : "/creator/profile"}
           onClick={onNavigate}
-          className="flex items-center gap-2.5 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-2 transition-colors hover:border-[var(--qs-brand)]"
+          className="flex items-center gap-2.5 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 transition-colors hover:border-[var(--qs-brand)]"
         >
-          <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[12px] font-extrabold text-[var(--qs-on-brand)]">
+          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[12px] font-extrabold text-[var(--qs-on-brand)]">
             {avatarInitial}
             {verification === "verified" && (
               <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)]">
@@ -190,10 +190,10 @@ export function CreatorSidebar({
             )}
           </div>
           <div className="min-w-0 leading-tight">
-            <p className="truncate text-[13px] font-extrabold text-[var(--qs-ink)]">{displayName}</p>
+            <p className="truncate text-[15px] font-extrabold text-[var(--qs-ink)]">{displayName}</p>
             <p
               className={cn(
-                "truncate text-[10px] font-bold",
+                "truncate text-[13px] font-bold",
                 verification === "verified" ? "text-[var(--qs-ok)]" : "text-[var(--qs-warn)]"
               )}
             >
@@ -204,11 +204,11 @@ export function CreatorSidebar({
       </div>
 
       {/* Nav */}
-      <nav className="hide-scrollbar flex-1 overflow-y-auto px-2.5 py-3">
+      <nav className="hide-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 py-3">
         {CREATOR_NAV_SECTIONS.filter((section) => CREATOR_NAV.some((item) => item.section === section)).map((section, gi) => (
           <div key={section}>
             {gi > 0 && <div className="my-2 h-0.5 rounded-full bg-[var(--qs-line)]" />}
-            <p className="px-3 pb-1 pt-1 text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--qs-brand)]">
+            <p className="px-3 pb-2 pt-5 text-xs font-semibold tracking-wide text-[var(--qs-brand)]">
               {section}
             </p>
             <div className="space-y-1">
@@ -227,7 +227,7 @@ export function CreatorSidebar({
       </nav>
 
       {mobile && (
-        <div className="shrink-0 border-t-2 border-[var(--qs-line)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="shrink-0 border-t-2 border-[var(--qs-line)] px-3 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={() => {

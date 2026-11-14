@@ -278,7 +278,7 @@ function CreditsCard({
           </Link>
           <Link
             href="/creator/billing/transactions"
-            className="inline-flex items-center justify-center gap-2 rounded-[12px] border border-white/25 bg-white/10 px-3.5 py-2.5 text-[12px] font-bold !text-white transition-colors hover:bg-white/15 sm:px-4 sm:text-[13px]"
+            className="inline-flex items-center justify-center gap-2 rounded-[12px] border border-white/25 bg-white/10 px-3.5 py-2.5 text-[12px] font-bold !text-[#1e1b4b] transition-colors hover:bg-white/15 sm:px-4 sm:text-[13px]"
           >
             <History className="h-4 w-4" />
             History

@@ -27,7 +27,6 @@ import { CreditCoin } from "@/components/creator/billing/CreditCoin";
 import { useCreditState } from "@/hooks/useCreditState";
 import {
   BANKS,
-  CHECKOUT_GST_RATE,
   MOCK_CARD_DECLINED,
   MOCK_CARD_SUCCESS,
   UPI_APPS,
@@ -987,7 +986,7 @@ export function CheckoutView({ packs, initialPackId }: CheckoutViewProps) {
 
                 <dl className="qco-totals">
                   <div className="qco-total-row">
-                    <dt>Subtotal (incl. GST)</dt>
+                    <dt>Subtotal</dt>
                     <dd>{formatInr(totals.price)}</dd>
                   </div>
                   {totals.discount > 0 && (
@@ -999,13 +998,6 @@ export function CheckoutView({ packs, initialPackId }: CheckoutViewProps) {
                       <dd>−{formatInr(totals.discount)}</dd>
                     </div>
                   )}
-                  <div className="qco-total-row">
-                    <dt>
-                      GST ({Math.round(CHECKOUT_GST_RATE * 100)}%)
-                      <span className="qco-gst-tag"> included</span>
-                    </dt>
-                    <dd>{formatInr(totals.gst)}</dd>
-                  </div>
                   <div className="qco-grand-total">
                     <dt>Total payable</dt>
                     <dd>{formatInr(totals.total)}</dd>
@@ -1015,7 +1007,7 @@ export function CheckoutView({ packs, initialPackId }: CheckoutViewProps) {
                 <div className="qco-summary-foot">
                   <ShieldCheck size={15} aria-hidden="true" />
                   <span>
-                    All prices include GST. Credits are non-transferable.
+                    Credits are non-transferable.
                   </span>
                 </div>
               </section>
@@ -1231,7 +1223,6 @@ export function CheckoutView({ packs, initialPackId }: CheckoutViewProps) {
                         <Lock size={13} aria-hidden="true" />
                         Secure payment
                       </span>
-                      <span>GST included</span>
                     </div>
 
                     <p className="qco-terms">
@@ -1272,8 +1263,7 @@ export function CheckoutView({ packs, initialPackId }: CheckoutViewProps) {
                 <p>
                   AI credit packs are one-time digital purchases. Credits are
                   added after payment is verified, are non-transferable, and
-                  expire after the validity period shown at checkout. Prices
-                  include GST. By paying, you confirm that you are authorised
+                  expire after the validity period shown at checkout. By paying, you confirm that you are authorised
                   to use the selected payment method.
                 </p>
               </details>

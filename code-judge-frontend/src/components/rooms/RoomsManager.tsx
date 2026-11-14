@@ -247,7 +247,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
   if (loadingRooms) {
     return (
       <div className="qs-ui min-h-full bg-[var(--qs-bg)]">
-      <div className="mx-auto max-w-[1280px] px-4 pt-2 pb-20 sm:px-6 sm:py-6">
+      <div className="mx-auto max-w-[1280px] px-2 pt-2 pb-20 sm:px-6 sm:py-6">
           <div className="mb-6 rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-6 sm:p-8">
             <div className="app-skeleton h-4 w-36 rounded-full" />
             <div className="app-skeleton mt-4 h-9 w-64 max-w-full rounded" />
@@ -280,7 +280,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
 
   return (
     <div className="qs-ui min-h-full bg-[var(--qs-bg)]">
-      <div className="mx-auto max-w-[1280px] px-4 py-4 pb-20 sm:px-6 sm:py-6">
+      <div className="mx-auto max-w-[1280px] px-2 py-4 pb-20 sm:px-6 sm:py-6">
         {/* Mobile header */}
         <header className="mb-3 rounded-[16px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] p-3.5 text-[var(--qs-on-brand)] shadow-[2px_3px_0_var(--qs-sun)] md:hidden">
           <div className="flex items-center justify-between gap-2">

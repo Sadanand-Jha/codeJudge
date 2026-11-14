@@ -10,6 +10,7 @@ export type ReferralStatus = "pending" | "qualified" | "rejected";
 export interface ReferralOwnerRow {
   id: number;
   username: string;
+  displayName: string | null;
 }
 
 export interface ReferralStatsRow {
@@ -60,7 +61,7 @@ export async function findUserByReferralCode(
   db: Db = pool
 ): Promise<ReferralOwnerRow | null> {
   const result = await db.query(
-    `SELECT id, username
+    `SELECT id, username, display_name
        FROM users
       WHERE UPPER(referral_code) = UPPER($1)
       LIMIT 1`,
@@ -68,7 +69,91 @@ export async function findUserByReferralCode(
   );
   const row = result.rows[0];
   if (!row) return null;
-  return { id: toNumber(row.id), username: String(row.username ?? "") };
+  return {
+    id: toNumber(row.id),
+    username: String(row.username ?? ""),
+    displayName: row.display_name == null ? null : String(row.display_name),
+  };
+}
+
+/**
+ * True when the user has ever been attributed to a referrer, including a
+ * historical sign-up referral or an earlier purchase-time code.
+ */
+export async function hasReferralForUser(
+  referredUserId: number,
+  db: Db = pool
+): Promise<boolean> {
+  const result = await db.query(
+    `SELECT 1 FROM referrals WHERE referred_user_id = $1 LIMIT 1`,
+    [referredUserId]
+  );
+  return (result.rowCount ?? 0) > 0;
+}
+
+/**
+ * Creates the one-time referral row at the moment the qualifying monthly plan
+ * payment succeeds. The unique constraint on referred_user_id makes replayed
+ * payment callbacks idempotent.
+ */
+export async function insertQualifiedReferral(
+  input: {
+    referrerUserId: number;
+    referredUserId: number;
+    code: string;
+    orderId: string;
+    rewardCredits: number;
+  },
+  db: Db
+): Promise<{
+  id: number;
+  referrerUserId: number;
+  referredUserId: number;
+  rewardCredits: number;
+} | null> {
+  const result = await db.query(
+    `INSERT INTO referrals
+       (referrer_user_id, referred_user_id, code, status,
+        reward_credits, qualified_at, order_id)
+     VALUES ($1, $2, $3, 'qualified', $4, CURRENT_TIMESTAMP, $5)
+     ON CONFLICT (referred_user_id) DO NOTHING
+     RETURNING id, referrer_user_id, referred_user_id, reward_credits`,
+    [
+      input.referrerUserId,
+      input.referredUserId,
+      input.code,
+      input.rewardCredits,
+      input.orderId,
+    ]
+  );
+  const row = result.rows[0];
+  if (!row) return null;
+  return {
+    id: toNumber(row.id),
+    referrerUserId: toNumber(row.referrer_user_id),
+    referredUserId: toNumber(row.referred_user_id),
+    rewardCredits: toNumber(row.reward_credits),
+  };
+}
+
+/**
+ * Confirms whether an order received the referral bonus, so repeated verify
+ * calls can return the same success payload without re-granting credits.
+ */
+export async function getReferralByOrderId(
+  orderId: string,
+  db: Db = pool
+): Promise<{ rewardCredits: number } | null> {
+  const result = await db.query(
+    `SELECT reward_credits
+       FROM referrals
+      WHERE order_id = $1
+        AND status = 'qualified'
+      LIMIT 1`,
+    [orderId]
+  );
+  const row = result.rows[0];
+  return row ? { rewardCredits: toNumber(row.reward_credits) } : null;
 }
 
 export async function referralCodeExists(

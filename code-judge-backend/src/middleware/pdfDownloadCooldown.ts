@@ -1,13 +1,12 @@
-// Redis-backed cooldown between PDF downloads. Paid monthly subscribers wait
-// 1 minute; everyone else waits 5 minutes. The key is written before rendering
-// (atomic SET NX) and removed again when the request fails, so a failed export
-// never costs the user their cooldown.
+// Redis-backed cooldown between PDF downloads. Paid monthly subscribers export
+// without a cooldown; free users wait 1 minute. The key is written before
+// rendering (atomic SET NX) and removed again when the request fails, so a
+// failed export never costs the user their cooldown.
 import type { NextFunction, Request, Response } from "express";
 import redisClient from "../config/redis.ts";
 import { getEntitlements } from "../services/entitlement.service.ts";
 
-const PAID_COOLDOWN_SECONDS = 60;
-const FREE_COOLDOWN_SECONDS = 5 * 60;
+const FREE_COOLDOWN_SECONDS = 60;
 const KEY_PREFIX = "pdf_download_cooldown";
 
 export async function pdfDownloadCooldown(
@@ -28,16 +27,24 @@ export async function pdfDownloadCooldown(
     return;
   }
 
-  let cooldownSeconds = FREE_COOLDOWN_SECONDS;
+  let isPaid = false;
   try {
     const entitlements = await getEntitlements(userId);
-    if (entitlements.isPaid) cooldownSeconds = PAID_COOLDOWN_SECONDS;
+    isPaid = entitlements.isPaid;
   } catch (error) {
     console.warn("pdfDownloadCooldown entitlement lookup failed (fail-open):", error);
     next();
     return;
   }
 
+  // Monthly subscribers get unlimited PDF exports; only free users are throttled.
+  if (isPaid) {
+    res.setHeader("X-Pdf-Cooldown-Seconds", "0");
+    next();
+    return;
+  }
+
+  const cooldownSeconds = FREE_COOLDOWN_SECONDS;
   const key = `${KEY_PREFIX}:${userId}`;
 
   let acquired: string | null = null;

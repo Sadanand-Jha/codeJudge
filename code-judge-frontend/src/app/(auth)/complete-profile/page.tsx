@@ -9,7 +9,6 @@ import {
   AtSign,
   Check,
   CircleAlert,
-  Gift,
   GraduationCap,
   Presentation,
   Sparkles,
@@ -38,11 +37,6 @@ function CompleteProfileContent() {
     () => safeNextPath(searchParams.get("next")),
     [searchParams]
   );
-  const referralFromLink = useMemo(() => {
-    const raw = searchParams.get("ref")?.trim();
-    return raw && /^[A-Za-z0-9-]{1,20}$/.test(raw) ? raw : "";
-  }, [searchParams]);
-
   const hydrate = useAuthStore((state) => state.hydrate);
   const setUser = useAuthStore((state) => state.setUser);
   const currentUser = useAuthStore((state) => state.user);
@@ -60,7 +54,6 @@ function CompleteProfileContent() {
     available: boolean | null;
     message: string;
   }>({ checking: false, available: null, message: "" });
-  const [referralCode, setReferralCode] = useState(referralFromLink);
   const [selectedAvatarUrl, setSelectedAvatarUrl] = useState(
     PREDEFINED_AVATARS[0].url
   );
@@ -136,19 +129,12 @@ function CompleteProfileContent() {
     }, 500);
   }, []);
 
-  const trimmedReferral = referralCode.trim();
-  const referralError =
-    trimmedReferral && !/^[A-Za-z0-9-]{1,20}$/.test(trimmedReferral)
-      ? "Use up to 20 letters, numbers, or hyphens."
-      : null;
-
   const canContinue =
     accountType !== null &&
     username.length >= 3 &&
     !usernameError &&
     usernameStatus.available === true &&
-    !usernameStatus.checking &&
-    !referralError;
+    !usernameStatus.checking;
 
   const isReady = canContinue && !submitting;
 
@@ -163,7 +149,6 @@ function CompleteProfileContent() {
         username,
         avatar_url: selectedAvatarUrl,
         account_type: accountType,
-        referral_code: trimmedReferral || undefined,
       });
 
       if (!result.success) {
@@ -356,46 +341,6 @@ function CompleteProfileContent() {
           )}
         </div>
 
-        <label htmlFor="complete-profile-referral" className={LABEL_CLASS}>
-          Referral code <span className="font-bold">(optional)</span>
-        </label>
-        <div className="relative mb-2">
-          <Gift className="pointer-events-none absolute left-[0.9375rem] top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)]" />
-          <input
-            id="complete-profile-referral"
-            type="text"
-            value={referralCode}
-            onChange={(event) => {
-              setReferralCode(event.target.value);
-              setSubmitError(null);
-            }}
-            maxLength={20}
-            autoCapitalize="characters"
-            autoCorrect="off"
-            spellCheck={false}
-            autoComplete="off"
-            name="complete-profile-referral"
-            data-lpignore="true"
-            data-1p-ignore="true"
-            aria-invalid={Boolean(referralError)}
-            aria-describedby="complete-profile-referral-help"
-            className={INPUT_CLASS}
-            placeholder="Enter referral code"
-          />
-        </div>
-        <div
-          id="complete-profile-referral-help"
-          className="mb-4 min-h-5"
-          aria-live="polite"
-        >
-          {referralError ? (
-            <p className="text-xs text-[var(--qs-bad)]">{referralError}</p>
-          ) : (
-            <p className="text-xs text-[var(--qs-muted)]">
-              Got a friend&rsquo;s code? Add it here.
-            </p>
-          )}
-        </div>
           </>
         )}
 

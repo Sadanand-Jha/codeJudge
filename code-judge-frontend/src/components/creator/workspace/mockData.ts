@@ -192,9 +192,9 @@ export const VERIFICATION: VerificationSection[] = [
   {
     id: "organization",
     label: "Organization",
-    description: "Business identity and GST registration",
+    description: "Business identity and tax registration",
     status: "pending",
-    detail: "GST details submitted for review",
+    detail: "Tax details submitted for review",
     updatedAt: "Pending review",
   },
   {

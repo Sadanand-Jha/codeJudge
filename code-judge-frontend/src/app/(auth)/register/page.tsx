@@ -19,11 +19,6 @@ function RegisterContent() {
     () => safeNextPath(searchParams.get("next")),
     [searchParams]
   );
-  const referralCode = useMemo(() => {
-    const raw = searchParams.get("ref")?.trim();
-    if (!raw || !/^[A-Za-z0-9-]{1,20}$/.test(raw)) return null;
-    return raw;
-  }, [searchParams]);
   const hydrate = useAuthStore((s) => s.hydrate);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
@@ -71,7 +66,7 @@ function RegisterContent() {
       align="end"
       stretchCard={false}
     >
-      <RegistrationForm nextPath={nextPath} embedded referralCode={referralCode} />
+      <RegistrationForm nextPath={nextPath} embedded />
     </AuthShell>
   );
 }

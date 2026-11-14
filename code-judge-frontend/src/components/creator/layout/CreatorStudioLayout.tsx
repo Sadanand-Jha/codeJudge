@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import { CreatorSidebar } from "./CreatorSidebar";
 import CreatorNavbar from "./CreatorNavbar";
 import CreatorMobileNav from "./CreatorMobileNav";
@@ -13,6 +12,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { useCreditState } from "@/hooks/useCreditState";
 import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/helpers";
 
 export default function CreatorStudioLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -43,6 +43,16 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
       void refreshCredits();
     }
   }, [hasHydrated, isAuthenticated, refreshCredits]);
+
+  // Lock page scroll while the mobile drawer is open.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [drawerOpen]);
 
   if (!hasHydrated) {
     return (
@@ -93,32 +103,26 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
         data-credit-state={creditState}
       >
         {/* Mobile drawer overlay */}
-        <AnimatePresence>
-          {drawerOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[70] bg-black/60 lg:hidden"
-              onClick={() => setDrawerOpen(false)}
-            />
+        <div
+          aria-hidden="true"
+          onClick={() => setDrawerOpen(false)}
+          className={cn(
+            "fixed inset-0 z-[45] bg-black/40 transition-opacity duration-200 motion-reduce:transition-none lg:hidden",
+            drawerOpen ? "opacity-100" : "pointer-events-none opacity-0"
           )}
-        </AnimatePresence>
+        />
 
         {/* Mobile drawer sidebar */}
-        <AnimatePresence>
-          {drawerOpen && (
-            <motion.aside
-              initial={{ x: -320 }}
-              animate={{ x: 0 }}
-              exit={{ x: -320 }}
-              transition={{ type: "spring", stiffness: 380, damping: 34 }}
-              className="fixed inset-y-0 left-0 z-[80] w-[min(17.5rem,calc(100vw-2rem))] border-r-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] lg:hidden"
-            >
-              <CreatorSidebar pathname={pathname} mobile onNavigate={() => setDrawerOpen(false)} />
-            </motion.aside>
+        <aside
+          inert={!drawerOpen}
+          aria-hidden={!drawerOpen}
+          className={cn(
+            "fixed inset-y-0 left-0 z-50 flex h-screen w-[86vw] max-w-[340px] flex-col border-r-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] transition-transform duration-200 ease-out motion-reduce:transition-none supports-[height:100dvh]:h-dvh lg:hidden",
+            drawerOpen ? "translate-x-0" : "-translate-x-full"
           )}
-        </AnimatePresence>
+        >
+          <CreatorSidebar pathname={pathname} mobile onNavigate={() => setDrawerOpen(false)} />
+        </aside>
 
         <aside data-sidebar="true" className="hidden w-60 shrink-0 border-r-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] lg:block">
           <CreatorSidebar pathname={pathname} />
@@ -135,7 +139,9 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
             className={
               isFullBleedStudio
                 ? "flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
-                : "px-3 pt-4 pb-28 sm:px-5 sm:pt-5 lg:px-8 lg:py-6 flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
+                : isRoomsWorkspace
+                  ? "px-0 pt-4 pb-28 sm:px-5 sm:pt-5 lg:px-8 lg:py-6 flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
+                  : "px-3 pt-4 pb-28 sm:px-5 sm:pt-5 lg:px-8 lg:py-6 flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
             }
           >
             {children}

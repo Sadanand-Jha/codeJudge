@@ -14,6 +14,14 @@ const couponField = z
   .optional()
   .nullable();
 
+const referralCodeField = z
+  .string()
+  .trim()
+  .min(1, "Referral code is empty")
+  .max(20, "Referral code is too long")
+  .optional()
+  .nullable();
+
 const currencyField = z
   .string()
   .trim()
@@ -56,6 +64,7 @@ export const createPlanOrderSchema = z
     price_id: planIdField.optional(),
     coupon: couponField,
     coupon_code: couponField,
+    referral_code: referralCodeField,
     currency: currencyField,
   })
   .refine((value) => Boolean(value.plan_id || value.plan_slug), {
@@ -90,6 +99,7 @@ export const createBundleOrderSchema = z.object({
   bundle_id: planIdField,
   coupon: couponField,
   coupon_code: couponField,
+  referral_code: referralCodeField,
   currency: currencyField,
 });
 

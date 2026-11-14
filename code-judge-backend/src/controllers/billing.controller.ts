@@ -189,11 +189,13 @@ export const createBundleOrderHandler = async (
       bundle_id: number;
       coupon?: string | null;
       coupon_code?: string | null;
+      referral_code?: string | null;
       currency?: string | null;
     };
     const data = await billingService.createBundleOrder(userIdFrom(req), {
       bundleId: body.bundle_id,
       couponCode: body.coupon ?? body.coupon_code ?? null,
+      referralCode: body.referral_code ?? null,
       currency: body.currency ?? null,
     });
     res.status(201).json({ success: true, data });
@@ -242,6 +244,7 @@ export const createPlanOrderHandler = async (
       price_id?: number;
       coupon?: string | null;
       coupon_code?: string | null;
+      referral_code?: string | null;
       currency?: string | null;
     };
     const data = await billingService.createPlanOrder(userIdFrom(req), {
@@ -249,6 +252,7 @@ export const createPlanOrderHandler = async (
       planSlug: body.plan_slug ?? null,
       priceId: body.price_id ?? null,
       couponCode: body.coupon ?? body.coupon_code ?? null,
+      referralCode: body.referral_code ?? null,
       currency: body.currency ?? null,
       request: req,
     });

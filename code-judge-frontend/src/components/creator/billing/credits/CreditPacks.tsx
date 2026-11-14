@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useId } from "react";
-import { ArrowRight, Check, Lock, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Sparkles } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useMySubscription } from "@/hooks/useMySubscription";
 import { usePricingCatalog } from "@/hooks/usePricingCatalog";
@@ -221,7 +221,6 @@ function MasterPackCard({
   badge: string;
   onSelect: (pack: CreditPurchasePack) => void;
 }) {
-  const perCredit = pack.credits > 0 ? (pack.price / pack.credits).toFixed(2) : "0.00";
   const features = packFeatures(pack);
 
   return (
@@ -253,20 +252,12 @@ function MasterPackCard({
           <span className="text-[48px] font-black leading-[0.9] tracking-[-0.03em] text-[#1b1740] sm:text-[56px]">
             {formatPricingAmount(pack.price, "INR")}
           </span>
-          <span className="pb-2 text-[13px] font-semibold leading-tight text-[#3d3a66]">
-            one-time
-            <br />
-            payment
-          </span>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-2 rounded-full border border-white bg-[linear-gradient(135deg,#fdeccb,#fff7e0)] py-1.5 pl-1.5 pr-4 shadow-[0_6px_16px_-8px_rgba(160,100,0,0.5)]">
             <MasterPackCoin className="h-[26px] w-[26px] shrink-0" />
             <span className="text-[15px] font-extrabold text-[#4a2f00]">{pack.credits} credits</span>
-          </span>
-          <span className="rounded-full bg-white/70 px-2.5 py-1.5 text-[11px] font-semibold text-[#3a2a9c]">
-            ≈ ₹{perCredit} per credit
           </span>
         </div>
 
@@ -277,7 +268,7 @@ function MasterPackCard({
         <ul className="flex flex-1 list-none flex-col gap-2.5 p-0">
           {features.map((feature) => (
             <li key={feature} className="flex items-center gap-2.5 text-[13px] font-semibold text-[#1b1740]">
-              <span className="grid h-5 w-5 flex-none place-items-center rounded-full bg-[#5b3df5] text-black">
+              <span className="grid h-5 w-5 flex-none place-items-center rounded-full bg-[#5b3df5] text-white">
                 <Check className="h-3 w-3" strokeWidth={3} />
               </span>
               {feature}

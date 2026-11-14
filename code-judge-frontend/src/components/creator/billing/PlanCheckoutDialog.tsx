@@ -9,10 +9,10 @@ import {
   CalendarClock,
   Check,
   FileText,
+  Gift,
   Info,
   Loader2,
   Lock,
-  ShieldCheck,
   Sparkles,
   X,
   Zap,
@@ -26,6 +26,11 @@ import {
   type PlanBundleSuggestion,
 } from "@/services/billing";
 import { trackCheckoutEvent } from "@/services/analytics";
+import {
+  getReferralEligibility,
+  validateReferralCode,
+  type ReferralValidationReason,
+} from "@/services/referrals";
 import type { PurchasePhase } from "./credits/OrderSummaryDialog";
 import { QS_DIALOG_PANEL } from "./credits/styles";
 
@@ -36,6 +41,7 @@ export interface PlanPurchaseReceipt {
   credits: number;
   newBalance: number;
   expiresAt: string | null;
+  referralCredits?: number;
 }
 
 // Result-state body. Mobile text is kept at 12px minimum for legibility.
@@ -46,14 +52,6 @@ function PhaseShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
-const PLAN_METHODS = [
-  { id: "upi", label: "UPI" },
-  { id: "card", label: "Card" },
-  { id: "netbanking", label: "Net Banking" },
-] as const;
-
-type PlanMethodId = (typeof PLAN_METHODS)[number]["id"];
 
 function PlanCreditCoin({ className }: { className?: string }) {
   return (
@@ -166,13 +164,9 @@ function PlanOrderSummaryCard({ plan, balance }: { plan: PricingPlan; balance: n
 
 function PlanPaymentCard({
   plan,
-  method,
-  onMethodChange,
   onPay,
 }: {
   plan: PricingPlan;
-  method: PlanMethodId;
-  onMethodChange: (method: PlanMethodId) => void;
   onPay: () => void;
 }) {
   const credits = Math.max(0, plan.credits);
@@ -204,26 +198,6 @@ function PlanPaymentCard({
 
       <hr className="my-4 border-0 border-t-2 border-dashed border-[var(--qs-line)]" />
 
-      <p className="text-[13px] font-bold">Pay with</p>
-      <div className="mt-2.5 grid grid-cols-3 gap-2">
-        {PLAN_METHODS.map((m) => (
-          <button
-            key={m.id}
-            type="button"
-            aria-pressed={method === m.id}
-            onClick={() => onMethodChange(m.id)}
-            className={cn(
-              "rounded-[12px] border-2 px-2 py-2.5 text-[12px] font-bold transition-colors sm:text-[13px]",
-              method === m.id
-                ? "border-[#4a2fd8] bg-[var(--qs-bg)] text-[var(--qs-ink)] shadow-[0_0_0_3px_rgba(124,92,255,0.18)]"
-                : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[#4a2fd8]"
-            )}
-          >
-            {m.label}
-          </button>
-        ))}
-      </div>
-
       <button
         type="button"
         onClick={onPay}
@@ -236,13 +210,8 @@ function PlanPaymentCard({
       <p className="mt-3 flex gap-2 text-[11.5px] leading-relaxed text-[var(--qs-muted)]">
         <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-[#4a2fd8]" />
           <span>
-            Your plan activates immediately and stays active for its billing period. You&apos;ll complete
-            the payment after backend verification.
+            Your plan activates immediately and stays active for its billing period.
           </span>
-      </p>
-      <p className="mt-4 border-t-2 border-dashed border-[var(--qs-line)] pt-3 text-center text-[11px] text-[var(--qs-muted)]">
-        <ShieldCheck className="mr-1 inline h-3.5 w-3.5 text-[#4a2fd8]" />
-        Plans and credits are activated only after backend payment verification
       </p>
     </aside>
   );
@@ -331,6 +300,119 @@ function PlanBundleSuggestionCard({
   );
 }
 
+type ReferralUiStatus = "idle" | "checking" | "applied" | "error" | "unavailable";
+
+const REFERRAL_ERROR_COPY: Record<ReferralValidationReason, string> = {
+  missing_code: "Enter a referral code to continue.",
+  invalid_code: "That referral code is not valid.",
+  self_referral: "You cannot use your own referral code.",
+  already_used: "A referral code has already been used on this account.",
+};
+
+function ReferralCodeCard({
+  draft,
+  status,
+  message,
+  rewardCredits,
+  disabled,
+  onChange,
+  onApply,
+  onClear,
+}: {
+  draft: string;
+  status: ReferralUiStatus;
+  message: string | null;
+  rewardCredits: number;
+  disabled: boolean;
+  onChange: (value: string) => void;
+  onApply: () => void;
+  onClear: () => void;
+}) {
+  const unavailable = status === "unavailable";
+  const applied = status === "applied";
+
+  return (
+    <section className="rounded-[20px] border-2 border-[var(--qs-ink)] bg-[linear-gradient(160deg,#fffdf4,#fff7dd_170%)] p-4 shadow-[0_4px_0_#f0d78a] sm:rounded-[24px] sm:p-5">
+      <div className="flex items-start gap-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--qs-sun)] text-[#3b2400]">
+          <Gift className="h-5 w-5" strokeWidth={2.5} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-[15px] font-extrabold text-[var(--qs-ink)]">
+            Referral code
+          </h3>
+          <p className="mt-0.5 text-[12px] leading-5 text-[var(--qs-muted)]">
+            Have a friend&rsquo;s code? You both get{" "}
+            <b className="text-[var(--qs-ink)]">{rewardCredits} AI credits</b>,
+            valid for 6 months.
+          </p>
+
+          {unavailable ? (
+            <p className="mt-3 rounded-[12px] border border-[var(--qs-line)] bg-white/70 px-3 py-2 text-[12px] font-semibold text-[var(--qs-muted)]">
+              {message ?? REFERRAL_ERROR_COPY.already_used}
+            </p>
+          ) : (
+            <>
+              <div className="mt-3 flex gap-2">
+                <input
+                  type="text"
+                  value={draft}
+                  onChange={(event) => onChange(event.target.value)}
+                  disabled={disabled || status === "checking" || applied}
+                  maxLength={20}
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  autoComplete="off"
+                  aria-label="Referral code"
+                  placeholder="Enter code"
+                  className="h-11 min-w-0 flex-1 rounded-[12px] border-2 border-[var(--qs-line)] bg-white px-3 text-[14px] font-bold uppercase tracking-[0.04em] text-[var(--qs-ink)] outline-none transition-[border-color,box-shadow] placeholder:font-normal placeholder:normal-case placeholder:tracking-normal placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] focus:ring-4 focus:ring-[var(--qs-brand)]/12 disabled:opacity-70"
+                />
+                {applied ? (
+                  <button
+                    type="button"
+                    onClick={onClear}
+                    disabled={disabled}
+                    className="h-11 shrink-0 rounded-[12px] border-2 border-[var(--qs-line)] bg-white px-4 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-ink)]"
+                  >
+                    Remove
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={onApply}
+                    disabled={disabled || status === "checking" || !draft.trim()}
+                    className="flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-[12px] bg-[var(--qs-ink)] px-4 text-[13px] font-bold text-white transition-[filter] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    {status === "checking" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Apply"
+                    )}
+                  </button>
+                )}
+              </div>
+              {message && (
+                <p
+                  className={cn(
+                    "mt-2 text-[12px] font-semibold",
+                    status === "error"
+                      ? "text-[var(--qs-bad)]"
+                      : "text-[var(--qs-ok)]"
+                  )}
+                  aria-live="polite"
+                >
+                  {message}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function PlanCheckoutDialog({
   plan,
   balance,
@@ -350,14 +432,82 @@ export function PlanCheckoutDialog({
   processingNote: string;
   receipt: PlanPurchaseReceipt | null;
   onClose: () => void;
-  onPay: (selection: { mode: "plan" | "bundle"; bundleId?: number }) => void;
+  onPay: (selection: {
+    mode: "plan" | "bundle";
+    bundleId?: number;
+    referralCode?: string;
+  }) => void;
   onBack: () => void;
   onViewInvoice?: (orderId: string) => void;
 }) {
   const busy = phase === "processing";
   const [suggestion, setSuggestion] = useState<PlanBundleSuggestion | null>(null);
   const [selection, setSelection] = useState<"plan" | "bundle">("plan");
-  const [method, setMethod] = useState<PlanMethodId>("upi");
+  const [referralDraft, setReferralDraft] = useState("");
+  const [appliedReferral, setAppliedReferral] = useState<{
+    code: string;
+    displayName: string;
+  } | null>(null);
+  const [referralStatus, setReferralStatus] =
+    useState<ReferralUiStatus>("idle");
+  const [referralMessage, setReferralMessage] = useState<string | null>(null);
+  const [referralReward, setReferralReward] = useState(50);
+
+  useEffect(() => {
+    let active = true;
+    getReferralEligibility()
+      .then((eligibility) => {
+        if (!active) return;
+        setReferralReward(eligibility.rewardCredits);
+        if (!eligibility.canUse) {
+          setReferralStatus("unavailable");
+          setReferralMessage(
+            REFERRAL_ERROR_COPY[eligibility.reason ?? "already_used"]
+          );
+        }
+      })
+      .catch(() => {
+        // Applying a code still validates it server-side.
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const applyReferral = async () => {
+    const code = referralDraft.trim();
+    if (!code || busy || referralStatus === "checking") return;
+    setReferralStatus("checking");
+    setReferralMessage(null);
+    try {
+      const result = await validateReferralCode(code);
+      if (!result.valid || !result.code) {
+        setReferralStatus("error");
+        setReferralMessage(
+          REFERRAL_ERROR_COPY[result.reason ?? "invalid_code"]
+        );
+        return;
+      }
+      const displayName = result.referrer?.displayName ?? "your friend";
+      setReferralDraft(result.code);
+      setAppliedReferral({ code: result.code, displayName });
+      setReferralReward(result.rewardCredits);
+      setReferralStatus("applied");
+      setReferralMessage(
+        `Code applied — you and ${displayName} each get ${result.rewardCredits} credits, valid for 6 months.`
+      );
+    } catch {
+      setReferralStatus("error");
+      setReferralMessage("We could not check that code. Please try again.");
+    }
+  };
+
+  const clearReferral = () => {
+    setAppliedReferral(null);
+    setReferralDraft("");
+    setReferralStatus("idle");
+    setReferralMessage(null);
+  };
 
   useEffect(() => {
     if (plan.billingPeriod && plan.billingPeriod !== "monthly") return;
@@ -406,7 +556,7 @@ export function PlanCheckoutDialog({
         planCode: plan.slug,
       });
     }
-    onPay({ mode: "plan" });
+    onPay({ mode: "plan", referralCode: appliedReferral?.code });
   };
 
   const chooseBundle = () => {
@@ -419,7 +569,11 @@ export function PlanCheckoutDialog({
       productId: suggestion.productId,
       planCode: plan.slug,
     });
-    onPay({ mode: "bundle", bundleId: suggestion.bundleId });
+    onPay({
+      mode: "bundle",
+      bundleId: suggestion.bundleId,
+      referralCode: appliedReferral?.code,
+    });
   };
 
   return (
@@ -467,9 +621,20 @@ export function PlanCheckoutDialog({
               <PlanOrderSummaryCard plan={plan} balance={balance} />
               <PlanPaymentCard
                 plan={plan}
-                method={method}
-                onMethodChange={setMethod}
                 onPay={choosePlan}
+              />
+            </div>
+
+            <div className="mt-3">
+              <ReferralCodeCard
+                draft={referralDraft}
+                status={referralStatus}
+                message={referralMessage}
+                rewardCredits={referralReward}
+                disabled={busy}
+                onChange={setReferralDraft}
+                onApply={() => void applyReferral()}
+                onClear={clearReferral}
               />
             </div>
 
@@ -504,6 +669,11 @@ export function PlanCheckoutDialog({
               {receipt.credits.toLocaleString("en-IN")} credits added
               {validTill ? ` · valid till ${validTill}` : ""}
             </p>
+            {receipt.referralCredits ? (
+              <p className="mt-1 rounded-full bg-[#fff3c4] px-3 py-1 text-[11.5px] font-bold text-[#6b4a00]">
+                +{receipt.referralCredits} referral credits added to both accounts
+              </p>
+            ) : null}
             <p className="mt-1 text-[12px] tabular-nums text-[var(--qs-muted)]">
               Transaction {receipt.transactionId} · Balance {receipt.newBalance.toLocaleString("en-IN")}
             </p>
@@ -544,6 +714,7 @@ export function PlanCheckoutDialog({
                   onPay({
                     mode: activeBundle ? "bundle" : "plan",
                     bundleId: activeBundle?.bundleId,
+                    referralCode: appliedReferral?.code,
                   })
                 }
                 className="b b-pri flex-1"
@@ -572,13 +743,6 @@ export function PlanCheckoutDialog({
               </button>
             </div>
           </PhaseShell>
-        )}
-
-        {phase !== "processing" && phase !== "success" && (
-          <p className="mt-3 flex items-center justify-center gap-1.5 border-t-2 border-[var(--qs-line)] pt-3 text-center text-[12px] font-medium text-[var(--qs-muted)]">
-            <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-            Plans and credits are activated only after backend payment verification
-          </p>
         )}
       </motion.div>
     </motion.div>

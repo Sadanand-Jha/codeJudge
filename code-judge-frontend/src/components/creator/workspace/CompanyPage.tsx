@@ -125,7 +125,7 @@ export function CompanyPage() {
                 <div className="flex items-center gap-2.5">
                   <Receipt className="h-4 w-4 text-amber-500" />
                   <div>
-                    <p className="text-[13px] font-semibold text-text-primary">GST status</p>
+                    <p className="text-[13px] font-semibold text-text-primary">Tax status</p>
                     <p className="text-[11px] text-text-secondary">{org.gstin}</p>
                   </div>
                 </div>
@@ -232,7 +232,7 @@ export function CompanyPage() {
                 <input className={INPUT_CLS} value={form.country} onChange={(e) => update("country", e.target.value)} />
               </div>
               <div>
-                <label className={LABEL_CLS}>GSTIN</label>
+                <label className={LABEL_CLS}>Tax ID</label>
                 <input className={cn(INPUT_CLS, "font-mono tracking-wider")} value={form.gstin} onChange={(e) => update("gstin", e.target.value)} />
               </div>
             </div>

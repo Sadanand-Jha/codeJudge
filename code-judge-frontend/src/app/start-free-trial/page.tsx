@@ -65,7 +65,6 @@ export default async function StartFreeTrialPage() {
             <span>Owner approval</span>
             <span>AI credits included</span>
             <span>{offer}</span>
-            <span>GST included</span>
           </div>
         </header>
 
@@ -173,7 +172,7 @@ export default async function StartFreeTrialPage() {
 
             <p className="qp-after">
               Log in to request your trial from billing. Trials start after owner
-              approval. Prices include GST. Plan changes take effect from the next billing cycle.
+              approval. Plan changes take effect from the next billing cycle.
             </p>
           </div>
         </section>

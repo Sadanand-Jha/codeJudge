@@ -26,7 +26,7 @@ import { StudentPreviewModal } from "../components/StudentPreviewModal";
 import { useStudio } from "../StudioProvider";
 import { Plus, ListChecks, Settings2, ChevronLeft, ChevronRight, Eye, Download } from "lucide-react";
 import type { CreatorQuestion } from "../types";
-import { downloadQuizPaperPdf, formatPdfCooldownWait, getPaperPdfErrorInfo, type PaperDownloadKind } from "@/utils/paperPdf";
+import { downloadQuizPaperPdf, getPaperPdfErrorInfo, type PaperDownloadKind } from "@/utils/paperPdf";
 import { formatPaperDate, type PaperMeta } from "@/utils/paperHtml";
 import PdfConfigModal, { type PaperDownloadConfig } from "@/components/quiz/creator/settings/PdfConfigModal";
 import { generateQuizCode } from "@/services/quiz";
@@ -46,6 +46,8 @@ export function QuestionsStep() {
   const [aiOpen, setAiOpen] = useState(false);
   const [aiPlansOpen, setAiPlansOpen] = useState(false);
   const [aiPlansMounted, setAiPlansMounted] = useState(false);
+  const [pdfPlansOpen, setPdfPlansOpen] = useState(false);
+  const [pdfPlansMounted, setPdfPlansMounted] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [generatedPdfCode, setGeneratedPdfCode] = useState("");
@@ -131,14 +133,8 @@ export function QuestionsStep() {
       .catch(async (error) => {
         const info = await getPaperPdfErrorInfo(error);
         if (info.code === "PDF_COOLDOWN") {
-          toast.warning({
-            title: "PDF is cooling down",
-            description:
-              info.retryAfter !== undefined
-                ? `You can download another PDF in ${formatPdfCooldownWait(info.retryAfter)}.`
-                : info.message,
-            duration: 6000,
-          });
+          setPdfPlansMounted(true);
+          setPdfPlansOpen(true);
           return;
         }
         toast.error({
@@ -380,6 +376,14 @@ export function QuestionsStep() {
           preset="ai"
           open={aiPlansOpen}
           onClose={() => setAiPlansOpen(false)}
+        />
+      )}
+
+      {pdfPlansMounted && (
+        <PlansUpsellModal
+          preset="pdf"
+          open={pdfPlansOpen}
+          onClose={() => setPdfPlansOpen(false)}
         />
       )}
 

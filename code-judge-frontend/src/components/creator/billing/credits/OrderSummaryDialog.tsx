@@ -12,7 +12,6 @@ import {
   Info,
   Loader2,
   Lock,
-  ShieldCheck,
   Sparkles,
   X,
 } from "lucide-react";
@@ -36,12 +35,6 @@ export interface PurchaseReceipt {
   newBalance: number;
 }
 
-const METHODS = [
-  { id: "upi", label: "UPI" },
-  { id: "card", label: "Card" },
-  { id: "netbanking", label: "Net Banking" },
-] as const;
-
 function PhaseShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center py-4 text-center" role="status" aria-live="polite">
@@ -49,8 +42,6 @@ function PhaseShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
-type MethodId = (typeof METHODS)[number]["id"];
 
 function rupees(paise: number): string {
   return `₹${Math.round(paise / 100).toLocaleString("en-IN")}`;
@@ -104,8 +95,6 @@ function PackCard({ summary, balance }: { summary: PackOrderSummary; balance: nu
   const balanceAfter = balance + credits;
   const addedPercent = balanceAfter > 0 ? (credits / balanceAfter) * 100 : 0;
   const currentPercent = Math.max(0, 100 - addedPercent);
-  const perCreditRate =
-    credits > 0 ? `≈ ₹${(summary.total / credits).toFixed(2)} per credit` : "Best value pack";
   const badge = /master\s*pack/i.test(summary.pack.name)
     ? "Best value"
     : summary.pack.popular
@@ -132,9 +121,6 @@ function PackCard({ summary, balance }: { summary: PackOrderSummary; balance: nu
           </div>
           <p className="mt-2 text-[44px] font-black leading-none tracking-[-0.03em] sm:text-[54px]">
             {formatPricingAmount(summary.total, "INR")}
-            <span className="ml-2 text-[12px] font-medium tracking-normal text-[var(--qs-muted)] sm:text-[13px]">
-              one-time payment
-            </span>
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[#f0d28a] bg-[#fff3d1] py-1.5 pl-1.5 pr-3 text-[13px] font-bold text-[#5a3b00]">
@@ -142,9 +128,6 @@ function PackCard({ summary, balance }: { summary: PackOrderSummary; balance: nu
                 ★
               </span>
               {credits.toLocaleString("en-IN")} credits
-            </span>
-            <span className="rounded-full border border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-[11px] font-semibold text-[var(--qs-muted)]">
-              {perCreditRate}
             </span>
           </div>
           <p className="mt-3 text-[13.5px] leading-relaxed text-[var(--qs-muted)]">
@@ -194,13 +177,9 @@ function PackCard({ summary, balance }: { summary: PackOrderSummary; balance: nu
 
 function PaymentCard({
   summary,
-  method,
-  onMethodChange,
   onPay,
 }: {
   summary: PackOrderSummary;
-  method: MethodId;
-  onMethodChange: (method: MethodId) => void;
   onPay: () => void;
 }) {
   const credits = Math.max(0, summary.credits);
@@ -233,26 +212,6 @@ function PaymentCard({
 
       <hr className="my-4 border-0 border-t-2 border-dashed border-[var(--qs-line)]" />
 
-      <p className="text-[13px] font-bold">Pay with</p>
-      <div className="mt-2.5 grid grid-cols-3 gap-2">
-        {METHODS.map((m) => (
-          <button
-            key={m.id}
-            type="button"
-            aria-pressed={method === m.id}
-            onClick={() => onMethodChange(m.id)}
-            className={cn(
-              "rounded-[12px] border-2 px-2 py-2.5 text-[12px] font-bold transition-colors sm:text-[13px]",
-              method === m.id
-                ? "border-[#4a2fd8] bg-[var(--qs-bg)] text-[var(--qs-ink)] shadow-[0_0_0_3px_rgba(124,92,255,0.18)]"
-                : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[#4a2fd8]"
-            )}
-          >
-            {m.label}
-          </button>
-        ))}
-      </div>
-
       <button
         type="button"
         onClick={onPay}
@@ -267,10 +226,6 @@ function PaymentCard({
           <span>
             Credits are added instantly and stay valid for {validity} from purchase.
           </span>
-      </p>
-      <p className="mt-4 border-t-2 border-dashed border-[var(--qs-line)] pt-3 text-center text-[11px] text-[var(--qs-muted)]">
-        <ShieldCheck className="mr-1 inline h-3.5 w-3.5 text-[#4a2fd8]" />
-        Credits are added only after backend payment verification
       </p>
     </aside>
   );
@@ -413,7 +368,6 @@ export function OrderSummaryDialog({
   onBack: () => void;
   onViewInvoice?: (orderId: string) => void;
 }) {
-  const [method, setMethod] = useState<MethodId>("upi");
   const [suggestion, setSuggestion] = useState<PackUpgradeSuggestion | null>(null);
   const [declined, setDeclined] = useState(false);
   const busy = phase === "processing";
@@ -515,12 +469,12 @@ export function OrderSummaryDialog({
         {phase === "summary" && (
           <>
             <div className="mt-3 grid gap-3 sm:mt-5 sm:grid-cols-[1.15fr_0.85fr] sm:items-start sm:gap-4">
-              <PackCard summary={summary} balance={balance} />
+              <div className="max-sm:hidden">
+                <PackCard summary={summary} balance={balance} />
+              </div>
               <PaymentCard
                 summary={summary}
-                method={method}
-                onMethodChange={setMethod}
-                onPay={() => onPay(method)}
+                onPay={() => onPay("upi")}
               />
             </div>
 
@@ -608,7 +562,7 @@ export function OrderSummaryDialog({
               </button>
               <button
                 type="button"
-                onClick={() => onPay(method)}
+                onClick={() => onPay("upi")}
                 className="flex-1 rounded-[10px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] py-2.5 text-[12px] font-bold sm:rounded-[14px] sm:border-2 sm:py-3 sm:text-sm sm:font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
               >
                 Try again
@@ -643,13 +597,6 @@ export function OrderSummaryDialog({
               </button>
             </div>
           </PhaseShell>
-        )}
-
-        {phase !== "processing" && phase !== "success" && (
-          <p className="mt-4 flex items-center justify-center gap-1.5 border-t-2 border-[var(--qs-line)] pt-3 text-[11px] font-medium text-[var(--qs-muted)]">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Credits are added only after backend payment verification
-          </p>
         )}
       </motion.div>
     </motion.div>

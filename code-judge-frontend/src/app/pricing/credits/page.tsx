@@ -127,10 +127,6 @@ export default async function AICreditsPricingPage() {
       q: "Do purchased credits renew automatically?",
       a: "No. Every credit pack is a one-time purchase. You only pay again when you choose to buy another pack.",
     },
-    {
-      q: "Are prices inclusive of taxes?",
-      a: "Yes. All credit pack prices shown here include GST.",
-    },
   ];
 
   return (
@@ -188,7 +184,6 @@ export default async function AICreditsPricingPage() {
                     Valid for {validity} months
                   </li>
                 ) : null}
-                <li>GST included</li>
               </ul>
             </div>
 
@@ -335,10 +330,6 @@ export default async function AICreditsPricingPage() {
                     </span>
                   );
                 })}
-                <span className="pricing-perk">
-                  <ShieldCheck size={15} aria-hidden />
-                  GST included
-                </span>
               </div>
             </div>
 

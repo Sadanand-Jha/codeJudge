@@ -78,10 +78,6 @@ function buildFaqs(catalog: PricingCatalog) {
           ? `${freePlan.name} is free forever, so you can start without a trial.`
           : "Trial availability depends on the current plans shown above.",
     },
-    {
-      q: "Are prices inclusive of taxes?",
-      a: "Yes. All plan prices shown here include GST.",
-    },
   ];
 }
 
@@ -165,7 +161,6 @@ export default async function PricingPage() {
                   </li>
                 ) : null}
                 {offer ? <li>{offer}</li> : null}
-                <li>GST included</li>
               </ul>
             </div>
 
@@ -185,7 +180,6 @@ export default async function PricingPage() {
                   <div className="landing-screen-toolbar">
                     <span><i /> Plans</span>
                     <span>{catalog.plans.length} options</span>
-                    <span>GST included</span>
                   </div>
                   <ul className="pricing-glance-list">
                     {catalog.plans.map((plan) => (

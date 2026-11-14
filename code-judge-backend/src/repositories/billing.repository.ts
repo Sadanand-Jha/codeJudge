@@ -100,6 +100,8 @@ export interface OrderRow {
   creditsUsed: number;
   creditsRemaining: number;
   isActive: boolean;
+  referralCode: string | null;
+  referralReferrerUserId: number | null;
   couponId: number | null;
   couponCode: string | null;
   subscriptionId: number | null;
@@ -204,6 +206,12 @@ function mapOrder(row: Record<string, unknown>): OrderRow {
     creditsUsed: toNumber(row.credits_used),
     creditsRemaining: toNumber(row.credits_remaining),
     isActive: row.is_active === true,
+    referralCode:
+      row.referral_code == null ? null : String(row.referral_code),
+    referralReferrerUserId:
+      row.referral_referrer_user_id == null
+        ? null
+        : toNumber(row.referral_referrer_user_id),
     couponId: row.coupon_id == null ? null : toNumber(row.coupon_id),
     couponCode: row.coupon_code == null ? null : String(row.coupon_code),
     subscriptionId:
@@ -655,6 +663,7 @@ const ORDER_COLUMNS = `o.id, o.order_no, o.user_id, o.order_type, o.plan_id,
   o.pricing_version, o.status, o.payment_method, o.gateway, o.gateway_order_id,
   o.gateway_payment_id, o.paid_at, o.validity_days, o.starts_at, o.expires_at,
   o.credits_total, o.credits_used, o.credits_remaining, o.is_active,
+  o.referral_code, o.referral_referrer_user_id,
   o.coupon_id, o.coupon_code, o.subscription_id, o.parent_order_id,
   o.bundle_id, o.bundle_plan_credits, o.bundle_pack_credits,
   o.bundle_pack_validity_days, o.refund_amount, o.failure_reason,
@@ -809,6 +818,8 @@ export interface InsertOrderInput {
   creditsTotal: number;
   couponId: number | null;
   couponCode: string | null;
+  referralCode?: string | null;
+  referralReferrerUserId?: number | null;
   notes: string | null;
   parentOrderId?: string | null;
   bundleId?: number | null;
@@ -830,11 +841,13 @@ export async function insertOrder(
         catalog_price_id, pack_id, amount_inr, mrp_inr, discount_inr, currency,
           pricing_country, pricing_amount_minor, pricing_config_id, pricing_version,
           status, gateway, validity_days, credits_total, coupon_id, coupon_code,
+          referral_code, referral_referrer_user_id,
           notes, parent_order_id, bundle_id, bundle_plan_credits,
           bundle_pack_credits, bundle_pack_validity_days)
        VALUES
          ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
-          'pending', 'razorpay', $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+          'pending', 'razorpay', $16, $17, $18, $19, $20, $21, $22,
+          $23, $24, $25, $26, $27, $28)
      RETURNING *`,
     [
       input.orderNo,
@@ -856,6 +869,8 @@ export async function insertOrder(
       input.creditsTotal,
       input.couponId,
       input.couponCode,
+      input.referralCode ?? null,
+      input.referralReferrerUserId ?? null,
       input.notes,
       input.parentOrderId ?? null,
       input.bundleId ?? null,
@@ -865,6 +880,51 @@ export async function insertOrder(
     ]
   );
   return mapOrder(result.rows[0]);
+}
+
+/**
+ * Attaches or clears the referral snapshot on a reused pending order. The
+ * order amount is unaffected because referral rewards are granted post-payment.
+ */
+export async function updatePendingOrderReferral(
+  input: {
+    orderId: string;
+    referralCode: string | null;
+    referralReferrerUserId: number | null;
+  },
+  db: Db
+): Promise<void> {
+  await db.query(
+    `UPDATE orders
+        SET referral_code = $2,
+            referral_referrer_user_id = $3,
+            updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+        AND status = 'pending'`,
+    [input.orderId, input.referralCode, input.referralReferrerUserId]
+  );
+}
+
+/**
+ * Releases the one-referral-per-user reservation from any other pending
+ * checkout. The latest checkout owns the referral code, so an abandoned
+ * checkout can never block a new attempt.
+ */
+export async function clearOtherPendingReferralOrders(
+  input: { userId: string; excludeOrderId?: string | null },
+  db: Db
+): Promise<void> {
+  await db.query(
+    `UPDATE orders
+        SET referral_code = NULL,
+            referral_referrer_user_id = NULL,
+            updated_at = CURRENT_TIMESTAMP
+      WHERE user_id = $1
+        AND status = 'pending'
+        AND referral_code IS NOT NULL
+        AND ($2::bigint IS NULL OR id <> $2::bigint)`,
+    [input.userId, input.excludeOrderId ?? null]
+  );
 }
 
 export interface InsertBundleGrantInput {

@@ -12,6 +12,7 @@ import {
   Copy,
   Crop,
   FileSpreadsheet,
+  FileText,
   FileUp,
   Layers3,
   Mail,
@@ -19,6 +20,7 @@ import {
   Send,
   ShieldCheck,
   Sparkles,
+  Timer,
   Wand2,
   X,
   Zap,
@@ -30,7 +32,7 @@ import { usePricingCatalog } from "@/hooks/usePricingCatalog";
 import { formatBillingPeriod, formatPricingAmount } from "@/services/pricing";
 import type { PricingPlan } from "@/types/pricing";
 
-export type PlansUpsellPreset = "anti-cheat" | "email" | "ai" | "headers";
+export type PlansUpsellPreset = "anti-cheat" | "email" | "ai" | "headers" | "pdf";
 
 interface UpsellFeature {
   icon: LucideIcon;
@@ -178,6 +180,38 @@ const PRESETS: Record<PlansUpsellPreset, UpsellPreset> = {
       },
     ],
     footerHint: "Upload your first header right after upgrading.",
+  },
+  pdf: {
+    icon: FileText,
+    titleLead: "Skip the",
+    titleAccent: "PDF cooldown",
+    description:
+      "Free plans wait 1 minute between PDF downloads. Buy a monthly pack to export question papers back-to-back.",
+    highlight: "No PDF cooldown",
+    features: [
+      {
+        icon: Timer,
+        title: "No waiting",
+        description: "Download one paper after another",
+        tone: "bg-[var(--qs-poly-1)] text-[var(--qs-brand)]",
+        pill: "bg-[var(--qs-poly-0)]",
+      },
+      {
+        icon: Zap,
+        title: "Instant exports",
+        description: "Paper and answer key, any time",
+        tone: "bg-[#fff3d6] text-[#a85d00]",
+        pill: "bg-[#fff3d6]",
+      },
+      {
+        icon: Layers3,
+        title: "All download modes",
+        description: "Single, combined and per-student sets",
+        tone: "bg-[var(--qs-okbg)] text-[var(--qs-ok)]",
+        pill: "bg-[var(--qs-okbg)]",
+      },
+    ],
+    footerHint: "Export your next paper right after upgrading.",
   },
 };
 

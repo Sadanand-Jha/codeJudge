@@ -21,7 +21,7 @@ const TAX_DOC_SLOTS = [
   { key: "monthly", label: "Monthly statement", description: "Auto-generated each month" },
   { key: "quarterly", label: "Quarterly statement", description: "Auto-generated each quarter" },
   { key: "annual", label: "Annual statement", description: "Generated at financial year end" },
-  { key: "invoice", label: "Tax invoice", description: "GST-compliant invoice" },
+  { key: "invoice", label: "Tax invoice", description: "Tax-compliant invoice" },
 ];
 
 export function TaxPage({ demoState }: { demoState?: "empty" | "error" }) {
@@ -32,7 +32,7 @@ export function TaxPage({ demoState }: { demoState?: "empty" | "error" }) {
   const taxDocs: FinancialDocument[] = [];
 
   const download = (label: string) =>
-    toast.info({ title: `Downloading ${label}`, description: "File download will be wired to the backend." });
+    toast.info({ title: `Downloading ${label}` });
 
   return (
     <div className="space-y-6">
@@ -77,11 +77,11 @@ export function TaxPage({ demoState }: { demoState?: "empty" | "error" }) {
                   { icon: IdCard, label: "PAN", value: profile.pan, badge: "Verified" },
                   {
                     icon: FileWarning,
-                    label: "GST status",
+                    label: "Tax status",
                     value: profile.gstStatus,
                     badge: profile.gstStatus === "Registered" ? "Active" : "Not registered",
                   },
-                  ...(profile.gstin ? [{ icon: FileText, label: "GSTIN", value: profile.gstin, badge: "Valid" }] : []),
+                  ...(profile.gstin ? [{ icon: FileText, label: "Tax ID", value: profile.gstin, badge: "Valid" }] : []),
                 ].map((row, i, arr) => (
                   <div
                     key={row.label}

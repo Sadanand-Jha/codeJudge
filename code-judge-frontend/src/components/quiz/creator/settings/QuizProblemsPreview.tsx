@@ -63,7 +63,7 @@ import {
 import { useQuizSettings } from "@/components/quiz/creator/settings/QuizSettingsContext";
 import { useQuestionApproval } from "@/hooks/useQuestionApproval";
 import QuestionBankImportModal from "@/components/quiz/creator/settings/QuestionBankImportModal";
-import { downloadQuizPaperPdf, formatPdfCooldownWait, getPaperPdfErrorInfo, type PaperDownloadKind } from "@/utils/paperPdf";
+import { downloadQuizPaperPdf, getPaperPdfErrorInfo, type PaperDownloadKind } from "@/utils/paperPdf";
 import { formatPaperDate, type PaperMeta } from "@/utils/paperHtml";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/helpers";
@@ -72,6 +72,7 @@ import { looksLikeMath } from "@/utils/mathText";
 import { zonedDateTimeToISO } from "@/lib/timezone";
 import PdfConfigModal, { type PaperDownloadConfig } from "@/components/quiz/creator/settings/PdfConfigModal";
 import { computeQuestionsSignature, getSyncedSignature, setSyncedSignature } from "@/utils/quizStorage";
+import { PlansUpsellModal } from "@/components/creator/quiz-studio/components/PlansUpsellModal";
 
 const QUESTION_TYPES: Array<{ id: CreatorQuestionType; label: string; short: string; icon: any; desc: string }> = [
   { id: "single_choice", label: "Multiple Choice", short: "MCQ", icon: CircleDot, desc: "Single correct answer" },
@@ -106,6 +107,8 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [pdfPlansOpen, setPdfPlansOpen] = useState(false);
+  const [pdfPlansMounted, setPdfPlansMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [showTypeMenu, setShowTypeMenu] = useState(false);
@@ -303,14 +306,8 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
       .catch(async (error) => {
         const info = await getPaperPdfErrorInfo(error);
         if (info.code === "PDF_COOLDOWN") {
-          toast.warning({
-            title: "PDF is cooling down",
-            description:
-              info.retryAfter !== undefined
-                ? `You can download another PDF in ${formatPdfCooldownWait(info.retryAfter)}.`
-                : info.message,
-            duration: 6000,
-          });
+          setPdfPlansMounted(true);
+          setPdfPlansOpen(true);
           return;
         }
         toast.error({ title: "Could not generate PDF", description: info.message });
@@ -1108,6 +1105,14 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
           remainingSlots={40 - problems.length}
           onClose={() => setImportOpen(false)}
           onImport={handleImportQuestions}
+        />
+      )}
+
+      {pdfPlansMounted && (
+        <PlansUpsellModal
+          preset="pdf"
+          open={pdfPlansOpen}
+          onClose={() => setPdfPlansOpen(false)}
         />
       )}
     </div>

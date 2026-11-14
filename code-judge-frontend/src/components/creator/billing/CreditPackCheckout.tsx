@@ -217,7 +217,6 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack }:
   const baseRate = packs[0] ? packs[0].price / packs[0].credits : 0;
   const disc = appliedCoupon ? (COUPONS[appliedCoupon] ?? 0) : 0;
   const total = pack ? +(pack.price * (1 - disc)).toFixed(2) : 0;
-  const gstPart = total - total / 1.18;
   const brand = cardBrand(cardNum.replace(/\s/g, ""));
 
   if (isLoading) {
@@ -284,7 +283,7 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack }:
     }
 
     if (wantGst && !/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin.trim())) {
-      setGstErr("GSTIN must be 15 characters.");
+      setGstErr("Tax ID must be 15 characters.");
       ok = false;
     } else {
       setGstErr("");
@@ -623,12 +622,12 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack }:
               onChange={(e) => setWantGst(e.target.checked)}
               className="mt-0.5 h-[18px] w-[18px] accent-pink-600"
             />
-            <span>Need a GST invoice (for business / school)</span>
+            <span>Need an invoice (for business / school)</span>
           </label>
           {wantGst && (
             <div className="mb-3.5">
               <label htmlFor="cko-gstin" className="mb-1.5 block text-[13px] font-semibold text-slate-900 dark:text-white">
-                GSTIN
+                Tax ID
               </label>
               <input
                 id="cko-gstin"
@@ -689,12 +688,6 @@ export function CreditPackCheckout({ onPay, processing, initialPackId, onBack }:
               </b>
             </div>
           )}
-          <div className="flex justify-between py-1.5 text-slate-500 dark:text-slate-400">
-            <span>
-              GST (18%) <small>included</small>
-            </span>
-            <b className="font-semibold tabular-nums text-slate-900 dark:text-white">{inr(gstPart)}</b>
-          </div>
           <div className="mt-2 flex justify-between border-t border-dashed border-slate-200 pt-3 text-lg font-extrabold text-slate-900 dark:border-white/15 dark:text-white">
             <span>Total</span>
             <b className="text-[22px] tabular-nums">{inr(total)}</b>

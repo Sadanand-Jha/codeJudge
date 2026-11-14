@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ChevronLeft, ChevronRight, Mail, Search, X, RefreshCw,
+  ArrowLeft, ArrowUpDown, ChevronLeft, ChevronRight, Mail, Search, X, RefreshCw,
   MoreVertical, Pause, RotateCcw, Timer, TrendingUp, TrendingDown, Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
@@ -639,11 +639,368 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
     { label: "Lowest", value: summary.lowest ?? "—", sub: "correct", color: "var(--qs-bad)" },
   ];
 
+  const completionPct = summary.total > 0 ? Math.round((summary.submitted / summary.total) * 100) : 0;
+
+  const statusChipClass: Record<StudentStatus, string> = {
+    SUBMITTED: "bg-[#d9f4e8] text-[#0f5c42]",
+    IN_PROGRESS: "bg-[#dbeafe] text-[#2457d6]",
+    NOT_STARTED: "bg-[#fef3c7] text-[#a85d00]",
+    TIMED_OUT: "bg-[#fde2e2] text-[#b42318]",
+  };
+
   const topBtn = "inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-[9px] text-sm font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]";
 
   return (
     <div className="min-h-full bg-[var(--qs-bg)]">
-      <div className="mx-auto max-w-[1280px] px-4 py-6 pb-20 sm:px-6">
+      {/* ── Mobile layout ─────────────────────────────────────────── */}
+      <div className="px-1 py-4 pb-24 md:hidden">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/creator/quizzes"
+            aria-label="Back"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] text-[var(--qs-ink)]"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-[24px] font-extrabold leading-tight tracking-[-0.02em] text-[var(--qs-ink)]">Responses</h1>
+              {liveStudents.length > 0 && !quizEnded && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--qs-ok)]/10 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ok)]">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--qs-ok)]" />
+                  Live
+                </span>
+              )}
+            </div>
+            <p className="truncate text-[12px] font-medium text-[var(--qs-muted)]">{quizName}</p>
+          </div>
+        </div>
+
+        <div className="mt-3.5 flex gap-2.5">
+          <button
+            type="button"
+            onClick={() => void handleRefresh()}
+            className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] text-[13px] font-bold text-[var(--qs-ink)]"
+          >
+            <RefreshCw className={cn("h-4 w-4", (refreshing || loading) && "animate-spin")} />
+            Refresh
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (emailLocked) {
+                setEmailPlansMounted(true);
+                setEmailPlansOpen(true);
+                return;
+              }
+              void handleSendEmail();
+            }}
+            disabled={sendingEmail || (!hasResponses && !emailLocked)}
+            title={
+              emailLocked
+                ? "Upgrade to a paid plan to email response reports."
+                : !hasResponses
+                  ? "Email is available once students respond to this quiz."
+                  : undefined
+            }
+            className="flex h-11 flex-[1.4] items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] text-[13px] font-bold text-[var(--qs-ink)] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Mail className={cn("h-4 w-4", sendingEmail && "animate-pulse")} />
+            {sendingEmail ? "Sending…" : "Send on Email"}
+          </button>
+        </div>
+
+        {error && (
+          <div className="mt-4 flex items-center justify-between gap-3 rounded-[14px] border-2 border-[var(--qs-bad)]/30 bg-[var(--qs-bad)]/[0.04] px-3.5 py-3">
+            <p className="text-[12px] font-bold text-[var(--qs-bad)]">{error}</p>
+            <button
+              type="button"
+              onClick={() => void load()}
+              className="inline-flex shrink-0 items-center gap-1 rounded-[9px] border-2 border-[var(--qs-bad)]/40 px-2.5 py-1 text-[11px] font-extrabold text-[var(--qs-bad)]"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Submission summary */}
+        <section className="mt-5 rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] p-4 text-[#fff] shadow-[4px_4px_0_var(--qs-sun)]">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <span className="text-[36px] font-extrabold leading-none">{summary.submitted}</span>
+              <span className="text-[16px] font-bold opacity-90"> of {summary.total} submitted</span>
+            </div>
+            <span className="shrink-0 rounded-[10px] bg-[var(--qs-sun)] px-2.5 py-1 text-[13px] font-extrabold text-[var(--qs-ink)]">
+              {completionPct}%
+            </span>
+          </div>
+          <div className="my-3 h-2.5 overflow-hidden rounded-full bg-white/30">
+            <div className="h-full rounded-full bg-[var(--qs-sun)]" style={{ width: `${completionPct}%` }} />
+          </div>
+          <div className="flex gap-2 text-[12px] font-bold">
+            <div className="flex-1">
+              In progress
+              <br />
+              <b className="text-[18px] font-extrabold">{inProgressCount}</b>
+            </div>
+            <div className="flex-1">
+              Not started
+              <br />
+              <b className="text-[18px] font-extrabold">{notStartedCount}</b>
+            </div>
+            <div className="flex-1">
+              Auto submitted
+              <br />
+              <b className="text-[18px] font-extrabold">{timedOutCount}</b>
+            </div>
+          </div>
+        </section>
+
+        {/* Quick stats */}
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] p-3 text-[var(--qs-ink)]">
+            <small className="block text-[11px] font-bold uppercase tracking-[0.04em]">Avg correct</small>
+            <div className="mt-0.5">
+              <b className="text-[24px] font-extrabold leading-none">{summary.avg.toFixed(1)}</b>{" "}
+              <span className="text-[12px] font-semibold">/ {totalQuestions}</span>
+            </div>
+          </div>
+          <div className="rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3 text-[var(--qs-ink)]">
+            <small className="block text-[11px] font-bold uppercase tracking-[0.04em] text-[var(--qs-muted)]">Total students</small>
+            <b className="mt-0.5 block text-[24px] font-extrabold leading-none">{summary.total}</b>
+          </div>
+          <div className="rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3 text-[var(--qs-ink)]">
+            <small className="block text-[11px] font-bold uppercase tracking-[0.04em] text-[var(--qs-muted)]">Highest</small>
+            <div className="mt-0.5">
+              <b className="text-[24px] font-extrabold leading-none">{summary.highest}</b>{" "}
+              <span className="text-[12px] font-semibold text-[var(--qs-muted)]">correct</span>
+            </div>
+          </div>
+          <div className="rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3 text-[var(--qs-ink)]">
+            <small className="block text-[11px] font-bold uppercase tracking-[0.04em] text-[var(--qs-muted)]">Lowest</small>
+            <div className="mt-0.5">
+              <b className="text-[24px] font-extrabold leading-none">{summary.lowest ?? "—"}</b>{" "}
+              <span className="text-[12px] font-semibold text-[var(--qs-muted)]">correct</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Score distribution */}
+        <section className="mt-5 rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h2 className="text-[16px] font-extrabold text-[var(--qs-ink)]">Score distribution</h2>
+              <p className="text-[12px] font-medium text-[var(--qs-muted)]">{summary.submitted} completed students</p>
+            </div>
+            <Link
+              href={`/creator/quizzes/${quizId}/analytics`}
+              className="flex h-9 shrink-0 items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2.5 text-[11px] font-extrabold text-[var(--qs-ink)]"
+            >
+              Detailed stats
+            </Link>
+          </div>
+          <div className="mt-3 flex h-[150px] items-end gap-2 border-b-2 border-[var(--qs-ink)]">
+            {scoreData.map((s) => (
+              <div key={s.range} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
+                <b className="text-[13px] font-extrabold text-[var(--qs-ink)]">{s.count}</b>
+                <div
+                  className={cn(
+                    "w-full max-w-[44px] rounded-t-[8px] border-2 border-b-0 border-[var(--qs-ink)]",
+                    s.count === maxBucket && s.count > 0 ? "bg-[var(--qs-sun)]" : "bg-[var(--qs-brand)]"
+                  )}
+                  style={{ height: s.count === 0 ? "4px" : `calc(${(s.count / maxBucket) * 70}%)` }}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="mt-1.5 flex gap-2">
+            {scoreData.map((s) => (
+              <span key={s.range} className="flex-1 text-center text-[11px] font-semibold text-[var(--qs-muted)]">
+                {s.range}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        {/* Time taken */}
+        <section className="mt-5 rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4">
+          <h2 className="text-[16px] font-extrabold text-[var(--qs-ink)]">Time taken</h2>
+          <p className="text-[12px] font-medium text-[var(--qs-muted)]">Duration insights</p>
+          <div className="mt-3 flex gap-2 text-center">
+            {timeCards.map((t) => (
+              <div
+                key={t.label}
+                className={cn(
+                  "flex-1 rounded-[12px] px-1 py-2.5",
+                  t.label === "Average" ? "bg-[#ede9fe]" : t.label === "Fastest" ? "bg-[#d9f4e8]" : "bg-[#fde2e2]"
+                )}
+              >
+                <div className="text-[11px] font-bold text-[var(--qs-muted)]">{t.label}</div>
+                <b className="text-[17px] font-extrabold text-[var(--qs-ink)]">{t.value}</b>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Student responses */}
+        <section className="mt-5 rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4">
+          <h2 className="text-[16px] font-extrabold text-[var(--qs-ink)]">Student responses</h2>
+          <p className="text-[12px] font-medium text-[var(--qs-muted)]">
+            Monitor every student&apos;s quiz activity in real time
+          </p>
+
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
+            <input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Search name or roll no..."
+              aria-label="Search students"
+              className="h-11 w-full rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] pl-9 pr-3 text-[13px] font-semibold text-[var(--qs-ink)] outline-none placeholder:text-[var(--qs-muted)]"
+            />
+          </div>
+
+          <div className="-mx-4 mt-2.5 flex gap-2 overflow-x-auto px-4 pb-1">
+            {FILTERS.map((f) => {
+              const active = filter === f;
+              const label = f === "ALL" ? "All" : STATUS_CONFIG[f].label;
+              return (
+                <button
+                  key={f}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => {
+                    setFilter(f);
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "flex h-9 shrink-0 items-center gap-1.5 rounded-[18px] border-2 border-[var(--qs-ink)] px-3 text-[12px] font-bold",
+                    active ? "bg-[var(--qs-ink)] text-[#fff]" : "bg-[var(--qs-surface)] text-[var(--qs-ink)]"
+                  )}
+                >
+                  {label}
+                  <b className={cn("font-extrabold", active ? "opacity-80" : "text-[var(--qs-muted)]")}>{statusCounts[f]}</b>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-2 flex items-center justify-between gap-2 text-[11px] font-bold text-[var(--qs-muted)]">
+            <span>
+              Showing {filtered.length === 0 ? 0 : pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filtered.length)} of{" "}
+              {filtered.length}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setSortMode((m) => (m + 1) % SORT_LABELS.length);
+                setPage(1);
+              }}
+              className="flex items-center gap-1 text-[var(--qs-ink)]"
+            >
+              <ArrowUpDown className="h-4 w-4" />
+              {SORT_LABELS[sortMode]}
+            </button>
+          </div>
+
+          <div className="mt-1">
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => <div key={i} className="app-skeleton mt-2 h-[68px] rounded-[12px]" />)
+            ) : filtered.length === 0 ? (
+              <p className="px-2 py-8 text-center text-[13px] font-medium text-[var(--qs-muted)]">
+                {students.length === 0
+                  ? "No responses yet — students haven't been registered or attempted this quiz."
+                  : "No records match this filter."}
+              </p>
+            ) : (
+              paged.map((s) => (
+                <div
+                  key={s.id}
+                  onClick={() => openDetail(s)}
+                  className="flex cursor-pointer items-center gap-2.5 border-t border-[#e6e1ff] py-3 first:border-t-0"
+                >
+                  <RankBadge rank={s.rank} />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[14px] font-extrabold text-[var(--qs-ink)]">
+                      {nameWithAttempt(s.name, s.attemptNumber)}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] font-semibold text-[var(--qs-muted)]">
+                      <span
+                        className={cn(
+                          "rounded-[6px] px-1.5 py-px text-[10px] font-extrabold uppercase tracking-[0.03em]",
+                          statusChipClass[s.status]
+                        )}
+                      >
+                        {STATUS_CONFIG[s.status].label}
+                      </span>
+                      <span className="truncate">
+                        {s.timeTaken ?? "—"} · {s.submittedAt ?? "—"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-[58px] shrink-0 text-right">
+                    <div className="text-[16px] font-extrabold leading-tight text-[var(--qs-ink)]">
+                      {s.correct ?? "—"}
+                      <span className="text-[11px] font-semibold text-[var(--qs-muted)]">/{s.totalQuestions ?? "—"}</span>
+                    </div>
+                    <div className="ml-auto mt-1 h-1.5 w-14 overflow-hidden rounded-full bg-[#e6e1ff]">
+                      <i
+                        className="block h-full rounded-full bg-[var(--qs-brand)]"
+                        style={{ width: `${Math.min(100, Math.max(0, s.percentage ?? 0))}%` }}
+                      />
+                    </div>
+                    <div className="text-[11px] font-bold text-[var(--qs-muted)]">
+                      {s.percentage !== null ? `${Math.round(s.percentage)}%` : "—"}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label={`Actions for ${s.name}`}
+                    onClick={(e) => openActionMenu(e, s)}
+                    className="grid h-7 w-7 shrink-0 place-items-center rounded-[8px] text-[var(--qs-muted)]"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 border-t border-[#e6e1ff] pt-3">
+              {pageItems.map((item, i) =>
+                item === "…" ? (
+                  <span key={`m-ellipsis-${i}`} className="px-1 text-xs font-bold text-[var(--qs-muted)]" aria-hidden>
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setPage(item)}
+                    aria-current={item === currentPage ? "page" : undefined}
+                    className={cn(
+                      "grid h-9 min-w-9 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] px-2 text-[12px] font-extrabold",
+                      item === currentPage
+                        ? "bg-[var(--qs-ink)] text-[#fff]"
+                        : "bg-[var(--qs-surface)] text-[var(--qs-ink)]"
+                    )}
+                  >
+                    {item}
+                  </button>
+                )
+              )}
+            </div>
+          )}
+        </section>
+      </div>
+
+      {/* ── Desktop layout ────────────────────────────────────────── */}
+      <div className="mx-auto hidden max-w-[1280px] px-4 py-6 pb-20 sm:px-6 md:block">
 
         {/* ── Top ───────────────────────────────────────────────────── */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">

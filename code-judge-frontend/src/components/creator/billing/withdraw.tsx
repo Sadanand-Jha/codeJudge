@@ -7,7 +7,7 @@ import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
 import { formatINR } from "./ui";
 import { BillButton, IconButton } from "./ui";
-import { WITHDRAWAL_FEE, WITHDRAWAL_FEE_EXCL_GST, WITHDRAWAL_GST, WITHDRAWAL_MIN, WITHDRAWAL_FEE_NOTE } from "@/config/payouts";
+import { WITHDRAWAL_FEE, WITHDRAWAL_MIN, WITHDRAWAL_FEE_NOTE } from "@/config/payouts";
 import type { BankAccount } from "./types";
 
 const QUICK_PCTS = [25, 50, 75, 100];
@@ -67,7 +67,6 @@ export function WithdrawDrawer({
     if (!onConfirm) {
       toast.error({
         title: "Withdrawals are not available yet",
-        description: "Connect the payout API before requesting a withdrawal.",
       });
       return;
     }
@@ -202,12 +201,8 @@ export function WithdrawDrawer({
                         <span className="font-semibold text-text-primary tabular-nums">{formatINR(parsed)}</span>
                       </div>
                       <div className="mt-2 flex items-center justify-between text-xs">
-                        <span className="text-text-secondary">Processing fee (excl. GST)</span>
-                        <span className="font-semibold text-text-secondary tabular-nums">−{formatINR(WITHDRAWAL_FEE_EXCL_GST)}</span>
-                      </div>
-                      <div className="mt-1.5 flex items-center justify-between text-[11px]">
-                        <span className="text-text-muted">GST (18%)</span>
-                        <span className="tabular-nums text-text-muted">−{formatINR(WITHDRAWAL_GST)}</span>
+                        <span className="text-text-secondary">Processing fee</span>
+                        <span className="font-semibold text-text-secondary tabular-nums">−{formatINR(WITHDRAWAL_FEE)}</span>
                       </div>
                       <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-sm">
                         <span className="font-semibold text-text-primary">Estimated payout</span>

@@ -112,6 +112,7 @@ export interface VerifiedBundlePurchase {
   newBalance: number;
   currency: string;
   amountPaise: number;
+  referralCredits: number;
 }
 
 export interface VerifiedPlanPurchase {
@@ -128,6 +129,7 @@ export interface VerifiedPlanPurchase {
   newBalance: number;
   currency: string;
   amountPaise: number;
+  referralCredits: number;
 }
 
 export type BillingOrderType = "credit_pack" | "plan" | "bundle";
@@ -219,6 +221,7 @@ export async function createPlanOrder(input: {
   planSlug?: string;
   priceId?: number;
   coupon?: string;
+  referralCode?: string;
 }): Promise<PlanCheckoutOrder> {
   const response = await apiClient.post<PlanCheckoutOrder>(
     "/v1/billing/plans/orders",
@@ -227,6 +230,7 @@ export async function createPlanOrder(input: {
       ...(input.planSlug ? { plan_slug: input.planSlug } : {}),
       ...(input.priceId ? { price_id: input.priceId } : {}),
       ...(input.coupon ? { coupon: input.coupon } : {}),
+      ...(input.referralCode ? { referral_code: input.referralCode } : {}),
     }
   );
   return response.data;
@@ -235,12 +239,14 @@ export async function createPlanOrder(input: {
 export async function createBundleOrder(input: {
   bundleId: number;
   coupon?: string;
+  referralCode?: string;
 }): Promise<BundleCheckoutOrder> {
   const response = await apiClient.post<BundleCheckoutOrder>(
     "/v1/billing/bundles/orders",
     {
       bundle_id: input.bundleId,
       ...(input.coupon ? { coupon: input.coupon } : {}),
+      ...(input.referralCode ? { referral_code: input.referralCode } : {}),
     }
   );
   return response.data;

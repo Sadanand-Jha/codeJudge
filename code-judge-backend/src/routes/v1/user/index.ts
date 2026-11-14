@@ -22,7 +22,11 @@ import followRoutes from "../follow.routes.ts";
 import { listRooms } from "../../../controllers/room.controller.ts";
 import { submitFeedback } from "../../../controllers/feedback.controller.ts";
 import { getMySubscription } from "../../../controllers/subscription.controller.ts";
-import { getMyReferrals } from "../../../controllers/referral.controller.ts";
+import {
+  getMyReferrals,
+  getReferralCheckoutEligibility,
+  validateReferralCode,
+} from "../../../controllers/referral.controller.ts";
 import letterheadRoutes from "../../letterhead.routes.ts";
 import uploadRoutes from "../../upload.routes.ts";
 import syllabusRoutes from "./syllabus.routes.ts";
@@ -55,6 +59,12 @@ router.get("/profile", authenticate, profile);
 router.get("/info", authenticate, profile);
 router.get("/subscription", authenticate, getMySubscription);
 router.get("/referrals", authenticate, getMyReferrals);
+router.get(
+  "/referrals/eligibility",
+  authenticate,
+  getReferralCheckoutEligibility
+);
+router.post("/referrals/validate", authenticate, validateReferralCode);
 router.patch("/profile", authenticate, validate(profileUpdateSchema), updateUserProfile);
 
 // ===================== PROFILE LOCATION ==========

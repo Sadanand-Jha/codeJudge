@@ -18,8 +18,6 @@ export interface OAuthStateRecord {
   provider: OAuthProvider;
   codeVerifier: string;
   next: string | null;
-  /** Referral code from ?ref=, attributed only when a new account is created. */
-  referralCode?: string | null;
   createdAt: number;
 }
 

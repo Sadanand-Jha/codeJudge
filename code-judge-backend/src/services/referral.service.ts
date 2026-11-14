@@ -12,11 +12,13 @@ import {
   findUserByReferralCode,
   getRecentReferrals,
   getReferralBonusPack,
+  getReferralByOrderId,
   getReferralStats,
   getUserReferralCode,
   getUsernameById,
   hasPriorPaidPlanOrder,
-  insertReferral,
+  hasReferralForUser,
+  insertQualifiedReferral,
   insertReferralBonusOrder,
   lockPendingReferralForUser,
   markReferralQualified,
@@ -29,6 +31,7 @@ import {
 import { addDays, orderNumber } from "./billing/calculations.ts";
 
 export const REFERRAL_REWARD_CREDITS = 50;
+export const REFERRAL_REWARD_VALIDITY_DAYS = 180;
 
 export interface ReferralEntryView {
   id: number;
@@ -100,24 +103,109 @@ export async function ensureReferralCode(userId: number): Promise<string> {
 
 export async function findReferrerByCode(
   code: string | null | undefined
-): Promise<{ id: number; username: string } | null> {
+): Promise<{ id: number; username: string; displayName: string | null } | null> {
   const normalized = normalizeCode(code);
   if (!normalized) return null;
   return findUserByReferralCode(normalized);
 }
 
-export async function recordSignupReferral(input: {
-  referrerUserId: number;
-  referredUserId: number;
-  code: string;
-}): Promise<void> {
-  const normalized = normalizeCode(input.code);
-  if (!normalized) return;
-  await insertReferral({
-    referrerUserId: input.referrerUserId,
-    referredUserId: input.referredUserId,
+export type ReferralValidationReason =
+  | "missing_code"
+  | "invalid_code"
+  | "self_referral"
+  | "already_used";
+
+export interface ReferralValidationView {
+  valid: boolean;
+  reason?: ReferralValidationReason;
+  code?: string;
+  rewardCredits: number;
+  validityDays: number;
+  referrer?: {
+    id: number;
+    username: string;
+    displayName: string;
+  };
+}
+
+export interface ReferralEligibilityView {
+  canUse: boolean;
+  reason?: ReferralValidationReason;
+  rewardCredits: number;
+  validityDays: number;
+}
+
+/** Describes the fixed bonus so billing can validate and snapshot it. */
+export async function getReferralEligibility(
+  userId: number
+): Promise<ReferralEligibilityView> {
+  const alreadyUsed = await hasReferralForUser(userId);
+  return {
+    canUse: !alreadyUsed,
+    ...(alreadyUsed ? { reason: "already_used" as const } : {}),
+    rewardCredits: REFERRAL_REWARD_CREDITS,
+    validityDays: REFERRAL_REWARD_VALIDITY_DAYS,
+  };
+}
+
+/**
+ * Validates a code a signed-in user typed at monthly plan checkout. The billing
+ * service repeats these checks inside order creation so the client can never
+ * bypass them.
+ */
+export async function validateReferralForCheckout(
+  userId: number,
+  code: string | null | undefined
+): Promise<ReferralValidationView> {
+  const normalized = normalizeCode(code);
+  if (!normalized) {
+    return {
+      valid: false,
+      reason: "missing_code",
+      rewardCredits: REFERRAL_REWARD_CREDITS,
+      validityDays: REFERRAL_REWARD_VALIDITY_DAYS,
+    };
+  }
+
+  const referrer = await findUserByReferralCode(normalized);
+  if (!referrer) {
+    return {
+      valid: false,
+      reason: "invalid_code",
+      rewardCredits: REFERRAL_REWARD_CREDITS,
+      validityDays: REFERRAL_REWARD_VALIDITY_DAYS,
+    };
+  }
+
+  if (referrer.id === userId) {
+    return {
+      valid: false,
+      reason: "self_referral",
+      rewardCredits: REFERRAL_REWARD_CREDITS,
+      validityDays: REFERRAL_REWARD_VALIDITY_DAYS,
+    };
+  }
+
+  if (await hasReferralForUser(userId)) {
+    return {
+      valid: false,
+      reason: "already_used",
+      rewardCredits: REFERRAL_REWARD_CREDITS,
+      validityDays: REFERRAL_REWARD_VALIDITY_DAYS,
+    };
+  }
+
+  return {
+    valid: true,
     code: normalized,
-  });
+    rewardCredits: REFERRAL_REWARD_CREDITS,
+    validityDays: REFERRAL_REWARD_VALIDITY_DAYS,
+    referrer: {
+      id: referrer.id,
+      username: referrer.username,
+      displayName: referrer.displayName || referrer.username,
+    },
+  };
 }
 
 export async function getReferralDashboard(
@@ -211,41 +299,95 @@ export interface QualifyReferralInput {
   orderId: string;
   orderType: string;
   paymentMethod?: string | null;
+  referralCode?: string | null;
+  referralReferrerUserId?: number | null;
+}
+
+export interface ReferralQualificationResult {
+  applied: boolean;
+  credits: number;
 }
 
 /**
  * Called inside the payment transaction after a plan/bundle order is paid.
- * Rewards only the user's first real plan purchase, never trials or renewals.
+ *
+ * Checkout-time codes are attributed on the qualifying purchase itself. Legacy
+ * pending sign-up referrals keep the original "first paid plan" behaviour so
+ * accounts created before the checkout flow still receive their bonus.
  */
-export async function qualifyReferralForFirstPlanTx(
+export async function qualifyReferralForPurchaseTx(
   client: PoolClient,
   input: QualifyReferralInput
-): Promise<void> {
-  if (input.orderType !== "plan" && input.orderType !== "bundle") return;
-  if (input.paymentMethod === "trial") return;
+): Promise<ReferralQualificationResult> {
+  if (input.orderType !== "plan" && input.orderType !== "bundle") {
+    return { applied: false, credits: 0 };
+  }
+  if (input.paymentMethod === "trial") {
+    return { applied: false, credits: 0 };
+  }
 
   // Referral rewards are secondary to the paid entitlement: isolate them in a
   // savepoint so a failure can never roll back the successful payment.
   await client.query("SAVEPOINT referral_qualification");
   try {
+    const clock = await client.query("SELECT CURRENT_TIMESTAMP AS now");
+    const nowValue = clock.rows[0]?.now;
+    const now = nowValue instanceof Date ? nowValue : new Date(String(nowValue));
+
+    if (input.referralCode) {
+      const referrer = await findUserByReferralCode(input.referralCode);
+      if (!referrer || referrer.id === input.userId) {
+        return { applied: false, credits: 0 };
+      }
+
+      const referral = await insertQualifiedReferral(
+        {
+          referrerUserId: referrer.id,
+          referredUserId: input.userId,
+          code: normalizeCode(input.referralCode) as string,
+          orderId: input.orderId,
+          rewardCredits: REFERRAL_REWARD_CREDITS,
+        },
+        client
+      );
+      if (!referral) return { applied: false, credits: 0 };
+
+      await grantReferralCreditsTx(client, {
+        userId: referral.referrerUserId,
+        referralId: referral.id,
+        side: "referrer",
+        credits: referral.rewardCredits,
+        now,
+        notes: `Referral reward: referral #${referral.id}`,
+      });
+
+      await grantReferralCreditsTx(client, {
+        userId: referral.referredUserId,
+        referralId: referral.id,
+        side: "referred",
+        credits: referral.rewardCredits,
+        now,
+        notes: `Referral welcome bonus: referral #${referral.id}`,
+      });
+
+      return { applied: true, credits: referral.rewardCredits };
+    }
+
+    // Legacy sign-up referrals: reward the first real plan purchase only.
     const hadPriorPlan = await hasPriorPaidPlanOrder(
       { userId: input.userId, excludeOrderId: input.orderId },
       client
     );
-    if (hadPriorPlan) return;
+    if (hadPriorPlan) return { applied: false, credits: 0 };
 
     const referral = await lockPendingReferralForUser(input.userId, client);
-    if (!referral) return;
+    if (!referral) return { applied: false, credits: 0 };
 
     const qualified = await markReferralQualified(
       { id: referral.id, orderId: input.orderId },
       client
     );
-    if (!qualified) return;
-
-    const clock = await client.query("SELECT CURRENT_TIMESTAMP AS now");
-    const nowValue = clock.rows[0]?.now;
-    const now = nowValue instanceof Date ? nowValue : new Date(String(nowValue));
+    if (!qualified) return { applied: false, credits: 0 };
 
     await grantReferralCreditsTx(client, {
       userId: referral.referrerUserId,
@@ -264,10 +406,23 @@ export async function qualifyReferralForFirstPlanTx(
       now,
       notes: `Referral welcome bonus: referral #${referral.id}`,
     });
+
+    return { applied: true, credits: referral.rewardCredits };
   } catch (error) {
     await client.query("ROLLBACK TO SAVEPOINT referral_qualification");
     console.error("Failed to grant referral rewards:", error);
+    return { applied: false, credits: 0 };
   } finally {
     await client.query("RELEASE SAVEPOINT referral_qualification");
   }
+}
+
+/** Reads the reward already attached to a paid order for idempotent responses. */
+export async function getOrderReferralReward(
+  orderId: string
+): Promise<ReferralQualificationResult> {
+  const referral = await getReferralByOrderId(orderId);
+  return referral
+    ? { applied: true, credits: referral.rewardCredits }
+    : { applied: false, credits: 0 };
 }

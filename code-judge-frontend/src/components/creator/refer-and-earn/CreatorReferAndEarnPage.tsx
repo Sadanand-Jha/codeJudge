@@ -5,18 +5,19 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Check,
   Copy,
-  Link2,
+  Gift,
+  Info,
   Mail,
   Send,
   Share2,
   ShieldCheck,
   Sparkles,
   Star,
+  UserPlus,
   Users,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { SITE_URL } from "@/lib/seo/site";
 import {
   getReferralDashboard,
   type ReferralDashboard,
@@ -25,26 +26,26 @@ import {
 import { toast } from "@/lib/toast";
 
 const DEFAULT_WA_MESSAGE =
-  "Join me on QuizSupport and get 50 AI credits when you buy your first monthly plan.";
+  "Join me on QuizSupport. Use my referral code when you buy a monthly plan and we both get 50 AI credits.";
 
 const SHARE_TEXT =
-  "Join this quiz platform with my link and get 50 AI credits when you buy your first monthly plan: ";
+  "Join me on QuizSupport. Use my referral code at monthly plan checkout and we both get 50 AI credits: ";
 
 const CARD =
-  "rounded-[14px] border-[1.5px] border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 shadow-[2px_3px_0_#FFE58A] md:rounded-[22px] md:border-2 md:p-5 md:shadow-none lg:p-[22px]";
+  "rounded-[20px] border border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 shadow-[0_3px_0_#f6e3a1] md:rounded-[22px] md:border-2 md:p-5 md:shadow-none lg:p-[22px]";
 
 const STEPS = [
   {
-    title: "Share your link",
-    body: "Send it on WhatsApp, Telegram or email to anyone who is not on the platform yet.",
+    title: "Share your code",
+    body: "Send your referral code on WhatsApp, Telegram or email.",
   },
   {
     title: "Friend buys a plan",
     body: (
       <>
-        A new user signs up with your link and buys{" "}
-        <strong className="font-extrabold text-[var(--qs-brand)]">any monthly plan</strong> for the
-        first time.
+        They enter your code at{" "}
+        <strong className="font-extrabold text-[var(--qs-brand)]">monthly plan checkout</strong>.
+        Credit packs and trials do not qualify.
       </>
     ),
   },
@@ -53,8 +54,8 @@ const STEPS = [
     body: (
       <>
         You and your friend each get{" "}
-        <strong className="font-extrabold text-[var(--qs-brand)]">50 AI credits</strong> right after
-        that first purchase.
+        <strong className="font-extrabold text-[var(--qs-brand)]">50 AI credits</strong> after
+        payment, valid for 6 months.
       </>
     ),
   },
@@ -80,15 +81,13 @@ const BTN_CTA_DONE = cn(
 
 const SHARE_BTN = cn(
   BTN_BASE,
-  "min-h-[44px] bg-[var(--qs-surface)] px-4 text-[13.5px] text-[var(--qs-ink)] hover:-translate-y-0.5 hover:shadow-[0_3px_0_var(--qs-ink)] active:translate-y-px active:shadow-none max-md:min-h-[36px] max-md:rounded-[10px] max-md:border max-md:px-1.5 max-md:text-[12px]"
+  "min-h-[44px] bg-[var(--qs-surface)] px-4 text-[13.5px] text-[var(--qs-ink)] hover:-translate-y-0.5 hover:shadow-[0_3px_0_var(--qs-ink)] active:translate-y-px active:shadow-none max-md:min-h-[58px] max-md:flex-col max-md:gap-1 max-md:rounded-[14px] max-md:border max-md:border-[var(--qs-line)] max-md:px-1 max-md:py-2.5 max-md:text-[12px] max-md:font-medium max-md:shadow-none max-md:hover:translate-y-0 max-md:hover:shadow-none max-md:active:translate-y-0"
 );
 
 const LABEL =
   "block text-[13px] font-extrabold uppercase tracking-[0.05em] text-[var(--qs-muted)]";
 
 const subscribeNoop = () => () => {};
-const getOrigin = () => window.location.origin;
-const getServerOrigin = () => SITE_URL;
 const getNativeShare = () =>
   typeof navigator !== "undefined" && typeof navigator.share === "function";
 const getServerNativeShare = () => false;
@@ -126,15 +125,15 @@ function StatRow({
   return (
     <div
       className={cn(
-        "flex min-h-[62px] flex-col justify-between gap-1 rounded-[10px] border px-2.5 py-2 tabular-nums md:min-h-0 md:flex-row md:items-center md:rounded-[14px] md:border-2 md:px-4 md:py-3.5",
+        "flex min-h-[62px] flex-col justify-between gap-1 rounded-[14px] px-2.5 py-2.5 tabular-nums md:min-h-0 md:flex-row md:items-center md:border-2 md:px-4 md:py-3.5",
         highlight
-          ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] shadow-[2px_2px_0_var(--qs-sun)] md:shadow-[4px_4px_0_var(--qs-sun)]"
-          : "border-[var(--qs-line)]"
+          ? "bg-[var(--qs-brand)] text-white md:border-[var(--qs-ink)] md:bg-[var(--qs-ink)] md:shadow-[4px_4px_0_var(--qs-sun)]"
+          : "bg-[var(--qs-bg)] md:border-[var(--qs-line)]"
       )}
     >
       <span
         className={cn(
-          "text-[12px] font-medium leading-3 md:text-[13.5px] md:font-bold",
+          "text-[11px] font-medium leading-3 md:text-[13.5px] md:font-bold",
           highlight ? "text-white/80" : "text-[var(--qs-muted)]"
         )}
       >
@@ -142,8 +141,8 @@ function StatRow({
       </span>
       <b
         className={cn(
-          "text-[22px] font-bold leading-[26px] tracking-[-0.02em] md:text-2xl md:font-extrabold",
-          highlight ? "text-[var(--qs-sun)]" : "text-[var(--qs-ink)]"
+          "text-[20px] font-bold leading-6 tracking-[-0.02em] md:text-2xl md:font-extrabold",
+          highlight ? "text-white md:text-[var(--qs-sun)]" : "text-[var(--qs-ink)]"
         )}
       >
         {value}
@@ -215,11 +214,7 @@ export function CreatorReferAndEarnPage() {
     };
   }, []);
 
-  const origin = useSyncExternalStore(subscribeNoop, getOrigin, getServerOrigin);
   const referralCode = dashboard?.code ?? "";
-  const referralLink = dashboard
-    ? `${origin}/register?ref=${encodeURIComponent(referralCode)}`
-    : "";
   const canNativeShare = useSyncExternalStore(
     subscribeNoop,
     getNativeShare,
@@ -245,16 +240,16 @@ export function CreatorReferAndEarnPage() {
     };
   }, [waOpen]);
 
-  const copyLink = async () => {
-    if (!referralLink) return;
+  const copyCode = async () => {
+    if (!referralCode) return;
     try {
-      await navigator.clipboard.writeText(referralLink);
+      await navigator.clipboard.writeText(referralCode);
     } catch {
       inputRef.current?.select();
       document.execCommand("copy");
     }
     setCopied(true);
-    toast.success("Link copied!");
+    toast.success("Referral code copied!");
     window.clearTimeout(copiedTimer.current);
     copiedTimer.current = window.setTimeout(() => setCopied(false), 1800);
   };
@@ -268,14 +263,14 @@ export function CreatorReferAndEarnPage() {
   };
 
   const sendWhatsApp = () => {
-    if (!referralLink) return;
+    if (!referralCode) return;
     let digits = waPhone.replace(/\D/g, "");
     if (digits && digits.length < 10) {
       setWaError("Enter a valid 10-digit mobile number.");
       return;
     }
     if (digits.length === 10) digits = `91${digits}`;
-    const text = `${waMessage.trim()}\n${referralLink}`;
+    const text = `${waMessage.trim()}\nReferral code: ${referralCode}`;
     window.open(
       `https://wa.me/${digits}?text=${encodeURIComponent(text)}`,
       "_blank",
@@ -286,12 +281,11 @@ export function CreatorReferAndEarnPage() {
   };
 
   const shareNative = () => {
-    if (!referralLink) return;
+    if (!referralCode) return;
     void navigator
       .share({
-        title: "Get 50 AI credits on your first plan",
-        text: SHARE_TEXT,
-        url: referralLink,
+        title: "Get 50 AI credits on a monthly plan",
+        text: `${SHARE_TEXT}${referralCode}`,
       })
       .catch(() => {});
   };
@@ -303,7 +297,7 @@ export function CreatorReferAndEarnPage() {
           <span className="md:hidden">Referrals</span>
           <span className="hidden md:inline">Refer &amp; Earn</span>
         </h1>
-        <p className="mt-1 text-[14px] leading-5 text-[var(--qs-muted)] md:mt-1.5 md:text-[15.5px] md:font-medium">
+        <p className="mt-1 text-[13px] leading-5 text-[var(--qs-muted)] md:mt-1.5 md:text-[15.5px] md:font-medium">
           Invite fellow educators and earn AI credits together.
         </p>
         {loadError && (
@@ -324,47 +318,48 @@ export function CreatorReferAndEarnPage() {
       </header>
 
       {/* Mobile hero */}
-      <section className="rounded-[14px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-brand)] p-3.5 text-[var(--qs-on-brand)] shadow-[2px_3px_0_var(--qs-sun)] md:hidden">
-        <span className="inline-flex items-center gap-1 rounded-[10px] bg-[var(--qs-ink)] px-2.5 py-1 text-[12px] font-bold uppercase tracking-[0.04em] text-[var(--qs-sun)]">
-          <Sparkles className="h-3 w-3 fill-current" />
+      <section className="rounded-[22px] bg-[var(--qs-brand)] p-5 pb-[18px] text-[var(--qs-on-brand)] shadow-[0_5px_0_var(--qs-sun)] md:hidden">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--qs-ink)] px-3 py-1.5 text-[12px] font-semibold text-[var(--qs-sun)]">
+          <Gift className="h-3.5 w-3.5" />
           Give 50, get 50
         </span>
-        <h2 className="mt-2.5 text-[24px] font-extrabold leading-[29px]">
+        <h2 className="mt-3.5 text-[26px] font-bold leading-[1.2] tracking-[-0.02em]">
           Share the love,
           <br />
           <span className="text-[var(--qs-sun)]">earn 50 credits</span>
         </h2>
-        <p className="mt-2 text-[14px] leading-5 text-[#EAE5FF]">
-          When a new educator buys their first monthly plan using your link, you both get 50 AI
-          credits each.
+        <p className="mt-2 text-[13px] leading-[1.45] text-[#ddd7ff]">
+          When a friend buys a monthly plan with your code, you both get 50 AI credits each —
+          valid for 6 months.
         </p>
-        <span className="mt-2.5 inline-flex items-center rounded-[15px] bg-[var(--qs-sun)] px-3 py-1.5 text-[12px] font-bold text-[var(--qs-ink)]">
-          New users only · on first monthly plan
+        <span className="mt-3.5 inline-flex items-center gap-1.5 rounded-full bg-[var(--qs-sun)] px-3 py-[7px] text-[12px] font-semibold text-[#3b2a00]">
+          <UserPlus className="h-3.5 w-3.5" />
+          Monthly plans only · refer unlimited friends
         </span>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          <div className="flex min-w-0 items-center gap-2 rounded-[12px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-surface)] px-2.5 py-2 text-[var(--qs-ink)] shadow-[2px_2px_0_var(--qs-ink)]">
-            <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-sun)]">
-              <Star className="h-3.5 w-3.5 fill-[var(--qs-ink)]" />
+        <div className="mt-4 grid grid-cols-2 gap-2.5">
+          <div className="flex flex-col gap-2 rounded-2xl bg-white p-3 text-[var(--qs-ink)]">
+            <span className="flex items-center gap-2 text-[12px] font-medium">
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[var(--qs-ink)] text-white">
+                <Star className="h-3.5 w-3.5 fill-current" />
+              </span>
+              You get
             </span>
-            <div className="min-w-0">
-              <p className="text-[12px] font-semibold leading-3">You get on their first plan</p>
-              <p className="mt-px text-[13px] font-semibold">
-                <b className="text-[20px] font-bold">50</b> AI credits
-              </p>
-            </div>
+            <b className="text-[24px] font-bold leading-none">
+              50{" "}
+              <em className="text-[12px] font-semibold not-italic">AI credits</em>
+            </b>
           </div>
-          <div className="flex min-w-0 items-center gap-2 rounded-[12px] border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2.5 py-2 text-[var(--qs-ink)] shadow-[2px_2px_0_var(--qs-ink)]">
-            <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full border-[1.5px] border-[var(--qs-ink)] bg-white">
-              <Star className="h-3.5 w-3.5 fill-[var(--qs-ink)]" />
+          <div className="flex flex-col gap-2 rounded-2xl bg-[var(--qs-sun)] p-3 text-[#3b2a00]">
+            <span className="flex items-center gap-2 text-[12px] font-medium">
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[var(--qs-ink)] text-white">
+                <Users className="h-3.5 w-3.5" />
+              </span>
+              Friend gets
             </span>
-            <div className="min-w-0">
-              <p className="text-[12px] font-semibold leading-3">
-                Your invitee gets on their first plan
-              </p>
-              <p className="mt-px text-[13px] font-semibold">
-                <b className="text-[20px] font-bold">50</b> AI credits
-              </p>
-            </div>
+            <b className="text-[24px] font-bold leading-none">
+              50{" "}
+              <em className="text-[12px] font-semibold not-italic">AI credits</em>
+            </b>
           </div>
         </div>
       </section>
@@ -391,12 +386,12 @@ export function CreatorReferAndEarnPage() {
             <em className="not-italic text-[var(--qs-sun)]">earn 50 credits</em>
           </h2>
           <p className="max-w-[440px] text-[15.5px] font-medium leading-relaxed text-white/[0.88]">
-            When a new educator buys their first monthly plan using your link, you both get
-            50 AI credits each.
+            When a friend buys a monthly plan with your code, you both get 50 AI credits each —
+            valid for 6 months.
           </p>
           <span className="mt-5 inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-3.5 py-1.5 text-[13px] font-extrabold text-[var(--qs-ink)] shadow-[3px_3px_0_var(--qs-ink)]">
             <Users className="h-3.5 w-3.5" />
-            New users only · on first monthly plan
+            Monthly plans only · refer unlimited friends
           </span>
         </div>
 
@@ -405,7 +400,7 @@ export function CreatorReferAndEarnPage() {
             <Coin />
             <div className="min-w-0">
               <small className="block text-[12px] font-bold text-[var(--qs-muted)]">
-                You get on their first plan
+                You get on their monthly plan
               </small>
               <b className="block text-[26px] font-extrabold leading-[1.1] tracking-[-0.02em]">
                 50 <span className="text-[14px] font-bold tracking-normal">AI credits</span>
@@ -416,7 +411,7 @@ export function CreatorReferAndEarnPage() {
             <Coin inverted />
             <div className="min-w-0">
               <small className="block text-[12px] font-bold text-[#5b4a10]">
-                Your invitee gets on their first plan
+                Your invitee gets on their monthly plan
               </small>
               <b className="block text-[26px] font-extrabold leading-[1.1] tracking-[-0.02em]">
                 50 <span className="text-[14px] font-bold tracking-normal">AI credits</span>
@@ -427,48 +422,48 @@ export function CreatorReferAndEarnPage() {
       </motion.section>
 
       <section className={CARD}>
-        <h3 className="text-[16px] font-extrabold leading-5 text-[var(--qs-ink)] md:text-[19px] md:font-extrabold md:tracking-[-0.015em]">
-          Your referral link
+        <h3 className="text-[16px] font-semibold leading-5 text-[var(--qs-ink)] md:text-[19px] md:font-extrabold md:tracking-[-0.015em]">
+          Your referral code
         </h3>
-        <p className="mt-0.5 text-[13px] leading-3.5 font-medium text-[var(--qs-muted)] md:text-[13.5px]">
-          Send it to someone new. Credits arrive after their first monthly plan purchase.
+        <p className="mt-0.5 text-[12px] leading-3.5 font-medium text-[var(--qs-muted)] md:text-[13.5px]">
+          Share this code. Your friend enters it at monthly plan checkout.
         </p>
 
-        <div className="mt-2 flex items-stretch gap-1.5 md:mt-4 md:flex-wrap md:gap-2.5">
-          <label className="flex h-[38px] min-w-0 flex-1 items-center gap-1.5 rounded-[10px] border-[1.5px] border-dashed border-[#b9aaf5] bg-[var(--qs-bg)] px-2.5 md:h-auto md:min-h-[52px] md:min-w-[220px] md:gap-2.5 md:rounded-[14px] md:border-2 md:px-4">
-            <Link2 className="h-3.5 w-3.5 shrink-0 text-[var(--qs-brand)] md:h-[18px] md:w-[18px]" />
+        <div className="mt-3 flex items-stretch gap-2 md:mt-4 md:flex-wrap md:gap-2.5">
+          <label className="flex h-[46px] min-w-0 flex-1 items-center gap-2 rounded-[14px] border border-dashed border-[#b7acff] bg-[var(--qs-poly-1)] px-3 md:h-auto md:min-h-[52px] md:min-w-[220px] md:gap-2.5 md:rounded-[14px] md:border-2 md:px-4">
+            <Gift className="h-4 w-4 shrink-0 text-[var(--qs-brand)] md:h-[18px] md:w-[18px]" />
             <input
               ref={inputRef}
               type="text"
               readOnly
               value={
                 dashboard
-                  ? referralLink
+                  ? referralCode
                   : isLoading
-                    ? "Loading your referral link…"
-                    : "Referral link unavailable"
+                    ? "Loading your referral code…"
+                    : "Referral code unavailable"
               }
-              aria-label="Referral link"
+              aria-label="Referral code"
               onFocus={(event) => event.currentTarget.select()}
-              className="min-w-0 flex-1 border-0 bg-transparent text-[14px] font-medium text-[var(--qs-ink)] outline-none md:py-3 md:text-[14.5px] md:font-bold"
+              className="min-w-0 flex-1 border-0 bg-transparent text-[13px] font-medium text-[var(--qs-ink)] outline-none md:py-3 md:text-[14.5px] md:font-bold"
             />
           </label>
           <button
             type="button"
-            onClick={copyLink}
+            onClick={copyCode}
             disabled={shareDisabled}
             className={cn(
               copied ? BTN_CTA_DONE : BTN_CTA,
-              "max-md:min-h-[38px] max-md:rounded-[10px] max-md:px-3 max-md:text-[14px] max-md:font-semibold",
+              "max-md:min-h-[46px] max-md:rounded-[14px] max-md:border-[1.5px] max-md:px-3.5 max-md:text-[13px] max-md:font-semibold max-md:shadow-none",
               shareDisabled && "cursor-not-allowed opacity-50"
             )}
           >
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            {copied ? "Copied!" : "Copy link"}
+            {copied ? "Copied!" : "Copy code"}
           </button>
         </div>
 
-        <div className="mt-2.5 grid grid-cols-3 gap-1.5 md:mt-3.5 md:flex md:flex-wrap md:gap-2.5">
+        <div className="mt-3 grid grid-cols-3 gap-2 md:mt-3.5 md:flex md:flex-wrap md:gap-2.5">
           <button
             type="button"
             onClick={openWhatsApp}
@@ -482,7 +477,7 @@ export function CreatorReferAndEarnPage() {
           <a
             href={
               dashboard
-                ? `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(SHARE_TEXT)}`
+                ? `https://t.me/share/url?text=${encodeURIComponent(`${SHARE_TEXT}${referralCode}`)}`
                 : undefined
             }
             target="_blank"
@@ -493,13 +488,13 @@ export function CreatorReferAndEarnPage() {
               shareDisabled && "pointer-events-none cursor-not-allowed opacity-50"
             )}
           >
-            <Send className="h-4 w-4 -rotate-12" />
+            <Send className="h-4 w-4 -rotate-12 max-md:h-5 max-md:w-5" />
             Telegram
           </a>
           <a
             href={
               dashboard
-                ? `mailto:?subject=${encodeURIComponent("50 AI credits on your first monthly plan")}&body=${encodeURIComponent(`${SHARE_TEXT}${referralLink}`)}`
+                ? `mailto:?subject=${encodeURIComponent("50 AI credits on a monthly plan")}&body=${encodeURIComponent(`${SHARE_TEXT}${referralCode}`)}`
                 : undefined
             }
             aria-disabled={shareDisabled}
@@ -508,7 +503,7 @@ export function CreatorReferAndEarnPage() {
               shareDisabled && "pointer-events-none cursor-not-allowed opacity-50"
             )}
           >
-            <Mail className="h-4 w-4" />
+            <Mail className="h-4 w-4 max-md:h-5 max-md:w-5" />
             Email
           </a>
           {canNativeShare && (
@@ -545,33 +540,41 @@ export function CreatorReferAndEarnPage() {
       </section>
 
       {/* Mobile steps */}
-      <section className={cn(CARD, "pb-0 pt-1 md:hidden")}>
-        <div className="divide-y divide-[#EFEBFB]">
+      <section className={cn(CARD, "md:hidden")}>
+        <h3 className="text-[16px] font-semibold leading-5 text-[var(--qs-ink)]">How it works</h3>
+        <ol className="mt-3 list-none p-0">
           {STEPS.map((step, index) => (
-            <div key={step.title} className="flex gap-2.5 py-2.5 first:pt-1 last:pb-2.5">
-              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[12px] font-bold text-[var(--qs-ink)]">
+            <li
+              key={step.title}
+              className="grid grid-cols-[32px_1fr] gap-3 border-t border-[var(--qs-line)] py-3 first:border-t-0 first:pt-0 last:pb-0"
+            >
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border-[1.5px] border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[13px] font-semibold text-[var(--qs-ink)]">
                 {index + 1}
               </span>
               <div className="min-w-0">
-                <p className="text-[14px] font-semibold text-[var(--qs-ink)]">{step.title}</p>
-                <p className="mt-0.5 text-[13px] leading-3.5 text-[var(--qs-muted)]">{step.body}</p>
+                <b className="block text-[14px] font-semibold text-[var(--qs-ink)]">
+                  {step.title}
+                </b>
+                <p className="mt-px text-[13px] leading-[1.4] text-[var(--qs-muted)]">
+                  {step.body}
+                </p>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ol>
       </section>
 
-      <section className="grid items-start gap-3 md:gap-[22px] lg:grid-cols-[1fr_1.25fr]">
+      <section className="hidden items-start gap-3 md:grid md:gap-[22px] lg:grid-cols-[1fr_1.25fr]">
         <div className={CARD}>
           <h3 className="text-[16px] font-extrabold leading-5 text-[var(--qs-ink)] md:text-[19px] md:font-extrabold md:tracking-[-0.015em]">
             Your rewards
           </h3>
           <p className="mt-0.5 text-[13px] leading-3.5 font-medium text-[var(--qs-muted)] md:text-[13.5px]">
-            A quick look at how your invites are doing.
+            A quick look at how your referrals are doing.
           </p>
           <div className="mt-2.5 grid grid-cols-3 gap-1.5 md:mt-4 md:grid-cols-1 md:gap-3">
-            <StatRow label="Friends signed up" value={dashboard?.stats.friendsSignedUp ?? 0} />
-            <StatRow label="First plans bought" value={dashboard?.stats.firstPlansBought ?? 0} />
+            <StatRow label="Friends referred" value={dashboard?.stats.friendsSignedUp ?? 0} />
+            <StatRow label="Plans purchased" value={dashboard?.stats.firstPlansBought ?? 0} />
             <StatRow
               label="Credits earned"
               value={dashboard?.stats.creditsEarned ?? 0}
@@ -585,7 +588,7 @@ export function CreatorReferAndEarnPage() {
             Recent referrals
           </h3>
           <p className="mt-0.5 text-[13px] leading-3.5 font-medium text-[var(--qs-muted)] md:text-[13.5px]">
-            Credits show up once a new friend buys their first monthly plan.
+            Credits show up once a friend buys a monthly plan with your code.
           </p>
           {isLoading ? (
             <div className="mt-3 rounded-[16px] border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-9 text-center text-[13px] font-semibold text-[var(--qs-muted)]">
@@ -627,7 +630,7 @@ export function CreatorReferAndEarnPage() {
                     {entry.status === "qualified"
                       ? `+${entry.credits} credits`
                       : entry.status === "pending"
-                        ? "Awaiting plan"
+                        ? "Awaiting payment"
                         : "Not eligible"}
                   </span>
                 </div>
@@ -642,19 +645,102 @@ export function CreatorReferAndEarnPage() {
               <p className="mt-0.5 text-[13px] text-[var(--qs-muted)] md:mt-1 md:text-[14px]">
                 {loadError
                   ? "Use the retry button above to try again."
-                  : "Share your link to start earning credits."}
+                  : "Share your code to start earning credits."}
               </p>
             </div>
           )}
         </div>
       </section>
 
-      <p className="flex items-start justify-start gap-1.5 text-left text-[12px] font-medium leading-3.5 text-[var(--qs-muted)] md:justify-center md:gap-2 md:text-center md:text-[12px] md:leading-[1.4]">
+      {/* Mobile referrals */}
+      <section className={cn(CARD, "md:hidden")} aria-label="Your referrals">
+        <h3 className="text-[16px] font-semibold leading-5 text-[var(--qs-ink)]">
+          Your referrals
+        </h3>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <StatRow label="Friends" value={dashboard?.stats.friendsSignedUp ?? 0} />
+          <StatRow label="Plans" value={dashboard?.stats.firstPlansBought ?? 0} />
+          <StatRow
+            label="Credits earned"
+            value={dashboard?.stats.creditsEarned ?? 0}
+            highlight
+          />
+        </div>
+
+        <div className="mt-3 overflow-hidden rounded-[14px] border border-[var(--qs-line)]">
+          {isLoading ? (
+            <div className="px-4 py-6 text-center text-[13px] font-medium text-[var(--qs-muted)]">
+              Loading your referrals…
+            </div>
+          ) : dashboard && dashboard.recent.length > 0 ? (
+            dashboard.recent.map((entry, index) => (
+              <div
+                key={entry.id}
+                className={cn(
+                  "flex items-center gap-3 p-3",
+                  index > 0 && "border-t border-[var(--qs-line)]"
+                )}
+              >
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--qs-poly-1)] text-[14px] font-semibold text-[var(--qs-brand)]">
+                  {entry.displayName.charAt(0).toUpperCase()}
+                </span>
+                <div className="min-w-0">
+                  <b className="block truncate text-[14px] font-semibold text-[var(--qs-ink)]">
+                    {entry.displayName}
+                  </b>
+                  <small className="block truncate text-[12px] font-medium text-[var(--qs-muted)]">
+                    {referralSubtitle(entry)}
+                  </small>
+                </div>
+                <span
+                  className={cn(
+                    "ml-auto shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold",
+                    entry.status === "qualified" && "bg-[#dcf5ea] text-[#187a52]",
+                    entry.status === "pending" && "bg-[#fff1cc] text-[#8a5a00]",
+                    entry.status === "rejected" &&
+                      "bg-[var(--qs-line)]/40 text-[var(--qs-muted)]"
+                  )}
+                >
+                  {entry.status === "qualified"
+                    ? `+${entry.credits} credits`
+                    : entry.status === "pending"
+                      ? "Awaiting payment"
+                      : "Not eligible"}
+                </span>
+              </div>
+            ))
+          ) : (
+            <div className="flex flex-col items-center justify-center px-4 py-7 text-center">
+              <Users className="h-5 w-5 text-[var(--qs-muted)]" />
+              <p className="mt-1 text-[14px] font-semibold text-[var(--qs-ink)]">
+                {loadError ? "Couldn't load referrals" : "No referrals yet"}
+              </p>
+              <p className="mt-0.5 text-[12px] text-[var(--qs-muted)]">
+                {loadError
+                  ? "Use the retry button above to try again."
+                  : "Share your code to start earning credits."}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <p className="mt-3 flex items-start gap-1.5 text-[12px] leading-[1.4] text-[var(--qs-muted)]">
+          <Info className="mt-px h-3.5 w-3.5 shrink-0" />
+          <span>
+            Credits are added within a few minutes of your friend&apos;s monthly plan payment
+            and stay valid for 6 months.
+          </span>
+        </p>
+      </section>
+
+      <p className="hidden items-start justify-start gap-1.5 text-left text-[12px] font-medium leading-3.5 text-[var(--qs-muted)] md:flex md:justify-center md:gap-2 md:text-center md:text-[12px] md:leading-[1.4]">
         <ShieldCheck className="mt-px h-3 w-3 shrink-0 md:h-3.5 md:w-3.5" />
         <span>
-          Valid only for new users on their first monthly plan purchase. Existing accounts and
-          later purchases do not qualify. Credits are added to both accounts only after backend
-          payment verification.
+          Valid for monthly plans only. Each friend can use a referral code once, but your
+          code can be used by as many friends as you like. They can apply it at monthly plan
+          checkout even if they already have an account. Not valid on credit packs, trials
+          or renewals. Credits are added to both accounts only after backend payment
+          verification and stay valid for 6 months.
         </span>
       </p>
 
@@ -708,7 +794,7 @@ export function CreatorReferAndEarnPage() {
                 <span>
                   You both get{" "}
                   <b className="font-extrabold text-[var(--qs-sun)]">50 AI credits</b> when they
-                  buy their first monthly plan.
+                  buy a monthly plan with your code.
                 </span>
               </div>
 
@@ -765,13 +851,9 @@ export function CreatorReferAndEarnPage() {
                   <span className="whitespace-pre-wrap break-words">
                     {waMessage.trim()}
                   </span>
-                  <a
-                    href={referralLink}
-                    tabIndex={-1}
-                    className="mt-1.5 block break-all font-bold text-[#1560c8] underline"
-                  >
-                    {referralLink}
-                  </a>
+                  <span className="mt-1.5 block break-all rounded-[8px] bg-white/70 px-2 py-1 font-mono font-bold uppercase tracking-[0.06em] text-[var(--qs-brand)]">
+                    {referralCode}
+                  </span>
                   <time className="mt-0.5 block text-right text-[13px] font-semibold text-[var(--qs-muted)]">
                     now ✓✓
                   </time>
@@ -791,7 +873,7 @@ export function CreatorReferAndEarnPage() {
                   onClick={sendWhatsApp}
                   className={cn(BTN_CTA, "flex-1")}
                 >
-                  <WhatsAppGlyph className="h-[17px] w-[17px] text-[#1fa971]" />
+            <WhatsAppGlyph className="h-[17px] w-[17px] text-[#1fa971] max-md:h-5 max-md:w-5" />
                   Send on WhatsApp
                 </button>
               </div>

@@ -269,7 +269,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   if (backendLoading) {
     return (
       <div className="min-h-full bg-[var(--qs-bg)]">
-        <div className="mx-auto w-full max-w-[430px] px-4 pb-[104px] pt-1 sm:max-w-[1280px] sm:px-6 sm:py-6">
+        <div className="mx-auto w-full max-w-[473px] px-2 pb-[104px] pt-1 sm:max-w-[1280px] sm:px-6 sm:py-6">
           <div className="mb-6 flex items-center gap-3.5">
             <div className="app-skeleton h-[42px] w-[42px] shrink-0 rounded-[12px]" />
             <div>
@@ -298,7 +298,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   if (!room) {
     return (
       <div className="min-h-full bg-[var(--qs-bg)]">
-        <div className="mx-auto w-full max-w-[430px] px-4 pb-[104px] pt-1 sm:max-w-[1280px] sm:px-6 sm:py-6">
+        <div className="mx-auto w-full max-w-[473px] px-2 pb-[104px] pt-1 sm:max-w-[1280px] sm:px-6 sm:py-6">
           <div className="rounded-[22px] border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-surface)] px-6 py-16 text-center">
             <Users className="mx-auto h-8 w-8 text-[var(--qs-muted)]" />
             <h2 className="mt-3 text-lg font-black text-[var(--qs-ink)]">Room not found</h2>
@@ -425,10 +425,10 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
 
   return (
     <div className="min-h-full bg-[var(--qs-bg)]">
-      <div className="mx-auto w-full max-w-[430px] px-4 pb-[104px] pt-1 sm:max-w-[1280px] sm:px-6 sm:py-6">
+      <div className="mx-auto w-full max-w-[473px] px-2 pb-[104px] pt-1 sm:max-w-[1280px] sm:px-6 sm:py-6">
 
         {/* Top */}
-        <div className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="mb-5 flex flex-col gap-4 max-sm:mx-auto max-sm:max-w-[426px] sm:mb-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-start gap-2.5 sm:gap-3.5">
             <Link
               href={basePath}
@@ -496,13 +496,13 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                 onClick={() => setInviteOpen(true)}
                 disabled={room.archived}
                 title={room.archived ? "Restore the room before inviting students" : "Create a WhatsApp invite"}
-                className={cn(QS_WHATSAPP_BTN, "h-12 w-full justify-center text-base sm:h-auto sm:w-auto sm:text-sm")}
+                className={cn(QS_WHATSAPP_BTN, "h-12 w-full justify-center text-base text-white! sm:h-auto sm:w-auto sm:text-sm")}
               >
-                <WhatsAppIcon className="h-5 w-5 sm:h-4 sm:w-4" />
+                <WhatsAppIcon className="h-5 w-5 text-white! sm:h-4 sm:w-4" />
                 Invite on WhatsApp
               </button>
             )}
-            <div className={cn("flex w-full items-center gap-2 sm:contents", section !== "students" && "justify-end")}>
+            <div className={cn("flex w-full items-center gap-2 max-sm:hidden sm:contents", section !== "students" && "justify-end")}>
               {section === "students" && (
                 <>
                   <button
@@ -586,7 +586,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
         {section === "students" ? (
           <>
         {/* Filter bar */}
-        <div className="mb-5 flex flex-wrap items-center gap-3">
+        <div className="mb-5 flex flex-wrap items-center gap-3 max-sm:hidden">
           <div className="relative w-full sm:w-auto sm:min-w-[220px] sm:flex-[0_1_290px]">
             <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qs-muted)] sm:h-4 sm:w-4" />
             <input

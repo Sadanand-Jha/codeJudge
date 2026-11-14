@@ -27,7 +27,7 @@ export function TransactionDrawer({
   if (!transaction) return null;
 
   const actionFeedback = (label: string) =>
-    toast.info({ title: label, description: "This will be wired to the backend once available." });
+    toast.info({ title: label });
 
   return (
     <AnimatePresence>

@@ -406,6 +406,7 @@ export function MonthlyPlansPage({
   const runPlanPurchase = async (selection: {
     mode: "plan" | "bundle";
     bundleId?: number;
+    referralCode?: string;
   }) => {
     const plan = activeCheckoutPlan;
     if (!plan || phase === "processing") return;
@@ -419,7 +420,10 @@ export function MonthlyPlansPage({
         if (!selection.bundleId) {
           throw new Error("The bundle selection expired. Close this window and try again.");
         }
-        const order = await createBundleOrder({ bundleId: selection.bundleId });
+        const order = await createBundleOrder({
+          bundleId: selection.bundleId,
+          referralCode: selection.referralCode,
+        });
         setProcessingNote("Waiting for payment…");
         const payment: RazorpayPaymentPayload | null = await openRazorpayCheckout({
           order,
@@ -455,6 +459,7 @@ export function MonthlyPlansPage({
           credits: verified.credits,
           newBalance: verified.newBalance,
           expiresAt: verified.expiresAt,
+          referralCredits: verified.referralCredits,
         });
         setPhase("success");
         toast.success({
@@ -465,7 +470,12 @@ export function MonthlyPlansPage({
       }
 
       if (!activeCheckoutPrice) throw new Error("Please choose an available billing period.");
-      const order = await createPlanOrder({ planId: plan.id, planSlug: plan.slug, priceId: activeCheckoutPrice.id });
+      const order = await createPlanOrder({
+        planId: plan.id,
+        planSlug: plan.slug,
+        priceId: activeCheckoutPrice.id,
+        referralCode: selection.referralCode,
+      });
       setProcessingNote("Waiting for payment…");
       const payment: RazorpayPaymentPayload | null = await openRazorpayCheckout({
         order,
@@ -497,6 +507,7 @@ export function MonthlyPlansPage({
         credits: verified.credits,
         newBalance: verified.newBalance,
         expiresAt: verified.expiresAt,
+        referralCredits: verified.referralCredits,
       });
       setPhase("success");
       toast.success({
@@ -663,11 +674,11 @@ export function MonthlyPlansPage({
 
       <p className="flex flex-wrap items-center justify-center gap-1.5 text-center text-[14px] font-semibold text-[var(--qs-muted)] sm:text-[12.5px]">
         <CalendarClock className="hidden h-3.5 w-3.5 sm:block" />
-        Prices include GST. Plans activate immediately after payment.
+        Plans activate immediately after payment.
       </p>
 
       <section className="relative flex flex-col gap-2.5 overflow-hidden rounded-[26px] border-[1.5px] border-[var(--qs-ink)] border-b-[5px] border-b-[var(--qs-sun)] bg-[linear-gradient(150deg,#4a28b5,#6a3cf0)] px-5 py-5 text-white sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:rounded-[22px] sm:border-2 sm:px-5 sm:py-5 sm:shadow-[5px_5px_0_var(--qs-sun)]">
-        <span aria-hidden="true" className="pointer-events-none absolute -right-[50px] -top-[50px] h-[150px] w-[150px] rounded-full bg-white/[0.08]" />
+        <span aria-hidden="true" className="pointer-events-none absolute -right-[50px] -top-[50px] h-[150px] w-[150px] rounded-full bg-white/[0.08] max-sm:hidden" />
         <div className="relative z-[1] flex min-w-0 items-start gap-3 sm:gap-3">
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[14px] bg-[var(--qs-sun)] text-[#1A1240] sm:h-10 sm:w-10 sm:rounded-full sm:border-0">
             <Coins className="h-[22px] w-[22px] sm:h-4 sm:w-4" />

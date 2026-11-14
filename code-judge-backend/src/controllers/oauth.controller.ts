@@ -21,7 +21,6 @@ import {
   upsertOAuthUser,
 } from "../services/oauthAccount.js";
 import { userRepository } from "../repositories/user.repository.js";
-import { findReferrerByCode, recordSignupReferral } from "../services/referral.service.js";
 import { safeNextPath, setSessionCookie, cookieSameSite } from "../services/session.js";
 import type { OAuthErrorCode, OAuthProvider, OAuthStateRecord } from "../types/oauth.js";
 
@@ -85,29 +84,16 @@ function redirectToLogin(
   res.redirect(302, url.toString());
 }
 
-function redirectToCompleteProfile(
-  res: Response,
-  next: string | null,
-  referralCode: string | null,
-): void {
+function redirectToCompleteProfile(res: Response, next: string | null): void {
   const url = new URL("/complete-profile", getOAuthAppOrigin());
   const safeNext = safeNextPath(next);
   if (safeNext) url.searchParams.set("next", safeNext);
-  const safeReferral = safeReferralCode(referralCode);
-  if (safeReferral) url.searchParams.set("ref", safeReferral);
   noStore(res);
   res.redirect(302, url.toString());
 }
 
 function isSafeState(value: unknown): value is string {
   return typeof value === "string" && value.length >= 16 && value.length <= 512 && /^[A-Za-z0-9_-]+$/.test(value);
-}
-
-/** Malformed referral codes are ignored rather than blocking OAuth sign-in. */
-function safeReferralCode(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return /^[A-Za-z0-9-]{1,20}$/.test(trimmed) ? trimmed : null;
 }
 
 function isRecord(value: unknown): value is OAuthStateRecord {
@@ -119,9 +105,6 @@ function isRecord(value: unknown): value is OAuthStateRecord {
     record.codeVerifier.length >= 32 &&
     record.codeVerifier.length <= 512 &&
     (record.next === null || typeof record.next === "string") &&
-    (record.referralCode === undefined ||
-      record.referralCode === null ||
-      (typeof record.referralCode === "string" && /^[A-Za-z0-9-]{1,20}$/.test(record.referralCode))) &&
     typeof record.createdAt === "number"
   );
 }
@@ -145,7 +128,6 @@ export async function startOAuthController(req: Request, res: Response): Promise
 
   const provider = providerParam;
   const next = safeNextPath(req.query.next);
-  const referralCode = safeReferralCode(req.query.ref);
 
   if (!isProviderConfigured(provider)) {
     redirectToLogin(res, { oauth_error: "provider_not_configured", next });
@@ -158,7 +140,6 @@ export async function startOAuthController(req: Request, res: Response): Promise
       provider,
       codeVerifier,
       next,
-      referralCode,
       createdAt: Date.now(),
     };
 
@@ -279,7 +260,7 @@ export async function oauthCallbackController(req: Request, res: Response): Prom
     }
 
     if (user.needsOnboarding) {
-      redirectToCompleteProfile(res, next, record.referralCode ?? null);
+      redirectToCompleteProfile(res, next);
       return;
     }
 
@@ -314,28 +295,13 @@ export async function completeOAuthProfileController(req: Request, res: Response
     username,
     avatar_url: avatarUrl,
     account_type: accountType,
-    referral_code: referralCode,
   } = req.body as {
     username: string;
     avatar_url: string;
     account_type: "student" | "teacher";
-    referral_code?: string;
   };
 
   try {
-    const normalizedReferral = referralCode?.trim() || null;
-    const referrer = normalizedReferral
-      ? await findReferrerByCode(normalizedReferral)
-      : null;
-    if (normalizedReferral && !referrer) {
-      res.status(400).json({
-        success: false,
-        message: "Invalid referral code",
-        statusCode: 400,
-      });
-      return;
-    }
-
     const updated = await completeOAuthProfile(userId, username, avatarUrl, accountType);
     if (!updated) {
       res.status(400).json({
@@ -344,21 +310,6 @@ export async function completeOAuthProfileController(req: Request, res: Response
         statusCode: 400,
       });
       return;
-    }
-
-    if (referrer) {
-      try {
-        await recordSignupReferral({
-          referrerUserId: referrer.id,
-          referredUserId: Number(userId),
-          code: normalizedReferral as string,
-        });
-      } catch (referralError) {
-        console.error(
-          "[oauth] referral attribution failed",
-          referralError instanceof Error ? referralError.message : referralError,
-        );
-      }
     }
 
     const user = await userRepo.getUserInfo(userId);
