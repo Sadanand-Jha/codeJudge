@@ -1,5 +1,6 @@
-// Referral data access: shareable codes, signup attribution, qualification and
-// the zero-price credit grant orders used to make bonus credits spendable.
+// Referral data access: shareable codes, one-time referred-account attribution,
+// purchase qualification, and the zero-price credit grant orders used to make
+// bonus credits spendable.
 import type { Pool, PoolClient } from "pg";
 import { pool } from "../config/database.ts";
 
@@ -202,22 +203,6 @@ export async function setUserReferralCode(
     [userId, code]
   );
   return (result.rowCount ?? 0) > 0;
-}
-
-export async function insertReferral(
-  input: {
-    referrerUserId: number;
-    referredUserId: number;
-    code: string;
-  },
-  db: Db = pool
-): Promise<void> {
-  await db.query(
-    `INSERT INTO referrals (referrer_user_id, referred_user_id, code)
-     VALUES ($1, $2, $3)
-     ON CONFLICT (referred_user_id) DO NOTHING`,
-    [input.referrerUserId, input.referredUserId, input.code]
-  );
 }
 
 export async function getReferralStats(

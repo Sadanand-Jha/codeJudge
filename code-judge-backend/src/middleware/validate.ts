@@ -63,6 +63,8 @@ export const authRegisterSchema = z.object({
   registration_token: z.string().trim().min(16, "Invalid registration token").max(512),
   avatar_url: z.string().refine(isValidPredefinedAvatar, "Please select a valid avatar"),
   account_type: z.enum(["student", "teacher"]),
+  // Legacy signup referral: accepted from old clients but ignored now that
+  // referral codes are applied at monthly-plan checkout.
   referral_code: z
     .string()
     .trim()
@@ -83,6 +85,8 @@ export const completeOAuthProfileSchema = z.object({
     .regex(/^[a-z0-9]+$/, "Username can only contain lowercase letters and numbers"),
   avatar_url: z.string().refine(isValidPredefinedAvatar, "Please select a valid avatar"),
   account_type: z.enum(["student", "teacher"]),
+  // Legacy signup referral: accepted from old clients but ignored now that
+  // referral codes are applied at monthly-plan checkout.
   referral_code: z
     .string()
     .trim()

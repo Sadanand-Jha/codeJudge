@@ -1,7 +1,7 @@
-// Referral program business logic. Codes are generated on demand, signups are
-// attributed once, and a first paid plan purchase qualifies both sides for
-// spendable AI credits. Grant orders keep the existing credit ledger and
-// spending guards unchanged.
+// Referral program business logic. Every account gets a shareable code that can
+// be used by any number of friends, while each referred account can apply a
+// code only once. A qualifying monthly plan purchase rewards both sides with
+// spendable AI credits that stay valid for six months.
 import { randomBytes } from "node:crypto";
 import type { PoolClient } from "pg";
 import {
@@ -99,14 +99,6 @@ export async function ensureReferralCode(userId: number): Promise<string> {
   const raced = await getUserReferralCode(userId);
   if (raced) return raced;
   throw new Error("Could not save the referral code");
-}
-
-export async function findReferrerByCode(
-  code: string | null | undefined
-): Promise<{ id: number; username: string; displayName: string | null } | null> {
-  const normalized = normalizeCode(code);
-  if (!normalized) return null;
-  return findUserByReferralCode(normalized);
 }
 
 export type ReferralValidationReason =
